@@ -9,7 +9,7 @@ export const Footer = () => {
         <SocialLink link={LINKS.github} icon="github" />
       </div>
       <div className="copy">
-        © {new Date().getFullYear()} Subfrost. All rights reserved.
+        © {new Date().getFullYear()} Subzero Research LTD. All rights reserved.
       </div>
       <div className="clr" />
     </footer>
