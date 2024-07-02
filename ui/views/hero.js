@@ -12,18 +12,16 @@ const Hero = ({ mouse }) => {
               src="/images/subfrost.svg"
               height={60}
               width={60}
-              alt="Bring your runes-based protocol to life by deploying SUBFROST to your protocol DAO."
+              alt="Federated synthetics on Bitcoin L1. Interoperability built on stables."
             />
             
-          <GlitchText text="Subfrost" />
+          <GlitchText text="SUBFROST" />
           
             <TypedStrings
               strings={[
-                'Build on any network.',
-                'Define your rules.',
-                'Powered by Substrate.',
-                'Built with Rust.',
-                'AssemblyScript runtime.',
+                'BTC synthetics on runes.',
+                '1:1 reserve.',
+                'Built on protorunes.'
               ]}
               options={{
                 loop: true,
