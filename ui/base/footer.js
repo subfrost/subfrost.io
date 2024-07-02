@@ -5,7 +5,6 @@ export const Footer = () => {
   return (
     <footer>
       <div className="soc">
-        <SocialLink link={LINKS.linkedin} icon="linkedin" />
         <SocialLink link={LINKS.github} icon="github" />
       </div>
       <div className="copy">

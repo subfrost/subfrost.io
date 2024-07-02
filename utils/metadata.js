@@ -1,13 +1,13 @@
-const title = 'SUBFROST | L0 for runes.'
+const title = 'SUBFROST | L0 synthetics for metaprotocols';
 const description =
-  'Layer-0 stack for runes and protorunes. Decentralized algorithmic stables pegged to BTC, all on runes.'
+  'Layer-0 stack for runes and protorunes. Decentralized algorithmic stables pegged to BTC.'
 
 export const sharedMetadata = {
   metadataBase: new URL('https://subfrost.io/'),
   title,
   description,
   applicationName: title,
-  authors: [{ name: 'Subfrost & Co.' }],
+  authors: [{ name: 'Subzero Research Inc' }],
   openGraph: {
     title,
     description,

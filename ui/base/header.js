@@ -55,9 +55,9 @@ export const Header = () => {
               <li key={`nav-${i}`}>
                 <a
                   href={
-                    text === 'twitter'
+                    text === 'Twitter'
                       ? 'https://x.com/@subzeroresearch'
-                      : text === 'github' ? 'https://github.com/subfrost' : '#'
+                      : text === 'GitHub' ? 'https://github.com/subfrost' : '#'
                   }
                   className={type}
                 >
