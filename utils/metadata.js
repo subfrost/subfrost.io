@@ -1,5 +1,6 @@
-const title = "Subfrost | L0 for Metaprotocols";
-const description = "The first Layer-0 stack for a metaprotocol world. Decentralized and stateless compute, enabling protocols to be built on any network."
+const title = 'Subfrost | L0 for Metaprotocols';
+const description =
+  'The first Layer-0 stack for a metaprotocol world. Decentralized and stateless compute, enabling protocols to be built on any network.';
 
 export const sharedMetadata = {
   metadataBase: new URL('https://subfrost.io/'),
@@ -12,17 +13,17 @@ export const sharedMetadata = {
     description,
     images: [
       {
-        url: 'android-chrome-512x512.png',
-      },
+        url: 'android-chrome-512x512.png'
+      }
     ],
     locale: 'en_US',
-    type: 'website',
+    type: 'website'
   },
   twitter: {
     site: '@subfrost.io',
     title,
     description,
-    images: [{ url: 'android-chrome-512x512.png' }],
+    images: [{ url: 'android-chrome-512x512.png' }]
   },
-  keywords: ['frost', 'signature', 'blockchain', 'signing schema', 'brc20'],
+  keywords: ['frost', 'signature', 'blockchain', 'signing schema', 'brc20']
 };

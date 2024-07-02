@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 const NAV_ITEMS = [
   { text: 'GitHub', type: 'lnk', link: LINKS.github },
-  { text: 'Twitter', type: 'lnk', link: LINKS.twitter },
+  { text: 'Twitter', type: 'lnk', link: LINKS.twitter }
   // { text: 'Docs', type: 'lnk' },
   // { text: 'Whitepaper', type: 'btn' }
 ];
@@ -53,7 +53,7 @@ export const Header = () => {
           <ul>
             {NAV_ITEMS.map(({ text, type }, i) => (
               <li key={`nav-${i}`}>
-                <a href={`#${text.toLowerCase()}`} className={type}>
+                <a href={ text === 'twitter' ? 'https://x.com/@subzeroresearch' : 'https://github.com/subfrost'} className={type}>
                   {text}
                 </a>
               </li>

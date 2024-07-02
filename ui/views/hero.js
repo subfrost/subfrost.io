@@ -8,15 +8,15 @@ const Hero = ({ mouse }) => {
       <div className="centrize full-width">
         <div className="vertical-center">
           <div className="started-content">
-          <Image 
+            <Image
               src="/images/subfrost.svg"
               height={60}
               width={60}
               alt="Federated synthetics on Bitcoin L1. Interoperability built on stables."
             />
-            
-          <GlitchText text="SUBFROST" />
-          
+
+            <GlitchText text="SUBFROST" />
+
             <TypedStrings
               strings={[
                 'BTC synthetics on runes.',
