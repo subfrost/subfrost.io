@@ -53,7 +53,14 @@ export const Header = () => {
           <ul>
             {NAV_ITEMS.map(({ text, type }, i) => (
               <li key={`nav-${i}`}>
-                <a href={ text === 'twitter' ? 'https://x.com/@subzeroresearch' : 'https://github.com/subfrost'} className={type}>
+                <a
+                  href={
+                    text === 'twitter'
+                      ? 'https://x.com/@subzeroresearch'
+                      : text === 'github' ? 'https://github.com/subfrost' : '#'
+                  }
+                  className={type}
+                >
                   {text}
                 </a>
               </li>

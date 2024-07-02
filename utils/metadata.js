@@ -1,6 +1,6 @@
-const title = 'Subfrost | L0 for Metaprotocols';
+const title = 'SUBFROST | L0 for runes.'
 const description =
-  'The first Layer-0 stack for a metaprotocol world. Decentralized and stateless compute, enabling protocols to be built on any network.';
+  'Layer-0 stack for runes and protorunes. Decentralized algorithmic stables pegged to BTC, all on runes.'
 
 export const sharedMetadata = {
   metadataBase: new URL('https://subfrost.io/'),
