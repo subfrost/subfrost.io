@@ -1,6 +1,6 @@
 const title = 'SUBFROST | L0 synthetics for metaprotocols';
 const description =
-  'Layer-0 stack for runes and protorunes. Decentralized algorithmic stables pegged to BTC.'
+  'Layer-0 stack for runes and protorunes. Decentralized algorithmic stables pegged to BTC.';
 
 export const sharedMetadata = {
   metadataBase: new URL('https://subfrost.io/'),

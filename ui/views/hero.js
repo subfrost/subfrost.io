@@ -19,9 +19,10 @@ const Hero = ({ mouse }) => {
 
             <TypedStrings
               strings={[
-                'BTC synthetics on runes.',
+                'BTC synthetics on metaprotocols.',
                 '1:1 reserve.',
-                'Built on protorunes.'
+                'Synthetics on protorunes.',
+	        'Synthetics on OP_NET.'
               ]}
               options={{
                 loop: true,
