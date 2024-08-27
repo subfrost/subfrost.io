@@ -56,7 +56,7 @@ export const Header = () => {
                 <a
                   href={
                     text === 'Twitter'
-                      ? 'https://x.com/@subzeroresearch'
+                      ? 'https://x.com/@bc1SUBFROST'
                       : text === 'GitHub' ? 'https://github.com/subfrost' : '#'
                   }
                   className={type}
