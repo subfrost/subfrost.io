@@ -21,8 +21,8 @@ const Hero = ({ mouse }) => {
               strings={[
                 'BTC synthetics on metaprotocols.',
                 '1:1 reserve.',
-                'Synthetics on protorunes.',
-	        'Synthetics on OP_NET.'
+                'Synthetics on ALKANES.',
+                'Synthetics on OP_NET.'
               ]}
               options={{
                 loop: true,
