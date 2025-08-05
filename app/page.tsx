@@ -3,8 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import FrostBackdrop from "@/components/FrostBackdrop"
-import AnimatedSubtitle from "@/components/AnimatedSubtitle"
-import TopAnimatedSubtitle from "@/components/TopAnimatedSubtitle"
+import BottomAnimatedSubtitle from "@/components/BottomAnimatedSubtitle"
 import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
 import DevelopmentModal from "@/components/DevelopmentModal"
@@ -51,11 +50,6 @@ export default function Page() {
         <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl px-4 h-screen">
           {/* Content container with adjusted positioning */}
           <div className="flex flex-col items-center w-full absolute top-[40%] left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            {/* Bottom animated subtitle - now moved to the top */}
-            <div className="mb-4">
-              <AnimatedSubtitle />
-            </div>
-
             {/* SUBFROST title - changed B to ₿ */}
             <div className="w-full px-2 sm:px-0">
               <h1
@@ -69,7 +63,7 @@ export default function Page() {
 
             {/* Top subtitle below the title */}
             <div className="mt-1 mb-6">
-              <TopAnimatedSubtitle />
+              <BottomAnimatedSubtitle />
             </div>
 
             {/* Buttons section - moved from ButtonsSection */}

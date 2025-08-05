@@ -8,7 +8,10 @@ import "@/styles/fonts.css"
 export const metadata: Metadata = {
   title: "SUBFROST",
   description: "BTC synthetics on L1. Stake BTC to dxBTC with metaprotocols on taproot.",
-    generator: 'v0.dev'
+    generator: 'v0.dev',
+    openGraph: {
+        images: ['/snowflake_blue_center.svg'],
+    },
 }
 
 export default function RootLayout({
