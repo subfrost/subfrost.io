@@ -16,14 +16,14 @@ const ButtonsSection: React.FC<ButtonsSectionProps> = ({ openContactModal }) => 
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="flex flex-col items-center gap-6">
           <a
-            href="https://drive.google.com/file/d/1rgDUaGILrsir4tiMgQXytNoUvQq8ySFQ/view"
+            href="https://docs.subfrost.io/"
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
               `px-6 py-2.5 text-sm sm:text-base md:text-lg lg:text-xl rounded-md text-center ${BUTTON_WIDTH} uppercase font-bold snow-button`,
             )}
           >
-            READ WHITEPAPER
+            READ DOCS
           </a>
 
           <button

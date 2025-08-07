@@ -36,11 +36,11 @@ const SocialButtons: React.FC = () => {
         <Github className="w-5.5 h-5.5" />
       </a>
       <a
-        href="https://drive.google.com/file/d/1rgDUaGILrsir4tiMgQXytNoUvQq8ySFQ/view"
+        href="https://docs.subfrost.io/"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
-        aria-label="Whitepaper"
+        aria-label="Documentation"
       >
         <FileText className="w-5.5 h-5.5" />
       </a>
