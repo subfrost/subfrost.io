@@ -20,7 +20,7 @@ const ButtonsSection: React.FC<ButtonsSectionProps> = ({ openContactModal }) => 
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              `px-6 py-2.5 text-sm sm:text-base md:text-lg lg:text-xl rounded-md text-center ${BUTTON_WIDTH} uppercase font-bold snow-button`,
+              `px-6 py-2.5 text-2xs sm:text-xs md:text-base lg:text-base rounded-md text-center ${BUTTON_WIDTH} uppercase font-bold snow-button`,
             )}
           >
             READ DOCS
