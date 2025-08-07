@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import CustomModal from "./CustomModal"
-import ContactModal from "./ContactModal"
 
 interface WhatIsSubfrostModalProps {
   isOpen: boolean
@@ -14,7 +13,6 @@ interface WhatIsSubfrostModalProps {
 
 const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState<"overview" | "yield" | "security" | "tokens">("overview")
-  const [contactModalOpen, setContactModalOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const goToYieldPage = () => {
@@ -31,14 +29,6 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
 
   const goToTokensPage = () => {
     setCurrentPage("tokens")
-  }
-
-  const openContactModal = () => {
-    setContactModalOpen(true)
-  }
-
-  const closeContactModal = () => {
-    setContactModalOpen(false)
   }
 
   // Scroll to top when page changes or modal opens
@@ -355,17 +345,9 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
                 Read SUBFROST whitepaper
               </a>
             </div>
-
-            <div className="flex justify-center">
-              <button onClick={openContactModal} className="px-6 py-2 mt-0 rounded-md font-bold modal-action-button">
-                Reach out to us!
-              </button>
-            </div>
           </div>
         )}
       </CustomModal>
-
-      <ContactModal isOpen={contactModalOpen} onClose={closeContactModal} />
     </>
   )
 }

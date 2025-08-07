@@ -8,13 +8,9 @@ import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
 import DevelopmentModal from "@/components/DevelopmentModal"
 import SocialButtons from "@/components/SocialButtons"
-import ContactModal from "@/components/ContactModal"
-
-
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [contactModalOpen, setContactModalOpen] = useState(false)
 
   const handleEnterApp = () => {
     setIsModalOpen(true)
@@ -26,14 +22,6 @@ export default function Page() {
 
   const handleConfirmAndNavigate = () => {
     window.location.href = "https://app.subfrost.io"
-  }
-
-  const openContactModal = () => {
-    setContactModalOpen(true)
-  }
-
-  const closeContactModal = () => {
-    setContactModalOpen(false)
   }
 
   return (
@@ -64,29 +52,6 @@ export default function Page() {
             <div className="mt-1 mb-6">
               <BottomAnimatedSubtitle />
             </div>
-
-            {/* Buttons section - moved from ButtonsSection */}
-            <div className="flex flex-col items-center gap-6">
-              <a
-                href="https://docs.subfrost.io/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  `px-4 py-2 text-xs md:text-sm rounded-md text-center uppercase font-bold snow-button`,
-                )}
-              >
-                OFFICIAL DOCS
-              </a>
-
-              <button
-                onClick={openContactModal}
-                className={cn(
-                  `px-4 py-2 text-xs md:text-sm rounded-md uppercase font-bold snow-button`,
-                )}
-              >
-                CONTACT US
-              </button>
-            </div>
           </div>
         </div>
 
@@ -94,7 +59,6 @@ export default function Page() {
       </section>
 
       <DevelopmentModal isOpen={isModalOpen} onClose={handleCloseModal} onConfirm={handleConfirmAndNavigate} />
-      <ContactModal isOpen={contactModalOpen} onClose={closeContactModal} />
     </main>
   )
 }
