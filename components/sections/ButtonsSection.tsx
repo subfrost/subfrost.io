@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { cn } from "@/lib/utils"
-import { BUTTON_WIDTH } from "@/app/page"
+
 
 interface ButtonsSectionProps {
   openContactModal: () => void
@@ -20,7 +20,7 @@ const ButtonsSection: React.FC<ButtonsSectionProps> = ({ openContactModal }) => 
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              `px-6 py-2.5 text-2xs sm:text-xs md:text-base lg:text-base rounded-md text-center ${BUTTON_WIDTH} uppercase font-bold snow-button`,
+              `px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 text-2xs sm:text-xs md:text-base lg:text-base rounded-md text-center uppercase font-bold snow-button`,
             )}
           >
             READ DOCS
@@ -28,7 +28,7 @@ const ButtonsSection: React.FC<ButtonsSectionProps> = ({ openContactModal }) => 
 
           <button
             onClick={openContactModal}
-            className={cn(`px-6 py-2.5 text-sm sm:text-base md:text-lg lg:text-xl rounded-md ${BUTTON_WIDTH} uppercase font-bold snow-button`)}
+            className={cn(`px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 text-2xs sm:text-xs md:text-base lg:text-base rounded-md uppercase font-bold snow-button`)}
           >
             CONTACT US
           </button>

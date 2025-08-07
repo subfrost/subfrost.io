@@ -10,8 +10,7 @@ import DevelopmentModal from "@/components/DevelopmentModal"
 import SocialButtons from "@/components/SocialButtons"
 import ContactModal from "@/components/ContactModal"
 
-// Define a constant for button width to ensure consistency
-export const BUTTON_WIDTH = "w-40" // 10rem/160px
+
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -73,7 +72,7 @@ export default function Page() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  `px-4 py-2 text-xs md:text-sm rounded-md text-center ${BUTTON_WIDTH} uppercase font-bold snow-button`,
+                  `px-4 py-2 text-xs md:text-sm rounded-md text-center uppercase font-bold snow-button`,
                 )}
               >
                 OFFICIAL DOCS
