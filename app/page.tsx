@@ -8,6 +8,7 @@ import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
 import DevelopmentModal from "@/components/DevelopmentModal"
 import SocialButtons from "@/components/SocialButtons"
+import ActionButtons from "@/components/ActionButtons"
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -51,6 +52,7 @@ export default function Page() {
             {/* Top subtitle below the title */}
             <div className="mt-1 mb-6">
               <BottomAnimatedSubtitle />
+              <ActionButtons />
             </div>
           </div>
         </div>
