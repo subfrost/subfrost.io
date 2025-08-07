@@ -42,7 +42,7 @@ export default function Page() {
             <div className="w-full px-2 sm:px-0">
               <h1
                 className={cn(
-                  "text-[4rem] sm:text-[4.56rem] md:text-[6.08rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
+                  "text-[4rem] sm:text-[5rem] md:text-[7rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
                 )}
               >
                 SU₿FROST
