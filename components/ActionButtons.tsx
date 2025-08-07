@@ -14,13 +14,13 @@ const ActionButtons: React.FC = () => {
         href="https://docs.subfrost.io/"
         target="_blank"
         rel="noopener noreferrer"
-        className="px-6 py-3 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base"
+        className="px-6 py-2 w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base"
       >
         OFFICIAL DOCS
       </a>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="px-6 py-3 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base">
+          <button className="px-6 py-2 w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base">
             CONTACT US
           </button>
         </PopoverTrigger>
@@ -38,7 +38,7 @@ const ActionButtons: React.FC = () => {
               rel="noopener noreferrer"
               className="text-[#284372] hover:underline"
             >
-              DM us on X
+              Message us on X
             </a>
           </div>
         </PopoverContent>
