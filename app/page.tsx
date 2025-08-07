@@ -81,7 +81,7 @@ export default function Page() {
               <button
                 onClick={openContactModal}
                 className={cn(
-                  `px-4 py-2 text-xs md:text-sm rounded-md ${BUTTON_WIDTH} uppercase font-bold snow-button`,
+                  `px-4 py-2 text-xs md:text-sm rounded-md uppercase font-bold snow-button`,
                 )}
               >
                 CONTACT US
