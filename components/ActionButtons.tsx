@@ -14,13 +14,13 @@ const ActionButtons: React.FC = () => {
         href="https://docs.subfrost.io/"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base"
+        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm lg:text-base"
       >
         OFFICIAL DOCS
       </a>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-base lg:text-base">
+          <button className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm lg:text-base">
             CONTACT US
           </button>
         </PopoverTrigger>
