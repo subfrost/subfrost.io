@@ -7,7 +7,7 @@ import "@/styles/fonts.css"
 
 export const metadata: Metadata = {
   title: "SUBFROST",
-  description: "BTC synthetics on L1. Stake BTC to dxBTC with metaprotocols on taproot.",
+  description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
     generator: 'v0.dev',
     openGraph: {
         images: ['/snowflake_blue_center.svg'],
