@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
     generator: 'v0.dev',
     openGraph: {
-        images: ['/snowflake_blue_center.svg'],
+        images: ['/Logo.png'],
+    },
+    icons: {
+        icon: '/Logo.png',
     },
 }
 
