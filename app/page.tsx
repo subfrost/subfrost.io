@@ -9,9 +9,11 @@ import GlobalStyles from "@/components/GlobalStyles"
 import DevelopmentModal from "@/components/DevelopmentModal"
 import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
+import MetricsBoxes from "@/components/MetricsBoxes"
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(false)
 
   const handleEnterApp = () => {
     setIsModalOpen(true)
@@ -23,6 +25,10 @@ export default function Page() {
 
   const handleConfirmAndNavigate = () => {
     window.location.href = "https://app.subfrost.io"
+  }
+
+  const toggleMetrics = () => {
+    setShowMetrics(!showMetrics)
   }
 
   return (
@@ -37,7 +43,7 @@ export default function Page() {
         {/* Updated positioning to place the bottom of the title just above center */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl px-4 h-screen">
           {/* Content container with adjusted positioning */}
-          <div className="flex flex-col items-center w-full absolute top-[40%] left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="flex flex-col items-center w-full absolute top-[50%] left-1/2 transform -translate-x-1/2 -translate-y-1/2">
             {/* SUBFROST title - changed B to ₿ */}
             <div className="w-full px-2 sm:px-0">
               <h1
@@ -50,9 +56,17 @@ export default function Page() {
             </div>
 
             {/* Top subtitle below the title */}
-            <div className="mt-1 mb-6">
-              <BottomAnimatedSubtitle />
-              <ActionButtons />
+            <div className="mt-1 mb-6 flex flex-col items-center">
+              <div className="flex justify-center w-full">
+                <BottomAnimatedSubtitle />
+              </div>
+              <ActionButtons onMetricsClick={toggleMetrics} showMetrics={showMetrics} />
+              <div className="md:hidden">
+                {showMetrics && <MetricsBoxes />}
+              </div>
+              <div className="hidden md:block">
+                <MetricsBoxes />
+              </div>
             </div>
           </div>
         </div>
