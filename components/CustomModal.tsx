@@ -10,9 +10,17 @@ interface CustomModalProps {
   title: string
   children: React.ReactNode
   contentRef?: React.RefObject<HTMLDivElement>
+  modalClassName?: string
 }
 
-const CustomModal: React.FC<CustomModalProps> = ({ isOpen, onClose, title, children, contentRef }) => {
+const CustomModal: React.FC<CustomModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  contentRef,
+  modalClassName,
+}) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const defaultContentRef = useRef<HTMLDivElement>(null)
   const activeContentRef = contentRef || defaultContentRef
@@ -47,7 +55,10 @@ const CustomModal: React.FC<CustomModalProps> = ({ isOpen, onClose, title, child
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div ref={modalRef} className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+      <div
+        ref={modalRef}
+        className={`bg-white rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-hidden ${modalClassName}`}
+      >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-bold">{title}</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">

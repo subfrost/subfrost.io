@@ -87,4 +87,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  html,
+  body {
+    height: 100vh; /* Use vh for viewport height */
+    overflow: hidden;
+  }
+}
+
+.metrics-open {
+  overflow-y: auto;
 }

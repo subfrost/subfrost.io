@@ -12,23 +12,28 @@ const Footer: React.FC = () => {
   return (
     <footer
       className={cn(
-        "fixed bottom-0 left-0 right-0 md:absolute w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 backdrop-blur-sm z-50 uppercase font-bold",
+        "fixed bottom-0 left-0 right-0 md:absolute w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-50 uppercase font-bold",
       )}
     >
       <div className="flex items-center space-x-2 md:pr-8">
         <p>&copy; 2025 SUBZERO RESEARCH INC.</p>
-        <button onClick={() => setTosOpen(true)} className="underline hover:text-slate-600 transition-colors font-bold">
+        <button onClick={() => setTosOpen(true)} className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent">
           TERMS OF SERVICE
         </button>
         <button
           onClick={() => setPrivacyOpen(true)}
-          className="underline hover:text-slate-600 transition-colors font-bold"
+          className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent"
         >
           PRIVACY POLICY
         </button>
       </div>
 
-      <CustomModal isOpen={tosOpen} onClose={() => setTosOpen(false)} title="TERMS OF SERVICE">
+      <CustomModal
+        isOpen={tosOpen}
+        onClose={() => setTosOpen(false)}
+        title="TERMS OF SERVICE"
+        modalClassName="mb-32"
+      >
         <div className={cn("text-xs space-y-6 text-muted-foreground uppercase font-bold")}>
           <p className="text-sm font-bold text-foreground">LAST UPDATED: JANUARY 7, 2025</p>
 
@@ -86,7 +91,12 @@ const Footer: React.FC = () => {
         </div>
       </CustomModal>
 
-      <CustomModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} title="PRIVACY POLICY">
+      <CustomModal
+        isOpen={privacyOpen}
+        onClose={() => setPrivacyOpen(false)}
+        title="PRIVACY POLICY"
+        modalClassName="mb-32"
+      >
         <div className={cn("text-xs space-y-6 text-muted-foreground uppercase font-bold")}>
           <p className="text-sm font-bold text-foreground">LAST UPDATED: JANUARY 7, 2025</p>
 
@@ -105,7 +115,7 @@ const Footer: React.FC = () => {
               <li>WE DO NOT COLLECT OR STORE ANY PERSONAL INFORMATION</li>
               <li>WE DO NOT USE COOKIES OR TRACKING TECHNOLOGIES</li>
               <li>WE DO NOT MAINTAIN USER ACCOUNTS OR PROFILES</li>
-              <li>WE DO NOT TRACK OR STORE TRANSACTION DATA</li>
+              <li>WE DO not TRACK OR STORE TRANSACTION DATA</li>
             </ul>
           </section>
 

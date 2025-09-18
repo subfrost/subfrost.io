@@ -37,7 +37,7 @@ export default function RootLayout({
         </Script>
         <link href="https://fonts.cdnfonts.com/css/satoshi" rel="stylesheet" />
       </head>
-      <body className={cn("min-h-screen bg-background font-satoshi antialiased")}>{children}</body>
+      <body className={cn("bg-background font-satoshi antialiased")}>{children}</body>
     </html>
   )
 }

@@ -32,11 +32,11 @@ export default function Page() {
   }
 
   return (
-    <main className="relative overflow-x-hidden">
+    <main className={cn("relative", { "metrics-open": showMetrics })}>
       <GlobalStyles />
 
       {/* Hero Section - Keep FrostBackdrop */}
-      <section className="relative flex min-h-screen flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50 snap-start">
+      <section className="relative flex h-screen flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
 
