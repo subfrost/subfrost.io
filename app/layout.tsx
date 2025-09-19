@@ -6,10 +6,11 @@ import "@/styles/globals.css"
 import "@/styles/fonts.css"
 
 export const metadata: Metadata = {
-  // TODO: Verify this is the correct production URL
-  metadataBase: new URL("https://subfrost.io"),
   title: "SUBFROST",
   description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
+  // CHADSON-COMMENT: Set metadataBase to resolve social open graph and twitter images.
+  // CHADSON-ASSUMPTION: Assuming 'https://subfrost.io' is the production URL. Please verify.
+  metadataBase: new URL('https://subfrost.io'),
     generator: 'v0.dev',
     openGraph: {
         images: ['/Logo.png'],
