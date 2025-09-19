@@ -6,6 +6,8 @@ import "@/styles/globals.css"
 import "@/styles/fonts.css"
 
 export const metadata: Metadata = {
+  // TODO: Verify this is the correct production URL
+  metadataBase: new URL("https://subfrost.io"),
   title: "SUBFROST",
   description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
     generator: 'v0.dev',

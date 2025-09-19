@@ -3,7 +3,6 @@
 import type React from "react"
 import { Github, FileText } from "lucide-react"
 import XIcon from "./XIcon"
-import DiscordIcon from "./DiscordIcon"
 
 const SocialButtons: React.FC = () => {
   return (
@@ -16,15 +15,6 @@ const SocialButtons: React.FC = () => {
         aria-label="X.com"
       >
         <XIcon className="w-4 h-4" />
-      </a>
-      <a
-        href="https://discord.gg/zBkpaDAt2W"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
-        aria-label="Discord"
-      >
-        <DiscordIcon className="w-4 h-4" />
       </a>
       <a
         href="https://github.com/subfrost"

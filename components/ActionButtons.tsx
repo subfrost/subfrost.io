@@ -35,7 +35,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, showMetri
               href="mailto:inquiries@subfrost.io"
               className="text-[#284372] hover:underline"
             >
-              Email Us
+              Email us
             </a>
             <a
               href="https://x.com/SUBFROSTio/"
