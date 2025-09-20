@@ -39,7 +39,7 @@ const partnershipSections = [
           {
             logo: '/Partner Logos/alkamon.jpg',
             name: 'Alkamon',
-            description: 'First Game on Bitcoin L1 from Alkamist Team',
+            description: 'First Game on Bitcoin L1 from the Alkamist Team',
             link: '#',
           },
           {
@@ -72,7 +72,7 @@ const partnershipSections = [
             link: 'https://www.saturnbtc.io/app/swap',
           },
           {
-            logo: '/Partner Logos/best in slot.jpg',
+            logo: '/Partner Logos/bestinslot.png',
             name: '[Best in Slot]',
             description: 'Premier DEX on BRC2.0',
             link: 'https://bestinslot.xyz/',
@@ -98,8 +98,8 @@ const partnershipSections = [
     partners: [
       {
         logo: '/Partner Logos/bound money.png',
-        name: 'Bound Money (bUSD)',
-        description: 'USD stablecoin on Bitcoin Layer 1',
+        name: 'Bound Money',
+        description: 'USD stablecoin (bUSD) on Bitcoin Layer 1',
         link: 'https://bound.money/',
       },
       {
