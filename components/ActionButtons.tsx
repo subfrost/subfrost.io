@@ -10,9 +10,10 @@ import {
 interface ActionButtonsProps {
   onMetricsClick: () => void;
   showMetrics: boolean;
+  onPartnershipsClick: () => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, showMetrics }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, showMetrics, onPartnershipsClick }) => {
   return (
     <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
       <a
@@ -23,31 +24,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, showMetri
       >
         OFFICIAL DOCS
       </a>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm ">
-            CONTACT US
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto">
-          <div className="flex flex-col gap-2 text-sm">
-            <a
-              href="mailto:inquiries@subfrost.io"
-              className="text-[#284372] hover:underline"
-            >
-              Email Us
-            </a>
-            <a
-              href="https://x.com/SUBFROSTio/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#284372] hover:underline"
-            >
-              Message us on X
-            </a>
-          </div>
-        </PopoverContent>
-      </Popover>
+      <button
+        onClick={onPartnershipsClick}
+        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm"
+      >
+        PARTNERSHIPS
+      </button>
       <button
         onClick={onMetricsClick}
         className="flex md:hidden justify-center px-6 py-2 w-36 sm:w-40 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs"

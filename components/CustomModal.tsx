@@ -57,7 +57,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
       <div
         ref={modalRef}
-        className={`bg-white rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-hidden ${modalClassName}`}
+        className={`bg-white rounded-lg shadow-lg max-w-md  max-h-[80vh] overflow-hidden ${modalClassName}`}
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-bold">{title}</h2>

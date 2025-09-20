@@ -6,34 +6,31 @@ import FrostBackdrop from "@/components/FrostBackdrop"
 import BottomAnimatedSubtitle from "@/components/BottomAnimatedSubtitle"
 import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
-import DevelopmentModal from "@/components/DevelopmentModal"
 import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
 import MetricsBoxes from "@/components/MetricsBoxes"
+import PartnershipsModal from "@/components/PartnershipsModal"
 
 export default function Page() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [showMetrics, setShowMetrics] = useState(false)
-
-  const handleEnterApp = () => {
-    setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-  }
-
-  const handleConfirmAndNavigate = () => {
-    window.location.href = "https://app.subfrost.io"
-  }
+  const [isPartnershipsModalOpen, setIsPartnershipsModalOpen] = useState(false)
 
   const toggleMetrics = () => {
     setShowMetrics(!showMetrics)
   }
 
+  const handleOpenPartnershipsModal = () => {
+    setIsPartnershipsModalOpen(true)
+  }
+
+  const handleClosePartnershipsModal = () => {
+    setIsPartnershipsModalOpen(false)
+  }
+
   return (
     <main className={cn("relative", { "metrics-open": showMetrics })}>
       <GlobalStyles />
+      <PartnershipsModal isOpen={isPartnershipsModalOpen} onClose={handleClosePartnershipsModal} />
 
       {/* Hero Section - Keep FrostBackdrop */}
       <section className="relative flex h-screen flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
@@ -60,12 +57,12 @@ export default function Page() {
               <div className="flex justify-center w-full">
                 <BottomAnimatedSubtitle />
               </div>
-              <ActionButtons onMetricsClick={toggleMetrics} showMetrics={showMetrics} />
+              <ActionButtons onMetricsClick={toggleMetrics} showMetrics={showMetrics} onPartnershipsClick={handleOpenPartnershipsModal} />
               <div className="md:hidden">
-                {showMetrics && <MetricsBoxes />}
+                {showMetrics && <MetricsBoxes onPartnershipsClick={handleOpenPartnershipsModal} />}
               </div>
               <div className="hidden md:block">
-                <MetricsBoxes />
+                <MetricsBoxes onPartnershipsClick={handleOpenPartnershipsModal} />
               </div>
             </div>
           </div>
@@ -73,8 +70,6 @@ export default function Page() {
 
         <Footer />
       </section>
-
-      <DevelopmentModal isOpen={isModalOpen} onClose={handleCloseModal} onConfirm={handleConfirmAndNavigate} />
     </main>
   )
 }
