@@ -1,3 +1,11 @@
+/**
+ * @file components/Footer.tsx
+ * @description This component renders the footer with responsive positioning and includes modals for Terms of Service and Privacy Policy.
+ *
+ * The footer is styled to be `fixed` at the bottom on mobile screens, ensuring it is always visible. On medium-sized screens and larger (`md:`), its positioning changes to `absolute` to integrate with the main content layout. This responsive behavior prevents layout issues on smaller devices while maintaining the intended design on desktops.
+ *
+ * The component also manages the state for the "Terms of Service" and "Privacy Policy" modals, which are displayed when the corresponding buttons are clicked. The modals are implemented using the `CustomModal` component and contain static legal text.
+ */
 "use client"
 
 import type React from "react"
@@ -12,7 +20,7 @@ const Footer: React.FC = () => {
   return (
     <footer
       className={cn(
-        "fixed bottom-0 left-0 right-0 md:absolute w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-50 uppercase font-bold",
+        "fixed md:absolute bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-50 uppercase font-bold",
       )}
     >
       <div className="flex items-center space-x-2 md:pr-8">

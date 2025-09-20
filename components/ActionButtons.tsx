@@ -1,3 +1,11 @@
+/**
+ * @file components/ActionButtons.tsx
+ * @description This component renders the primary user actions, including buttons for documentation, partnerships, and metrics.
+ *
+ * The buttons are designed to be fully responsive. On mobile devices, they stack vertically (`flex-col`) to ensure they fit within the viewport, while on medium screens and larger (`md:`), they align horizontally (`md:flex-row`). The width of the buttons is also responsive, using `w-36` on the smallest screens, `sm:w-40` on small screens, and `md:w-48` on medium screens and up.
+ *
+ * The "METRICS" button is conditionally rendered and hidden on medium screens and larger (`md:hidden`), as it is expected to be part of a different layout on desktop. The component also manages the state for the "Partnerships" modal, which is triggered by the corresponding button.
+ */
 "use client"
 
 import type React from "react"
