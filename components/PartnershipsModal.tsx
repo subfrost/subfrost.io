@@ -22,7 +22,7 @@ const partnershipSections = [
     title: 'Bitcoin DeFi Platforms',
     subSections: [
       {
-        title: 'Focus on Alkanes',
+        title: 'Alkanes Ecosystem Partners',
         partners: [
           {
             logo: '/Partner Logos/oyl.jpg',
@@ -63,7 +63,7 @@ const partnershipSections = [
         ],
       },
       {
-        title: 'Focus Outside of Alkanes (not yet available)',
+        title: 'Ecosystem Expansion Partners',
         partners: [
           {
             logo: '/Partner Logos/saturn.jpg',
@@ -94,7 +94,7 @@ const partnershipSections = [
     ],
   },
   {
-    title: 'Enablement',
+    title: 'Enablement Partners',
     partners: [
       {
         logo: '/Partner Logos/bound money.png',
@@ -123,7 +123,7 @@ const partnershipSections = [
       {
         logo: '/Partner Logos/pashov.png',
         name: 'Pashov Audit Group',
-        description: 'Initial Technical Audits of SUBFROST',
+        description: 'Initial Technical Audits (TBD) of SUBFROST',
         link: 'https://www.pashov.net/',
       },
     ],

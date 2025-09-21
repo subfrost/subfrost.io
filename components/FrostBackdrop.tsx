@@ -1,3 +1,18 @@
+/**
+ * @file components/FrostBackdrop.tsx
+ * @description Renders a dynamic background with falling snowflakes, including SVG-based shapes and Bitcoin symbols.
+ *
+ * This component generates a specified number of "snowflakes" and animates them to fall from top to bottom.
+ * The snowflakes are a mix of predefined SVG components and a text-based Bitcoin symbol (₿).
+ *
+ * Key Features:
+ * - Randomly selects from a variety of snowflake types with weighted probability.
+ * - Assigns random sizes, rotations, and animation durations for a natural effect.
+ * - Bitcoin snowflakes have a separate size range to control their appearance.
+ * - Uses CSS animations for smooth, performant motion.
+ *
+ * The component is implemented with React hooks and is client-side rendered ("use client").
+ */
 "use client"
 
 import type React from "react"
@@ -69,8 +84,17 @@ const Snowflake6 = () => (
   </svg>
 )
 
+// Bitcoin "B" Snowflake
+const BitcoinSnowflake = () => (
+  <div style={{ color: "rgba(255, 255, 255, 0.7)", fontFamily: "Nunito, sans-serif", fontWeight: "bold" }}>
+    ₿
+  </div>
+)
+
 // Array of all snowflake components
 const snowflakeTypes = [Snowflake1, Snowflake2, Snowflake3, Snowflake4, Snowflake5, Snowflake6]
+const bitcoinSnowflakeType = BitcoinSnowflake;
+const bitcoinFontSizes = ['12px', '16px', '20px', '24px'];
 
 const FrostBackdrop: React.FC = () => {
   const [snowflakes, setSnowflakes] = useState<React.ReactNode[]>([])
@@ -79,25 +103,47 @@ const FrostBackdrop: React.FC = () => {
     const flakes = []
     // Increased from 80 to 100 snowflakes
     for (let i = 0; i < 100; i++) {
-      // Randomly select a snowflake type
-      const SnowflakeComponent = snowflakeTypes[Math.floor(Math.random() * snowflakeTypes.length)]
+      // Randomly select a snowflake type, with a lower chance for Bitcoin.
+      let SnowflakeComponent;
+      if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
+        SnowflakeComponent = bitcoinSnowflakeType;
+      } else {
+        SnowflakeComponent = snowflakeTypes[Math.floor(Math.random() * snowflakeTypes.length)];
+      }
 
-      // Randomize size slightly
-      const size = 0.35 + Math.random() * 0.17 // 0.35 to 0.52 scale factor
-
+      // Add random rotation
+      const rotation = Math.random() * 360 // 0 to 360 degrees
+      
       // Updated animation duration to 20-140 seconds
       const animationDuration = 30 + Math.random() * 100 // 20 to 100 seconds
+      
+      let style: React.CSSProperties;
 
-      const style = {
-        position: "absolute",
-        left: `${Math.random() * 100}%`,
-        top: `-50px`,
-        animation: `fall ${animationDuration}s linear infinite`,
-        animationDelay: `${-Math.random() * 30}s`, // 0-30 seconds delay
-        transform: `scale(${size})`,
+      if (SnowflakeComponent === BitcoinSnowflake) {
+        const fontSize = bitcoinFontSizes[Math.floor(Math.random() * bitcoinFontSizes.length)];
+        style = {
+          position: "absolute",
+          left: `${Math.random() * 100}%`,
+          top: `-50px`,
+          animation: `fall ${animationDuration}s linear infinite`,
+          animationDelay: `${-Math.random() * 30}s`,
+          transform: `rotate(${rotation}deg)`,
+          fontSize: fontSize,
+        };
+      } else {
+        const size = 0.35 + Math.random() * 0.5; // 0.35 to 0.85 scale factor for others
+        style = {
+          position: "absolute",
+          left: `${Math.random() * 100}%`,
+          top: `-50px`,
+          animation: `fall ${animationDuration}s linear infinite`,
+          animationDelay: `${-Math.random() * 30}s`,
+          transform: `scale(${size}) rotate(${rotation}deg)`,
+        };
       }
+
       flakes.push(
-        <div key={i} style={style as React.CSSProperties}>
+        <div key={i} style={style}>
           <SnowflakeComponent />
         </div>,
       )

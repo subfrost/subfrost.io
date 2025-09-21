@@ -35,6 +35,11 @@ export default function Page() {
     setIsPartnershipsModalOpen(true)
   }
 
+  const handleOpenPartnershipsAndCloseMetrics = () => {
+    handleCloseMetricsModal()
+    handleOpenPartnershipsModal()
+  }
+
   const handleClosePartnershipsModal = () => {
     setIsPartnershipsModalOpen(false)
   }
@@ -60,7 +65,7 @@ export default function Page() {
           onClose={handleCloseMetricsModal}
           title="Metrics"
         >
-          <MetricsBoxes onPartnershipsClick={handleOpenPartnershipsModal} isModal={true} />
+          <MetricsBoxes onPartnershipsClick={handleOpenPartnershipsAndCloseMetrics} isModal={true} />
         </CustomModal>
       </div>
 
