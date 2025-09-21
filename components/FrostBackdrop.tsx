@@ -10,7 +10,7 @@
  * - Assigns random sizes, rotations, and animation durations for a natural effect.
  * - Bitcoin snowflakes have a separate size range to control their appearance.
  * - Uses CSS animations for smooth, performant motion.
- * - Reduces snowflake count by 50% on mobile devices for better performance.
+ * - Reduces snowflake count to 70 on mobile devices for better performance.
    * - Reduces the size of Bitcoin snowflakes on mobile devices.
  *
  * The component is implemented with React hooks and is client-side rendered ("use client").
@@ -106,7 +106,7 @@ const FrostBackdrop: React.FC = () => {
 
   useEffect(() => {
     // On mobile, render 50% fewer snowflakes for performance.
-    const snowflakeCount = isMobile ? 50 : 100;
+    const snowflakeCount = isMobile ? 70 : 100;
     const flakes = []
     for (let i = 0; i < snowflakeCount; i++) {
       // Randomly select a snowflake type, with a lower chance for Bitcoin.
