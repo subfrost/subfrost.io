@@ -63,7 +63,7 @@ const partnershipSections = [
         ],
       },
       {
-        title: 'Ecosystem Expansion Partners',
+        title: 'Ecosystem Expansion Partners (not yet live)',
         partners: [
           {
             logo: '/Partner Logos/saturn.jpg',
@@ -143,11 +143,11 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
       <div className="space-y-8">
         {partnershipSections.map((section, sectionIndex) => (
           <div key={sectionIndex}>
-            {section.title && <h2 className="text-lg font-bold text-white mb-4" style={subHeaderStyle}>{section.title}</h2>}
+            {section.title && <h2 className="text-lg font-bold mb-4" style={subHeaderStyle}>{section.title}</h2>}
             {section.subSections ? (
               section.subSections.map((subSection, subIndex) => (
                 <div key={subIndex} className="mb-8">
-                  {subSection.title && <h3 className="text-md font-bold text-white mb-4" style={subHeaderStyle}>{subSection.title}</h3>}
+                  {subSection.title && <h3 className="text-sm font-bold mb-4" style={subHeaderStyle}>{subSection.title}</h3>}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center">
                     {subSection.partners.map((partner, index) => (
                       <PartnershipCard
@@ -177,17 +177,23 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
           </div>
         ))}
       </div>
-      <div className="text-center mt-8 text-sm text-white">
+      <div className="text-center mt-8 text-sm">
         Interested in integrating frBTC?{' '}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="text-white hover:underline font-bold">Contact Us!</button>
+            {/* 
+              * @chadlina_bugfix (2025-09-21)
+              * - The text color of the "Contact Us" link was changed to blue to match the style of the contact popover in the social icons.
+              * - The popover content was also updated to match the social icons' popover style.
+              * - The button text was changed to "Contact us" for consistency.
+              */}
+            <button className="text-[#284372] hover:underline font-bold">Contact us.</button>
           </PopoverTrigger>
           <PopoverContent className="w-auto">
             <div className="flex flex-col gap-2 text-sm">
               <a
                 href="mailto:inquiries@subfrost.io"
-                className="text-white hover:underline"
+                className="text-[#284372] hover:underline"
               >
                 Email Us
               </a>
@@ -195,7 +201,7 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
                 href="https://x.com/SUBFROSTio/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:underline"
+                className="text-[#284372] hover:underline"
               >
                 Message us on X
               </a>

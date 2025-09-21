@@ -1,10 +1,20 @@
 // components/MetricsBoxes.tsx
-// This component will display the four metric boxes as requested.
-// It will be styled with Tailwind CSS to be responsive and match the ActionButtons component.
-// 2025-09-19: Adjusted text-shadow on metric values for better visibility, now using a blue tint.
-// 2025-09-20: Added `isModal` prop to adjust grid layout and text color when rendered inside a modal.
-// 2025-09-20: Increased title font size and changed link color to white in modal view.
-// 2025-09-20: Made metric titles bold.
+// This component displays four metric boxes with responsive styling.
+// It adapts its layout and styling based on whether it's rendered within a modal.
+//
+// Design Decisions:
+// - Metric values have a blue text-shadow for better visibility against various backgrounds.
+// - The component uses an `isModal` prop to switch between a 4-column layout (desktop)
+//   and a 2-column layout (modal/mobile).
+// - All text (titles, links) uses the brand's blue color (`#284372`) for consistency,
+//   while metric values are white.
+//
+// Journal:
+// - 2025-09-19: Initial implementation with responsive grid and basic styling.
+// - 2025-09-20: Introduced `isModal` prop to handle layout and style variations.
+// - 2025-09-21 (Chadlina): Refactored styling to unify text colors across modal and non-modal
+//   views for a consistent user experience on all screen sizes, per user feedback.
+//   Titles and links are now consistently blue.
 
 "use client";
 
@@ -55,7 +65,7 @@ const metrics = [
 
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
   const renderLink = (metric: any) => {
-    const linkClasses = isModal ? "text-white underline" : "text-[#284372] underline";
+    const linkClasses = "text-[#284372] underline";
     const linkStyle = { fontSize: isModal ? '0.7rem' : '0.6rem' };
 
     const linkElement = (
@@ -97,7 +107,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
               className="border border-white p-4 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
             >
               <div>
-                <p className={`${isModal ? "text-white" : "text-[#284372]"} font-bold`} style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
+                <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
                 <p className="font-bold text-white" style={{ fontSize: '1.8rem', textShadow: '0 0 10px rgba(190, 227, 248, 0.8)' }}>{metric.value}</p>
               </div>
               <div className="mt-auto">

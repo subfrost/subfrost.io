@@ -58,7 +58,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
     <>
       <CustomModal isOpen={isOpen} onClose={onClose} title={getTitle()} contentRef={contentRef}>
         {currentPage === "overview" ? (
-          <div className={cn("text-xs space-y-6 font-medium")}>
+          <div className={cn("text-xs space-y-6 font-medium text-[#284372]")}>
             <div className="flex justify-between items-center mb-2">
               <button onClick={goToSecurityPage} className="flex items-center text-[#284372] hover:text-blue-700">
                 <ArrowLeft className="h-3 w-3 mr-1" /> Back to Protocol Security
@@ -144,7 +144,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
             </div>
           </div>
         ) : currentPage === "yield" ? (
-          <div className={cn("text-xs space-y-6 font-medium")}>
+          <div className={cn("text-xs space-y-6 font-medium text-[#284372]")}>
             <div className="flex justify-between items-center mb-2">
               <button onClick={goToOverviewPage} className="flex items-center text-[#284372] hover:text-blue-700">
                 <ArrowLeft className="h-3 w-3 mr-1" /> Back to Overview
@@ -206,7 +206,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
             </div>
           </div>
         ) : currentPage === "tokens" ? (
-          <div className={cn("text-xs space-y-6 font-medium")}>
+          <div className={cn("text-xs space-y-6 font-medium text-[#284372]")}>
             <div className="flex justify-between items-center mb-2">
               <button onClick={goToYieldPage} className="flex items-center text-[#284372] hover:text-blue-700">
                 <ArrowLeft className="h-3 w-3 mr-1" /> Back to Yield
@@ -291,7 +291,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
             </div>
           </div>
         ) : (
-          <div className={cn("text-xs space-y-6 font-medium")}>
+          <div className={cn("text-xs space-y-6 font-medium text-[#284372]")}>
             <div className="flex justify-between items-center mb-2">
               <button onClick={goToTokensPage} className="flex items-center text-[#284372] hover:text-blue-700">
                 <ArrowLeft className="h-3 w-3 mr-1" /> Back to Tokens

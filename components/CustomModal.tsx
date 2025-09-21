@@ -16,6 +16,7 @@ interface CustomModalProps {
   children: React.ReactNode
   contentRef?: React.RefObject<HTMLDivElement>
   modalClassName?: string
+  bodyClassName?: string
 }
 
 const CustomModal: React.FC<CustomModalProps> = ({
@@ -25,6 +26,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
   children,
   contentRef,
   modalClassName,
+  bodyClassName,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const defaultContentRef = useRef<HTMLDivElement>(null)
@@ -75,7 +77,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
               <X size={20} />
             </button>
           </div>
-          <div ref={activeContentRef} className="p-4 overflow-auto max-h-[calc(80vh-4rem)]">
+          <div ref={activeContentRef} className={`p-4 overflow-auto max-h-[calc(80vh-4rem)] text-[#284372] ${bodyClassName}`}>
             {children}
           </div>
         </div>
