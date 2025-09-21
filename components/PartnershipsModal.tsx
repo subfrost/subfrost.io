@@ -131,6 +131,8 @@ const partnershipSections = [
 ];
 
 const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }) => {
+  const subHeaderStyle = { textShadow: "0 0 10px rgba(255, 255, 255, 0.8)" };
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -141,11 +143,11 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
       <div className="space-y-8">
         {partnershipSections.map((section, sectionIndex) => (
           <div key={sectionIndex}>
-            {section.title && <h2 className="text-lg font-bold text-[#284372] mb-4">{section.title}</h2>}
+            {section.title && <h2 className="text-lg font-bold text-white mb-4" style={subHeaderStyle}>{section.title}</h2>}
             {section.subSections ? (
               section.subSections.map((subSection, subIndex) => (
                 <div key={subIndex} className="mb-8">
-                  {subSection.title && <h3 className="text-md font-bold text-[#284372] mb-4">{subSection.title}</h3>}
+                  {subSection.title && <h3 className="text-md font-bold text-white mb-4" style={subHeaderStyle}>{subSection.title}</h3>}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center">
                     {subSection.partners.map((partner, index) => (
                       <PartnershipCard
@@ -175,17 +177,17 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
           </div>
         ))}
       </div>
-      <div className="text-center mt-8 text-sm text-gray-500">
+      <div className="text-center mt-8 text-sm text-white">
         Interested in integrating frBTC?{' '}
         <Popover>
           <PopoverTrigger asChild>
-            <button className="text-[#284372] hover:underline font-bold">Contact Us!</button>
+            <button className="text-white hover:underline font-bold">Contact Us!</button>
           </PopoverTrigger>
           <PopoverContent className="w-auto">
             <div className="flex flex-col gap-2 text-sm">
               <a
                 href="mailto:inquiries@subfrost.io"
-                className="text-[#284372] hover:underline"
+                className="text-white hover:underline"
               >
                 Email Us
               </a>
@@ -193,7 +195,7 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
                 href="https://x.com/SUBFROSTio/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#284372] hover:underline"
+                className="text-white hover:underline"
               >
                 Message us on X
               </a>

@@ -1,5 +1,11 @@
 // components/PartnershipCard.tsx
 // This component displays a single partner card.
+//
+// Prompt: My goal is to soften the edges of the partnershipscards in the partnershipsmodal. Please change the color of the boarder from blue to white and give the background a white outer shadow.
+//
+// Changes (2025-09-20):
+// - Changed border color from custom blue (#284372) to white.
+// - Added a white outer shadow using a custom Tailwind CSS shadow utility to create a "soft edge" effect.
 
 import React from 'react';
 import Image from 'next/image';
@@ -18,7 +24,7 @@ const PartnershipCard: React.FC<PartnershipCardProps> = ({ logo, name, descripti
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="border border-[#284372] p-4 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-full relative group"
+      className="border border-white p-4 text-center bg-white aspect-[3/2] flex flex-col justify-between items-center w-full relative group shadow-[0_0_10px_rgba(255,255,255,0.8)]"
     >
       <ArrowUpRight
         size={16}

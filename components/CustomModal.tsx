@@ -1,3 +1,8 @@
+/**
+ * @file components/CustomModal.tsx
+ * @description A customizable modal using a two-layer overlay for a clean, hierarchical effect.
+ * @summary Implements a two-layer modal system. A background overlay (`z-40`) provides a light (`bg-black/[.15]`) and blurred (`backdrop-blur-2px`) effect. The modal itself sits on a separate container (`z-50`) above this layer. The modal panel uses a stronger `backdrop-blur-lg` and `bg-white/20`, creating a distinct frosted-glass look without applying any filters to the modal's content, ensuring it remains crisp and clear.
+ */
 "use client"
 
 import type React from "react"
@@ -54,22 +59,28 @@ const CustomModal: React.FC<CustomModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
-      <div
-        ref={modalRef}
-        className={`bg-white rounded-lg shadow-lg max-w-md  max-h-[80vh] overflow-hidden ${modalClassName}`}
-      >
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-        <div ref={activeContentRef} className="p-4 overflow-auto max-h-[calc(80vh-4rem)]">
-          {children}
+    <>
+      {/* Background Overlay */}
+      <div className="fixed inset-0 z-40 bg-black/[.15] backdrop-blur-2px" />
+
+      {/* Modal Container */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
+        <div
+          ref={modalRef}
+          className={`bg-white/20 backdrop-blur-lg border-transparent rounded-lg max-w-md max-h-[80vh] overflow-hidden ${modalClassName}`}
+        >
+          <div className="flex justify-between items-center p-4 border-b">
+            <h2 className="text-lg font-bold text-white" style={{ textShadow: "0 0 10px rgba(255, 255, 255, 0.8)" }}>{title}</h2>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+          <div ref={activeContentRef} className="p-4 overflow-auto max-h-[calc(80vh-4rem)]">
+            {children}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

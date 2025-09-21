@@ -2,7 +2,7 @@
  * @file components/Footer.tsx
  * @description This component renders the footer with responsive positioning and includes modals for Terms of Service and Privacy Policy.
  *
- * The footer is styled to be `fixed` at the bottom on mobile screens, ensuring it is always visible. On medium-sized screens and larger (`md:`), its positioning changes to `absolute` to integrate with the main content layout. This responsive behavior prevents layout issues on smaller devices while maintaining the intended design on desktops.
+ * The footer is styled to be `fixed` at the bottom on all screen sizes, ensuring it is always visible. This change was made to keep the footer consistently in view across all devices, improving user access to the links within.
  *
  * The component also manages the state for the "Terms of Service" and "Privacy Policy" modals, which are displayed when the corresponding buttons are clicked. The modals are implemented using the `CustomModal` component and contain static legal text.
  */
@@ -18,23 +18,25 @@ const Footer: React.FC = () => {
   const [privacyOpen, setPrivacyOpen] = useState(false)
 
   return (
-    <footer
-      className={cn(
-        "fixed md:absolute bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-50 uppercase font-bold",
-      )}
-    >
-      <div className="flex items-center space-x-2 md:pr-8">
-        <p>&copy; 2025 SUBZERO RESEARCH INC.</p>
-        <button onClick={() => setTosOpen(true)} className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent">
-          TERMS OF SERVICE
-        </button>
-        <button
-          onClick={() => setPrivacyOpen(true)}
-          className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent"
-        >
-          PRIVACY POLICY
-        </button>
-      </div>
+    <>
+      <footer
+        className={cn(
+          "fixed bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-30 uppercase font-bold",
+        )}
+      >
+        <div className="flex items-center space-x-2 md:pr-8">
+          <p>&copy; 2025 SUBZERO RESEARCH INC.</p>
+          <button onClick={() => setTosOpen(true)} className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent">
+            TERMS OF SERVICE
+          </button>
+          <button
+            onClick={() => setPrivacyOpen(true)}
+            className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent"
+          >
+            PRIVACY POLICY
+          </button>
+        </div>
+      </footer>
 
       <CustomModal
         isOpen={tosOpen}
@@ -42,11 +44,11 @@ const Footer: React.FC = () => {
         title="TERMS OF SERVICE"
         modalClassName="mb-32"
       >
-        <div className={cn("text-xs space-y-6 text-muted-foreground uppercase font-bold")}>
-          <p className="text-sm font-bold text-foreground">LAST UPDATED: JANUARY 7, 2025</p>
+        <div className={cn("text-xs space-y-6 text-white uppercase font-bold")}>
+          <p className="text-sm font-bold text-white">LAST UPDATED: JANUARY 7, 2025</p>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">1. ACCEPTANCE OF TERMS</h2>
+            <h2 className="text-sm font-bold text-white mb-2">1. ACCEPTANCE OF TERMS</h2>
             <p>
               BY ACCESSING OR USING SERVICES PROVIDED BY SUBZERO RESEARCH INC. ("WE," "OUR," OR "US"), YOU AGREE TO BE
               BOUND BY THESE TERMS OF SERVICE.
@@ -54,7 +56,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">2. ASSUMPTION OF RISK</h2>
+            <h2 className="text-sm font-bold text-white mb-2">2. ASSUMPTION OF RISK</h2>
             <p>YOU UNDERSTAND AND AGREE THAT:</p>
             <ul className="list-disc pl-4 mt-2 space-y-2">
               <li>
@@ -67,7 +69,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">3. DISCLAIMER OF WARRANTIES</h2>
+            <h2 className="text-sm font-bold text-white mb-2">3. DISCLAIMER OF WARRANTIES</h2>
             <p>
               OUR SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR
               IMPLIED. SUBZERO RESEARCH INC. DISCLAIMS ALL WARRANTIES, INCLUDING BUT NOT LIMITED TO:
@@ -81,7 +83,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">4. LIMITATION OF LIABILITY</h2>
+            <h2 className="text-sm font-bold text-white mb-2">4. LIMITATION OF LIABILITY</h2>
             <p>
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, SUBZERO RESEARCH INC. SHALL NOT BE LIABLE FOR ANY INDIRECT,
               INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR
@@ -90,7 +92,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">5. MODIFICATIONS</h2>
+            <h2 className="text-sm font-bold text-white mb-2">5. MODIFICATIONS</h2>
             <p>
               WE RESERVE THE RIGHT TO MODIFY OR DISCONTINUE OUR SERVICES AT ANY TIME WITHOUT NOTICE. WE MAY ALSO REVISE
               THESE TERMS OF SERVICE FROM TIME TO TIME.
@@ -105,11 +107,11 @@ const Footer: React.FC = () => {
         title="PRIVACY POLICY"
         modalClassName="mb-32"
       >
-        <div className={cn("text-xs space-y-6 text-muted-foreground uppercase font-bold")}>
-          <p className="text-sm font-bold text-foreground">LAST UPDATED: JANUARY 7, 2025</p>
+        <div className={cn("text-xs space-y-6 text-white uppercase font-bold")}>
+          <p className="text-sm font-bold text-white">LAST UPDATED: JANUARY 7, 2025</p>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">1. INTRODUCTION</h2>
+            <h2 className="text-sm font-bold text-white mb-2">1. INTRODUCTION</h2>
             <p>
               AT SUBZERO RESEARCH INC., WE ARE COMMITTED TO PROTECTING YOUR PRIVACY AND ENSURING THE SECURITY OF ANY
               INFORMATION RELATED TO YOUR USE OF OUR SERVICES.
@@ -117,7 +119,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">2. NO COLLECTION POLICY</h2>
+            <h2 className="text-sm font-bold text-white mb-2">2. NO COLLECTION POLICY</h2>
             <p>WE MAINTAIN A STRICT NO-COLLECTION POLICY:</p>
             <ul className="list-disc pl-4 mt-2 space-y-2">
               <li>WE DO NOT COLLECT OR STORE ANY PERSONAL INFORMATION</li>
@@ -128,7 +130,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">3. BLOCKCHAIN DATA</h2>
+            <h2 className="text-sm font-bold text-white mb-2">3. BLOCKCHAIN DATA</h2>
             <p>
               PLEASE BE AWARE THAT WHILE WE DO NOT COLLECT DATA, ANY TRANSACTIONS YOU MAKE ON THE BLOCKCHAIN ARE
               PUBLICLY VISIBLE AS PART OF THE BLOCKCHAIN'S INHERENT TRANSPARENCY.
@@ -136,7 +138,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">4. THIRD-PARTY SERVICES</h2>
+            <h2 className="text-sm font-bold text-white mb-2">4. THIRD-PARTY SERVICES</h2>
             <p>
               OUR SERVICES MAY INTERACT WITH THIRD-PARTY BLOCKCHAIN NETWORKS AND PROTOCOLS. WE DO NOT CONTROL AND ARE
               NOT RESPONSIBLE FOR ANY INFORMATION THAT MAY BE COLLECTED BY THESE THIRD PARTIES.
@@ -144,7 +146,7 @@ const Footer: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-foreground mb-2">5. CONTACT</h2>
+            <h2 className="text-sm font-bold text-white mb-2">5. CONTACT</h2>
             <p>
               FOR PRIVACY-RELATED INQUIRIES, YOU MAY CONTACT US THROUGH OUR OFFICIAL COMMUNICATION CHANNELS WHILE
               MAINTAINING YOUR ANONYMITY.
@@ -152,7 +154,7 @@ const Footer: React.FC = () => {
           </section>
         </div>
       </CustomModal>
-    </footer>
+    </>
   )
 }
 

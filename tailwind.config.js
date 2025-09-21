@@ -17,6 +17,9 @@ module.exports = {
       },
     },
     extend: {
+      backdropBlur: {
+        '2px': '2px',
+      },
       fontFamily: {
         satoshi: ["Satoshi", "sans-serif"],
       },

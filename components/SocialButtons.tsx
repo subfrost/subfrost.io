@@ -19,7 +19,7 @@ import {
 
 const SocialButtons: React.FC = () => {
   return (
-    <div className="fixed bottom-10 right-4 md:right-8 z-40 flex flex-col gap-3">
+    <div className="fixed bottom-10 right-4 md:right-8 z-30 flex flex-col gap-3">
       <Popover>
         <PopoverTrigger asChild>
           <button
