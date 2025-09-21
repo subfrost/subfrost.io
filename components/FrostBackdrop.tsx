@@ -10,6 +10,8 @@
  * - Assigns random sizes, rotations, and animation durations for a natural effect.
  * - Bitcoin snowflakes have a separate size range to control their appearance.
  * - Uses CSS animations for smooth, performant motion.
+ * - Reduces snowflake count by 50% on mobile devices for better performance.
+   * - Reduces the size of Bitcoin snowflakes on mobile devices.
  *
  * The component is implemented with React hooks and is client-side rendered ("use client").
  */
@@ -17,6 +19,7 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Snowflake1: 10x10
 const Snowflake1 = () => (
@@ -39,7 +42,7 @@ const Snowflake2 = () => (
 
 // Snowflake3: 18x18
 const Snowflake3 = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M12 4L6 8v8l6 4 6-4V8l-6-4zM12 4v8M12 20v-8M6 8l6 4M18 8l-6 4M6 16l6-4M18 16l-6-4"
       stroke="#eff6ff"
@@ -95,14 +98,17 @@ const BitcoinSnowflake = () => (
 const snowflakeTypes = [Snowflake1, Snowflake2, Snowflake3, Snowflake4, Snowflake5, Snowflake6]
 const bitcoinSnowflakeType = BitcoinSnowflake;
 const bitcoinFontSizes = ['12px', '16px', '20px', '24px'];
+const mobileBitcoinFontSizes = ['12px', '16px', '20px'];
 
 const FrostBackdrop: React.FC = () => {
   const [snowflakes, setSnowflakes] = useState<React.ReactNode[]>([])
+  const isMobile = useIsMobile();
 
   useEffect(() => {
+    // On mobile, render 50% fewer snowflakes for performance.
+    const snowflakeCount = isMobile ? 50 : 100;
     const flakes = []
-    // Increased from 80 to 100 snowflakes
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < snowflakeCount; i++) {
       // Randomly select a snowflake type, with a lower chance for Bitcoin.
       let SnowflakeComponent;
       if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
@@ -120,7 +126,8 @@ const FrostBackdrop: React.FC = () => {
       let style: React.CSSProperties;
 
       if (SnowflakeComponent === BitcoinSnowflake) {
-        const fontSize = bitcoinFontSizes[Math.floor(Math.random() * bitcoinFontSizes.length)];
+        const currentFontSizes = isMobile ? mobileBitcoinFontSizes : bitcoinFontSizes;
+        const fontSize = currentFontSizes[Math.floor(Math.random() * currentFontSizes.length)];
         style = {
           position: "absolute",
           left: `${Math.random() * 100}%`,
@@ -149,7 +156,7 @@ const FrostBackdrop: React.FC = () => {
       )
     }
     setSnowflakes(flakes)
-  }, [])
+  }, [isMobile])
 
   return <div className="absolute inset-0 overflow-hidden pointer-events-none">{snowflakes}</div>
 }
