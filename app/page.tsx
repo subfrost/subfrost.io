@@ -1,3 +1,18 @@
+/**
+ * @file app/page.tsx
+ * @description This is the main page of the application, featuring a hero section with a dynamic frost backdrop and responsive content.
+ *
+ * The hero section is designed to fill the viewport and prevent unintended scrolling on mobile devices. It uses `h-dvh` (dynamic viewport height) to ensure its height is strictly constrained to the visible area, accounting for mobile browser toolbars. The `overflow-hidden` class prevents content from spilling out.
+ *
+ * The page includes several key components:
+ * - `FrostBackdrop`: A decorative background with animated snowflakes.
+ * - `SocialButtons`: A set of social media links with responsive positioning.
+ * - `ActionButtons`: Primary user actions that adapt to different screen sizes.
+ * - `MetricsBoxes`: A conditionally rendered section that, when visible, allows for vertical scrolling.
+ * - `Footer`: A responsive footer that is fixed on mobile and absolute on larger screens.
+ *
+ * The `metrics-open` class is dynamically applied to the `main` element to enable `overflow-y: auto` when the metrics section is visible, allowing the user to scroll as needed.
+ */
 "use client"
 
 import { useState } from "react"
@@ -33,7 +48,7 @@ export default function Page() {
       <PartnershipsModal isOpen={isPartnershipsModalOpen} onClose={handleClosePartnershipsModal} />
 
       {/* Hero Section - Keep FrostBackdrop */}
-      <section className="relative flex h-screen flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
+      <section className="relative flex h-dvh flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
 
