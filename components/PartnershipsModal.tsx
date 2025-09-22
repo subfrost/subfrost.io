@@ -19,77 +19,72 @@ interface PartnershipsModalProps {
 
 const partnershipSections = [
   {
-    title: 'Bitcoin DeFi Platforms',
-    subSections: [
+    title: 'Alkanes Ecosystem Partners',
+    partners: [
       {
-        title: 'Alkanes Ecosystem Partners',
-        partners: [
-          {
-            logo: '/Partner Logos/oyl.jpg',
-            name: 'OYL',
-            description: 'Premier AMM on Alkanes',
-            link: 'https://app.oyl.io/portfolio/',
-          },
-          {
-            logo: '/Partner Logos/idclub.png',
-            name: 'iDClub',
-            description: 'Alkanes Marketplace & Launchpad',
-            link: 'https://idclub.io/marketplace',
-          },
-          {
-            logo: '/Partner Logos/alkamon.jpg',
-            name: 'Alkamon',
-            description: 'First Game on Bitcoin L1 from the Alkamist Team',
-            link: '#',
-          },
-          {
-            logo: '/Partner Logos/satonomy.png',
-            name: 'Satonomy',
-            description: 'UTXO Management Platform',
-            link: 'https://app.satonomy.io/',
-          },
-          {
-            logo: '/Partner Logos/ordiscan.jpg',
-            name: 'Ordiscan',
-            description: 'Bitcoin Metaprotocol Explorer & Tools',
-            link: 'https://ordiscan.com/',
-          },
-          {
-            logo: '/Partner Logos/fairmintssvg.svg',
-            name: 'Fairmints',
-            description: 'Alkanes and Counterparty Marketplace & Tools',
-            link: 'https://fairmints.io/',
-          },
-        ],
+        logo: '/Partner Logos/oyl.jpg',
+        name: 'OYL',
+        description: 'Premier AMM on Alkanes',
+        link: 'https://app.oyl.io/portfolio/',
       },
       {
-        title: 'Ecosystem Expansion Partners (not yet live)',
-        partners: [
-          {
-            logo: '/Partner Logos/saturn.jpg',
-            name: 'Saturn BTC',
-            description: 'Premier AMM on Arch Network',
-            link: 'https://www.saturnbtc.io/app/swap',
-          },
-          {
-            logo: '/Partner Logos/bestinslot.png',
-            name: '[Best in Slot]',
-            description: 'Premier DEX on BRC2.0',
-            link: 'https://bestinslot.xyz/',
-          },
-          {
-            logo: '/Partner Logos/radfi.png',
-            name: 'radFi',
-            description: 'Runes Marketplace & Mint Platform',
-            link: 'https://www.radfi.co/',
-          },
-          {
-            logo: '/Partner Logos/catswap.jpg',
-            name: 'CatSwap',
-            description: 'Premier AMM on BRC2.0',
-            link: 'https://catswap.fun/',
-          },
-        ],
+        logo: '/Partner Logos/idclub.png',
+        name: 'iDClub',
+        description: 'Alkanes Marketplace & Launchpad',
+        link: 'https://idclub.io/marketplace',
+      },
+      {
+        logo: '/Partner Logos/alkamon.jpg',
+        name: 'Alkamon',
+        description: 'First Game on Bitcoin L1 from the Alkamist Team',
+        link: '#',
+      },
+      {
+        logo: '/Partner Logos/satonomy.png',
+        name: 'Satonomy',
+        description: 'UTXO Management Platform',
+        link: 'https://app.satonomy.io/',
+      },
+      {
+        logo: '/Partner Logos/ordiscan.jpg',
+        name: 'Ordiscan',
+        description: 'Bitcoin Metaprotocol Explorer & Tools',
+        link: 'https://ordiscan.com/',
+      },
+      {
+        logo: '/Partner Logos/fairmintssvg.svg',
+        name: 'Fairmints',
+        description: 'Alkanes and Counterparty Marketplace & Tools',
+        link: 'https://fairmints.io/',
+      },
+    ],
+  },
+  {
+    title: 'Ecosystem Expansion Partners (not yet live)',
+    partners: [
+      {
+        logo: '/Partner Logos/saturn.jpg',
+        name: 'Saturn BTC',
+        description: 'Premier AMM on Arch Network',
+        link: 'https://www.saturnbtc.io/app/swap',
+      },
+      {
+        logo: '/Partner Logos/bestinslot.png',
+        name: '[Best in Slot]',
+        description: 'Premier DEX on BRC2.0',
+        link: 'https://bestinslot.xyz/',
+      },
+      {
+        logo: '/Partner Logos/radfi.png',
+        name: 'radFi',
+        description: 'Runes Marketplace & Mint Platform',
+        link: 'https://www.radfi.co/',
+      },
+      {
+        logo: '/Partner Logos/catswap.jpg',
+        name: 'CatSwap',
+        description: 'Premier AMM on BRC2.0',
+        link: 'https://catswap.fun/',
       },
     ],
   },
@@ -143,37 +138,25 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
       <div className="space-y-8">
         {partnershipSections.map((section, sectionIndex) => (
           <div key={sectionIndex}>
-            {section.title && <h2 className="text-lg font-bold mb-4" style={subHeaderStyle}>{section.title}</h2>}
-            {section.subSections ? (
-              section.subSections.map((subSection, subIndex) => (
-                <div key={subIndex} className="mb-8">
-                  {subSection.title && <h3 className="text-sm font-bold mb-4" style={subHeaderStyle}>{subSection.title}</h3>}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center">
-                    {subSection.partners.map((partner, index) => (
-                      <PartnershipCard
-                        key={index}
-                        logo={partner.logo}
-                        name={partner.name}
-                        description={partner.description}
-                        link={partner.link}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center">
-                {section.partners && section.partners.map((partner, index) => (
-                  <PartnershipCard
-                    key={index}
-                    logo={partner.logo}
-                    name={partner.name}
-                    description={partner.description}
-                    link={partner.link}
-                  />
-                ))}
-              </div>
-            )}
+            {/* 
+              * @chadlina_refactor (2025-09-22)
+              * - Simplified the rendering logic to remove the nested `subSections` mapping.
+              * - The `partnershipSections` data structure was flattened to remove the "Bitcoin DeFi Platforms" category
+              *   and elevate its sub-sections to top-level sections, which resolved the TS errors.
+              * - Changed h2 to h3 and text-lg to text-sm to reduce header size.
+              */}
+            {section.title && <h3 className="text-sm font-bold mb-4" style={subHeaderStyle}>{section.title}</h3>}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 justify-center">
+              {section.partners && section.partners.map((partner, index) => (
+                <PartnershipCard
+                  key={index}
+                  logo={partner.logo}
+                  name={partner.name}
+                  description={partner.description}
+                  link={partner.link}
+                />
+              ))}
+            </div>
           </div>
         ))}
       </div>

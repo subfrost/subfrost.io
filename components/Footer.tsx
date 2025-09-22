@@ -108,7 +108,7 @@ const Footer: React.FC = () => {
         modalClassName="mb-32"
       >
         <div className={cn("text-xs space-y-6 uppercase font-bold")}>
-          <p className="text-sm font-bold text-white">LAST UPDATED: JANUARY 7, 2025</p>
+          <p className="text-sm font-bold">LAST UPDATED: JANUARY 7, 2025</p>
 
           <section>
             <h2 className="text-sm font-bold mb-2">1. INTRODUCTION</h2>
