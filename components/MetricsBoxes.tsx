@@ -38,8 +38,8 @@ const metrics = [
     linkType: 'popover',
     popoverContent: (
       <div className="flex flex-col gap-2 text-sm text-[#284372]">
-        <p>Alkanes: Link TBD</p>
-        <p>BRC2.0: Link TBD</p>
+        <p>Alkanes: frBTC [32, 0]</p>
+        <p>BRC2.0: fr-BTC (6-byte)</p>
       </div>
     )
   },
@@ -50,7 +50,8 @@ const metrics = [
     linkType: 'popover',
     popoverContent: (
       <div className="flex flex-col gap-2 text-sm text-[#284372]">
-        <p>Alkanes: Link TBD</p>
+        <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
+        <p>BRC2.0: Link TBD</p>
       </div>
     )
   },
