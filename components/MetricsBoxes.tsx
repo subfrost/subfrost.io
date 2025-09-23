@@ -15,10 +15,13 @@
 // - 2025-09-21 (Chadlina): Refactored styling to unify text colors across modal and non-modal
 //   views for a consistent user experience on all screen sizes, per user feedback.
 //   Titles and links are now consistently blue.
+// - 2025-09-23 (Chadson): Integrated SWR to fetch "BTC Locked" data from the API.
+//   The value now updates automatically every 15 minutes.
 
 "use client";
 
 import React from 'react';
+import useSWR from 'swr';
 import {
   Popover,
   PopoverContent,
@@ -30,41 +33,49 @@ interface MetricsBoxesProps {
   isModal?: boolean;
 }
 
-const metrics = [
-  { 
-    title: 'frBTC Issued', 
-    value: '0.000', 
-    linkText: 'Contracts', 
-    linkType: 'popover',
-    popoverContent: (
-      <div className="flex flex-col gap-2 text-sm text-[#284372]">
-        <p>Alkanes: frBTC [32, 0]</p>
-        <p>BRC2.0: fr-BTC (6-byte)</p>
-      </div>
-    )
-  },
-  { 
-    title: 'BTC Locked', 
-    value: '0.000', 
-    linkText: 'Verify', 
-    linkType: 'popover',
-    popoverContent: (
-      <div className="flex flex-col gap-2 text-sm text-[#284372]">
-        <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
-        <p>BRC2.0: Link TBD</p>
-      </div>
-    )
-  },
-  { title: 'Lifetime Volume', value: '0.000' },
-  { 
-    title: 'Partnerships', 
-    value: '16', 
-    linkText: 'Who Are They?',
-    linkType: 'modal' 
-  },
-];
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
+  const { data, error } = useSWR('/api/btc-locked', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
+
+  const btcLockedValue = error ? 'Error' : !data ? '...' : data.btcLocked.toFixed(5);
+
+  const metrics = [
+    { 
+      title: 'frBTC Issued', 
+      value: '0.00000', 
+      linkText: 'Contracts', 
+      linkType: 'popover',
+      popoverContent: (
+        <div className="flex flex-col gap-2 text-sm text-[#284372]">
+          <p>Alkanes: frBTC [32, 0]</p>
+          <p>BRC2.0: fr-BTC (6-byte)</p>
+        </div>
+      )
+    },
+    { 
+      title: 'BTC Locked', 
+      value: btcLockedValue, 
+      linkText: 'Verify', 
+      linkType: 'popover',
+      popoverContent: (
+        <div className="flex flex-col gap-2 text-sm text-[#284372]">
+          <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
+          <p>BRC2.0: Link TBD</p>
+        </div>
+      )
+    },
+    { title: 'Lifetime Volume', value: '0.000' },
+    { 
+      title: 'Partnerships', 
+      value: '16', 
+      linkText: 'Who Are They?',
+      linkType: 'modal' 
+    },
+  ];
+
   const renderLink = (metric: any) => {
     const linkClasses = "text-[#284372] underline";
     const linkStyle = { fontSize: isModal ? '0.7rem' : '0.6rem' };
