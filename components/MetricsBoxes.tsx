@@ -36,16 +36,20 @@ interface MetricsBoxesProps {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
-  const { data, error } = useSWR('/api/btc-locked', fetcher, {
+  const { data: btcData, error: btcError } = useSWR('/api/btc-locked', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
+  const { data: frBtcData, error: frBtcError } = useSWR('/api/frbtc-issued', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
 
-  const btcLockedValue = error ? 'Error' : !data ? '...' : data.btcLocked.toFixed(5);
+  const btcLockedValue = btcError ? 'Error' : !btcData ? '...' : btcData.btcLocked.toFixed(5);
+  const frBtcIssuedValue = frBtcError ? 'Error' : !frBtcData ? '...' : frBtcData.frBtcIssued.toFixed(5);
 
   const metrics = [
     { 
-      title: 'frBTC Issued', 
-      value: '0.00000', 
+      title: 'frBTC Supply', 
+      value: frBtcIssuedValue, 
       linkText: 'Contracts', 
       linkType: 'popover',
       popoverContent: (
