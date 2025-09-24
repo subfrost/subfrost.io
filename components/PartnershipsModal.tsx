@@ -34,12 +34,6 @@ const partnershipSections = [
         link: 'https://idclub.io/marketplace',
       },
       {
-        logo: '/Partner Logos/alkamon.jpg',
-        name: 'Alkamon',
-        description: 'First Game on Bitcoin L1 from the Alkamist Team',
-        link: '#',
-      },
-      {
         logo: '/Partner Logos/satonomy.png',
         name: 'Satonomy',
         description: 'UTXO Management Platform',
@@ -52,10 +46,28 @@ const partnershipSections = [
         link: 'https://ordiscan.com/',
       },
       {
+        logo: '/Partner Logos/alkamon.jpg',
+        name: 'Alkamon',
+        description: 'First Game on Bitcoin L1 from the Alkamist Team',
+        link: '#',
+      },
+      {
         logo: '/Partner Logos/fairmintssvg.svg',
         name: 'Fairmints',
         description: 'Alkanes and Counterparty Marketplace & Tools',
         link: 'https://fairmints.io/',
+      },
+      {
+        logo: '/Partner Logos/pizzadotfun.jpeg',
+        name: 'Pizza.fun',
+        description: 'Alkanes Launchpad with Gasless Mints',
+        link: 'https://x.com/pizzadotfunbtc',
+      },
+      {
+        logo: '/Partner Logos/Adors.jpg',
+        name: 'Adors Orbital',
+        description: 'Alkanes ArtFi platform',
+        link: 'https://orbital.adors.org/',
       },
     ],
   },

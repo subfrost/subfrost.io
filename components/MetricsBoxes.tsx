@@ -74,7 +74,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     { title: 'Lifetime Volume', value: '0.000' },
     { 
       title: 'Partnerships', 
-      value: '16', 
+      value: '17', 
       linkText: 'Who Are They?',
       linkType: 'modal' 
     },
