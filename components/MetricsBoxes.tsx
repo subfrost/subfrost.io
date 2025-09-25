@@ -133,7 +133,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           </div>
         ))}
       </div>
-      <div className="text-center text-[#284372] text-xs mt-4">
+      <div className="text-center text-[#284372] mt-4" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
         Metrics refresh every 15 minutes.
       </div>
     </div>
