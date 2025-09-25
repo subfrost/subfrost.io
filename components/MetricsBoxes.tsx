@@ -17,6 +17,8 @@
 //   Titles and links are now consistently blue.
 // - 2025-09-23 (Chadson): Integrated SWR to fetch "BTC Locked" data from the API.
 //   The value now updates automatically every 15 minutes.
+// - 2025-09-25 (Chadson): Reduced padding from `p-4` to `p-2` to prevent title text from wrapping on smaller screens.
+// - 2025-09-25 (Chadson): Added a note below the metrics boxes indicating that the data is refreshed every 15 minutes and corrected the layout.
 
 "use client";
 
@@ -67,11 +69,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[#284372]">
           <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
-          <p>BRC2.0: Link TBD</p>
+          <p>BRC2.0: TBD</p>
         </div>
       )
     },
-    { title: 'Lifetime Volume', value: '0.000' },
+    { title: 'Total Throughput', value: '0.000' },
     { 
       title: 'Partnerships', 
       value: '17', 
@@ -114,26 +116,27 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   };
 
   return (
-    <>
-      <div className="flex justify-center my-8">
-        <div className={`inline-grid gap-4 ${isModal ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
-          {metrics.map((metric, index) => (
-            <div 
-              key={index} 
-              className="border border-white p-4 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
-            >
-              <div>
-                <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-                <p className="font-bold text-white" style={{ fontSize: '1.8rem', textShadow: '0 0 10px rgba(190, 227, 248, 0.8)' }}>{metric.value}</p>
-              </div>
-              <div className="mt-auto">
-                {renderLink(metric)}
-              </div>
+    <div className="flex flex-col items-center my-8">
+      <div className={`inline-grid gap-4 ${isModal ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+        {metrics.map((metric, index) => (
+          <div 
+            key={index} 
+            className="border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
+          >
+            <div>
+              <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
+              <p className="font-bold text-white" style={{ fontSize: '1.8rem', textShadow: '0 0 10px rgba(190, 227, 248, 0.8)' }}>{metric.value}</p>
             </div>
-          ))}
-        </div>
+            <div className="mt-auto">
+              {renderLink(metric)}
+            </div>
+          </div>
+        ))}
       </div>
-    </>
+      <div className="text-center text-[#284372] text-xs mt-4">
+        Metrics refresh every 15 minutes.
+      </div>
+    </div>
   );
 };
 
