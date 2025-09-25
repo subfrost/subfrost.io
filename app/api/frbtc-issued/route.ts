@@ -11,7 +11,7 @@
 // 2025-09-25: Re-added division by 1e8 per user feedback.
 
 import { NextResponse } from 'next/server';
-import { AlkanesRpc } from '../../../reference/alkanes/lib/rpc.js';
+import { AlkanesRpc } from 'alkanes/lib/rpc.js';
 import { hexToBigInt } from 'viem';
 
 // The returned hex value is little-endian and needs to be byte-reversed
