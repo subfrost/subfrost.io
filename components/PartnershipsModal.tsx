@@ -29,7 +29,7 @@ const partnershipSections = [
       },
       {
         logo: '/Partner Logos/idclub.png',
-        name: 'iDClub',
+        name: 'iDclub',
         description: 'Alkanes Marketplace & Launchpad',
         link: 'https://idclub.io/marketplace',
       },
@@ -58,15 +58,15 @@ const partnershipSections = [
         link: 'https://fairmints.io/',
       },
       {
-        logo: '/Partner Logos/pizzadotfun.jpeg',
+        logo: '/Partner Logos/pizzadotfun.png',
         name: 'Pizza.fun',
-        description: 'Alkanes Launchpad with Gasless Mints',
+        description: 'Alkanes Token Launchpad with Gasless Mints',
         link: 'https://x.com/pizzadotfunbtc',
       },
       {
         logo: '/Partner Logos/Adors.jpg',
-        name: 'Adors Orbital',
-        description: 'Alkanes ArtFi platform',
+        name: 'Adors',
+        description: 'Alkanes ArtFi Platform',
         link: 'https://orbital.adors.org/',
       },
     ],
