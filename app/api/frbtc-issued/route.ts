@@ -1,80 +1,44 @@
 // app/api/frbtc-issued/route.ts
 
 // Chadson's Journal:
-// Purpose: This API route fetches the total supply of frBTC from the Sandshrew API.
-// It uses the 'alkanes_simulate' method to call the 'get_total_supply' view function (opcode 101)
-// on the frBTC Alkane contract.
+// Purpose: This API route fetches the total supply of frBTC.
+// It uses the `getstorageat` method from the AlkanesRpc class to directly query the state.
+// This is a more direct and reliable method than the previous implementation which used `alkanes_simulate`.
 //
-// Source of Truth: The user-provided example code, which demonstrates the correct usage
-// of `alkanes_simulate` with opcode 101. My previous implementation using `alkanes_runtime` was incorrect.
+// Source of Truth: The successful execution of the `get_frbtc_supply.mjs` script, which validated this approach.
+//
+// 2025-09-25: Changed the return type to a number to fix a client-side error.
+// 2025-09-25: Re-added division by 1e8 per user feedback.
 
 import { NextResponse } from 'next/server';
+import { AlkanesRpc } from '../../../reference/alkanes/lib/rpc.js';
+import { hexToBigInt } from 'viem';
 
-// This function converts a Buffer to a BigInt.
-// Based on the `fromBuffer` function in the user's example.
-function fromBuffer(buffer: Buffer): bigint {
-  if (buffer.length === 0) {
-    return BigInt(0);
-  }
-  const hex = buffer.toString('hex');
-  return BigInt(`0x${hex}`);
+// The returned hex value is little-endian and needs to be byte-reversed
+// for correct interpretation.
+function reverseHex(hex: string): string {
+    if (hex.startsWith('0x')) {
+        hex = hex.slice(2);
+    }
+    if (hex.length % 2) { hex = '0' + hex; }
+    const buf = Buffer.from(hex, 'hex');
+    return '0x' + buf.reverse().toString('hex');
 }
 
 export async function GET() {
-  const apiUrl = 'https://mainnet.sandshrew.io/v2/lasereyes';
-  const frBtcAlkaneId = {
-    block: "32",
-    tx: "0"
-  };
+  const alkaneId = { block: 32n, tx: 0n };
+  const rpc = new AlkanesRpc({ baseUrl: 'https://mainnet.sandshrew.io/v2/lasereyes' });
+  const path = new TextEncoder().encode('/totalsupply');
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'alkanes_simulate',
-        params: [{
-          alkanes: [],
-          transaction: "0x",
-          block: "0x",
-          height: 0,
-          txindex: 0,
-          target: {
-            block: frBtcAlkaneId.block,
-            tx: frBtcAlkaneId.tx,
-          },
-          inputs: ["101"], // Opcode for "get_total_supply"
-          pointer: 0,
-          refundPointer: 0,
-          vout: 0,
-        }],
-      }),
+    const storageHex = await rpc.getstorageat({
+      id: alkaneId,
+      path: path,
     });
 
-    if (!response.ok) {
-      throw new Error(`API call failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(`API returned an error: ${data.error.message}`);
-    }
-
-    let totalSupply = BigInt(0);
-    const executionResult = data.result.execution;
-
-    if (executionResult && executionResult.data && executionResult.data.length > 2) {
-      const dataBuffer = Buffer.from(executionResult.data.slice(2), 'hex');
-      totalSupply = fromBuffer(dataBuffer);
-    }
-
-    // The balance is returned in the smallest unit, so we divide by 10^8 to get the full coin value.
-    const totalSupplyBtc = Number(totalSupply) / 100_000_000;
+    const littleEndianHex = reverseHex(storageHex);
+    const totalSupply = BigInt(littleEndianHex);
+    const totalSupplyBtc = Number(totalSupply) / 1e8;
 
     return NextResponse.json({ frBtcIssued: totalSupplyBtc });
   } catch (error) {
