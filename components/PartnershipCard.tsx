@@ -6,6 +6,7 @@
 // Changes (2025-09-20):
 // - Changed border color from custom blue (#284372) to white.
 // - Added a white outer shadow using a custom Tailwind CSS shadow utility to create a "soft edge" effect.
+// - Reduced horizontal padding from p-4 to px-2 to give the description more space.
 
 import React from 'react';
 import Image from 'next/image';
@@ -24,7 +25,7 @@ const PartnershipCard: React.FC<PartnershipCardProps> = ({ logo, name, descripti
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="border border-white p-4 text-center bg-white aspect-[3/2] flex flex-col justify-between items-center w-full relative group shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+      className="border border-white px-2 py-4 text-center bg-white aspect-[3/2] flex flex-col justify-between items-center w-full relative group shadow-[0_0_10px_rgba(255,255,255,0.8)]"
     >
       <ArrowUpRight
         size={16}
