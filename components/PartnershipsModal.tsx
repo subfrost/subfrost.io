@@ -22,8 +22,8 @@ const partnershipSections = [
     title: 'Alkanes Ecosystem Partners',
     partners: [
       {
-        logo: '/Partner Logos/oyl.jpg',
-        name: 'OYL',
+        logo: '/Partner Logos/oylcorp.jpeg',
+        name: 'OYL Corp',
         description: 'Premier AMM on Alkanes',
         link: 'https://app.oyl.io/portfolio/',
       },
@@ -52,13 +52,14 @@ const partnershipSections = [
         link: '#',
       },
       {
-        logo: '/Partner Logos/fairmintssvg.svg',
+        // @chadson_refactor (2025-09-26) - Corrected the Fairmints logo path from a typo 'fairmintssvg.svg' to 'fairmints.svg'.
+        logo: '/Partner Logos/fairmints.svg',
         name: 'Fairmints',
         description: 'Alkanes and Counterparty Marketplace & Tools',
         link: 'https://fairmints.io/',
       },
       {
-        logo: '/Partner Logos/pizzadotfun.png',
+        logo: '/Partner Logos/pizzafun.jpeg',
         name: 'Pizza.fun',
         description: 'Alkanes Token Launchpad with Gasless Mints',
         link: 'https://x.com/pizzadotfunbtc',
@@ -75,7 +76,7 @@ const partnershipSections = [
     title: 'Ecosystem Expansion Partners (not yet live)',
     partners: [
       {
-        logo: '/Partner Logos/saturn.jpg',
+        logo: '/Partner Logos/Saturn.svg',
         name: 'Saturn BTC',
         description: 'Premier AMM on Arch Network',
         link: 'https://www.saturnbtc.io/app/swap',
@@ -87,7 +88,7 @@ const partnershipSections = [
         link: 'https://bestinslot.xyz/',
       },
       {
-        logo: '/Partner Logos/radfi.png',
+        logo: '/Partner Logos/radfilogo.jpeg',
         name: 'radFi',
         description: 'Runes Marketplace & Mint Platform',
         link: 'https://www.radfi.co/',
