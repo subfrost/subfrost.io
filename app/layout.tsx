@@ -2,8 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import Script from "next/script"
 import { cn } from "@/lib/utils"
-import "@/styles/globals.css"
-import "@/styles/fonts.css"
+import "@/app/globals.css"
 
 export const metadata: Metadata = {
   title: "SUBFROST",
@@ -38,7 +37,6 @@ export default function RootLayout({
             gtag('config', 'G-0RV3B8BK4B');
           `}
         </Script>
-        <link href="https://fonts.cdnfonts.com/css/satoshi" rel="stylesheet" />
       </head>
       <body className={cn("bg-background font-satoshi antialiased")}>{children}</body>
     </html>
