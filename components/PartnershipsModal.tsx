@@ -34,7 +34,7 @@ const partnershipSections = [
         link: 'https://idclub.io/marketplace',
       },
       {
-        logo: '/Partner Logos/satonomy.png',
+        logo: '/Partner Logos/satonomylogo.png',
         name: 'Satonomy',
         description: 'UTXO Management Platform',
         link: 'https://app.satonomy.io/',
@@ -49,10 +49,9 @@ const partnershipSections = [
         logo: '/Partner Logos/alkamon.jpg',
         name: 'Alkamon',
         description: 'First Game on Bitcoin L1 from the Alkamist Team',
-        link: '#',
+        link: 'https://mint.lasereyes.build/alkamon',
       },
       {
-        // @chadson_refactor (2025-09-26) - Corrected the Fairmints logo path from a typo 'fairmintssvg.svg' to 'fairmints.svg'.
         logo: '/Partner Logos/fairmints.svg',
         name: 'Fairmints',
         description: 'Alkanes and Counterparty Marketplace & Tools',
@@ -60,15 +59,15 @@ const partnershipSections = [
       },
       {
         logo: '/Partner Logos/pizzafun.jpeg',
-        name: 'Pizza.fun',
+        name: 'Pizza.fun (not released)',
         description: 'Alkanes Token Launchpad with Gasless Mints',
         link: 'https://x.com/pizzadotfunbtc',
       },
       {
-        logo: '/Partner Logos/Adors.jpg',
+        logo: '/Partner Logos/adors.png',
         name: 'Adors',
         description: 'Alkanes ArtFi Platform',
-        link: 'https://orbital.adors.org/',
+        link: 'https://x.com/adororg',
       },
     ],
   },

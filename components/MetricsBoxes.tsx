@@ -73,7 +73,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { title: 'Total Throughput', value: '0.000' },
+    { title: 'Total Throughput', value: 'TBD' },
     { 
       title: 'Partnerships', 
       value: '17', 
