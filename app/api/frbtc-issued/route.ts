@@ -5,8 +5,6 @@
 // It uses the `getstorageat` method from the AlkanesRpc class to directly query the state.
 // This is a more direct and reliable method than the previous implementation which used `alkanes_simulate`.
 //
-// Source of Truth: The successful execution of the `get_frbtc_supply.mjs` script, which validated this approach.
-//
 // 2025-09-25: Changed the return type to a number to fix a client-side error.
 // 2025-09-25: Re-added division by 1e8 per user feedback.
 
