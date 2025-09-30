@@ -64,9 +64,9 @@ const partnershipSections = [
         link: 'https://x.com/pizzadotfunbtc',
       },
       {
-        logo: '/Partner Logos/adors.png',
+        logo: '/Partner Logos/adorslogo.png',
         name: 'Adors',
-        description: 'Alkanes ArtFi Platform',
+        description: 'Alkanes ArtFi Platform (not released)',
         link: 'https://x.com/adororg',
       },
     ],
