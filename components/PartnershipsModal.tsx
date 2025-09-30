@@ -65,8 +65,8 @@ const partnershipSections = [
       },
       {
         logo: '/Partner Logos/adorslogo.png',
-        name: 'Adors',
-        description: 'Alkanes ArtFi Platform (not released)',
+        name: 'Adors (not released)',
+        description: 'Alkanes ArtFi Platform',
         link: 'https://x.com/adororg',
       },
     ],
