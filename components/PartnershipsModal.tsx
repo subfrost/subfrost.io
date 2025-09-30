@@ -46,7 +46,7 @@ const partnershipSections = [
         link: 'https://ordiscan.com/',
       },
       {
-        logo: '/Partner Logos/alkamon.jpg',
+        logo: '/Partner Logos/alkamon.png',
         name: 'Alkamon',
         description: 'First Game on Bitcoin L1 from the Alkamist Team',
         link: 'https://mint.lasereyes.build/alkamon',
@@ -58,13 +58,13 @@ const partnershipSections = [
         link: 'https://fairmints.io/',
       },
       {
-        logo: '/Partner Logos/pizzafun.jpeg',
+        logo: '/Partner Logos/pizzadotfun.png',
         name: 'Pizza.fun (not released)',
         description: 'Alkanes Token Launchpad with Gasless Mints',
         link: 'https://x.com/pizzadotfunbtc',
       },
       {
-        logo: '/Partner Logos/adorslogo.png',
+        logo: '/Partner Logos/adorspng.png',
         name: 'Adors (not released)',
         description: 'Alkanes ArtFi Platform',
         link: 'https://x.com/adororg',
