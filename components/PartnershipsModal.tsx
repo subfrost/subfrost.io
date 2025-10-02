@@ -116,7 +116,7 @@ const partnershipSections = [
         link: 'https://layer1.foundation/',
       },
       {
-        logo: '/Partner Logos/lasereyes.png',
+        logo: '/Partner Logos/red_lasereyes.png',
         name: 'LaserEyes',
         description: 'Bitcoin Wallet Infrastructure',
         link: 'https://www.lasereyes.build/',
