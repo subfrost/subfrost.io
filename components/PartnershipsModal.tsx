@@ -46,9 +46,15 @@ const partnershipSections = [
         link: 'https://ordiscan.com/',
       },
       {
+        logo: '/Partner Logos/bound money.png',
+        name: 'Bound Money',
+        description: 'USD Stablecoin (bUSD) on Bitcoin Layer-1',
+        link: 'https://bound.money/',
+      },
+      {
         logo: '/Partner Logos/alkamon.png',
         name: 'Alkamon',
-        description: 'First Game on Bitcoin L1 from the Alkamist Team',
+        description: 'First Advanced Game on Bitcoin Layer-1',
         link: 'https://mint.lasereyes.build/alkamon',
       },
       {
@@ -103,12 +109,6 @@ const partnershipSections = [
   {
     title: 'Enablement Partners',
     partners: [
-      {
-        logo: '/Partner Logos/bound money.png',
-        name: 'Bound Money',
-        description: 'USD stablecoin (bUSD) on Bitcoin Layer 1',
-        link: 'https://bound.money/',
-      },
       {
         logo: '/Partner Logos/layer1foundation.jpg',
         name: 'Layer 1 Foundation',

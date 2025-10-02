@@ -19,6 +19,7 @@
 //   The value now updates automatically every 15 minutes.
 // - 2025-09-25 (Chadson): Reduced padding from `p-4` to `p-2` to prevent title text from wrapping on smaller screens.
 // - 2025-09-25 (Chadson): Added a note below the metrics boxes indicating that the data is refreshed every 15 minutes and corrected the layout.
+// - 2025-10-02 (Chadlina): Added `superTitle` to metrics to display labels like "Current" and "Lifetime" above metric titles.
 
 "use client";
 
@@ -50,6 +51,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const metrics = [
     { 
+      superTitle: 'Current',
       title: 'frBTC Supply', 
       value: frBtcIssuedValue, 
       linkText: 'Contracts', 
@@ -62,6 +64,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     { 
+      superTitle: 'Current',
       title: 'BTC Locked', 
       value: btcLockedValue, 
       linkText: 'Verify', 
@@ -73,8 +76,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { title: 'Total Throughput', value: 'TBD' },
+    { superTitle: 'Lifetime', title: 'Throughput', value: 'TBD' },
     { 
+      superTitle: 'Early',
       title: 'Partnerships', 
       value: '17', 
       linkText: 'Who Are They?',
@@ -124,6 +128,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             className="border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
           >
             <div>
+              {metric.superTitle && <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
               <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
               <p className="font-bold text-white" style={{ fontSize: '1.8rem', textShadow: '0 0 10px rgba(190, 227, 248, 0.8)' }}>{metric.value}</p>
             </div>
