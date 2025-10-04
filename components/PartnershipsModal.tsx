@@ -60,7 +60,7 @@ const partnershipSections = [
       {
         logo: '/Partner Logos/fairmints.svg',
         name: 'Fairmints',
-        description: 'Alkanes and Counterparty Marketplace & Tools',
+        description: 'Alkanes and Orbitals Marketplace & Tools',
         link: 'https://fairmints.io/',
       },
       {
@@ -71,9 +71,9 @@ const partnershipSections = [
       },
       {
         logo: '/Partner Logos/adorspng.png',
-        name: 'Adors (not released)',
+        name: 'ADOR Orbitals',
         description: 'Alkanes ArtFi Platform',
-        link: 'https://x.com/adororg',
+        link: 'https://orbital.adors.org/alkane/wrap-btc',
       },
     ],
   },

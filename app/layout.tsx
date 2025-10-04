@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import "@/app/globals.css"
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://subfrost.io'),
   title: "SUBFROST",
   description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
 

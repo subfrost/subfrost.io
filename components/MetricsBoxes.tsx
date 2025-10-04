@@ -3,11 +3,11 @@
 // It adapts its layout and styling based on whether it's rendered within a modal.
 //
 // Design Decisions:
-// - Metric values have a blue text-shadow for better visibility against various backgrounds.
+// - Metric values have a responsive text-shadow for better visibility against various backgrounds.
 // - The component uses an `isModal` prop to switch between a 4-column layout (desktop)
 //   and a 2-column layout (modal/mobile).
-// - All text (titles, links) uses the brand's blue color (`#284372`) for consistency,
-//   while metric values are white.
+// - All text (titles, links, and values) uses the brand's blue color (`--brand-blue`) for consistency on larger screens.
+// - On smaller screens, metric values are white for better contrast.
 //
 // Journal:
 // - 2025-09-19: Initial implementation with responsive grid and basic styling.
@@ -20,6 +20,11 @@
 // - 2025-09-25 (Chadson): Reduced padding from `p-4` to `p-2` to prevent title text from wrapping on smaller screens.
 // - 2025-09-25 (Chadson): Added a note below the metrics boxes indicating that the data is refreshed every 15 minutes and corrected the layout.
 // - 2025-10-02 (Chadlina): Added `superTitle` to metrics to display labels like "Current" and "Lifetime" above metric titles.
+// - 2025-10-04 (Chadson): Changed the metric value color to be the same as the titles (`--brand-blue`).
+// - 2025-10-04 (Chadson): Changed the metric value text-shadow to white.
+// - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: light blue on small screens, white on medium screens and up.
+// - 2025-10-04 (Chadlina): Made metric value color responsive: white on small screens, brand-blue on medium screens and up.
+// - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: dark blue on small screens, white on medium screens and up.
 
 "use client";
 
@@ -57,7 +62,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkText: 'Contracts', 
       linkType: 'popover',
       popoverContent: (
-        <div className="flex flex-col gap-2 text-sm text-[#284372]">
+        <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
           <p>Alkanes: frBTC [32, 0]</p>
           <p>BRC2.0: fr-BTC (6-byte)</p>
         </div>
@@ -70,7 +75,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkText: 'Verify', 
       linkType: 'popover',
       popoverContent: (
-        <div className="flex flex-col gap-2 text-sm text-[#284372]">
+        <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
           <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
           <p>BRC2.0: TBD</p>
         </div>
@@ -87,7 +92,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   ];
 
   const renderLink = (metric: any) => {
-    const linkClasses = "text-[#284372] underline";
+    const linkClasses = "text-[hsl(var(--brand-blue))] underline";
     const linkStyle = { fontSize: isModal ? '0.7rem' : '0.6rem' };
 
     const linkElement = (
@@ -128,9 +133,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             className="border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
           >
             <div>
-              {metric.superTitle && <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
-              <p className="text-[#284372] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className="font-bold text-white" style={{ fontSize: '1.8rem', textShadow: '0 0 10px rgba(190, 227, 248, 0.8)' }}>{metric.value}</p>
+              {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
+              <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
+              <p className="font-bold text-white md:text-[hsl(var(--brand-blue))] responsive-shadow" style={{ fontSize: '1.8rem' }}>{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}
@@ -138,7 +143,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           </div>
         ))}
       </div>
-      <div className="text-center text-[#284372] mt-4" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+      <div className="text-center text-[hsl(var(--brand-blue))] mt-4" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
         Metrics refresh every 15 minutes.
       </div>
     </div>
