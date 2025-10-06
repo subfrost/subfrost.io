@@ -7,6 +7,7 @@
 //
 // 2025-09-25: Changed the return type to a number to fix a client-side error.
 // 2025-09-25: Re-added division by 1e8 per user feedback.
+// 2025-10-06: Subtracted a constant of 4443097 from the total supply to correct for an initial offset.
 
 import { NextResponse } from 'next/server';
 import { AlkanesRpc } from 'alkanes/lib/rpc.js';
@@ -36,7 +37,8 @@ export async function GET() {
 
     const littleEndianHex = reverseHex(storageHex);
     const totalSupply = BigInt(littleEndianHex);
-    const totalSupplyBtc = Number(totalSupply) / 1e8;
+    const adjustedTotalSupply = totalSupply - 4443097n;
+    const totalSupplyBtc = Number(adjustedTotalSupply) / 1e8;
 
     return NextResponse.json({ frBtcIssued: totalSupplyBtc });
   } catch (error) {

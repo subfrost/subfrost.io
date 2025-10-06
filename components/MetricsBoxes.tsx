@@ -56,8 +56,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const metrics = [
     { 
-      superTitle: 'Lifetime',
-      title: 'frBTC Wraps', 
+      superTitle: 'Current',
+      title: 'frBTC Supply', 
       value: frBtcIssuedValue, 
       linkText: 'Contracts', 
       linkType: 'popover',
@@ -81,7 +81,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { superTitle: 'Lifetime', title: 'frBTC Voume', value: 'TBD' },
+    { superTitle: 'Lifetime', title: 'frBTC Wraps', value: 'TBD' },
     { 
       superTitle: 'Early',
       title: 'Partnerships', 
