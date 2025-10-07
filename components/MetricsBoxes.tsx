@@ -50,9 +50,19 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   const { data: frBtcData, error: frBtcError } = useSWR('/api/frbtc-issued', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
+  const { data: totalUnwrapsData, error: totalUnwrapsError } = useSWR('/api/total-unwraps', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
 
   const btcLockedValue = btcError ? 'Error' : !btcData ? '...' : btcData.btcLocked.toFixed(5);
   const frBtcIssuedValue = frBtcError ? 'Error' : !frBtcData ? '...' : frBtcData.frBtcIssued.toFixed(5);
+  const totalUnwrapsValue = totalUnwrapsError ? 'Error' : !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' : (Number(totalUnwrapsData.totalUnwraps) / 1e8).toFixed(5);
+
+  const lifetimeBtcTxValue = (
+    frBtcError || totalUnwrapsError ? 'Error' :
+    !frBtcData || !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' :
+    (frBtcData.frBtcIssued + (Number(totalUnwrapsData.totalUnwraps) / 1e8)).toFixed(5)
+  );
 
   const metrics = [
     { 
@@ -81,7 +91,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { superTitle: 'Lifetime', title: 'frBTC Wraps', value: 'TBD' },
+    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: lifetimeBtcTxValue },
     { 
       superTitle: 'Early',
       title: 'Partnerships', 
