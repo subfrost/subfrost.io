@@ -32,6 +32,7 @@
 // - 2025-10-07 (Chadson): Aligned the BTC/USD toggle to the left of the metrics boxes per user feedback.
 // - 2025-10-07 (Chadson): Moved the toggle switch below the metrics boxes, on the same line as the refresh text.
 // - 2025-10-07 (Chadson): Swapped the position of the toggle switch and the refresh text.
+// - 2025-10-07 (Chadson): Updated toggle/refresh text section to stack vertically in the modal view by conditionally applying flexbox classes based on the `isModal` prop.
 
 "use client";
 
@@ -183,7 +184,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           </div>
         ))}
       </div>
-      <div className="w-full flex justify-between items-center mt-4 px-2" style={{ maxWidth: isModal ? 'calc(15rem + 1rem)' : 'calc(39rem + 1rem)' }}>
+      <div className={`w-full flex items-center mt-4 px-2 gap-2 ${isModal ? 'flex-col justify-center' : 'flex-col md:flex-row justify-center md:justify-between'}`} style={{ maxWidth: isModal ? 'calc(15rem + 1rem)' : 'calc(39rem + 1rem)' }}>
         <div className="flex items-center space-x-2">
           <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">BTC</Label>
           <Switch
