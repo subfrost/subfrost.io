@@ -25,16 +25,25 @@
 // - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: light blue on small screens, white on medium screens and up.
 // - 2025-10-04 (Chadlina): Made metric value color responsive: white on small screens, brand-blue on medium screens and up.
 // - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: dark blue on small screens, white on medium screens and up.
+// - 2025-10-07 (Chadson): Added a toggle switch to display values in BTC or USD.
+//   - Fetches BTC price from `/api/btc-price`.
+//   - Implements state to manage the selected currency.
+//   - Formats USD values with commas and uses "K" for values over 100,000.
+// - 2025-10-07 (Chadson): Aligned the BTC/USD toggle to the left of the metrics boxes per user feedback.
+// - 2025-10-07 (Chadson): Moved the toggle switch below the metrics boxes, on the same line as the refresh text.
+// - 2025-10-07 (Chadson): Swapped the position of the toggle switch and the refresh text.
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface MetricsBoxesProps {
   onPartnershipsClick: () => void;
@@ -44,6 +53,8 @@ interface MetricsBoxesProps {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
+  const [currency, setCurrency] = useState('BTC');
+
   const { data: btcData, error: btcError } = useSWR('/api/btc-locked', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
@@ -53,22 +64,41 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   const { data: totalUnwrapsData, error: totalUnwrapsError } = useSWR('/api/total-unwraps', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
+  const { data: btcPriceData, error: btcPriceError } = useSWR('/api/btc-price', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
 
-  const btcLockedValue = btcError ? 'Error' : !btcData ? '...' : btcData.btcLocked.toFixed(5);
-  const frBtcIssuedValue = frBtcError ? 'Error' : !frBtcData ? '...' : frBtcData.frBtcIssued.toFixed(5);
-  const totalUnwrapsValue = totalUnwrapsError ? 'Error' : !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' : (Number(totalUnwrapsData.totalUnwraps) / 1e8).toFixed(5);
+  const formatUsd = (value: number) => {
+    if (value >= 100000) {
+      return `$${(value / 1000).toFixed(1)}K`;
+    }
+    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  };
+
+  const getDisplayValue = (btcValue: number | string) => {
+    if (typeof btcValue !== 'number') return btcValue;
+    if (currency === 'USD') {
+      if (btcPriceError || !btcPriceData) return '...';
+      return formatUsd(btcValue * btcPriceData.btcPrice);
+    }
+    return btcValue.toFixed(5);
+  };
+
+  const btcLockedValue = btcError ? 'Error' : !btcData ? '...' : btcData.btcLocked;
+  const frBtcIssuedValue = frBtcError ? 'Error' : !frBtcData ? '...' : frBtcData.frBtcIssued;
+  const totalUnwrapsValue = totalUnwrapsError ? 'Error' : !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' : (Number(totalUnwrapsData.totalUnwraps) / 1e8);
 
   const lifetimeBtcTxValue = (
     frBtcError || totalUnwrapsError ? 'Error' :
     !frBtcData || !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' :
-    (frBtcData.frBtcIssued + (Number(totalUnwrapsData.totalUnwraps) / 1e8)).toFixed(5)
+    (frBtcData.frBtcIssued + (Number(totalUnwrapsData.totalUnwraps) / 1e8))
   );
 
   const metrics = [
     { 
       superTitle: 'Current',
       title: 'frBTC Supply', 
-      value: frBtcIssuedValue, 
+      value: getDisplayValue(frBtcIssuedValue), 
       linkText: 'Contracts', 
       linkType: 'popover',
       popoverContent: (
@@ -81,7 +111,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     { 
       superTitle: 'Current',
       title: 'BTC Locked', 
-      value: btcLockedValue, 
+      value: getDisplayValue(btcLockedValue), 
       linkText: 'Verify', 
       linkType: 'popover',
       popoverContent: (
@@ -91,7 +121,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: lifetimeBtcTxValue },
+    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: getDisplayValue(lifetimeBtcTxValue) },
     { 
       superTitle: 'Early',
       title: 'Partnerships', 
@@ -153,8 +183,19 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           </div>
         ))}
       </div>
-      <div className="text-center text-[hsl(var(--brand-blue))] mt-4" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
-        Metrics refresh every 15 minutes.
+      <div className="w-full flex justify-between items-center mt-4 px-2" style={{ maxWidth: isModal ? 'calc(15rem + 1rem)' : 'calc(39rem + 1rem)' }}>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">BTC</Label>
+          <Switch
+            id="currency-toggle"
+            checked={currency === 'USD'}
+            onCheckedChange={(checked) => setCurrency(checked ? 'USD' : 'BTC')}
+          />
+          <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
+        </div>
+        <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+          Metrics refresh every 15 minutes.
+        </div>
       </div>
     </div>
   );

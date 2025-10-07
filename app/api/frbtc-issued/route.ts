@@ -8,6 +8,7 @@
 // 2025-09-25: Changed the return type to a number to fix a client-side error.
 // 2025-09-25: Re-added division by 1e8 per user feedback.
 // 2025-10-06: Subtracted a constant of 4443097 from the total supply to correct for an initial offset.
+// 2025-10-07: Added a check to ensure `storageHex` is not undefined before processing.
 
 import { NextResponse } from 'next/server';
 import { AlkanesRpc } from 'alkanes/lib/rpc.js';
@@ -34,6 +35,10 @@ export async function GET() {
       id: alkaneId,
       path: path,
     });
+
+    if (storageHex === undefined) {
+      throw new Error('Failed to retrieve storage data.');
+    }
 
     const littleEndianHex = reverseHex(storageHex);
     const totalSupply = BigInt(littleEndianHex);
