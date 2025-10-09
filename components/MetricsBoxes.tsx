@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useMetric } from '@/hooks/use-metric';
 
 interface MetricsBoxesProps {
   onPartnershipsClick: () => void;
@@ -57,15 +58,10 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
   const [currency, setCurrency] = useState('BTC');
 
-  const { data: btcData, error: btcError } = useSWR('/api/btc-locked', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
-  const { data: frBtcData, error: frBtcError } = useSWR('/api/frbtc-issued', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
-  const { data: totalUnwrapsData, error: totalUnwrapsError } = useSWR('/api/total-unwraps', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
+  const btcLockedValue = useMetric('/api/btc-locked', 'btcLocked');
+  const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
+  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps', (value) => value / 1e8);
+
   const { data: btcPriceData, error: btcPriceError } = useSWR('/api/btc-price', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
@@ -86,14 +82,10 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     return btcValue.toFixed(5);
   };
 
-  const btcLockedValue = btcError ? 'Error' : !btcData ? '...' : btcData.btcLocked;
-  const frBtcIssuedValue = frBtcError ? 'Error' : !frBtcData ? '...' : frBtcData.frBtcIssued;
-  const totalUnwrapsValue = totalUnwrapsError ? 'Error' : !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' : (Number(totalUnwrapsData.totalUnwraps) / 1e8);
-
   const lifetimeBtcTxValue = (
-    frBtcError || totalUnwrapsError ? 'Error' :
-    !frBtcData || !totalUnwrapsData || totalUnwrapsData.totalUnwraps === undefined ? '...' :
-    (frBtcData.frBtcIssued + (Number(totalUnwrapsData.totalUnwraps) / 1e8))
+    typeof frBtcIssuedValue !== 'number' || typeof totalUnwrapsValue !== 'number'
+      ? '...'
+      : frBtcIssuedValue + totalUnwrapsValue
   );
 
   const metrics = [
