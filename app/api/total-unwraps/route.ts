@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const response = await fetch("https://staging-api.oyl.gg/get-total-unwrap-amount", {
+    const response = await fetch("https://mainnet-api.oyl.gg/get-total-unwrap-amount", {
       method: "POST",
       headers: {
         "accept": "application/json",
