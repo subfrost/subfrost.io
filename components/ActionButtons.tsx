@@ -6,6 +6,8 @@
  *
  * The "METRICS" button is conditionally rendered and hidden on medium screens and larger (`md:hidden`), as it is expected to be part of a different layout on desktop. The component also manages the state for the "Partnerships" modal, which is triggered by the corresponding button.
  * 2025-09-20: Removed `showMetrics` prop and simplified the "METRICS" button to only trigger the modal.
+ * 2025-10-16: Added "frBTC ACTIVITY" button to link to the activity page.
+ * 2025-10-16: Changed "frBTC ACTIVITY" button to open a modal.
  */
 "use client"
 
@@ -19,9 +21,10 @@ import {
 interface ActionButtonsProps {
   onMetricsClick: () => void;
   onPartnershipsClick: () => void;
+  onFrbtcActivityClick: () => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onPartnershipsClick }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onPartnershipsClick, onFrbtcActivityClick }) => {
   return (
     <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
       <a
@@ -32,6 +35,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onPartner
       >
         OFFICIAL DOCS
       </a>
+      <button
+        onClick={onFrbtcActivityClick}
+        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm"
+      >
+        frBTC ACTIVITY
+      </button>
       <button
         onClick={onPartnershipsClick}
         className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm"

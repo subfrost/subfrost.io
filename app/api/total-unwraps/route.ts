@@ -3,8 +3,7 @@
 // Chadson's Journal:
 // Purpose: This API route fetches the total amount of frBTC unwrapped.
 // It calls the OYL staging API's `get_total_unwrap_amount` endpoint.
-// The exact details of the API are not fully known, so this is a best-effort implementation
-// based on the information provided.
+// The URL was updated from mainnet to staging to align with the development environment.
 
 import { NextResponse } from 'next/server';
 

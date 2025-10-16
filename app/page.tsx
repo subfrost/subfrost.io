@@ -12,6 +12,7 @@
  * - `Footer`: A responsive footer that is fixed on mobile and absolute on larger screens.
  *
  * The `metrics-open` class is dynamically applied to the `main` element to enable `overflow-y: auto` when the metrics section is visible, allowing the user to scroll as needed.
+ * 2025-10-16: Added state management for the frBTC Activity modal.
  */
 "use client"
 
@@ -25,11 +26,13 @@ import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
 import MetricsBoxes from "@/components/MetricsBoxes"
 import PartnershipsModal from "@/components/PartnershipsModal"
+import FrbtcActivityModal from "@/components/FrbtcActivityModal"
 import CustomModal from "@/components/CustomModal"
 
 export default function Page() {
   const [isPartnershipsModalOpen, setIsPartnershipsModalOpen] = useState(false)
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false)
+  const [isFrbtcActivityModalOpen, setIsFrbtcActivityModalOpen] = useState(false)
 
   const handleOpenPartnershipsModal = () => {
     setIsPartnershipsModalOpen(true)
@@ -52,12 +55,24 @@ export default function Page() {
     setIsMetricsModalOpen(false)
   }
 
+  const handleOpenFrbtcActivityModal = () => {
+    setIsFrbtcActivityModalOpen(true)
+  }
+
+  const handleCloseFrbtcActivityModal = () => {
+    setIsFrbtcActivityModalOpen(false)
+  }
+
   return (
     <main className="relative">
       <GlobalStyles />
       <PartnershipsModal
         isOpen={isPartnershipsModalOpen}
         onClose={handleClosePartnershipsModal}
+      />
+      <FrbtcActivityModal
+        isOpen={isFrbtcActivityModalOpen}
+        onClose={handleCloseFrbtcActivityModal}
       />
       <div className="md:hidden">
         <CustomModal
@@ -97,6 +112,7 @@ export default function Page() {
               <ActionButtons
                 onMetricsClick={handleOpenMetricsModal}
                 onPartnershipsClick={handleOpenPartnershipsModal}
+                onFrbtcActivityClick={handleOpenFrbtcActivityModal}
               />
               <div className="hidden md:block">
                 <MetricsBoxes onPartnershipsClick={handleOpenPartnershipsModal} />
