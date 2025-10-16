@@ -98,7 +98,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
           <p>Alkanes: frBTC <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
-          <p>BRC2.0: fr-BTC <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(6-byte)</a></p>
+          <p>BRC2.0: FR-BTC <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(6-byte)</a></p>
         </div>
       )
     },
