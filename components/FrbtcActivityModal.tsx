@@ -37,7 +37,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import CustomModal from './CustomModal';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 
 type SortKey = 'amount' | 'timestamp';
 type SortDirection = 'asc' | 'desc';
@@ -84,16 +84,21 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
   const [hasMore, setHasMore] = useState(true);
   const [activityType, setActivityType] = useState<'Wrap' | 'Unwrap' | 'Both'>('Both');
   const [searchAddress, setSearchAddress] = useState('');
+  const [submittedSearchAddress, setSubmittedSearchAddress] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('timestamp');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   useEffect(() => {
     if (isOpen) {
-      fetchTransactions();
+      fetchTransactions(submittedSearchAddress);
     }
-  }, [isOpen, page, activityType]);
+  }, [isOpen, page, activityType, submittedSearchAddress]);
 
-  const fetchTransactions = async () => {
+  useEffect(() => {
+    setPage(1);
+  }, [activityType, submittedSearchAddress]);
+
+  const fetchTransactions = async (address = submittedSearchAddress) => {
     setIsLoading(true);
     try {
       const offset = (page - 1) * 25;
@@ -102,15 +107,23 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
       let hasMoreWraps = false;
       let hasMoreUnwraps = false;
 
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      };
+
       if (activityType === 'Wrap' || activityType === 'Both') {
-        const res = await fetch(`/api/wrap-history?count=25&offset=${offset}`);
+        const url = address ? `/api/get-address-wrap-history?count=25&offset=${offset}` : `/api/wrap-history?count=25&offset=${offset}`;
+        const res = await fetch(url, address ? fetchOptions : {});
         const data = await res.json();
         wrapTxs = (Array.isArray(data?.data?.items) ? data.data.items : []).map((tx: any) => ({ ...tx, type: 'Wrap' }));
         hasMoreWraps = wrapTxs.length === 25;
       }
 
       if (activityType === 'Unwrap' || activityType === 'Both') {
-        const res = await fetch(`/api/unwrap-history?count=25&offset=${offset}`);
+        const url = address ? `/api/get-address-unwrap-history?count=25&offset=${offset}` : `/api/unwrap-history?count=25&offset=${offset}`;
+        const res = await fetch(url, address ? fetchOptions : {});
         const data = await res.json();
         unwrapTxs = (Array.isArray(data?.data?.items) ? data.data.items : []).map((tx: any) => ({ ...tx, type: 'Unwrap' }));
         hasMoreUnwraps = unwrapTxs.length === 25;
@@ -132,6 +145,15 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setSubmittedSearchAddress(searchAddress);
+  };
+
+  const handleClearSearch = () => {
+    setSearchAddress('');
+    setSubmittedSearchAddress('');
   };
 
   const handleNextPage = () => {
@@ -156,14 +178,8 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     }
   };
 
-  const sortedAndFilteredTransactions = useMemo(() => {
-    let processedTransactions = [...transactions];
-
-    if (searchAddress) {
-      processedTransactions = processedTransactions.filter(tx =>
-        tx.address && tx.address.toLowerCase().includes(searchAddress.toLowerCase())
-      );
-    }
+  const sortedTransactions = useMemo(() => {
+    const processedTransactions = [...transactions];
 
     processedTransactions.sort((a, b) => {
       if (sortKey === 'amount') {
@@ -180,7 +196,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     });
 
     return processedTransactions;
-  }, [transactions, searchAddress, sortKey, sortDirection]);
+  }, [transactions, sortKey, sortDirection]);
 
   const SortableHeader = ({ columnKey, title }: { columnKey: SortKey, title: string }) => {
     const isCurrentKey = sortKey === columnKey;
@@ -204,23 +220,31 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     >
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div className="relative w-full md:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
             type="text"
             placeholder="Enter Taproot Address"
-            className="pr-10"
+            className="pl-10 pr-16"
             value={searchAddress}
             onChange={(e) => setSearchAddress(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+          <div className="absolute inset-y-0 right-0 flex items-center">
+            {searchAddress && (
+              <Button onClick={handleClearSearch} variant="ghost" size="icon" className="h-8 w-8">
+                <X className="h-5 w-5 text-gray-400" />
+              </Button>
+            )}
+            <Button onClick={handleSearch} variant="ghost" size="icon" className="h-8 w-8">
+              <Search className="h-5 w-5 text-gray-400" />
+            </Button>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Activity Type:</span>
           <div className="flex items-center gap-2">
+            <Button variant={activityType === 'Both' ? 'default' : 'outline'} size="sm" onClick={() => handleActivityTypeChange('Both')}>All</Button>
             <Button variant={activityType === 'Wrap' ? 'default' : 'outline'} size="sm" onClick={() => handleActivityTypeChange('Wrap')}>Wrap</Button>
             <Button variant={activityType === 'Unwrap' ? 'default' : 'outline'} size="sm" onClick={() => handleActivityTypeChange('Unwrap')}>Unwrap</Button>
-            <Button variant={activityType === 'Both' ? 'default' : 'outline'} size="sm" onClick={() => handleActivityTypeChange('Both')}>Both</Button>
           </div>
         </div>
       </div>
@@ -237,7 +261,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
         <div className="border rounded-lg p-4">
           {isLoading ? (
             <p className="text-center text-gray-500">Loading...</p>
-          ) : sortedAndFilteredTransactions.length > 0 ? (
+          ) : sortedTransactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
@@ -250,7 +274,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedAndFilteredTransactions.map((tx) => (
+                  {sortedTransactions.map((tx) => (
                     <tr key={tx.transactionId}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#284372]">{tx.type}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{parseFloat(tx.amount) / 1e8}</td>
