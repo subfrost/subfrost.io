@@ -9,6 +9,11 @@
  * It fetches wrap and unwrap history from the respective API endpoints and includes pagination.
  * It also allows for client-side sorting of the 'Amount' and 'Time' columns.
  *
+ * 2025-10-17: Moved frBTC balance to be on the same line as pagination.
+ * 2025-10-17: Added pulsating animation for "fetching..." text.
+ * 2025-10-17: Adjusted font size of balance display.
+ * 2025-10-17: Added "fetching..." state for balance display.
+ * 2025-10-17: Added frBTC balance display.
  * 2025-10-17: Adjusted skeleton loader widths to match final content.
  * 2025-10-17: Implemented a skeleton loader and minimum height to prevent modal resizing on load.
  * 2025-10-16: Corrected API response parsing. The transaction data is in `data.items`.
@@ -117,16 +122,56 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
   const [submittedSearchAddress, setSubmittedSearchAddress] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('timestamp');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [frBtcBalance, setFrBtcBalance] = useState<string | null>(null);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchTransactions(submittedSearchAddress);
+      if (submittedSearchAddress) {
+        fetchFrBtcBalance(submittedSearchAddress);
+      } else {
+        setFrBtcBalance(null);
+      }
     }
   }, [isOpen, page, activityType, submittedSearchAddress]);
 
   useEffect(() => {
     setPage(1);
   }, [activityType, submittedSearchAddress]);
+
+  const fetchFrBtcBalance = async (address: string) => {
+    if (!address) {
+      setFrBtcBalance(null);
+      return;
+    }
+    setIsFetchingBalance(true);
+    try {
+      const response = await fetch('/api/get-alkanes-by-address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+      const data = await response.json();
+      if (data.statusCode === 200 && Array.isArray(data.data)) {
+        const frBtcAlkane = data.data.find((alkane: any) => 
+          alkane.alkaneId && alkane.alkaneId.block === "32" && alkane.alkaneId.tx === "0"
+        );
+        if (frBtcAlkane) {
+          setFrBtcBalance((parseFloat(frBtcAlkane.balance) / 1e8).toLocaleString(undefined, { maximumFractionDigits: 8 }));
+        } else {
+          setFrBtcBalance("0");
+        }
+      } else {
+        setFrBtcBalance("N/A");
+      }
+    } catch (error) {
+      console.error("Error fetching frBTC balance:", error);
+      setFrBtcBalance("N/A");
+    } finally {
+      setIsFetchingBalance(false);
+    }
+  };
 
   const fetchTransactions = async (address = submittedSearchAddress) => {
     setIsLoading(true);
@@ -184,6 +229,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
   const handleClearSearch = () => {
     setSearchAddress('');
     setSubmittedSearchAddress('');
+    setFrBtcBalance(null);
   };
 
   const handleNextPage = () => {
@@ -241,6 +287,16 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     );
   };
 
+  const renderBalance = () => {
+    if (isFetchingBalance) {
+      return <span className="animate-pulsate">fetching...</span>;
+    }
+    if (frBtcBalance !== null) {
+      return frBtcBalance;
+    }
+    return "N/A";
+  };
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -248,7 +304,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
       title="frBTC ACTIVITY"
       modalClassName="md:max-w-4xl mb-32"
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <div className="relative w-full md:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
@@ -279,7 +335,11 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
         </div>
       </div>
       <div>
-        <div className="flex justify-end items-center gap-2 mb-2">
+        <div className="flex justify-between items-center gap-2 mb-2">
+          <p className="text-sm font-semibold text-gray-700">
+            frBTC Balance: <span className="text-[#284372]">{renderBalance()}</span>
+          </p>
+          <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handlePreviousPage} disabled={page === 1 || isLoading} className="h-6 w-6">
               <ChevronLeft className="h-4 w-4 text-gray-500" />
             </Button>
@@ -287,6 +347,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
             <Button variant="ghost" size="icon" onClick={handleNextPage} disabled={!hasMore || isLoading} className="h-6 w-6">
               <ChevronRight className="h-4 w-4 text-gray-500" />
             </Button>
+          </div>
         </div>
         <div className="border rounded-lg p-4 min-h-[560px] flex flex-col">
           {isLoading ? (
