@@ -111,7 +111,6 @@ export default function Page() {
               </div>
               <ActionButtons
                 onMetricsClick={handleOpenMetricsModal}
-                onPartnershipsClick={handleOpenPartnershipsModal}
                 onFrbtcActivityClick={handleOpenFrbtcActivityModal}
               />
               <div className="hidden md:block">

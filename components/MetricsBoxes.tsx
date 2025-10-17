@@ -34,6 +34,9 @@
 // - 2025-10-07 (Chadson): Swapped the position of the toggle switch and the refresh text.
 // - 2025-10-07 (Chadson): Updated toggle/refresh text section to stack vertically in the modal view by conditionally applying flexbox classes based on the `isModal` prop.
 // - 2025-10-07 (Chadson): Added links to the contracts popover.
+// - 2025-10-17 (Chadlina): Underlined the links in the metrics boxes.
+// - 2025-10-17 (Chadlina): Increased the font size of the "Visit Them!" link.
+// - 2025-10-17 (Chadlina): Adjusted "Visit Them!" link font size to match title font size on different screen sizes.
 
 "use client";
 
@@ -120,7 +123,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       superTitle: 'Early',
       title: 'Partnerships', 
       value: '17', 
-      linkText: 'Who Are They?',
+      linkText: 'Visit Them!',
       linkType: 'modal' 
     },
   ];
@@ -149,7 +152,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     }
     if (metric.linkType === 'modal') {
         return (
-            <button onClick={onPartnershipsClick} className={linkClasses} style={linkStyle}>
+            <button onClick={onPartnershipsClick} className={`${linkClasses} glowing-button`} style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
                 {metric.linkText}
             </button>
         )

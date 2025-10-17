@@ -136,3 +136,14 @@
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   }
 }
+
+.glowing-button {
+  @apply font-bold py-1 px-3 rounded-full;
+  color: hsl(var(--brand-blue));
+  box-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #fff;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.glowing-button:hover {
+  box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
+}
