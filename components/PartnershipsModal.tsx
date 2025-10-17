@@ -65,7 +65,7 @@ const partnershipSections = [
       },
       {
         logo: '/Partner Logos/pizzadotfun.png',
-        name: 'Pizza.fun (not released)',
+        name: 'pizza.fun (TBA)',
         description: 'Alkanes Token Launchpad with Gasless Mints',
         link: 'https://x.com/pizzadotfunbtc',
       },
@@ -78,7 +78,7 @@ const partnershipSections = [
     ],
   },
   {
-    title: 'Ecosystem Expansion Partners (not yet live)',
+    title: 'Ecosystem Expansion Partners (coming soon!)',
     partners: [
       {
         logo: '/Partner Logos/Saturn.svg',
@@ -103,6 +103,12 @@ const partnershipSections = [
         name: 'CatSwap',
         description: 'Premier AMM on BRC2.0',
         link: 'https://catswap.fun/',
+      },
+      {
+        logo: '/Partner Logos/Yuzo.png',
+        name: 'Yuzo',
+        description: 'BRC2.0 ₿apps on Bitcoin Layer-1',
+        link: 'https://yuzo.xyz/',
       },
     ],
   },
