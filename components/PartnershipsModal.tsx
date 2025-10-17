@@ -52,14 +52,20 @@ const partnershipSections = [
         link: 'https://bound.money/',
       },
       {
+        logo: '/Partner Logos/satsterminal.jpg',
+        name: 'Sats Terminal',
+        description: 'Swap for Alkanes, Runes, and Spark Tokens',
+        link: 'https://www.satsterminal.com/',
+      },
+      {
         logo: '/Partner Logos/alkamon.png',
-        name: 'Alkamon',
+        name: 'Alkamon (TBA)',
         description: 'First Advanced Game on Bitcoin Layer-1',
         link: 'https://mint.lasereyes.build/alkamon',
       },
       {
         logo: '/Partner Logos/fairmints.svg',
-        name: 'Fairmints',
+        name: 'Fairmints (TBA)',
         description: 'Alkanes and Orbitals Marketplace & Tools',
         link: 'https://fairmints.io/',
       },
@@ -150,7 +156,7 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
     <CustomModal
       isOpen={isOpen}
       onClose={onClose}
-      title="PARTNERSHIPS"
+      title="PARTNERSHIPS / WHERE TO GET frBTC"
       modalClassName="md:max-w-[35rem] mb-32"
     >
       <div className="space-y-8">
