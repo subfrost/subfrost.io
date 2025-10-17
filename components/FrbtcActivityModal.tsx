@@ -9,6 +9,8 @@
  * It fetches wrap and unwrap history from the respective API endpoints and includes pagination.
  * It also allows for client-side sorting of the 'Amount' and 'Time' columns.
  *
+ * 2025-10-17: Adjusted skeleton loader widths to match final content.
+ * 2025-10-17: Implemented a skeleton loader and minimum height to prevent modal resizing on load.
  * 2025-10-16: Corrected API response parsing. The transaction data is in `data.items`.
  * 2025-10-16: Reordered columns to Type, Amount, Address, Tx Hash, Time.
  * 2025-10-16: Added data formatting for amount, address, tx hash, and timestamp.
@@ -37,6 +39,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import CustomModal from './CustomModal';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, X, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 
 type SortKey = 'amount' | 'timestamp';
@@ -76,6 +79,33 @@ const formatTimestamp = (timestamp: string) => {
     hour12: true,
   });
 };
+
+const TransactionSkeleton = () => (
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Type</th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Amount</th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Address</th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Time</th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Tx Hash</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <tr key={index}>
+            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-12" /></td>
+            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-20" /></td>
+            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-28" /></td>
+            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-32" /></td>
+            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-16" /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -258,9 +288,9 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
               <ChevronRight className="h-4 w-4 text-gray-500" />
             </Button>
         </div>
-        <div className="border rounded-lg p-4">
+        <div className="border rounded-lg p-4 min-h-[560px] flex flex-col">
           {isLoading ? (
-            <p className="text-center text-gray-500">Loading...</p>
+            <TransactionSkeleton />
           ) : sortedTransactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -295,7 +325,9 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
               </table>
             </div>
           ) : (
-            <p className="text-center text-gray-500">No transactions found.</p>
+            <div className="flex-grow flex items-center justify-center">
+              <p className="text-center text-gray-500">No transactions found.</p>
+            </div>
           )}
         </div>
       </div>
