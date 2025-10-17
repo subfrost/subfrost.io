@@ -22,8 +22,8 @@
 // - 2025-10-02 (Chadlina): Added `superTitle` to metrics to display labels like "Current" and "Lifetime" above metric titles.
 // - 2025-10-04 (Chadson): Changed the metric value color to be the same as the titles (`--brand-blue`).
 // - 2025-10-04 (Chadson): Changed the metric value text-shadow to white.
-// - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: light blue on small screens, white on medium screens and up.
-// - 2025-10-04 (Chadlina): Made metric value color responsive: white on small screens, brand-blue on medium screens and up.
+// - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: dark blue on small screens, white on medium screens and up.
+// - 2025-10-17 (Chadlina): Refactored responsive styles for metric values into globals.css. On small screens, the text is white with a dark blue shadow. On larger screens, the text is dark blue with a white shadow.
 // - 2025-10-04 (Chadlina): Made metric value text-shadow responsive: dark blue on small screens, white on medium screens and up.
 // - 2025-10-07 (Chadson): Added a toggle switch to display values in BTC or USD.
 //   - Fetches BTC price from `/api/btc-price`.
@@ -77,7 +77,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   };
 
   const getDisplayValue = (btcValue: number | string) => {
-    if (typeof btcValue !== 'number') return btcValue;
+    if (typeof btcValue !== 'number') {
+      return btcValue;
+    }
     if (currency === 'USD') {
       if (btcPriceError || !btcPriceData) return '...';
       return formatUsd(btcValue * btcPriceData.btcPrice);
@@ -172,7 +174,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             <div>
               {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
               <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className="font-bold text-white md:text-[hsl(var(--brand-blue))] responsive-shadow" style={{ fontSize: '1.8rem' }}>{metric.value}</p>
+              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem' }}>{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}
