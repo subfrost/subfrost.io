@@ -40,6 +40,27 @@ const CustomModal: React.FC<CustomModalProps> = ({
     }
 
     const handleClickOutside = (e: MouseEvent) => {
+      /**
+       * @chadlina_bugfix (2025-10-23)
+       * @see {https://radix-ui.com/primitives/docs/components/popover#custom-event-oninteractoutside}
+       * @description When a Radix-based component (like a Popover or Dropdown) is opened from within this modal,
+       * its content is rendered in a portal outside the modal's DOM tree. This causes clicks inside the
+       * popover to be incorrectly interpreted as "outside" clicks by this `handleClickOutside` handler,
+       * causing the modal to close unexpectedly.
+       *
+       * To fix this, we check if the click target is inside a Radix-managed popper element.
+       * Radix wraps its portalled popper content (used by Popover, DropdownMenu, etc.) in a div
+       * with the `data-radix-popper-content-wrapper` attribute. If the click originates from
+       * within such an element, we ignore it and do not close the modal.
+       */
+      if (
+        (e.target as HTMLElement).closest(
+          '[data-radix-popper-content-wrapper]',
+        )
+      ) {
+        return
+      }
+
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose()
       }

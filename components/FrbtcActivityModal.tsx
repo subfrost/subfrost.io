@@ -9,6 +9,8 @@
  * It fetches wrap and unwrap history from the respective API endpoints and includes pagination.
  * It also allows for client-side sorting of the 'Amount' and 'Time' columns.
  *
+ * 2025-10-23: Implemented responsive padding for table columns to reduce horizontal space on mobile.
+ * 2025-10-23: Used `useIsMobile` hook to conditionally format timestamp, showing only date on mobile.
  * 2025-10-17: Moved frBTC balance to be on the same line as pagination.
  * 2025-10-17: Added pulsating animation for "fetching..." text.
  * 2025-10-17: Adjusted font size of balance display.
@@ -46,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, X, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortKey = 'amount' | 'timestamp';
 type SortDirection = 'asc' | 'desc';
@@ -73,16 +76,19 @@ const formatTxHash = (hash: string) => {
   return `${hash.slice(0, 2)}...${hash.slice(-3)}`;
 };
 
-const formatTimestamp = (timestamp: string) => {
+const formatTimestamp = (timestamp: string, isMobile: boolean) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('en-US', {
+  const options: Intl.DateTimeFormatOptions = {
     year: '2-digit',
     month: '2-digit',
     day: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  };
+  if (!isMobile) {
+    options.hour = 'numeric';
+    options.minute = '2-digit';
+    options.hour12 = true;
+  }
+  return date.toLocaleString('en-US', options);
 };
 
 const TransactionSkeleton = () => (
@@ -90,21 +96,21 @@ const TransactionSkeleton = () => (
     <table className="min-w-full divide-y divide-gray-200">
       <thead>
         <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Type</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Amount</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Address</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Time</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Tx Hash</th>
+          <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Type</th>
+          <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Amount</th>
+          <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Address</th>
+          <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Time</th>
+          <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Tx Hash</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-200">
         {Array.from({ length: 10 }).map((_, index) => (
           <tr key={index}>
-            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-12" /></td>
-            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-20" /></td>
-            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-28" /></td>
-            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-32" /></td>
-            <td className="px-6 py-4 whitespace-nowrap"><Skeleton className="h-4 w-16" /></td>
+            <td className="px-2 md:px-4 py-4 whitespace-nowrap"><Skeleton className="h-4 w-12" /></td>
+            <td className="px-2 md:px-4 py-4 whitespace-nowrap"><Skeleton className="h-4 w-20" /></td>
+            <td className="px-2 md:px-4 py-4 whitespace-nowrap"><Skeleton className="h-4 w-28" /></td>
+            <td className="px-2 md:px-4 py-4 whitespace-nowrap"><Skeleton className="h-4 w-32" /></td>
+            <td className="px-2 md:px-4 py-4 whitespace-nowrap"><Skeleton className="h-4 w-16" /></td>
           </tr>
         ))}
       </tbody>
@@ -124,6 +130,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [frBtcBalance, setFrBtcBalance] = useState<string | null>(null);
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isOpen) {
@@ -278,7 +285,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
     const isCurrentKey = sortKey === columnKey;
     const Icon = isCurrentKey ? (sortDirection === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown;
     return (
-      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">
+      <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">
         <button className="flex items-center gap-1 uppercase" onClick={() => handleSort(columnKey)}>
           {title}
           <Icon className="h-4 w-4" />
@@ -357,25 +364,25 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Type</th>
+                    <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Type</th>
                     <SortableHeader columnKey="amount" title="Amount" />
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Address</th>
+                    <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Address</th>
                     <SortableHeader columnKey="timestamp" title="Time" />
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Tx Hash</th>
+                    <th scope="col" className="px-2 md:px-4 py-3 text-left text-xs font-medium text-[#284372] uppercase tracking-wider">Tx Hash</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {sortedTransactions.map((tx) => (
                     <tr key={tx.transactionId}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#284372]">{tx.type}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{parseFloat(tx.amount) / 1e8}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">
+                      <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm font-medium text-[#284372]">{tx.type}</td>
+                      <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm text-gray-500">{parseFloat(tx.amount) / 1e8}</td>
+                      <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">
                         <a href={`https://ordiscan.com/address/${tx.address}`} target="_blank" rel="noopener noreferrer" className="text-[#284372] hover:underline">
                           {formatAddress(tx.address)}
                         </a>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(tx.timestamp)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">
+                      <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(tx.timestamp, isMobile)}</td>
+                      <td className="px-2 md:px-4 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">
                         <a href={`https://ordiscan.com/tx/${tx.transactionId}`} target="_blank" rel="noopener noreferrer" className="text-[#284372] hover:underline">
                           {formatTxHash(tx.transactionId)}
                         </a>

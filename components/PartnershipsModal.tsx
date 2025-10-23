@@ -95,7 +95,7 @@ const partnershipSections = [
       {
         logo: '/Partner Logos/bestinslot.png',
         name: '[Best in Slot]',
-        description: 'Premier AMM on BRC2.0',
+        description: 'Sequencer-powered AMM on BRC2.0',
         link: 'https://bestinslot.xyz/',
       },
       {
@@ -107,13 +107,13 @@ const partnershipSections = [
       {
         logo: '/Partner Logos/catswap.jpg',
         name: 'CatSwap',
-        description: 'First AMM/DEX on BRC2.0',
+        description: 'Premier AMM/DEX on BRC2.0',
         link: 'https://catswap.fun/',
       },
       {
         logo: '/Partner Logos/Yuzo.png',
         name: 'Yuzo',
-        description: '₿apps on Bitcoin L1 via BRC2.0',
+        description: '₿apps on Bitcoin Layer-1 via BRC2.0',
         link: 'https://yuzo.xyz/',
       },
     ],
