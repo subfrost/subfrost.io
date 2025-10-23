@@ -337,7 +337,7 @@ const FrbtcActivityModal: React.FC<FrbtcActivityModalProps> = ({ isOpen, onClose
       <div>
         <div className="flex justify-between items-center gap-2 mb-2">
           <p className="text-sm font-semibold text-gray-700">
-            frBTC Balance: <span className="text-[#284372]">{renderBalance()}</span>
+            frBTC Address Balance: <span className="text-[#284372]">{renderBalance()}</span>
           </p>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handlePreviousPage} disabled={page === 1 || isLoading} className="h-6 w-6">
