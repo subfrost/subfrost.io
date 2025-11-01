@@ -1,3 +1,10 @@
+/*
+ * @file components/GlobalStyles.tsx
+ * @description Global styles for the application.
+ *
+ * Journal:
+ * 2025-11-01: Removed `text-shadow` from `.snow-title-no-filter` to eliminate the shadow effect from subheaders, improving text clarity and aligning with a cleaner design aesthetic.
+ */
 "use client"
 
 import type React from "react"
@@ -14,14 +21,34 @@ const GlobalStyles: React.FC = () => (
     }
     
     @keyframes rise {
-      0% {
-        transform: translateY(0) rotate(0deg);
+      from {
+        bottom: -5%;
+        transform: rotate(0deg);
       }
-      100% {
-        transform: translateY(calc(-100vh - 50px)) rotate(360deg);
+      to {
+        bottom: 105%;
+        transform: rotate(360deg);
       }
     }
-    
+
+    @keyframes slow-rotate {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes slow-rotate-reverse {
+      from {
+        transform: rotate(360deg);
+      }
+      to {
+        transform: rotate(0deg);
+      }
+    }
+
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
@@ -53,7 +80,7 @@ const GlobalStyles: React.FC = () => (
     }
     
     .snow-title {
-      text-shadow: 
+      text-shadow:
         0 0 5px rgba(255, 255, 255, 0.8),
         0 0 10px rgba(255, 255, 255, 0.5),
         0 0 15px rgba(255, 255, 255, 0.4),
@@ -66,6 +93,24 @@ const GlobalStyles: React.FC = () => (
         -1px 1px 2px rgba(219, 234, 254, 0.8);
       filter: drop-shadow(0 0 2px rgba(219, 234, 254, 0.5));
     }
+
+    .snow-title-no-filter {
+      text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.8),
+        0 0 10px rgba(255, 255, 255, 0.5),
+        0 0 15px rgba(255, 255, 255, 0.4);
+      padding: 0.5rem 0;
+    }
+
+    .snow-image {
+      filter:
+        drop-shadow(0 0 5px rgba(255, 255, 255, 0.8))
+        drop-shadow(0 0 10px rgba(255, 255, 255, 0.5))
+        drop-shadow(0 0 15px rgba(255, 255, 255, 0.4))
+        drop-shadow(0 0 20px rgba(219, 234, 254, 0.3))
+        drop-shadow(0 0 25px rgba(219, 234, 254, 0.2))
+        drop-shadow(0 0 30px rgba(219, 234, 254, 0.1));
+    }
     
     .snow-button {
       position: relative;
@@ -77,7 +122,7 @@ const GlobalStyles: React.FC = () => (
     .snow-button:hover {
       background-color: #bfdbfe !important;
       color: #284372 !important;
-      box-shadow: 
+      box-shadow:
         0 0 5px rgba(255, 255, 255, 0.8),
         0 0 10px rgba(255, 255, 255, 0.5),
         0 0 15px rgba(219, 234, 254, 0.4),
@@ -95,7 +140,7 @@ const GlobalStyles: React.FC = () => (
     .modal-action-button:hover {
       background-color: white !important;
       color: #284372 !important;
-      box-shadow: 
+      box-shadow:
         0 0 5px rgba(255, 255, 255, 0.8),
         0 0 10px rgba(255, 255, 255, 0.5),
         0 0 15px rgba(219, 234, 254, 0.4),
