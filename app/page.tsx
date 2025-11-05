@@ -2,6 +2,7 @@
  * @file app/page.tsx
  * @description This is the main page of the application.
  *
+ * - dxBTC Image: Replaced the "Coming Soon" placeholder with the final `dxBTC.png` diagram. The image size has been adjusted to 250x250, and the `snow-image` and `rounded-full` classes have been removed for a cleaner look.
  * UI/UX Decisions:
  * - "Visit Them!" Button Behavior: Changed the "Visit Them!" button in the `MetricsBoxes` component to scroll to the "Partners" section instead of opening a modal. This provides a more direct user flow.
  * - dxBTC Section Mobile Layout: Reordered the `dxBTC` section to match the `frBTC` section on mobile devices. The DOM elements are rearranged to show the image first, followed by the text and button. On desktop, `md:order-1` and `md:order-2` are used to maintain the mirrored layout (Text | Image).
@@ -126,14 +127,14 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop" },
-  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0" },
-  { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata" },
-  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe" },
-  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari" },
-  { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday" },
-  { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/" },
-  { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger" },
+  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Creator of Alkanes. Former Founder/CTO of Oyl and zeroDAO. Earlier days starting Polymarket and IDEX." },
+  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant for too long. Turned Founder once the idea was good enough to change the world. " },
+  { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
+  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
+  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
+  { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
+  { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
+  { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
 ]
 
 export default function Page() {
@@ -324,16 +325,13 @@ export default function Page() {
           {/* dxBTC Section */}
           <div className="grid md:grid-cols-3 gap-8 items-center pt-12 border-t border-slate-300/50">
             <div className="flex flex-col items-center md:order-2">
-              <div
-                className="relative flex items-center justify-center w-56 h-56 rounded-full bg-orange-500 snow-image"
-                style={{ width: 224, height: 224 }}
-              >
-                <span className="text-center text-white font-bold text-2xl uppercase">
-                  COMING
-                  <br />
-                  SOON
-                </span>
-              </div>
+              <Image
+                src="/Diagrams/dxBTC.png"
+                alt="dxBTC Diagram"
+                width={250}
+                height={250}
+                className=""
+              />
               <a
                 href="https://docs.subfrost.io/tokens/dxBTC-overview"
                 target="_blank"
@@ -382,8 +380,8 @@ export default function Page() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {teamMembers.map((member, index) => {
-                    const content = (
-                      <>
+                    const cardContent = (
+                      <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
                         <Image
                           src={`/Team/${member.image}`}
                           alt={member.name}
@@ -393,25 +391,32 @@ export default function Page() {
                         />
                         <h4 className="text-lg font-bold text-white">{member.name}</h4>
                         <p className="text-gray-400 text-sm">{member.title}</p>
-                      </>
+                      </div>
                     )
 
+                    const hoverContent = (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <p className="text-lg font-bold text-white text-center">{member.name}</p>
+                        {/* @ts-ignore */}
+                        <p className="text-xs text-gray-300 text-center px-2 mt-1">{member.description}</p>
+                      </div>
+                    )
+
+                    const cardProps = {
+                      key: index,
+                      className:
+                        "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-colors duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden",
+                    }
+
                     return member.link ? (
-                      <a
-                        key={index}
-                        href={member.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-gray-700 text-center block transition-transform hover:scale-105"
-                      >
-                        {content}
+                      <a href={member.link} target="_blank" rel="noopener noreferrer" {...cardProps}>
+                        {cardContent}
+                        {hoverContent}
                       </a>
                     ) : (
-                      <div
-                        key={index}
-                        className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-gray-700 text-center"
-                      >
-                        {content}
+                      <div {...cardProps}>
+                        {cardContent}
+                        {hoverContent}
                       </div>
                     )
                   })}

@@ -12,10 +12,47 @@
  * The inner `div` will handle the `rotate` animation.
  * This separation ensures both animations play correctly without conflicting.
  *
+ * 2025-11-05T01:33:11.319Z - Chadlina v0.1
+ * Replaced the falling bitcoin image with the frBTC image.
+ * - Created a new `FrBtcSvgSnowflake` component to render the `fr-btc.png` image.
+ * - Updated the snowflake generation logic in `FrostBackdrop.tsx` to use `FrBtcSvgSnowflake` for the "fall" animation and keep `BitcoinSvgSnowflake` for the "shift" animation.
+ * - This ensures the hero section shows falling frBTC logos while the "About" section retains the shifting bitcoin logos.
+ * - Refactored the rendering logic to be more concise by checking for the `size` prop instead of `displayName`.
+ *
+ * 2025-11-05T01:35:43.447Z - Chadlina v0.1
+ * - Increased the number of shifting bitcoins by ~15% as requested.
+ * - Desktop count increased from 25 to 29.
+ * - Mobile count increased from 17 to 20.
+ *
+ * 2025-11-05T01:49:16.693Z - Chadlina v0.1
+ * - Implemented alternating images for the shifting bitcoins in the "About" section.
+ * - When the animation pauses, the images switch to `fr-BTC`.
+ * - When the animation resumes, they switch back to the bitcoin logo.
+ * - This is achieved by introducing a 1-second pause into the animation cycle by changing the interval to 2s.
+ * - The `useEffect` for the `shift` animation now uses a `setTimeout` to toggle the component after the movement transition completes.
+ *
+ * 2025-11-05T01:53:20.883Z - Chadlina v0.1
+ * - Refined the shifting bitcoin animation to remove the pause.
+ * - The images now shift every second, and the image type (Bitcoin or frBTC) is toggled with each shift.
+ * - This is managed by a `useRef` (`imageToggle`) that tracks the current image state.
+ * - The `setInterval` is now 1000ms, and it updates both the position and the component simultaneously.
+ *
+ * 2025-11-05T01:54:28.481Z - Chadlina v0.1
+ * - Reverted the animation interval for the shifting bitcoins back to 2 seconds as requested.
+ *
+ * 2025-11-05T01:57:34.301Z - Chadlina v0.1
+ * - Doubled the maximum shift distance from 48px to 96px by changing the multiplier to 192.
+ * - Decreased the animation interval from 2000ms to 1500ms.
+ *
+ * 2025-11-05T02:03:13.585Z - Chadlina v0.1
+ * - Adjusted the animation timing to swap the image at the moment the movement pauses.
+ * - The `setInterval` now triggers the movement, and a `setTimeout` is scheduled for 1000ms later (the transition duration) to update the image component.
+ * - This ensures the image swap happens exactly when the pause begins.
+ *
  * End Journal
  */
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Image from 'next/image'
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -59,6 +96,11 @@ const BitcoinSvgSnowflake = React.memo(({ size }: { size: number }) => {
 })
 BitcoinSvgSnowflake.displayName = "BitcoinSvgSnowflake"
 
+const FrBtcSvgSnowflake = React.memo(({ size }: { size: number }) => {
+  return <Image src="/Diagrams/fr-btc.png" alt="frBTC" width={size} height={size} />
+})
+FrBtcSvgSnowflake.displayName = "FrBtcSvgSnowflake"
+
 // --- Component Setup ---
 const snowflakeTypes = [Snowflake1, Snowflake2, Snowflake3, Snowflake4, Snowflake5, Snowflake6]
 const bitcoinSnowflakeTypes = [BitcoinSvgSnowflake]
@@ -78,15 +120,18 @@ interface FrostBackdropProps {
 const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animationType = "fall" }) => {
   const [snowflakes, setSnowflakes] = useState<SnowflakeState[]>([])
   const isMobile = useIsMobile()
+  const imageToggle = useRef(true) // true for Bitcoin, false for frBTC
+  const timeoutIds = useRef<NodeJS.Timeout[]>([])
 
   // Effect for 'shift' animation
   useEffect(() => {
     if (animationType === "shift") {
       const interval = setInterval(() => {
+        // Trigger the movement
         setSnowflakes(currentFlakes =>
           currentFlakes.map(flake => {
-            const dx = (Math.random() - 0.5) * 96 // Approx 1 inch
-            const dy = (Math.random() - 0.5) * 96 // Approx 1 inch
+            const dx = (Math.random() - 0.5) * 192
+            const dy = (Math.random() - 0.5) * 192
             return {
               ...flake,
               style: {
@@ -96,8 +141,25 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
             }
           }),
         )
-      }, 1000)
-      return () => clearInterval(interval)
+
+        // Schedule the image swap for when the movement ends
+        const timeoutId = setTimeout(() => {
+          imageToggle.current = !imageToggle.current
+          const NextComponent = imageToggle.current ? BitcoinSvgSnowflake : FrBtcSvgSnowflake
+          setSnowflakes(currentFlakes =>
+            currentFlakes.map(flake => ({
+              ...flake,
+              Component: NextComponent,
+            })),
+          )
+        }, 1000) // Swap after the 1s transition
+        timeoutIds.current.push(timeoutId)
+      }, 1500) // Total cycle time
+
+      return () => {
+        clearInterval(interval)
+        timeoutIds.current.forEach(clearTimeout)
+      }
     }
   }, [animationType])
 
@@ -105,7 +167,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
   useEffect(() => {
     let snowflakeCount;
     if (animationType === 'shift') {
-      snowflakeCount = isMobile ? 17 : 25;
+      snowflakeCount = isMobile ? 20 : 29;
     } else {
       snowflakeCount = isMobile ? 70 : 100;
     }
@@ -119,7 +181,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
         SnowflakeComponent = BitcoinSvgSnowflake;
       } else {
         if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
-          SnowflakeComponent = BitcoinSvgSnowflake;
+          SnowflakeComponent = FrBtcSvgSnowflake;
         } else {
           SnowflakeComponent = snowflakeTypes[Math.floor(Math.random() * snowflakeTypes.length)];
         }
@@ -132,7 +194,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
         top: `${Math.random() * 100}%`,
       };
 
-      if (SnowflakeComponent === BitcoinSvgSnowflake) {
+      if (SnowflakeComponent === BitcoinSvgSnowflake || SnowflakeComponent === FrBtcSvgSnowflake) {
         randomSize = Math.floor(12 + Math.random() * 13); // 12px to 24px
         style.animation = `${Math.random() > 0.5 ? 'slow-rotate' : 'slow-rotate-reverse'} ${5 + Math.random() * 25}s linear infinite`;
       } else {
@@ -174,7 +236,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
               }}
             >
               <div style={{ animation: style.animation }}>
-                {Component.displayName === "BitcoinSvgSnowflake" && size ? <Component size={size} /> : <Component />}
+                {size ? <Component size={size} /> : <Component />}
               </div>
             </div>
           )
@@ -183,7 +245,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
         // Original rendering for other animation types
         return (
           <div key={key} style={style}>
-            {Component.displayName === "BitcoinSvgSnowflake" && size ? <Component size={size} /> : <Component />}
+            {size ? <Component size={size} /> : <Component />}
           </div>
         )
       })}

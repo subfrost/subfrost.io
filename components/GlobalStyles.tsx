@@ -95,21 +95,12 @@ const GlobalStyles: React.FC = () => (
     }
 
     .snow-title-no-filter {
-      text-shadow:
-        0 0 5px rgba(255, 255, 255, 0.8),
-        0 0 10px rgba(255, 255, 255, 0.5),
-        0 0 15px rgba(255, 255, 255, 0.4);
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
       padding: 0.5rem 0;
     }
 
     .snow-image {
-      filter:
-        drop-shadow(0 0 5px rgba(255, 255, 255, 0.8))
-        drop-shadow(0 0 10px rgba(255, 255, 255, 0.5))
-        drop-shadow(0 0 15px rgba(255, 255, 255, 0.4))
-        drop-shadow(0 0 20px rgba(219, 234, 254, 0.3))
-        drop-shadow(0 0 25px rgba(219, 234, 254, 0.2))
-        drop-shadow(0 0 30px rgba(219, 234, 254, 0.1));
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
     }
     
     .snow-button {
