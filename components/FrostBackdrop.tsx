@@ -97,7 +97,7 @@ const BitcoinSvgSnowflake = React.memo(({ size }: { size: number }) => {
 BitcoinSvgSnowflake.displayName = "BitcoinSvgSnowflake"
 
 const FrBtcSvgSnowflake = React.memo(({ size }: { size: number }) => {
-  return <Image src="/Diagrams/fr-btc.png" alt="frBTC" width={size} height={size} />
+  return <Image src="/Diagrams/frBTC_small.svg" alt="frBTC" width={size} height={size} />
 })
 FrBtcSvgSnowflake.displayName = "FrBtcSvgSnowflake"
 
@@ -110,6 +110,9 @@ interface SnowflakeState {
   style: React.CSSProperties
   Component: React.FC<any>
   size?: number
+  isMoving?: boolean
+  dx?: number
+  dy?: number
 }
 
 interface FrostBackdropProps {
@@ -130,10 +133,13 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
         // Trigger the movement
         setSnowflakes(currentFlakes =>
           currentFlakes.map(flake => {
-            const dx = (Math.random() - 0.5) * 192
-            const dy = (Math.random() - 0.5) * 192
+            const dx = (Math.random() - 0.5) * 211.2
+            const dy = (Math.random() - 0.5) * 211.2
             return {
               ...flake,
+              isMoving: true,
+              dx,
+              dy,
               style: {
                 ...flake.style,
                 transform: `translate(${dx}px, ${dy}px)`,
@@ -149,10 +155,11 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
           setSnowflakes(currentFlakes =>
             currentFlakes.map(flake => ({
               ...flake,
+              isMoving: false,
               Component: NextComponent,
             })),
           )
-        }, 1000) // Swap after the 1s transition
+        }, 750) // Swap after the 0.75s transition
         timeoutIds.current.push(timeoutId)
       }, 1500) // Total cycle time
 
@@ -214,6 +221,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
         style: style,
         Component: SnowflakeComponent,
         size: randomSize,
+        isMoving: false,
       });
     }
     setSnowflakes(flakes)
@@ -221,7 +229,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {snowflakes.map(({ key, style, Component, size }) => {
+      {snowflakes.map(({ key, style, Component, size, isMoving, dx, dy }) => {
         if (animationType === "shift") {
           // Nested div structure to separate translate and rotate transforms
           return (
@@ -231,11 +239,11 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animatio
                 position: "absolute",
                 left: style.left,
                 top: style.top,
-                transition: "transform 1s ease-in-out",
+                transition: "transform 0.75s ease-in-out",
                 transform: style.transform,
               }}
             >
-              <div style={{ animation: style.animation }}>
+              <div style={{ animation: style.animation, position: 'relative', zIndex: 1 }}>
                 {size ? <Component size={size} /> : <Component />}
               </div>
             </div>

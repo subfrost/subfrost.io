@@ -127,8 +127,8 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Creator of Alkanes. Former Founder/CTO of Oyl and zeroDAO. Earlier days starting Polymarket and IDEX." },
-  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant for too long. Turned Founder once the idea was good enough to change the world. " },
+  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Founder/CTO of Oyl Corp, zeroDAO, Polymarket, and IDEX." },
+  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could change the world. " },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
@@ -273,7 +273,7 @@ export default function Page() {
           <div className="grid md:grid-cols-3 gap-4 items-center pt-12 border-t border-slate-300/50">
             <div className="flex flex-col items-center">
               <Image
-                src="/Diagrams/fr-btc.png"
+                src="/Diagrams/frBTC_large.svg"
                 alt="frBTC Diagram"
                 width={224}
                 height={112}
@@ -378,7 +378,7 @@ export default function Page() {
                     SUBFROST TEAM
                   </h2>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
                   {teamMembers.map((member, index) => {
                     const cardContent = (
                       <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
@@ -402,19 +402,16 @@ export default function Page() {
                       </div>
                     )
 
-                    const cardProps = {
-                      key: index,
-                      className:
-                        "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-colors duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden",
-                    }
+                    const cardClassName =
+                      "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
 
                     return member.link ? (
-                      <a href={member.link} target="_blank" rel="noopener noreferrer" {...cardProps}>
+                      <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
                         {cardContent}
                         {hoverContent}
                       </a>
                     ) : (
-                      <div {...cardProps}>
+                      <div key={index} className={cardClassName}>
                         {cardContent}
                         {hoverContent}
                       </div>
@@ -431,7 +428,7 @@ export default function Page() {
                     Partners
                   </h2>
                 </div>
-                  <div className="grid grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 p-2">
                     {partners.map((partner, index) => (
                       <a
                         key={index}
