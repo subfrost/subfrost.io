@@ -103,6 +103,7 @@ import FrbtcActivityModal from "@/components/FrbtcActivityModal"
 import CustomModal from "@/components/CustomModal"
 import InfoSection from "@/components/InfoSection"
 import ScrollArrow from "@/components/ScrollArrow"
+import FadeInOnScroll from "@/components/FadeInOnScroll"
 
 const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
@@ -245,224 +246,236 @@ export default function Page() {
           sectionRefs.current[1] = el
         }}
       >
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-            SEAMLESS USE OF <span className="block">NATIVE BTC</span>
-          </h2>
-          <p className="mt-4 text-xl text-gray-300">in ₿apps built on Bitcoin Layer-1</p>
-        </div>
+        <FadeInOnScroll>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
+              SEAMLESS USE OF <span className="block">NATIVE BTC</span>
+            </h2>
+            <p className="mt-4 text-xl text-gray-300">in ₿apps built on Bitcoin Layer-1</p>
+          </div>
+        </FadeInOnScroll>
         <div className="space-y-16">
           {/* Mission Section */}
-          <div className="text-center">
-            <h3 className="text-3xl font-bold text-white mb-4 snow-title-no-filter">Our Mission</h3>
-            <div className="text-gray-300 leading-relaxed text-lg space-y-6 max-w-4xl mx-auto text-left">
-              <p>
-                SUBFROST is on a mission to be one of the most robust, <b>important</b>, and useful protocols for the future of our financial system.
-              </p>
-              <p>
-                We enable the <i>seamless use</i> of native BTC in ways that were never before possible.
-              </p>
-              <p>
-                We are the key to interoperability between programmable Bitcoin environments,
-                unlocking novel DeFi experiences for users and instituitons that don't trust putting their BTC anywhere but Bitcoin Layer-1.
-              </p>
+          <FadeInOnScroll>
+            <div className="text-center">
+              <h3 className="text-3xl font-bold text-white mb-4 snow-title-no-filter">Our Mission</h3>
+              <div className="text-gray-300 leading-relaxed text-lg space-y-6 max-w-4xl mx-auto text-left">
+                <p>
+                  SUBFROST is on a mission to be one of the most robust, <b>important</b>, and useful protocols for the future of our financial system.
+                </p>
+                <p>
+                  We enable the <i>seamless use</i> of native BTC in ways that were never before possible.
+                </p>
+                <p>
+                  We are the key to interoperability between programmable Bitcoin environments,
+                  unlocking novel DeFi experiences for users and instituitons that don't trust putting their BTC anywhere but Bitcoin Layer-1.
+                </p>
+              </div>
             </div>
-          </div>
+          </FadeInOnScroll>
 
           {/* frBTC Section */}
-          <div className="grid md:grid-cols-3 gap-4 items-center pt-12 border-t border-slate-300/50">
-            <div className="flex flex-col items-center">
-              <Image
-                src="/Diagrams/frBTC_large.svg"
-                alt="frBTC Diagram"
-                width={224}
-                height={112}
-                className="rounded-full snow-image"
-              />
-              <a
-                href="https://docs.subfrost.io/tokens/frBTC-overview"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex justify-center items-center px-6 py-2 mt-16 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
-              >
-                READ ABOUT frBTC
-              </a>
-            </div>
-            <div className="text-gray-300 leading-relaxed text-lg space-y-6 text-left md:col-span-2">
-              <h3 className="text-3xl font-bold text-white">
-                <span className="snow-title-no-filter">frBTC</span>
-                <span className="block text-xl font-normal text-gray-300">Defi-compatible. Unnoticable. BTC.</span>
-                <span className="block text-lg font-normal mt-1 italic">
-                  Live on Alkanes. Coming soon to BRC2.0 (Nov), Arch and Midl (mainnets TBD).
-                </span>
-              </h3>
-              <p>
-                Decentralized, permissionless, and always on Bitcoin L1, the UX that our unnoticeable-frBTC delivers means for the <b>first time in history</b>,
-                users can participate in DeFi transactions directly with the BTC in their wallet.
-              </p>
-              <ol className="list-decimal list-inside space-y-2">
-                <li>No Bitcoin L2 required.</li>
-                <li>No "deposit here first" required.</li>
-                <li>No bridge to Ethereum required.</li>
-              </ol>
-              <p>
-                Just native BTC, working seamlessly with the growing ecosystem of ₿apps on L1.
-              </p>
-              <div className="flex justify-center mt-4 md:hidden">
+          <FadeInOnScroll>
+            <div className="grid md:grid-cols-3 gap-4 items-center pt-12 border-t border-slate-300/50">
+              <div className="flex flex-col items-center">
+                <Image
+                  src="/Diagrams/frBTC_large.svg"
+                  alt="frBTC Diagram"
+                  width={224}
+                  height={112}
+                  className="rounded-full snow-image"
+                />
                 <a
                   href="https://docs.subfrost.io/tokens/frBTC-overview"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex justify-center items-center px-6 py-2 mt-4 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
+                  className="hidden md:flex justify-center items-center px-6 py-2 mt-16 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
                 >
                   READ ABOUT frBTC
                 </a>
               </div>
+              <div className="text-gray-300 leading-relaxed text-lg space-y-6 text-left md:col-span-2">
+                <h3 className="text-3xl font-bold text-white">
+                  <span className="snow-title-no-filter">frBTC</span>
+                  <span className="block text-xl font-normal text-gray-300">Defi-compatible. Unnoticable. BTC.</span>
+                  <span className="block text-lg font-normal mt-1 italic">
+                    Live on Alkanes. Coming soon to BRC2.0 (Nov), Arch and Midl (mainnets TBD).
+                  </span>
+                </h3>
+                <p>
+                  Decentralized, permissionless, and always on Bitcoin L1, the UX that our unnoticeable-frBTC delivers means for the <b>first time in history</b>,
+                  users can participate in DeFi transactions directly with the BTC in their wallet.
+                </p>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>No Bitcoin L2 required.</li>
+                  <li>No "deposit here first" required.</li>
+                  <li>No bridge to Ethereum required.</li>
+                </ol>
+                <p>
+                  Just native BTC, working seamlessly with the growing ecosystem of ₿apps on L1.
+                </p>
+                <div className="flex justify-center mt-4 md:hidden">
+                  <a
+                    href="https://docs.subfrost.io/tokens/frBTC-overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex justify-center items-center px-6 py-2 mt-4 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
+                  >
+                    READ ABOUT frBTC
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
+          </FadeInOnScroll>
 
           {/* dxBTC Section */}
           {/* dxBTC Section */}
-          <div className="grid md:grid-cols-3 gap-8 items-center pt-12 border-t border-slate-300/50">
-            <div className="flex flex-col items-center md:order-2">
-              <Image
-                src="/Diagrams/dxBTC.png"
-                alt="dxBTC Diagram"
-                width={250}
-                height={250}
-                className=""
-              />
-              <a
-                href="https://docs.subfrost.io/tokens/dxBTC-overview"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex justify-center items-center px-6 py-2 mt-16 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
-              >
-                READ ABOUT dxBTC
-              </a>
-            </div>
-            <div className="text-gray-300 leading-relaxed text-lg space-y-6 text-left md:col-span-2 md:order-1">
-              <h3 className="text-3xl font-bold text-white">
-                <span className="snow-title-no-filter">dxBTC</span>
-                <span className="block text-xl font-normal text-gray-300">Yield-bearing BTC of Bitcoin L1</span>
-                <span className="block text-lg font-normal mt-1 italic">(coming soon!)</span>
-              </h3>
-              <p>
-                dxBTC is the simplest way for users to earn yield on their BTC in a permissionless fashion. <b>1 Bitcoin Transaction.</b>
-              </p>
-              <p>
-                At the same time, it is the <b>ideal</b> programmable BTC reserve note for instituitions, as their BTC never leaves Bitcoin L1.
-              </p>
-              <p>
-                Yields for dxBTC holders are generated from the use of frBTC across programmable Bitcoin ecosystems and their markets, creating a symbiotic relationship between the two tokens.
-              </p>
-              <div className="flex justify-center mt-4 md:hidden">
+          <FadeInOnScroll>
+            <div className="grid md:grid-cols-3 gap-8 items-center pt-12 border-t border-slate-300/50">
+              <div className="flex flex-col items-center md:order-2">
+                <Image
+                  src="/Diagrams/dxBTC.png"
+                  alt="dxBTC Diagram"
+                  width={250}
+                  height={250}
+                  className=""
+                />
                 <a
                   href="https://docs.subfrost.io/tokens/dxBTC-overview"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex justify-center items-center px-6 py-2 mt-4 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
+                  className="hidden md:flex justify-center items-center px-6 py-2 mt-16 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
                 >
                   READ ABOUT dxBTC
                 </a>
               </div>
+              <div className="text-gray-300 leading-relaxed text-lg space-y-6 text-left md:col-span-2 md:order-1">
+                <h3 className="text-3xl font-bold text-white">
+                  <span className="snow-title-no-filter">dxBTC</span>
+                  <span className="block text-xl font-normal text-gray-300">Yield-bearing BTC of Bitcoin L1</span>
+                  <span className="block text-lg font-normal mt-1 italic">(coming soon!)</span>
+                </h3>
+                <p>
+                  dxBTC is the simplest way for users to earn yield on their BTC in a permissionless fashion. <b>1 Bitcoin Transaction.</b>
+                </p>
+                <p>
+                  At the same time, it is the <b>ideal</b> programmable BTC reserve note for instituitions, as their BTC never leaves Bitcoin L1.
+                </p>
+                <p>
+                  Yields for dxBTC holders are generated from the use of frBTC across programmable Bitcoin ecosystems and their markets, creating a symbiotic relationship between the two tokens.
+                </p>
+                <div className="flex justify-center mt-4 md:hidden">
+                  <a
+                    href="https://docs.subfrost.io/tokens/dxBTC-overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex justify-center items-center px-6 py-2 mt-4 w-56 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-sm whitespace-nowrap"
+                  >
+                    READ ABOUT dxBTC
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
+          </FadeInOnScroll>
           <div className="mt-24 pt-16 border-t border-slate-300/50">
             <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* Left Column */}
-              <div>
-                {/* Section: The Team */}
-                <div className="text-center mb-8">
-                  <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                    SUBFROST TEAM
-                  </h2>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
-                  {teamMembers.map((member, index) => {
-                    const cardContent = (
-                      <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
-                        <Image
-                          src={`/Team/${member.image}`}
-                          alt={member.name}
-                          width={64}
-                          height={64}
-                          className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
-                        />
-                        <h4 className="text-lg font-bold text-white">{member.name}</h4>
-                        <p className="text-gray-400 text-sm">{member.title}</p>
-                      </div>
-                    )
-
-                    const hoverContent = (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <p className="text-lg font-bold text-white text-center">{member.name}</p>
-                        {/* @ts-ignore */}
-                        <p className="text-xs text-gray-300 text-center px-2 mt-1">{member.description}</p>
-                      </div>
-                    )
-
-                    const cardClassName =
-                      "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
-
-                    return member.link ? (
-                      <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
-                        {cardContent}
-                        {hoverContent}
-                      </a>
-                    ) : (
-                      <div key={index} className={cardClassName}>
-                        {cardContent}
-                        {hoverContent}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div ref={partnersSectionRef}>
-                {/* Section: Partners */}
-                <div className="text-center mb-8">
-                  <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                    Partners
-                  </h2>
-                </div>
-                  <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 p-2">
-                    {partners.map((partner, index) => (
-                      <a
-                        key={index}
-                        href={partner.link || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-200 flex flex-col items-center justify-center transition-colors duration-300 bg-white hover:bg-white/10 hover:border-gray-700 shadow-[0_0_10px_rgba(255,255,255,0.8)] overflow-hidden"
-                      >
-                        {/* Default view */}
+              <FadeInOnScroll>
+                <div>
+                  {/* Section: The Team */}
+                  <div className="text-center mb-8">
+                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
+                      SUBFROST TEAM
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
+                    {teamMembers.map((member, index) => {
+                      const cardContent = (
                         <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
                           <Image
-                            src={`/Partner Logos/${partner.logo}`}
-                            alt={partner.name}
+                            src={`/Team/${member.image}`}
+                            alt={member.name}
                             width={64}
                             height={64}
-                            className="object-contain w-16 h-16"
+                            className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
                           />
-                          <p className="text-xs font-bold text-gray-800 text-center">{partner.name}</p>
+                          <h4 className="text-lg font-bold text-white">{member.name}</h4>
+                          <p className="text-gray-400 text-sm">{member.title}</p>
                         </div>
+                      )
 
-                        {/* Hover view */}
+                      const hoverContent = (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                          <p className="text-xs font-bold text-white text-center">{partner.name}</p>
-                          <p className="text-xs text-gray-300 text-center px-2 mt-1">{partner.description}</p>
+                          <p className="text-lg font-bold text-white text-center">{member.name}</p>
+                          {/* @ts-ignore */}
+                          <p className="text-xs text-gray-300 text-center px-2 mt-1">{member.description}</p>
                         </div>
+                      )
 
-                        {/* DeFi Tag: Fades out */}
-                        <div className="absolute bottom-1 left-1 bg-slate-200 text-slate-800 rounded-full px-2 text-xs transition-opacity duration-300 group-hover:opacity-0">
-                          {partner.tag}
+                      const cardClassName =
+                        "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
+
+                      return member.link ? (
+                        <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
+                          {cardContent}
+                          {hoverContent}
+                        </a>
+                      ) : (
+                        <div key={index} className={cardClassName}>
+                          {cardContent}
+                          {hoverContent}
                         </div>
-                      </a>
-                    ))}
+                      )
+                    })}
                   </div>
-              </div>
+                </div>
+              </FadeInOnScroll>
+
+              {/* Right Column */}
+              <FadeInOnScroll>
+                <div ref={partnersSectionRef}>
+                  {/* Section: Partners */}
+                  <div className="text-center mb-8">
+                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
+                      Partners
+                    </h2>
+                  </div>
+                    <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 p-2">
+                      {partners.map((partner, index) => (
+                        <a
+                          key={index}
+                          href={partner.link || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-200 flex flex-col items-center justify-center transition-colors duration-300 bg-white hover:bg-white/10 hover:border-gray-700 shadow-[0_0_10px_rgba(255,255,255,0.8)] overflow-hidden"
+                        >
+                          {/* Default view */}
+                          <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
+                            <Image
+                              src={`/Partner Logos/${partner.logo}`}
+                              alt={partner.name}
+                              width={64}
+                              height={64}
+                              className="object-contain w-16 h-16"
+                            />
+                            <p className="text-xs font-bold text-gray-800 text-center">{partner.name}</p>
+                          </div>
+
+                          {/* Hover view */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <p className="text-xs font-bold text-white text-center">{partner.name}</p>
+                            <p className="text-xs text-gray-300 text-center px-2 mt-1">{partner.description}</p>
+                          </div>
+
+                          {/* DeFi Tag: Fades out */}
+                          <div className="absolute bottom-1 left-1 bg-slate-200 text-slate-800 rounded-full px-2 text-xs transition-opacity duration-300 group-hover:opacity-0">
+                            {partner.tag}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                </div>
+              </FadeInOnScroll>
             </div>
           </div>
         </div>

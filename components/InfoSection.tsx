@@ -64,7 +64,7 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
       }}
       className={cn(
         "relative px-4 transition-opacity duration-1000 ease-in",
-        "bg-[#121A2C]",
+        "bg-gradient-fade-10-to-dark",
         "text-gray-300",
         "py-20 md:py-28",
         "min-h-screen",
