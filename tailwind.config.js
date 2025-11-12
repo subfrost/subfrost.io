@@ -40,7 +40,7 @@ module.exports = {
         9: "2.25rem", // 36px (new for 125% of 7.5)
       },
       backgroundImage: { // <-- New property
-        'gradient-fade-10-to-dark': 'linear-gradient(to bottom, theme(colors.blue.50) 0%, #121A2C 5%)',
+        'gradient-fade-10-to-dark': 'linear-gradient(to bottom, theme(colors.blue.50) 0%, #121A2C 2%)',
       },
       colors: {
         border: "hsl(var(--border))",
