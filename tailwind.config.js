@@ -39,6 +39,9 @@ module.exports = {
         7.5: "1.875rem", // 30px
         9: "2.25rem", // 36px (new for 125% of 7.5)
       },
+      backgroundImage: { // <-- New property
+        'gradient-fade-10-to-dark': 'linear-gradient(to bottom, theme(colors.blue.50) 0%, #121A2C 1.67%)',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

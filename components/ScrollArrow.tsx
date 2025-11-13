@@ -9,6 +9,7 @@ interface ScrollArrowProps {
   color?: string
   label?: string
   useSnowEffect?: boolean
+  showLabel?: boolean
 }
 
 const ScrollArrow: React.FC<ScrollArrowProps> = ({
@@ -17,17 +18,18 @@ const ScrollArrow: React.FC<ScrollArrowProps> = ({
   color = "white",
   label,
   useSnowEffect = false,
+  showLabel = true,
 }) => {
   return (
     <div className="flex flex-col items-center mt-16 cursor-pointer" onClick={onClick}>
       {/* Label above the arrow for downward arrows */}
-      {direction === "down" && label && (
+      {direction === "down" && label && showLabel && (
         <p
           className={cn(
-            "mb-4 text-xs sm:text-sm md:text-base lg:text-lg uppercase font-bold",
+            "mb-4 uppercase font-bold",
             useSnowEffect ? "snow-title" : "",
           )}
-          style={{ color }}
+          style={{ color, fontSize: '0.6rem' }}
         >
           {label}
         </p>
