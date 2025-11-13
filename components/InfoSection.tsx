@@ -26,6 +26,9 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
     const intersectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
+    // Use 10% threshold for mobile (< 768px), 20% for larger screens
+    const threshold = window.innerWidth < 768 ? 0.1 : 0.2
+    
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -36,7 +39,7 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
       {
         root: null,
         rootMargin: "0px",
-        threshold: 0.1,
+        threshold: threshold,
       },
     )
 
@@ -67,7 +70,6 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
         "bg-gradient-fade-10-to-dark",
         "text-gray-300",
         "py-20 md:py-28",
-        "min-h-screen",
         "overflow-hidden", // This clips the transformed backdrop
         isVisible ? "opacity-100" : "opacity-0",
       )}
