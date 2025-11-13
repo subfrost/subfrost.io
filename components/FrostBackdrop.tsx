@@ -59,8 +59,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // --- SVG Snowflake Components (unchanged) ---
 const Snowflake1 = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2v20M12 2l3 3M12 2l-3 3M12 22l3-3M12 22l-3-3M2 12h20M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3M4.93 4.93l14.14 14.14M4.93 4.93l3-1.5M4.93 4.93l1.5 3M19.07 19.07l-3 1.5M19.07 19.07l-1.5-3M19.07 4.93L4.93 19.07M19.07 4.93l-3-1.5M19.07 4.93l-1.5 3M4.93 19.07l3-1.5M4.93 19.07l1.5-3" stroke="#eff6ff" strokeWidth="1" strokeLinecap="round" />
-  </svg>
+<path
+      d="M12 2v20M12 2l3 3M12 2l-3 3M12 22l3-3M12 22l-3-3M2 12h20M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3M4.93 4.93l14.14 14.14M4.93 4.93l3-1.5M4.93 4.93l1.5 3M19.07 19.07l-3 1.5M19.07 19.07l-1.5-3M19.07 4.93L4.93 19.07M19.07 4.93l-3-1.5M19.07 4.93l-1.5 3M4.93 19.07l3-1.5M4.93 19.07l1.5-3"
+      stroke="#eff6ff"
+      strokeWidth="1"
+      strokeLinecap="round"
+    />  </svg>
 )
 const Snowflake2 = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -91,174 +95,78 @@ const Snowflake6 = () => (
 )
 
 // --- Corrected Bitcoin Component ---
-const BitcoinSvgSnowflake = React.memo(({ size }: { size: number }) => {
-  return <Image src="/bitcoin-btc-logo.svg" alt="Bitcoin" width={size} height={size} />
-})
-BitcoinSvgSnowflake.displayName = "BitcoinSvgSnowflake"
-
-const FrBtcSvgSnowflake = React.memo(({ size }: { size: number }) => {
-  return <Image src="/Diagrams/frBTC_small.svg" alt="frBTC" width={size} height={size} />
-})
-FrBtcSvgSnowflake.displayName = "FrBtcSvgSnowflake"
+const BitcoinSnowflake = () => (
+  <div style={{ color: "rgba(255, 255, 255, 0.7)", fontFamily: "Nunito, sans-serif", fontWeight: "bold" }}>
+    ₿
+  </div>
+)
 
 // --- Component Setup ---
 const snowflakeTypes = [Snowflake1, Snowflake2, Snowflake3, Snowflake4, Snowflake5, Snowflake6]
-const bitcoinSnowflakeTypes = [BitcoinSvgSnowflake]
+const bitcoinSnowflakeType = BitcoinSnowflake;
+const bitcoinFontSizes = ['12px', '16px', '20px', '24px'];
+const mobileBitcoinFontSizes = ['12px', '16px', '20px'];
 
-interface SnowflakeState {
-  key: number
-  style: React.CSSProperties
-  Component: React.FC<any>
-  size?: number
-  isMoving?: boolean
-  dx?: number
-  dy?: number
-}
 
-interface FrostBackdropProps {
-  reverse?: boolean
-  animationType?: "fall" | "rise" | "shift"
-}
+const FrostBackdrop: React.FC = () => {
+  const [snowflakes, setSnowflakes] = useState<React.ReactNode[]>([])
+  const isMobile = useIsMobile();
 
-const FrostBackdrop: React.FC<FrostBackdropProps> = ({ reverse = false, animationType = "fall" }) => {
-  const [snowflakes, setSnowflakes] = useState<SnowflakeState[]>([])
-  const isMobile = useIsMobile()
-  const imageToggle = useRef(true) // true for Bitcoin, false for frBTC
-  const timeoutIds = useRef<NodeJS.Timeout[]>([])
-
-  // Effect for 'shift' animation
   useEffect(() => {
-    if (animationType === "shift") {
-      const interval = setInterval(() => {
-        // Trigger the movement
-        setSnowflakes(currentFlakes =>
-          currentFlakes.map(flake => {
-            const dx = (Math.random() - 0.5) * 211.2
-            const dy = (Math.random() - 0.5) * 211.2
-            return {
-              ...flake,
-              isMoving: true,
-              dx,
-              dy,
-              style: {
-                ...flake.style,
-                transform: `translate(${dx}px, ${dy}px)`,
-              },
-            }
-          }),
-        )
-
-        // Schedule the image swap for when the movement ends
-        const timeoutId = setTimeout(() => {
-          imageToggle.current = !imageToggle.current
-          const NextComponent = imageToggle.current ? BitcoinSvgSnowflake : FrBtcSvgSnowflake
-          setSnowflakes(currentFlakes =>
-            currentFlakes.map(flake => ({
-              ...flake,
-              isMoving: false,
-              Component: NextComponent,
-            })),
-          )
-        }, 750) // Swap after the 0.75s transition
-        timeoutIds.current.push(timeoutId)
-      }, 1500) // Total cycle time
-
-      return () => {
-        clearInterval(interval)
-        timeoutIds.current.forEach(clearTimeout)
-      }
-    }
-  }, [animationType])
-
-  // Effect for initial snowflake generation
-  useEffect(() => {
-    let snowflakeCount;
-    if (animationType === 'shift') {
-      snowflakeCount = isMobile ? 20 : 29;
-    } else {
-      snowflakeCount = isMobile ? 70 : 100;
-    }
-
-    const flakes: SnowflakeState[] = []
+    // On mobile, render 50% fewer snowflakes for performance.
+    const snowflakeCount = isMobile ? 70 : 100;
+    const flakes = []
     for (let i = 0; i < snowflakeCount; i++) {
+      // Randomly select a snowflake type, with a lower chance for Bitcoin.
       let SnowflakeComponent;
-      let randomSize: number | undefined;
-
-      if (animationType === 'shift') {
-        SnowflakeComponent = BitcoinSvgSnowflake;
+      if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
+        SnowflakeComponent = bitcoinSnowflakeType;
       } else {
-        if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
-          SnowflakeComponent = FrBtcSvgSnowflake;
-        } else {
-          SnowflakeComponent = snowflakeTypes[Math.floor(Math.random() * snowflakeTypes.length)];
-        }
+        SnowflakeComponent = snowflakeTypes[Math.floor(Math.random() * snowflakeTypes.length)];
       }
 
-      const animationDuration = 30 + Math.random() * 100;
-      let style: React.CSSProperties = {
-        position: "absolute",
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-      };
+      // Add random rotation
+      const rotation = Math.random() * 360 // 0 to 360 degrees
+      
+      // Updated animation duration to 20-140 seconds
+      const animationDuration = 30 + Math.random() * 100 // 20 to 100 seconds
+      
+      let style: React.CSSProperties;
 
-      if (SnowflakeComponent === BitcoinSvgSnowflake || SnowflakeComponent === FrBtcSvgSnowflake) {
-        randomSize = Math.floor(12 + Math.random() * 13); // 12px to 24px
-        style.animation = `${Math.random() > 0.5 ? 'slow-rotate' : 'slow-rotate-reverse'} ${5 + Math.random() * 25}s linear infinite`;
+      if (SnowflakeComponent === BitcoinSnowflake) {
+        const currentFontSizes = isMobile ? mobileBitcoinFontSizes : bitcoinFontSizes;
+        const fontSize = currentFontSizes[Math.floor(Math.random() * currentFontSizes.length)];
+        style = {
+          position: "absolute",
+          left: `${Math.random() * 100}%`,
+          top: `-50px`,
+          animation: `fall ${animationDuration}s linear infinite`,
+          animationDelay: `${-Math.random() * 30}s`,
+          transform: `rotate(${rotation}deg)`,
+          fontSize: fontSize,
+        };
       } else {
-        const size = 0.35 + Math.random() * 0.5;
-        style.transform = `scale(${size})`;
+        const size = 0.35 + Math.random() * 0.5; // 0.35 to 0.85 scale factor for others
+        style = {
+          position: "absolute",
+          left: `${Math.random() * 100}%`,
+          top: `-50px`,
+          animation: `fall ${animationDuration}s linear infinite`,
+          animationDelay: `${-Math.random() * 30}s`,
+          transform: `scale(${size}) rotate(${rotation}deg)`,
+        };
       }
 
-      if (animationType !== 'shift') {
-        style.animation = `${reverse ? 'rise' : 'fall'} ${animationDuration}s linear infinite`;
-        style.animationDelay = `${-Math.random() * 30}s`;
-        style.top = reverse ? 'auto' : '-50px';
-        style.bottom = reverse ? '-50px' : 'auto';
-      }
-
-      flakes.push({
-        key: i,
-        style: style,
-        Component: SnowflakeComponent,
-        size: randomSize,
-        isMoving: false,
-      });
+      flakes.push(
+        <div key={i} style={style}>
+          <SnowflakeComponent />
+        </div>,
+      )
     }
     setSnowflakes(flakes)
-  }, [isMobile, reverse, animationType])
+  }, [isMobile])
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {snowflakes.map(({ key, style, Component, size, isMoving, dx, dy }) => {
-        if (animationType === "shift") {
-          // Nested div structure to separate translate and rotate transforms
-          return (
-            <div
-              key={key}
-              style={{
-                position: "absolute",
-                left: style.left,
-                top: style.top,
-                transition: "transform 0.75s ease-in-out",
-                transform: style.transform,
-              }}
-            >
-              <div style={{ animation: style.animation, position: 'relative', zIndex: 1 }}>
-                {size ? <Component size={size} /> : <Component />}
-              </div>
-            </div>
-          )
-        }
-        
-        // Original rendering for other animation types
-        return (
-          <div key={key} style={style}>
-            {size ? <Component size={size} /> : <Component />}
-          </div>
-        )
-      })}
-    </div>
-  );
+  return <div className="absolute inset-0 overflow-hidden pointer-events-none">{snowflakes}</div>
 }
 
 export default FrostBackdrop
