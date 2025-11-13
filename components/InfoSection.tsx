@@ -74,8 +74,8 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
     >
       <FrostBackdrop animationType="shift" />
 
-      {/* This inner container handles the scrolling of the content */}
-      <div className="relative h-full w-full overflow-y-auto z-10">
+      {/* Content container - no internal scrolling */}
+      <div className="relative z-10">
         <div className="max-w-7xl mx-auto">{children}</div>
       </div>
     </section>
