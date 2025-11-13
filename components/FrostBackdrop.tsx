@@ -108,7 +108,13 @@ const bitcoinFontSizes = ['12px', '16px', '20px', '24px'];
 const mobileBitcoinFontSizes = ['12px', '16px', '20px'];
 
 
-const FrostBackdrop: React.FC = () => {
+interface FrostBackdropProps {
+  animationType?: 'fall' | 'shift';
+  reducedOpacity?: boolean;
+  invisible?: boolean;
+}
+
+const FrostBackdrop: React.FC<FrostBackdropProps> = ({ animationType = 'fall', reducedOpacity = false, invisible = false }) => {
   const [snowflakes, setSnowflakes] = useState<React.ReactNode[]>([])
   const isMobile = useIsMobile();
 
@@ -117,6 +123,9 @@ const FrostBackdrop: React.FC = () => {
     const snowflakeCount = isMobile ? 70 : 100;
     const flakes = []
     for (let i = 0; i < snowflakeCount; i++) {
+      // If invisible is true, make all snowflakes transparent
+      // If reducedOpacity is true, make 50% of snowflakes transparent
+      const shouldBeTransparent = invisible || (reducedOpacity && i % 2 === 0);
       // Randomly select a snowflake type, with a lower chance for Bitcoin.
       let SnowflakeComponent;
       if (Math.random() < 0.1) { // ~10% chance for a Bitcoin snowflake
@@ -144,6 +153,7 @@ const FrostBackdrop: React.FC = () => {
           animationDelay: `${-Math.random() * 30}s`,
           transform: `rotate(${rotation}deg)`,
           fontSize: fontSize,
+          opacity: shouldBeTransparent ? 0 : 1,
         };
       } else {
         const size = 0.35 + Math.random() * 0.5; // 0.35 to 0.85 scale factor for others
@@ -154,6 +164,7 @@ const FrostBackdrop: React.FC = () => {
           animation: `fall ${animationDuration}s linear infinite`,
           animationDelay: `${-Math.random() * 30}s`,
           transform: `scale(${size}) rotate(${rotation}deg)`,
+          opacity: shouldBeTransparent ? 0 : 1,
         };
       }
 
@@ -164,7 +175,7 @@ const FrostBackdrop: React.FC = () => {
       )
     }
     setSnowflakes(flakes)
-  }, [isMobile])
+  }, [isMobile, reducedOpacity, invisible])
 
   return <div className="absolute inset-0 overflow-hidden pointer-events-none">{snowflakes}</div>
 }

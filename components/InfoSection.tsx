@@ -74,7 +74,7 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
         isVisible ? "opacity-100" : "opacity-0",
       )}
     >
-      <FrostBackdrop animationType="shift" />
+      <FrostBackdrop animationType="shift" invisible={true} />
 
       {/* Content container - no internal scrolling */}
       <div className="relative z-10">
