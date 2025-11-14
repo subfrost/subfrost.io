@@ -255,22 +255,55 @@ export default function Page() {
           </div>
         </FadeInOnScroll>
         <div className="space-y-16">
-          {/* Mission Section */}
           <FadeInOnScroll>
-            <div className="text-center">
-              <h3 className="text-3xl font-bold text-white mb-4 snow-title-no-filter">Our Mission</h3>
-              <div className="text-gray-300 leading-relaxed text-lg space-y-6 max-w-4xl mx-auto text-left">
-                <p>
-                  SUBFROST is on a mission to be one of the most robust, <b>important</b>, and useful protocols for the future of our financial system.
-                </p>
-                <p>
-                  We enable the <i>seamless use</i> of native BTC in ways that were never before possible.
-                </p>
-                <p>
-                  We are the key to interoperability between programmable Bitcoin environments,
-                  unlocking novel DeFi experiences for users and instituitons that don't trust putting their BTC anywhere but Bitcoin Layer-1.
-                </p>
-              </div>
+            <div className="mb-16 max-w-4xl mx-auto">
+              <p className="mt-4 text-xl text-gray-300">
+                Subfrost is the Bitcoin-native Layer 0, unlocking a universe of decentralized finance opportunities. Through our user-friendly application, we introduce powerful tools like yield vaults and futures, all powered by native Bitcoin. Our mission is to provide the simplest, most secure way for users to earn yield on their BTC with just a single transaction from their Bitcoin wallet.
+              </p>
+              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+                Subfrost Native Assets: Unleash Your BTC
+              </h3>
+              <p className="mt-4 text-xl text-gray-300">
+                Subfrost enables a new class of assets that move seamlessly across the Bitcoin ecosystem, including all metaprotocols and L2s.
+              </p>
+              <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
+                <li className="text-xl text-gray-300">
+                  frBTC: A liquid, wrapped version of your Bitcoin, ready for DeFi. Utilize native BTC in Bitcoin DeFi applications with unparalleled ease. frBTC handles the wrapping and unwrapping process entirely in the background. When you swap BTC directly on an AMM, the conversion to frBTC happens seamlessly, ensuring a smooth user experience.
+                </li>
+                <li className="text-xl text-gray-300">frZEC: Bring Zcash's privacy features to Bitcoin for swaps and more.</li>
+                <li className="text-xl text-gray-300">frETH: Gain Ethereum exposure directly within the Bitcoin DeFi landscape.</li>
+              </ul>
+              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+                Yield Vaults (yvfrBTC & dxBTC):
+              </h3>
+              <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
+                <li className="text-xl text-gray-300">
+                  dxBTC: The ultimate one-click yield strategy. Stake your native BTC, receive dxBTC, and watch your investment grow as it's automatically deployed into yield-generating strategies. Unstake anytime to receive your original BTC plus accumulated yield.
+                </li>
+                <li className="text-xl text-gray-300">
+                  yvfrBTC: A classic yield aggregator, now on Bitcoin. Deposit your assets to earn fees and capture incentives from deep liquidity pools.
+                </li>
+              </ul>
+              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+                Futures Market (ftrBTC):
+              </h3>
+              <p className="mt-4 text-xl text-gray-300">
+                A groundbreaking market for Bitcoin block rewards. Miners can hedge against lock times, and users can capture premiums from mining pool partnerships.
+              </p>
+              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+                The Subfrost App: Unrivaled User Experience
+              </h3>
+              <p className="mt-4 text-xl text-gray-300">
+                We've abstracted away the complexity. Using Bitcoin should be simple.
+              </p>
+              <h4 className="text-xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-4 text-center">
+                Key Features:
+              </h4>
+              <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
+                <li className="text-xl text-gray-300">Swap: For the first time ever, execute single-transaction swaps between BTC, ZEC, ETH, and USD.</li>
+                <li className="text-xl text-gray-300">Provide Liquidity: Earn fees and incentives by supplying assets to our liquidity pools.</li>
+                <li className="text-xl text-gray-300">Explore Markets: Access automated yield vaults and the ftrBTC futures market.</li>
+              </ul>
             </div>
           </FadeInOnScroll>
           <div className="mt-24 pt-16 border-t border-slate-300/50">
