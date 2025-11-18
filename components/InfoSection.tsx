@@ -11,10 +11,9 @@
  */
 "use client"
 
-import React, { useEffect, useRef, useState, forwardRef } from "react"
+import React, { forwardRef } from "react"
 import { cn } from "@/lib/utils"
 import FrostBackdrop from "./FrostBackdrop"
-import ScrollArrow from "./ScrollArrow"
 
 interface InfoSectionProps {
   children: React.ReactNode
@@ -22,61 +21,21 @@ interface InfoSectionProps {
 }
 
 const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFlipped = false }, ref) => {
-    const [isVisible, setIsVisible] = useState(false)
-    const intersectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    // Use 10% threshold for mobile (< 768px), 20% for larger screens
-    const threshold = window.innerWidth < 768 ? 0.1 : 0.2
-    
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-          observer.disconnect()
-        }
-      },
-      {
-        root: null,
-        rootMargin: "0px",
-        threshold: threshold,
-      },
-    )
-
-    const currentRef = intersectionRef.current
-    if (currentRef) {
-      observer.observe(currentRef)
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef)
-      }
-    }
-  }, [])
-
   return (
     <section
-      ref={(node) => {
-        (intersectionRef as React.MutableRefObject<HTMLElement | null>).current = node;
-        if (typeof ref === 'function') {
-          ref(node);
-        } else if (ref) {
-          ref.current = node;
-        }
-      }}
+      ref={ref}
       className={cn(
-        "relative px-4 transition-opacity duration-1000 ease-in",
-        "bg-gradient-fade-10-to-dark",
+        "relative px-4",
+        "bg-[#121A2C]", // Solid dark background - always visible
         "text-gray-300",
         "py-20 md:py-28",
-        "overflow-hidden", // This clips the transformed backdrop
-        isVisible ? "opacity-100" : "opacity-0",
+        "overflow-hidden",
+        "min-h-screen", // Ensure minimum height
       )}
     >
-      <FrostBackdrop animationType="shift" invisible={true} />
+      <FrostBackdrop animationType="shift" invisible={false} reducedOpacity={true} />
 
-      {/* Content container - no internal scrolling */}
+      {/* Content container - always visible */}
       <div className="relative z-10">
         <div className="max-w-7xl mx-auto">{children}</div>
       </div>

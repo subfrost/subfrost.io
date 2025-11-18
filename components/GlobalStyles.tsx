@@ -154,6 +154,35 @@ const GlobalStyles: React.FC = () => (
       animation: fadeIn 0.8s ease-out forwards;
     }
 
+    /* ICO-era pulse animation */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5),
+                    0 0 10px rgba(59, 130, 246, 0.3),
+                    0 0 15px rgba(59, 130, 246, 0.2);
+      }
+      50% {
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.8),
+                    0 0 20px rgba(59, 130, 246, 0.5),
+                    0 0 30px rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    .animate-gradient-shift {
+      background-size: 200% 200%;
+      animation: gradient-shift 3s ease infinite;
+    }
+
     /* Snap scrolling */
     @media (min-width: 768px) {
       body {
