@@ -144,6 +144,12 @@ export default function Page() {
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
   const partnersSectionRef = useRef<HTMLDivElement | null>(null)
 
+  const tokens = [
+    { name: "frBTC", description: "frBTC is a liquid, wrapped version of your Bitcoin, ready for DeFi. It enables seamless use of native BTC in Bitcoin DeFi applications, handling wrapping and unwrapping in the background for a smooth user experience.", image: "bitcoin-btc-logo.svg" },
+    { name: "frZEC", description: "Bring Zcash's privacy features to Bitcoin for swaps and more.", image: "" },
+    { name: "frETH", description: "Gain Ethereum exposure directly within the Bitcoin DeFi landscape.", image: "" },
+  ]
+
   const handleScrollDown = () => {
     sectionRefs.current[1]?.scrollIntoView({ behavior: "smooth" })
   }
@@ -254,26 +260,62 @@ export default function Page() {
             <p className="mt-4 text-xl text-gray-300">in ₿apps built on Bitcoin Layer-1</p>
           </div>
         </FadeInOnScroll>
+        <FadeInOnScroll>
+          <div className="mb-16 mt-8 max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider text-white snow-title-no-filter text-center">
+              Our Mission
+            </h2>
+            <p className="mt-4 text-xl text-gray-300">
+              SUBFROST is on a mission to be one of the most robust, important, and useful protocols for the future of our financial system.
+            </p>
+            <p className="mt-4 text-xl text-gray-300">
+              We enable the seamless use of native BTC in ways that were never before possible.
+            </p>
+            <p className="mt-4 text-xl text-gray-300">
+              We are the key to interoperability between programmable Bitcoin environments, unlocking novel DeFi experiences for users and institutions that don't trust putting their BTC anywhere but Bitcoin Layer-1.
+            </p>
+          </div>
+        </FadeInOnScroll>
         <div className="space-y-16">
           <FadeInOnScroll>
             <div className="mb-16 max-w-4xl mx-auto">
               <p className="mt-4 text-xl text-gray-300">
                 Subfrost is the Bitcoin-native Layer 0, unlocking a universe of decentralized finance opportunities. Through our user-friendly application, we introduce powerful tools like yield vaults and futures, all powered by native Bitcoin. Our mission is to provide the simplest, most secure way for users to earn yield on their BTC with just a single transaction from their Bitcoin wallet.
               </p>
-              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+              <h3 className="text-3xl font-bold tracking-wider text-white snow-title-no-filter mt-8 text-center">
                 Subfrost Native Assets: Unleash Your BTC
               </h3>
-              <p className="mt-4 text-xl text-gray-300">
-                Subfrost enables a new class of assets that move seamlessly across the Bitcoin ecosystem, including all metaprotocols and L2s.
-              </p>
-              <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
-                <li className="text-xl text-gray-300">
-                  frBTC: A liquid, wrapped version of your Bitcoin, ready for DeFi. Utilize native BTC in Bitcoin DeFi applications with unparalleled ease. frBTC handles the wrapping and unwrapping process entirely in the background. When you swap BTC directly on an AMM, the conversion to frBTC happens seamlessly, ensuring a smooth user experience.
-                </li>
-                <li className="text-xl text-gray-300">frZEC: Bring Zcash's privacy features to Bitcoin for swaps and more.</li>
-                <li className="text-xl text-gray-300">frETH: Gain Ethereum exposure directly within the Bitcoin DeFi landscape.</li>
-              </ul>
-              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                {tokens.map((token, index) => (
+                  <div
+                    key={index}
+                    className="group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-200 flex flex-col items-center justify-center transition-colors duration-300 bg-white hover:bg-white/10 hover:border-gray-700 shadow-[0_0_10px_rgba(255,255,255,0.8)] overflow-hidden"
+                  >
+                    {/* Default view */}
+                    <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
+                      {token.image ? (
+                        <Image
+                          src={`/${token.image}`}
+                          alt={token.name}
+                          width={64}
+                          height={64}
+                          className="object-contain w-16 h-16"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-300 rounded-full" />
+                      )}
+                      <p className="text-xs font-bold text-gray-800 text-center">{token.name}</p>
+                    </div>
+
+                    {/* Hover view */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <p className="text-xs font-bold text-white text-center">{token.name}</p>
+                      <p className="text-xs text-gray-300 text-center px-2 mt-1">{token.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <h3 className="text-3xl font-bold tracking-wider text-white snow-title-no-filter mt-8 text-center">
                 Yield Vaults (yvfrBTC & dxBTC):
               </h3>
               <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
@@ -284,19 +326,19 @@ export default function Page() {
                   yvfrBTC: A classic yield aggregator, now on Bitcoin. Deposit your assets to earn fees and capture incentives from deep liquidity pools.
                 </li>
               </ul>
-              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+              <h3 className="text-3xl font-bold tracking-wider text-white snow-title-no-filter mt-8 text-center">
                 Futures Market (ftrBTC):
               </h3>
               <p className="mt-4 text-xl text-gray-300">
                 A groundbreaking market for Bitcoin block rewards. Miners can hedge against lock times, and users can capture premiums from mining pool partnerships.
               </p>
-              <h3 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-8 text-center">
+              <h3 className="text-3xl font-bold tracking-wider text-white snow-title-no-filter mt-8 text-center">
                 The Subfrost App: Unrivaled User Experience
               </h3>
               <p className="mt-4 text-xl text-gray-300">
                 We've abstracted away the complexity. Using Bitcoin should be simple.
               </p>
-              <h4 className="text-xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter mt-4 text-center">
+              <h4 className="text-xl md:text-3xl font-bold tracking-wider text-white snow-title-no-filter mt-4 text-center">
                 Key Features:
               </h4>
               <ul className="mt-4 text-xl text-gray-300 list-disc list-inside">
@@ -313,8 +355,8 @@ export default function Page() {
                 <div>
                   {/* Section: The Team */}
                   <div className="text-center mb-8">
-                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                      SUBFROST TEAM
+                    <h2 className="text-4xl md:text-3xl font-bold tracking-wider text-white snow-title-no-filter">
+                      Subfrost Team
                     </h2>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
@@ -365,7 +407,7 @@ export default function Page() {
                 <div ref={partnersSectionRef}>
                   {/* Section: Partners */}
                   <div className="text-center mb-8">
-                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
+                    <h2 className="text-4xl md:text-3xl font-bold tracking-wider text-white snow-title-no-filter">
                       Partners
                     </h2>
                   </div>
