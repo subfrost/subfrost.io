@@ -29,15 +29,8 @@ const DxBTCIcon = () => (
       <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite" />
     </circle>
     
-    {/* Main vault */}
-    <rect x="40" y="45" width="60" height="50" rx="8" fill="url(#dxbtcGrad)" filter="url(#dxbtcGlow)" opacity="0.95">
-      <animate attributeName="height" values="50;52;50" dur="2s" repeatCount="indefinite" />
-    </rect>
-    
-    {/* Vault lock */}
-    <circle cx="70" cy="70" r="12" fill="none" stroke="white" strokeWidth="2" opacity="0.9" />
-    <circle cx="70" cy="70" r="8" fill="none" stroke="white" strokeWidth="1.5" opacity="0.9" />
-    <circle cx="73" cy="70" r="2" fill="white" opacity="0.9" />
+    {/* Main vault replaced with % */}
+    <text x="70" y="85" textAnchor="middle" fontSize="50" fontWeight="bold" fill="url(#dxbtcGrad)">%</text>
     
     {/* Yield arrows pointing up */}
     <g opacity="0.8">
@@ -50,10 +43,7 @@ const DxBTCIcon = () => (
     </g>
     
     {/* One-click indicator */}
-    <circle cx="70" cy="20" r="15" fill="none" stroke="#34d399" strokeWidth="2" opacity="0.6">
-      <animate attributeName="r" values="15;18;15" dur="2s" repeatCount="indefinite" />
-    </circle>
-    <text x="70" y="25" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#34d399">1TX</text>
+    <text x="70" y="25" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#34d399">1 TX</text>
   </svg>
 )
 
@@ -91,8 +81,8 @@ const YvFrBTCIcon = () => (
       </circle>
       
       {/* Top stream */}
-      <circle cx="70" cy="15" r="6" fill="#60a5fa" opacity="0.8">
-        <animate attributeName="cy" values="15;50" dur="2s" repeatCount="indefinite" begin="0.7s" />
+      <circle cx="70" cy="30" r="6" fill="#60a5fa" opacity="0.8">
+        <animate attributeName="cy" values="30;60" dur="2s" repeatCount="indefinite" begin="0.7s" />
         <animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite" begin="0.7s" />
       </circle>
       
@@ -104,16 +94,16 @@ const YvFrBTCIcon = () => (
     </g>
     
     {/* Rewards flowing out */}
-    <circle cx="70" cy="110" r="8" fill="#fbbf24" filter="url(#yvbtcGlow)">
+    <circle cx="70" cy="120" r="8" fill="#fbbf24">
       <animate attributeName="r" values="8;11;8" dur="2s" repeatCount="indefinite" />
     </circle>
-    <path d="M 70 95 L 70 110" stroke="#fbbf24" strokeWidth="3" strokeDasharray="3,3" opacity="0.6">
+    <path d="M 70 95 L 70 120" stroke="#fbbf24" strokeWidth="3" strokeDasharray="3,3" opacity="0.6">
       <animate attributeName="stroke-dashoffset" values="0;6" dur="0.5s" repeatCount="indefinite" />
     </path>
     
     {/* Labels */}
-    <text x="30" y="25" fontSize="10" fill="#9ca3af">fees</text>
-    <text x="60" y="10" fontSize="10" fill="#9ca3af">LP</text>
+    <text x="12" y="25" fontSize="10" fill="#9ca3af">fees</text>
+    <text x="64" y="25" fontSize="10" fill="#9ca3af">LP</text>
     <text x="105" y="25" fontSize="10" fill="#9ca3af">volume</text>
   </svg>
 )
@@ -182,17 +172,16 @@ const products: VaultProduct[] = [
   {
     symbol: "dxBTC",
     name: "One-Click Yield",
-    tagline: "The Ultimate Strategy",
-    description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategies. Unstake anytime with accumulated yield.",
+    tagline: "Superior UX for BTC Staking",
+    description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategie that maintain full exposure to the price of BTC. Unstake anytime with no lock-up.",
     icon: <DxBTCIcon />,
-    color: "from-emerald-500 to-emerald-700",
-    badge: "Most Popular"
+    color: "from-emerald-500 to-emerald-700"
   },
   {
     symbol: "yvfrBTC",
-    name: "Yield Aggregator",
+    name: "BTC Yield Aggregator",
     tagline: "Classic Vault Strategy",
-    description: "Earn fees and capture incentives from deep liquidity pools across BTC/ZEC/ETH/USD markets.",
+    description: "Earn fees and capture incentives from deep liquidity pools across BTC, ZEC, ETH, and USD markets on Bitcoin.",
     icon: <YvFrBTCIcon />,
     color: "from-blue-500 to-blue-700"
   },
