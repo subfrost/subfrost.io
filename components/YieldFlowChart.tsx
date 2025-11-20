@@ -158,11 +158,11 @@ export default function YieldFlowChart() {
         
         {/* Flows from yvfrBTC and ftrBTC to dxBTC */}
         <g id="flowToDx" opacity="0.8">
-          <path d="M 340 380 Q 380 450, 440 490" stroke="url(#dxGradient)" strokeWidth="4" fill="none" 
+          <path d="M 340 380 Q 380 450, 440 490" stroke="url(#yvGradient)" strokeWidth="4" fill="none" 
                 filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" />
           </path>
-          <path d="M 560 420 Q 520 450, 480 490" stroke="url(#dxGradient)" strokeWidth="4" fill="none" 
+          <path d="M 560 420 Q 520 450, 480 490" stroke="url(#ftrGradient)" strokeWidth="4" fill="none" 
                 filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" begin="0.5s" />
           </path>
