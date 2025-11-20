@@ -51,8 +51,8 @@ export default function YieldFlowChart() {
           </filter>
           
           {/* Arrow marker */}
-          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-            <polygon points="0 0, 10 3, 0 6" fill="#60a5fa" />
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#60a5fa" />
           </marker>
         </defs>
         
@@ -69,7 +69,8 @@ export default function YieldFlowChart() {
           </circle>
           <text x="150" y="145" textAnchor="middle" fontSize="16" fontWeight="bold" fill="white">BTC</text>
           <text x="150" y="162" textAnchor="middle" fontSize="12" fill="white">ZEC · ETH</text>
-          <text x="150" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Swap Fees</text>
+          <text x="150" y="180" textAnchor="middle" fontSize="12" fill="white">USD</text>
+          <text x="150" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Swap Fees </text>
           
           {/* LP Incentives */}
           <circle cx="300" cy="150" r="45" fill="url(#btcGradient)" filter="url(#glow)" opacity="0.9">
@@ -88,7 +89,16 @@ export default function YieldFlowChart() {
           <text x="450" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Market Action</text>
         </g>
         
-        {/* Animated flow lines from sources to yvfrBTC */}
+        {/* Cycling arrows */}
+        <g id="cyclingArrows" stroke="url(#yvGradient)" strokeWidth="2" fill="none" filter="url(#glow)">
+          <path d="M 195 145 Q 225 135, 255 145" markerEnd="url(#arrowhead)" />
+          <path d="M 255 155 Q 225 165, 195 155" markerEnd="url(#arrowhead)" />
+
+          <path d="M 345 145 Q 375 135, 405 145" markerEnd="url(#arrowhead)" />
+          <path d="M 405 155 Q 375 165, 345 155" markerEnd="url(#arrowhead)" />
+        </g>
+        
+        {/* Animated flow lines from sources to yvfrBTC */}  
         <g id="flowToYv" opacity="0.8">
           <path d="M 170 185 Q 220 240, 280 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
                 filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
@@ -142,8 +152,12 @@ export default function YieldFlowChart() {
           <rect x="660" y="400" width="20" height="20" fill="none" stroke="#a78bfa" strokeWidth="2" opacity="0.7" />
         </g>
         
-        {/* Flow from mining to ftrBTC */}
-        <path d="M 600 280 L 600 340" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
+        {/* Flow from Market Action to ftrBTC */}
+        <path d="M 450 225 Q 450 280, 550 340" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
+              filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)" />
+        
+        {/* Flow from mining to ftrBTC */} 
+        <path d="M 650 230 Q 720 280, 660 340" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
               filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
           <animate attributeName="stroke-dashoffset" values="0;12" dur="1s" repeatCount="indefinite" />
         </path>
@@ -182,47 +196,17 @@ export default function YieldFlowChart() {
           </rect>
         </g>
         
-        {/* Yield indicators */}
-        <g id="yieldIndicators">
-          {/* Arrow up near dxBTC */}
-          <path d="M 590 540 L 610 520 L 630 540" stroke="#fbbf24" strokeWidth="4" fill="none" 
-                filter="url(#glow)" strokeLinecap="round">
-            <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite" />
-            <animate attributeName="d" values="M 590 540 L 610 520 L 630 540;M 590 535 L 610 515 L 630 535;M 590 540 L 610 520 L 630 540" dur="1s" repeatCount="indefinite" />
-          </path>
-          <text x="670" y="535" fontSize="16" fontWeight="bold" fill="#fbbf24" filter="url(#glow)">
-            YIELD
-            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-          </text>
-        </g>
+
         
         {/* Labels for flow */}
         <text x="200" y="260" fontSize="11" fill="#9ca3af" fontStyle="italic">fees</text>
-        <text x="315" y="260" fontSize="11" fill="#9ca3af" fontStyle="italic">rewards</text>
-        <text x="420" y="260" fontSize="11" fill="#9ca3af" fontStyle="italic">volume</text>
+        <text x="315" y="250" fontSize="11" fill="#9ca3af" fontStyle="italic">rewards</text>
+        <text x="420" y="265" fontSize="11" fill="#9ca3af" fontStyle="italic">volume</text>
         <text x="390" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">market action</text>
         <text x="510" y="465" fontSize="11" fill="#9ca3af" fontStyle="italic">futures premiums</text>
       </svg>
       
-      {/* Legend */}
-      <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-amber-500 to-amber-600" />
-          <span className="text-gray-300">Source Assets</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-700" />
-          <span className="text-gray-300">yvfrBTC (Aggregator)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-purple-700" />
-          <span className="text-gray-300">ftrBTC (Futures)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700" />
-          <span className="text-gray-300">dxBTC (Ultimate Yield)</span>
-        </div>
-      </div>
+
     </div>
   )
 }
