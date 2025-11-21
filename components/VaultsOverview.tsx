@@ -170,42 +170,41 @@ interface VaultProduct {
 
 const products: VaultProduct[] = [
   {
-    symbol: "dxBTC",
-    name: "One-Click Yield",
-    tagline: "Superior UX for BTC Staking",
-    description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategie that maintain full exposure to the price of BTC. Unstake anytime with no lock-up.",
-    icon: <DxBTCIcon />,
-    color: "from-emerald-500 to-emerald-700"
+    symbol: "ftrBTC",
+    name: "Futures Market",
+    tagline: "Mining Pool Innovation",
+    description: "Block reward futures. Miners hedge lock times and users capture premiums from mining partnerships.",
+    icon: <FtrBTCIcon />,
+    color: "from-purple-500 to-purple-700",
   },
   {
     symbol: "yvfrBTC",
     name: "BTC Yield Aggregator",
-    tagline: "Classic Vault Strategy",
+    tagline: "Classic DeFi Vault Strategy",
     description: "Earn fees and capture incentives from deep liquidity pools across BTC, ZEC, ETH, and USD markets on Bitcoin.",
     icon: <YvFrBTCIcon />,
     color: "from-blue-500 to-blue-700"
   },
   {
-    symbol: "ftrBTC",
-    name: "Futures Market",
-    tagline: "Mining Pool Innovation",
-    description: "Block reward futures. Miners hedge lock times, users capture premiums from mining partnerships.",
-    icon: <FtrBTCIcon />,
-    color: "from-purple-500 to-purple-700",
-    badge: "Unique Moat"
+    symbol: "dxBTC",
+    name: "Tokenized Yield",
+    tagline: "Superior UX for BTC Staking: One-Click",
+    description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategies that maintain full exposure to the price of BTC. Unstake anytime with no lock-up period.",
+    icon: <DxBTCIcon />,
+    color: "from-emerald-500 to-emerald-700"
   }
 ]
 
 export default function VaultsOverview() {
   return (
-    <div className="space-y-12">
+    <div className="mt-14 pt-10 border-t border-slate-300/20 space-y-12">
       {/* Header */}
       <div className="text-center">
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
-          YIELD PRODUCTS
+          SUBFROST YIELD PRODUCTS
         </h3>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          Automated vaults and futures delivering yield on native Bitcoin
+          Futures Instruments. Automated Vaults & Gauges. Unified Yield. All on Bitcoin.
         </p>
       </div>
 
@@ -275,7 +274,7 @@ export default function VaultsOverview() {
       <div className="flex justify-center">
         <div className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border-2 border-emerald-400/40 hover:border-emerald-400/70 transition-all duration-300 cursor-pointer group">
           <span className="text-base font-bold text-white">
-            All yield in native BTC — No token dependencies
+            No yield dependencies on token incentives.
           </span>
           <div className="w-3 h-3 rounded-full bg-emerald-400 group-hover:animate-pulse" />
         </div>

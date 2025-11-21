@@ -131,8 +131,8 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Founder/CTO of Oyl Corp, zeroDAO, Polymarket, and IDEX." },
-  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could change the world. " },
+  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Founder/CTO of Oyl Corp, Polymarket, and IDEX." },
+  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could change the world." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
@@ -191,6 +191,7 @@ export default function Page() {
           isOpen={isMetricsModalOpen}
           onClose={handleCloseMetricsModal}
           title="Metrics"
+          modalClassName="md:max-w-4xl w-[90vw]"
         >
           <MetricsBoxes onPartnershipsClick={handleScrollToPartnersAndCloseMetrics} isModal={true} />
         </CustomModal>
@@ -237,7 +238,7 @@ export default function Page() {
             direction="down"
             onClick={handleScrollDown}
             color="hsl(var(--brand-blue))"
-            label="Scroll to Learn More"
+            label="Scroll to Learn (A LOT) More"
           />
         </div>
 
@@ -251,16 +252,9 @@ export default function Page() {
       >
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-            SEAMLESS USE OF <span className="block">NATIVE BTC</span>
+            THE BITCOIN-NATIVE<span className="block">LAYER 0</span>
           </h2>
-          <p className="mt-4 text-xl text-gray-300">in ₿apps built on Bitcoin Layer-1</p>
-        </div>
-        
-        <div className="max-w-4xl mx-auto text-center mb-16">
-          <p className="text-lg text-gray-300 leading-relaxed">
-            SUBFROST is the Bitcoin-native Layer 0, unlocking DeFi opportunities with powerful yield vaults and futures. 
-            Earn yield on BTC with a single transaction from your Bitcoin wallet.
-          </p>
+          <p className="mt-4 text-xl text-gray-300">Unlocking seamless DeFi experiences <i>across</i> Bitcoin.</p>
         </div>
 
         <div className="space-y-20">
@@ -271,28 +265,71 @@ export default function Page() {
           <VaultsOverview />
 
           {/* App Features */}
+          <div className="mt-14 pt-10 border-t border-slate-300/20">
           <div className="text-center mb-8">
             <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
               THE SUBFROST APP
             </h3>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Unrivaled user experience. We've abstracted away the complexity.
+              Unrivaled UX and novel DeFi features on Bitcoin for the first time.
             </p>
           </div>
           
           {/* Features Grid with SVG visuals */}
           <FeaturesGrid />
+          </div>
           
           {/* Yield Flow Chart */}
-          <div className="mt-24 pt-16 border-t border-slate-300/20">
-            <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-8 text-center">
-              HOW YIELD IS GENERATED
-            </h3>
-            <p className="text-xl text-gray-300 text-center max-w-3xl mx-auto mb-12">
-              All yield strategies flow through our automated vaults. LP fees and trading volume aggregate into yvfrBTC, 
-              while mining pool partnerships power ftrBTC futures. Both feed into dxBTC for the ultimate one-click yield on native Bitcoin.
-            </p>
-            <YieldFlowChart />
+          <div className="mt-14 pt-10 border-t border-slate-300/20">
+            <div className="text-center mb-8">
+              <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
+                SUBFROST YIELD FLOW
+              </h3>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Real Bitcoin yield from Real Bitcoin Activity.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8 items-start">
+              {/* Left Column - 1/3 width */}
+              <div className={cn(
+                "relative rounded-2xl p-8 transition-all duration-500 md:col-span-1",
+                "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
+                "border border-slate-700/50",
+                "backdrop-blur-sm"
+              )}>
+                <div className="relative z-10">
+                  <ol className="text-lg text-gray-300 mb-6 space-y-4 list-decimal list-inside">
+                    <li>Trading volume and LP fees across all of our vaults eventually aggregate into the pure-BTC-exposure yvfrBTC vault.</li>
+                    <li>Mining pool partnerships generate revenue on the premiums paid to unlock instant access to their block rewards prior to their 100-block lock-up period, powering the ftrBTC futures, and in turn, also providing another market to earn volume-based fees from.</li>
+                    <li>These mechanisms, in addition to earning yield themselves, feed a portion of this yield into the dxBTC yield token.</li>
+                  </ol>
+                  <p className="text-lg text-gray-300">
+                    Additionally, as our partnerhsips expand we will continue to innovate and add new yield-generating offerings to benefit all parties, while further enhancing the value proposition of dxBTC.
+                  </p>
+                </div>
+                
+                {/* Corner accents */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400/50 rounded-tl-2xl" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-400/50 rounded-br-2xl" />
+              </div>
+              
+              {/* Right Column - 2/3 width */}
+              <div className={cn(
+                "relative rounded-2xl p-8 transition-all duration-500 md:col-span-2",
+                "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
+                "border border-slate-700/50",
+                "backdrop-blur-sm"
+              )}>
+                <div className="relative z-10">
+                  <YieldFlowChart />
+                </div>
+                
+                {/* Corner accents */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400/50 rounded-tl-2xl" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-400/50 rounded-br-2xl" />
+              </div>
+            </div>
           </div>
           <div className="mt-24 pt-16 border-t border-slate-300/50">
             <div className="grid md:grid-cols-2 gap-8 items-start">

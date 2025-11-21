@@ -165,11 +165,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   return (
     <div className="flex flex-col items-center my-8">
-      <div className={`inline-grid gap-4 ${isModal ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+      <div className={`inline-grid ${isModal ? 'gap-6 grid-cols-2' : 'gap-4 grid-cols-2 md:grid-cols-4'}`}>
         {metrics.map((metric, index) => (
           <div 
             key={index} 
-            className="border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center w-[7.5rem] md:w-[9rem]"
+            className={`border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center ${isModal ? 'w-[10rem]' : 'w-[7.5rem] md:w-[9rem]'}`}
           >
             <div>
               {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
@@ -193,7 +193,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
         </div>
         <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
-          Metrics refresh every 15 minutes.
+          Metrics refresh every block.
         </div>
       </div>
     </div>

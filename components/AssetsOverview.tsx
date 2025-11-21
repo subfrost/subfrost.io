@@ -12,7 +12,8 @@ interface Asset {
   symbol: string
   name: string
   description: string
-  icon: React.ReactNode
+  icon: string
+  hoverIcon?: string
   color: string
   badge?: string
 }
@@ -21,30 +22,33 @@ const assets: Asset[] = [
   {
     symbol: "frBTC",
     name: "The BTC Synthetic",
-    description: "Wrapped BTC for seamless DeFi. Auto-wrapping on swaps.",
-    icon: <Image src="/btc_snowflake.svg" alt="frBTC Icon" width={100} height={100} />,
+    description: "Enabling the seamless use of native BTC in dApps, completely abstracting away the wrap process.",
+    icon: "/btc_snowflake.svg",
     color: "from-amber-500 to-orange-600",
     badge: "Live!"
   },
   {
     symbol: "frZEC",
-    name: "Zcash properties, but on Bitcoin",
-    description: "Brining ZEC to markets on Bitcoin.",
-    icon: <Image src="/zec_snowflake.svg" alt="frZEC Icon" width={100} height={100} />,
-    color: "from-purple-500 to-purple-700"
+    name: "Zcash Properties on Bitcoin",
+    description: "Bringing ZEC to/from markets on Bitcoin.",
+    icon: "/zec_empty.svg",
+    hoverIcon: "/zec_snowflake.svg",
+    color: "from-yellow-500 to-yellow-700"
   },
   {
     symbol: "frETH",
-    name: "ETH Exposure",
+    name: "ETH Exposure on Bitcoin",
     description: "Ethereum access directly within Bitcoin DeFi.",
-    icon: <Image src="/eth_snowflake.svg" alt="frETH Icon" width={100} height={100} />,
-    color: "from-blue-500 to-blue-700"
+    icon: "/eth_empty.svg",
+    hoverIcon: "/eth_snowflake.svg",
+    color: "from-purple-500 to-purple-700"
   },
   {
     symbol: "frUSD",
-    name: "Stablecoin Markets on Bitcoin",
-    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin",
-    icon: <Image src="/usdt_snowflake.svg" alt="frUSD Icon" width={100} height={100} />,
+    name: "Stablecoin Utilization on Bitcoin",
+    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin.",
+    icon: "/usdt_empty.svg",
+    hoverIcon: "/usdt_snowflake.svg",
     color: "from-green-500 to-green-700"
   }
 ]
@@ -58,7 +62,7 @@ export default function AssetsOverview() {
           NATIVE ASSETS
         </h3>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          A new class of assets moving seamlessly across all Bitcoin metaprotocols and L2s
+          A new class of assets moving seamlessly in, out, and across all Bitcoin metaprotocols and L2s.
         </p>
       </div>
 
@@ -91,23 +95,38 @@ export default function AssetsOverview() {
             )} />
 
             {/* Icon */}
-            <div className="w-28 h-28 mx-auto mb-4">
-              {asset.icon}
+            <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center relative">
+              <Image 
+                src={asset.icon} 
+                alt={`${asset.symbol} Icon`} 
+                width={100} 
+                height={100}
+                className={cn(
+                  "transition-opacity duration-300",
+                  asset.hoverIcon && "group-hover:opacity-0"
+                )}
+              />
+              {asset.hoverIcon && (
+                <Image 
+                  src={asset.hoverIcon} 
+                  alt={`${asset.symbol} Icon Hover`} 
+                  width={100} 
+                  height={100}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+              )}
             </div>
 
             {/* Symbol */}
-            <h4 className="text-2xl font-bold text-center mb-2 bg-gradient-to-r bg-clip-text text-transparent"
-                style={{
-                  backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))`,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}>
-              <span className={cn("bg-gradient-to-r", asset.color, "bg-clip-text")}>{asset.symbol}</span>
+            <h4 className="text-2xl font-bold text-center mb-2">
+              <span className={cn(
+                "bg-gradient-to-r bg-clip-text text-transparent group-hover:text-white group-hover:bg-none transition-all duration-300 delay-[50ms]",
+                asset.color
+              )}>{asset.symbol}</span>
             </h4>
 
             {/* Name */}
-            <p className="text-sm text-gray-400 text-center font-semibold mb-3">
+            <p className="text-sm text-gray-400 text-center font-semibold mb-3 group-hover:text-white transition-colors duration-300 delay-[50ms]">
               {asset.name}
             </p>
 
@@ -121,16 +140,6 @@ export default function AssetsOverview() {
             <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-purple-400/30 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         ))}
-      </div>
-
-      {/* Compatibility badge */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/30">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-sm font-semibold text-gray-300">
-            Compatible with all Bitcoin metaprotocols & L2s
-          </span>
-        </div>
       </div>
     </div>
   )

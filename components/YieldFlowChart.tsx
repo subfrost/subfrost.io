@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils"
 
 export default function YieldFlowChart() {
   return (
-    <div className="relative w-full max-w-5xl mx-auto py-16">
-      <svg viewBox="0 0 800 600" className="w-full h-auto">
+    <div className="relative w-full">
+      <svg viewBox="-10 -10 820 620" className="w-full h-auto" style={{ overflow: "visible" }}>
         <defs>
           {/* Gradients */}
           <linearGradient id="btcGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -50,16 +50,17 @@ export default function YieldFlowChart() {
             </feMerge>
           </filter>
           
-          {/* Arrow marker */}
-          <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#60a5fa" />
+          {/* Arrow markers - different colors */}
+          <marker id="arrowheadBlue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          </marker>
+          <marker id="arrowheadPurple" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b5cf6" />
+          </marker>
+          <marker id="arrowheadOrange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
           </marker>
         </defs>
-        
-        {/* Title */}
-        <text x="400" y="40" textAnchor="middle" fontSize="28" fontWeight="bold" fill="white" filter="url(#glow)">
-          SUBFROST YIELD FLOW
-        </text>
         
         {/* Level 1: Source Assets */}
         <g id="sources">
@@ -90,26 +91,30 @@ export default function YieldFlowChart() {
         </g>
         
         {/* Cycling arrows */}
-        <g id="cyclingArrows" stroke="url(#yvGradient)" strokeWidth="2" fill="none" filter="url(#glow)">
-          <path d="M 195 145 Q 225 135, 255 145" markerEnd="url(#arrowhead)" />
-          <path d="M 255 155 Q 225 165, 195 155" markerEnd="url(#arrowhead)" />
+        <g id="cyclingArrows" stroke="url(#btcGradient)" strokeWidth="2" fill="none">
+          <path d="M 200 145 Q 225 135, 250 145" markerEnd="url(#arrowheadOrange)" strokeDasharray="8,4">
+            <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
+          </path>
+          <path d="M 250 155 Q 225 165, 200 155" markerEnd="url(#arrowheadOrange)" strokeDasharray="8,4">
+            <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
+          </path>
 
-          <path d="M 345 145 Q 375 135, 405 145" markerEnd="url(#arrowhead)" />
-          <path d="M 405 155 Q 375 165, 345 155" markerEnd="url(#arrowhead)" />
+          <path d="M 350 145 Q 375 135, 400 145" markerEnd="url(#arrowheadOrange)" strokeDasharray="8,4">
+            <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
+          </path>
+          <path d="M 400 155 Q 375 165, 350 155" markerEnd="url(#arrowheadOrange)" strokeDasharray="8,4">
+            <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
+          </path>
         </g>
         
         {/* Animated flow lines from sources to yvfrBTC */}  
         <g id="flowToYv" opacity="0.8">
-          <path d="M 160 195 Q 220 240, 280 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
-                filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
+          <path d="M 160 195 Q 200 240, 280 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
+                strokeDasharray="8,4" markerEnd="url(#arrowheadBlue)">
             <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
           </path>
-          <path d="M 300 195 L 300 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
-                filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
-            <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" begin="0.3s" />
-          </path>
-          <path d="M 440 195 Q 380 240, 320 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
-                filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
+          <path d="M 440 195 Q 400 240, 320 280" stroke="url(#yvGradient)" strokeWidth="3" fill="none" 
+                strokeDasharray="8,4" markerEnd="url(#arrowheadBlue)">
             <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" begin="0.6s" />
           </path>
         </g>
@@ -146,24 +151,24 @@ export default function YieldFlowChart() {
         
         {/* Flow from Market Action to ftrBTC */}
         <path d="M 450 225 Q 450 280, 550 320" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
-              filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
+              strokeDasharray="8,4" markerEnd="url(#arrowheadPurple)">
           <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
         </path>
         
         {/* Flow from mining to ftrBTC */} 
         <path d="M 650 230 Q 720 280, 660 320" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
-              filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
+              strokeDasharray="8,4" markerEnd="url(#arrowheadPurple)">
           <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
         </path>
         
         {/* Flows from yvfrBTC and ftrBTC to dxBTC */}
         <g id="flowToDx" opacity="0.8">
           <path d="M 340 380 Q 380 450, 440 480" stroke="url(#yvGradient)" strokeWidth="4" fill="none" 
-                filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
+                strokeDasharray="10,5" markerEnd="url(#arrowheadBlue)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" />
           </path>
-          <path d="M 560 420 Q 520 450, 480 480" stroke="url(#ftrGradient)" strokeWidth="4" fill="none" 
-                filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
+          <path d="M 560 420 Q 540 445, 480 480" stroke="url(#ftrGradient)" strokeWidth="4" fill="none" 
+                strokeDasharray="10,5" markerEnd="url(#arrowheadPurple)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" begin="0.5s" />
           </path>
         </g>
@@ -176,7 +181,7 @@ export default function YieldFlowChart() {
             <animate attributeName="height" values="90;93;90" dur="3s" repeatCount="indefinite" />
           </rect>
           <text x="460" y="540" textAnchor="middle" fontSize="32" fontWeight="bold" fill="white">dxBTC</text>
-          <text x="460" y="568" textAnchor="middle" fontSize="16" fill="#d1fae5">One-Click Yield</text>
+          <text x="460" y="568" textAnchor="middle" fontSize="16" fill="#d1fae5">Tokenized Yield</text>
           
           
           {/* Pulsing glow effect */}
@@ -191,9 +196,8 @@ export default function YieldFlowChart() {
         
         {/* Labels for flow */}
         <text x="200" y="260" fontSize="11" fill="#9ca3af" fontStyle="italic">fees</text>
-        <text x="315" y="250" fontSize="11" fill="#9ca3af" fontStyle="italic">rewards</text>
         <text x="420" y="265" fontSize="11" fill="#9ca3af" fontStyle="italic">volume</text>
-        <text x="410" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">market action</text>
+        <text x="310" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">market action</text>
         <text x="540" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">futures premiums</text>
       </svg>
       
