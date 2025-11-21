@@ -70,7 +70,7 @@ export default function YieldFlowChart() {
           <text x="150" y="145" textAnchor="middle" fontSize="16" fontWeight="bold" fill="white">BTC</text>
           <text x="150" y="162" textAnchor="middle" fontSize="12" fill="white">ZEC · ETH</text>
           <text x="150" y="180" textAnchor="middle" fontSize="12" fill="white">USD</text>
-          <text x="150" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Swap Fees </text>
+          <text x="135" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Swap Fees </text>
           
           {/* LP Incentives */}
           <circle cx="300" cy="150" r="45" fill="url(#btcGradient)" filter="url(#glow)" opacity="0.9">
@@ -86,7 +86,7 @@ export default function YieldFlowChart() {
           </circle>
           <text x="450" y="150" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">Trading</text>
           <text x="450" y="165" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">Volume</text>
-          <text x="450" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Market Action</text>
+          <text x="474" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Market Action</text>
         </g>
         
         {/* Cycling arrows */}
@@ -145,24 +145,24 @@ export default function YieldFlowChart() {
         </g>
         
         {/* Flow from Market Action to ftrBTC */}
-        <path d="M 450 225 Q 450 280, 550 340" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
+        <path d="M 450 225 Q 450 280, 550 320" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
               filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
           <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
         </path>
         
         {/* Flow from mining to ftrBTC */} 
-        <path d="M 650 230 Q 720 280, 660 340" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
+        <path d="M 650 230 Q 720 280, 660 320" stroke="url(#ftrGradient)" strokeWidth="3" fill="none" 
               filter="url(#glow)" strokeDasharray="8,4" markerEnd="url(#arrowhead)">
           <animate attributeName="stroke-dashoffset" values="12;0" dur="1s" repeatCount="indefinite" />
         </path>
         
         {/* Flows from yvfrBTC and ftrBTC to dxBTC */}
         <g id="flowToDx" opacity="0.8">
-          <path d="M 340 380 Q 380 450, 440 490" stroke="url(#yvGradient)" strokeWidth="4" fill="none" 
+          <path d="M 340 380 Q 380 450, 440 480" stroke="url(#yvGradient)" strokeWidth="4" fill="none" 
                 filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" />
           </path>
-          <path d="M 560 420 Q 520 450, 480 490" stroke="url(#ftrGradient)" strokeWidth="4" fill="none" 
+          <path d="M 560 420 Q 520 450, 480 480" stroke="url(#ftrGradient)" strokeWidth="4" fill="none" 
                 filter="url(#strongGlow)" strokeDasharray="10,5" markerEnd="url(#arrowhead)">
             <animate attributeName="stroke-dashoffset" values="15;0" dur="1.5s" repeatCount="indefinite" begin="0.5s" />
           </path>
@@ -193,8 +193,8 @@ export default function YieldFlowChart() {
         <text x="200" y="260" fontSize="11" fill="#9ca3af" fontStyle="italic">fees</text>
         <text x="315" y="250" fontSize="11" fill="#9ca3af" fontStyle="italic">rewards</text>
         <text x="420" y="265" fontSize="11" fill="#9ca3af" fontStyle="italic">volume</text>
-        <text x="390" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">market action</text>
-        <text x="510" y="465" fontSize="11" fill="#9ca3af" fontStyle="italic">futures premiums</text>
+        <text x="410" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">market action</text>
+        <text x="540" y="455" fontSize="11" fill="#9ca3af" fontStyle="italic">futures premiums</text>
       </svg>
       
 
