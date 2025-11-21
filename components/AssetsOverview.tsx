@@ -24,7 +24,7 @@ const assets: Asset[] = [
     description: "Wrapped BTC for seamless DeFi. Auto-wrapping on swaps.",
     icon: <Image src="/btc_snowflake.svg" alt="frBTC Icon" width={100} height={100} />,
     color: "from-amber-500 to-orange-600",
-    badge: "Most Popular"
+    badge: "Live!"
   },
   {
     symbol: "frZEC",
@@ -39,6 +39,13 @@ const assets: Asset[] = [
     description: "Ethereum access directly within Bitcoin DeFi.",
     icon: <Image src="/eth_snowflake.svg" alt="frETH Icon" width={100} height={100} />,
     color: "from-blue-500 to-blue-700"
+  },
+  {
+    symbol: "frUSD",
+    name: "Stablecoin Markets on Bitcoin",
+    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin",
+    icon: <Image src="/usdt_snowflake.svg" alt="frUSD Icon" width={100} height={100} />,
+    color: "from-green-500 to-green-700"
   }
 ]
 
@@ -56,7 +63,7 @@ export default function AssetsOverview() {
       </div>
 
       {/* Assets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
         {assets.map((asset, index) => (
           <div
             key={index}
@@ -77,10 +84,10 @@ export default function AssetsOverview() {
 
             {/* Animated border glow */}
             <div className={cn(
-              "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+              "absolute inset-[-5px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
               "bg-gradient-to-br",
               asset.color,
-              "blur-xl -z-10"
+              "blur-md -z-10"
             )} />
 
             {/* Icon */}
