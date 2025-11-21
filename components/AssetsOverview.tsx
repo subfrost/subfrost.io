@@ -6,6 +6,7 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 interface Asset {
   symbol: string
@@ -16,104 +17,27 @@ interface Asset {
   badge?: string
 }
 
-const FrBTCIcon = () => (
-  <svg viewBox="0 0 120 120" className="w-full h-full">
-    <defs>
-      <linearGradient id="frbtcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: "#f59e0b", stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: "#d97706", stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="frbtcGlow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-    <circle cx="60" cy="60" r="45" fill="url(#frbtcGrad)" filter="url(#frbtcGlow)" opacity="0.9">
-      <animate attributeName="r" values="45;48;45" dur="3s" repeatCount="indefinite" />
-    </circle>
-    <text x="60" y="72" textAnchor="middle" fontSize="36" fontWeight="bold" fill="white">₿</text>
-    <circle cx="60" cy="60" r="50" fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="5,5" opacity="0.6">
-      <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="20s" repeatCount="indefinite" />
-    </circle>
-  </svg>
-)
-
-const FrZECIcon = () => (
-  <svg viewBox="0 0 120 120" className="w-full h-full">
-    <defs>
-      <linearGradient id="frzecGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: "#8b5cf6", stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: "#6d28d9", stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="frzecGlow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-    <circle cx="60" cy="60" r="45" fill="url(#frzecGrad)" filter="url(#frzecGlow)" opacity="0.9">
-      <animate attributeName="r" values="45;48;45" dur="3s" repeatCount="indefinite" begin="1s" />
-    </circle>
-    <text x="60" y="72" textAnchor="middle" fontSize="36" fontWeight="bold" fill="white">Z</text>
-    {/* Shield icon for privacy */}
-    <path d="M 35 30 L 60 20 L 85 30 L 85 55 Q 85 75, 60 90 Q 35 75, 35 55 Z" 
-          fill="none" stroke="white" strokeWidth="2" opacity="0.5">
-      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite" />
-    </path>
-  </svg>
-)
-
-const FrETHIcon = () => (
-  <svg viewBox="0 0 120 120" className="w-full h-full">
-    <defs>
-      <linearGradient id="frethGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: "#1d4ed8", stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="frethGlow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-    <circle cx="60" cy="60" r="45" fill="url(#frethGrad)" filter="url(#frethGlow)" opacity="0.9">
-      <animate attributeName="r" values="45;48;45" dur="3s" repeatCount="indefinite" begin="2s" />
-    </circle>
-    {/* Simplified ETH diamond */}
-    <path d="M 60 35 L 75 60 L 60 70 L 45 60 Z" fill="white" opacity="0.9" />
-    <path d="M 60 70 L 75 60 L 60 85 Z" fill="white" opacity="0.6" />
-    <path d="M 60 70 L 45 60 L 60 85 Z" fill="white" opacity="0.4" />
-  </svg>
-)
-
 const assets: Asset[] = [
   {
     symbol: "frBTC",
-    name: "Liquid Bitcoin",
+    name: "The BTC Synthetic",
     description: "Wrapped BTC for seamless DeFi. Auto-wrapping on swaps.",
-    icon: <FrBTCIcon />,
+    icon: <Image src="/btc_snowflake.svg" alt="frBTC Icon" width={100} height={100} />,
     color: "from-amber-500 to-orange-600",
     badge: "Most Popular"
   },
   {
     symbol: "frZEC",
-    name: "Privacy Layer",
-    description: "Zcash privacy features on Bitcoin for confidential swaps.",
-    icon: <FrZECIcon />,
+    name: "Zcash properties, but on Bitcoin",
+    description: "Brining ZEC to markets on Bitcoin.",
+    icon: <Image src="/zec_snowflake.svg" alt="frZEC Icon" width={100} height={100} />,
     color: "from-purple-500 to-purple-700"
   },
   {
     symbol: "frETH",
     name: "ETH Exposure",
     description: "Ethereum access directly within Bitcoin DeFi.",
-    icon: <FrETHIcon />,
+    icon: <Image src="/eth_snowflake.svg" alt="frETH Icon" width={100} height={100} />,
     color: "from-blue-500 to-blue-700"
   }
 ]

@@ -43,7 +43,7 @@ const DxBTCIcon = () => (
     </g>
     
     {/* One-click indicator */}
-    <text x="70" y="25" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#34d399">1 TX</text>
+    <text x="70" y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#34d399">1 TX</text>
   </svg>
 )
 
