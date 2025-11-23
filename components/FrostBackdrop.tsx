@@ -1,56 +1,5 @@
 "use client"
 
-/*
- * @chadlina.dev
- *
- * Journal:
- * 2025-10-31T23:45:21.310Z - Chadlina v0.1
- *
- * The `animation` property was overriding the `transform` property, preventing the shift animation from working.
- * To fix this, I am introducing a nested `div` structure for the `shift` animation.
- * The outer `div` will handle the `translate` transform for movement.
- * The inner `div` will handle the `rotate` animation.
- * This separation ensures both animations play correctly without conflicting.
- *
- * 2025-11-05T01:33:11.319Z - Chadlina v0.1
- * Replaced the falling bitcoin image with the frBTC image.
- * - Created a new `FrBtcSvgSnowflake` component to render the `fr-btc.png` image.
- * - Updated the snowflake generation logic in `FrostBackdrop.tsx` to use `FrBtcSvgSnowflake` for the "fall" animation and keep `BitcoinSvgSnowflake` for the "shift" animation.
- * - This ensures the hero section shows falling frBTC logos while the "About" section retains the shifting bitcoin logos.
- * - Refactored the rendering logic to be more concise by checking for the `size` prop instead of `displayName`.
- *
- * 2025-11-05T01:35:43.447Z - Chadlina v0.1
- * - Increased the number of shifting bitcoins by ~15% as requested.
- * - Desktop count increased from 25 to 29.
- * - Mobile count increased from 17 to 20.
- *
- * 2025-11-05T01:49:16.693Z - Chadlina v0.1
- * - Implemented alternating images for the shifting bitcoins in the "About" section.
- * - When the animation pauses, the images switch to `fr-BTC`.
- * - When the animation resumes, they switch back to the bitcoin logo.
- * - This is achieved by introducing a 1-second pause into the animation cycle by changing the interval to 2s.
- * - The `useEffect` for the `shift` animation now uses a `setTimeout` to toggle the component after the movement transition completes.
- *
- * 2025-11-05T01:53:20.883Z - Chadlina v0.1
- * - Refined the shifting bitcoin animation to remove the pause.
- * - The images now shift every second, and the image type (Bitcoin or frBTC) is toggled with each shift.
- * - This is managed by a `useRef` (`imageToggle`) that tracks the current image state.
- * - The `setInterval` is now 1000ms, and it updates both the position and the component simultaneously.
- *
- * 2025-11-05T01:54:28.481Z - Chadlina v0.1
- * - Reverted the animation interval for the shifting bitcoins back to 2 seconds as requested.
- *
- * 2025-11-05T01:57:34.301Z - Chadlina v0.1
- * - Doubled the maximum shift distance from 48px to 96px by changing the multiplier to 192.
- * - Decreased the animation interval from 2000ms to 1500ms.
- *
- * 2025-11-05T02:03:13.585Z - Chadlina v0.1
- * - Adjusted the animation timing to swap the image at the moment the movement pauses.
- * - The `setInterval` now triggers the movement, and a `setTimeout` is scheduled for 1000ms later (the transition duration) to update the image component.
- * - This ensures the image swap happens exactly when the pause begins.
- *
- * End Journal
- */
 
 import React, { useEffect, useState, useRef } from "react"
 import Image from 'next/image'
@@ -112,15 +61,22 @@ interface FrostBackdropProps {
   animationType?: 'fall' | 'shift';
   reducedOpacity?: boolean;
   invisible?: boolean;
+  longFall?: boolean; // Use longer fall animation for sections with more content
 }
 
-const FrostBackdrop: React.FC<FrostBackdropProps> = ({ animationType = 'fall', reducedOpacity = false, invisible = false }) => {
+const FrostBackdrop: React.FC<FrostBackdropProps> = ({ animationType = 'fall', reducedOpacity = false, invisible = false, longFall = false }) => {
   const [snowflakes, setSnowflakes] = useState<React.ReactNode[]>([])
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // On mobile, render 50% fewer snowflakes for performance.
-    const snowflakeCount = isMobile ? 70 : 100;
+    // Increase snowflake count for longFall (blizzard effect)
+    let snowflakeCount;
+    if (longFall) {
+      snowflakeCount = isMobile ? 300 : 600; // More snowflakes for blizzard
+    } else {
+      snowflakeCount = isMobile ? 70 : 100; // Original count for hero
+    }
+    
     const flakes = []
     for (let i = 0; i < snowflakeCount; i++) {
       // If invisible is true, make all snowflakes transparent
@@ -137,32 +93,62 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ animationType = 'fall', r
       // Add random rotation
       const rotation = Math.random() * 360 // 0 to 360 degrees
       
-      // Updated animation duration to 20-140 seconds
-      const animationDuration = 30 + Math.random() * 100 // 20 to 100 seconds
+      // Animation duration - varied 14-20s for blizzard, varied 30-130s for hero
+      const animationDuration = longFall ? (14 + Math.random() * 6) : (30 + Math.random() * 100) // 14-20s for blizzard, 30-130s for hero
       
       let style: React.CSSProperties;
+
+      // For longFall, spawn snowflakes heavily from the left to create strong wind effect
+      let leftPosition;
+      let topPosition;
+      if (longFall && animationType === 'fall') {
+        // Spawn snowflakes from left side with bias toward the left (for strong diagonal wind effect)
+        // Most snowflakes will start off-screen or near the left edge and be swept right
+        const rand = Math.random();
+        if (rand < 0.5) {
+          // 50% spawn from far left (off-screen to left edge)
+          leftPosition = `${-30 + Math.random() * 40}%`; // -30% to 10%
+        } else if (rand < 0.8) {
+          // 30% spawn from left-center
+          leftPosition = `${Math.random() * 40}%`; // 0% to 40%
+        } else {
+          // 20% spawn from right side
+          leftPosition = `${40 + Math.random() * 60}%`; // 40% to 100%
+        }
+        topPosition = `-50px`;
+      } else if (animationType === "shift") {
+        leftPosition = `${Math.random() * 100}%`;
+        topPosition = `${Math.random() * 100}%`;
+      } else {
+        leftPosition = `${Math.random() * 100}%`;
+        topPosition = `-50px`;
+      }
 
       if (SnowflakeComponent === BitcoinSnowflake) {
         const currentFontSizes = isMobile ? mobileBitcoinFontSizes : bitcoinFontSizes;
         const fontSize = currentFontSizes[Math.floor(Math.random() * currentFontSizes.length)];
+        // All snowflakes use same windy animation that shifts direction
+        const fallAnimation = longFall ? 'fallLongWindy' : 'fall';
         style = {
           position: "absolute",
-          left: `${Math.random() * 100}%`,
-          top: `-50px`,
-          animation: `fall ${animationDuration}s linear infinite`,
-          animationDelay: `${-Math.random() * 30}s`,
+          left: leftPosition,
+          top: topPosition,
+          animation: animationType === "shift" ? 'none' : `${fallAnimation} ${animationDuration}s linear infinite`,
+          animationDelay: animationType === "shift" ? undefined : `${-Math.random() * animationDuration}s`,
           transform: `rotate(${rotation}deg)`,
           fontSize: fontSize,
           opacity: shouldBeTransparent ? 0 : 1,
         };
       } else {
         const size = 0.35 + Math.random() * 0.5; // 0.35 to 0.85 scale factor for others
+        // All snowflakes use same windy animation that shifts direction
+        const fallAnimation = longFall ? 'fallLongWindy' : 'fall';
         style = {
           position: "absolute",
-          left: `${Math.random() * 100}%`,
-          top: `-50px`,
-          animation: `fall ${animationDuration}s linear infinite`,
-          animationDelay: `${-Math.random() * 30}s`,
+          left: leftPosition,
+          top: topPosition,
+          animation: animationType === "shift" ? 'none' : `${fallAnimation} ${animationDuration}s linear infinite`,
+          animationDelay: animationType === "shift" ? undefined : `${-Math.random() * animationDuration}s`,
           transform: `scale(${size}) rotate(${rotation}deg)`,
           opacity: shouldBeTransparent ? 0 : 1,
         };
@@ -175,7 +161,7 @@ const FrostBackdrop: React.FC<FrostBackdropProps> = ({ animationType = 'fall', r
       )
     }
     setSnowflakes(flakes)
-  }, [isMobile, reducedOpacity, invisible])
+  }, [isMobile, reducedOpacity, invisible, animationType, longFall])
 
   return <div className="absolute inset-0 overflow-hidden pointer-events-none">{snowflakes}</div>
 }

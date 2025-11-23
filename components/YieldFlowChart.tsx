@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 export default function YieldFlowChart() {
   return (
     <div className="relative w-full">
-      <svg viewBox="-10 -10 820 620" className="w-full h-auto" style={{ overflow: "visible" }}>
+      <svg viewBox="-10 90 820 520" className="w-full h-auto" style={{ overflow: "visible" }}>
         <defs>
           {/* Gradients */}
           <linearGradient id="btcGradient" x1="0%" y1="0%" x2="100%" y2="100%">

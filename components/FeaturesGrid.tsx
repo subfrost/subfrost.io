@@ -7,10 +7,16 @@
 import React, { useState } from "react"
 import { cn } from "@/lib/utils"
 
-// Add keyframes for the rainbow border animation
+// Add keyframes for the rainbow border animation and pulse effect
 const style = typeof document !== 'undefined' ? document.createElement('style') : null
 if (style) {
   style.innerHTML = `
+    @property --fill-progress {
+      syntax: '<number>';
+      initial-value: 0;
+      inherits: false;
+    }
+    
     @keyframes border-rotate {
       0% { border-image-source: linear-gradient(0deg, #ec4899, #a855f7, #3b82f6, #10b981, #eab308); }
       25% { border-image-source: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #10b981, #eab308); }
@@ -22,8 +28,27 @@ if (style) {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.95; }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.15; }
+    }
+    @keyframes border-fill {
+      from {
+        --fill-progress: 0;
+      }
+      to {
+        --fill-progress: 1;
+      }
+    }
     .animate-spin-slow {
       animation: spin-slow 4s linear infinite;
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 3s ease-in-out infinite;
     }
   `
   if (typeof document !== 'undefined' && !document.head.querySelector('#feature-grid-animations')) {
@@ -47,13 +72,13 @@ const features: Feature[] = [
   {
     buttonTitle: "AMM SWAPS",
     title: "AMM SWAPS",
-    description: "For the first time ever, execute AMM swaps of MAIN assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, ZEC, ETH, USD (and others!). Seamless wrapping and unwrapping is handled automatically and completely abstracted away for the user.",
+    description: "For the first time ever, execute AMM swaps of MAIN assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, ZEC, ETH, Stablecoins, and others! Seamless wrapping and unwrapping is handled automatically and completely abstracted away for the user.",
     videoTitle: "SWAP DEMO COMING SOON",
     glowColor: "from-amber-500 to-orange-600"
   },
   {
-    buttonTitle: "PROVIDE LIQUIDITY",
-    title: "PROVIDE LIQUIDITY",
+    buttonTitle: "LIQUIDITY POOLS",
+    title: "LIDUIDITY POOLS",
     description: "Earn LP fees by supplying assets like BTC, ZEC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
     videoTitle: "LP DEMO COMING SOON",
     glowColor: "from-blue-500 to-blue-700"
@@ -61,33 +86,69 @@ const features: Feature[] = [
   {
     buttonTitle: "YIELD VAULTS",
     title: "YIELD VAULTS",
-    description: "Lock up your LP tokens in vaults and earn rewards. The best part? You don't have to provide both tokens first. Just select what your desired LP is and the lock-up period you are comfortable with, then send native BTC and the protocol will handle the rest.",
+    description: "Lock up your LP tokens in vaults and earn rewards. The best part? You don't even have to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
     videoTitle: "YIELD VAULT DEMO COMING SOON",
     glowColor: "from-emerald-500 to-emerald-700"
   },
   {
-    buttonTitle: "BITCOIN FUTURES MARKET",
+    buttonTitle: "BITCOIN FUTURES",
     title: "BITCOIN FUTURES MARKET",
     description: "Participate in the first permissionless futures market for miner block rewards. Miners will hedge against their 100-block lock-up period, and users can bet on the price of BTC 100-blocks from now.",
     videoTitle: "FUTURES DEMO COMING SOON",
     glowColor: "from-purple-500 to-purple-700"
   },
   {
-    buttonTitle: "VAULT GAUGES",
-    title: "VAULT GAUGES",
+    buttonTitle: "GAUGE REWARDS",
+    title: "GAUGE REWARDS",
     description: "Vault rewards not enough? Don't worry, you can provide tokens into single-sided gauges to juice those yields! Gauges reward users with non-BTC token incentives.",
     videoTitle: "GAUGE DEMO COMING SOON",
-    glowColor: "from-pink-500 via-purple-500 via-blue-500 via-emerald-500 to-yellow-500",
+    glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true
   }
 ]
 
 export default function FeaturesGrid() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [isPaused, setIsPaused] = useState(false)
+
+  // Auto-rotate through features every 8 seconds
+  React.useEffect(() => {
+    if (isPaused || hoveredIndex !== null) {
+      return
+    }
+
+    // Start immediately with first feature
+    if (activeIndex === null) {
+      setActiveIndex(0)
+    }
+
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => {
+        if (prev === null) return 0
+        return (prev + 1) % features.length
+      })
+    }, 6000)
+
+    return () => clearInterval(interval)
+  }, [isPaused, hoveredIndex, activeIndex])
+
+  const handleButtonClick = (index: number) => {
+    setIsPaused(true)
+    setActiveIndex(index)
+  }
+
+  const handleOutsideClick = () => {
+    setIsPaused(false)
+    setActiveIndex(null)
+  }
+
+  const displayIndex = hoveredIndex !== null ? hoveredIndex : activeIndex
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-16">
-      {/* Left Side - Feature Buttons */}
-      <div className="flex flex-col">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16" onClick={handleOutsideClick}>
+      {/* Left Side - Feature Buttons (1/3) */}
+      <div className="flex flex-col md:col-span-1" onClick={(e) => e.stopPropagation()}>
         {/* Title */}
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-6">
           Key Features
@@ -95,9 +156,17 @@ export default function FeaturesGrid() {
         
         {/* Buttons */}
         <div className="space-y-4">
-          {features.map((feature, index) => (
+          {features.map((feature, index) => {
+            const isActive = hoveredIndex === index || (hoveredIndex === null && activeIndex === index)
+            // Use brighter colors to match the timer effect
+            const borderColor = feature.glowColor.includes('amber') ? '#fbbf24' :
+                               feature.glowColor.includes('blue') ? '#60a5fa' :
+                               feature.glowColor.includes('emerald') ? '#34d399' :
+                               feature.glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
+            
+            return (
             <div key={index} className="relative">
-              {/* Animated glow background */}
+              {/* Animated glow background - shows only on hover */}
               <div className={cn(
                 "absolute inset-0 rounded-lg opacity-0 transition-opacity duration-500 blur-2xl -z-10",
                 hoveredIndex === index && "opacity-60",
@@ -105,74 +174,167 @@ export default function FeaturesGrid() {
                 feature.glowColor
               )} />
               
+              {/* Rainbow border overlay for hover state - maintains rounded corners */}
+              {isActive && hoveredIndex === index && feature.isRainbow && (
+                <div 
+                  className="absolute inset-0 rounded-lg pointer-events-none z-10"
+                  style={{
+                    background: `linear-gradient(90deg, #22d3ee, #0ea5e9, #3b82f6, #4f46e5, #1e3a8a)`,
+                    padding: '2px',
+                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude'
+                  }}
+                />
+              )}
+              
+              {/* Progressive border fill overlay - only for active timer state */}
+              {isActive && activeIndex === index && hoveredIndex === null && (
+                <div 
+                  className="absolute inset-0 rounded-lg pointer-events-none z-10"
+                  style={feature.isRainbow ? {
+                    background: `
+                      conic-gradient(
+                        from -90deg,
+                        #22d3ee 0deg,
+                        #0ea5e9 calc(var(--fill-progress, 0) * 0.2 * 360deg),
+                        #3b82f6 calc(var(--fill-progress, 0) * 0.4 * 360deg),
+                        #4f46e5 calc(var(--fill-progress, 0) * 0.6 * 360deg),
+                        #1e3a8a calc(var(--fill-progress, 0) * 0.8 * 360deg),
+                        #22d3ee calc(var(--fill-progress, 0) * 360deg),
+                        rgb(71 85 105 / 0.5) calc(var(--fill-progress, 0) * 360deg)
+                      )
+                    `,
+                    padding: '2px',
+                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                    '--fill-progress': '0',
+                    animation: 'border-fill 6s linear forwards',
+                    opacity: 1
+                  } : {
+                    background: `
+                      conic-gradient(
+                        from -90deg,
+                        ${borderColor} calc(var(--fill-progress, 0) * 360deg),
+                        rgb(71 85 105 / 0.5) calc(var(--fill-progress, 0) * 360deg)
+                      )
+                    `,
+                    padding: '2px',
+                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                    '--fill-progress': '0',
+                    animation: 'border-fill 6s linear forwards',
+                    opacity: 1
+                  }}
+                />
+              )}
+              
               <button
                 className={cn(
                   "relative w-full text-lg font-bold uppercase tracking-wider text-white snow-title-no-filter",
-                  "rounded-lg transition-all duration-500 text-left overflow-hidden group border-2",
-                  hoveredIndex === index ? "py-6" : "py-4",
-                  hoveredIndex === index 
-                    ? "bg-transparent" 
-                    : "bg-gradient-to-r from-slate-700/50 to-slate-800/50",
-                  feature.isRainbow && hoveredIndex === index 
-                    ? "border-dashed"
-                    : hoveredIndex === index
-                    ? ""
-                    : "border-slate-600/50"
+                  "rounded-lg transition-all duration-500 text-left overflow-hidden group py-4",
+                  isActive && hoveredIndex !== null
+                    ? feature.isRainbow 
+                      ? "bg-transparent border-2 border-transparent"
+                      : "bg-transparent border-2"
+                    : isActive
+                    ? "bg-transparent border-2 border-slate-600/50"
+                    : "bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-2 border-slate-600/50"
                 )}
-                style={feature.isRainbow && hoveredIndex === index ? {
-                  borderImage: "linear-gradient(90deg, #ec4899, #a855f7, #3b82f6, #10b981, #eab308) 1",
-                  animation: "border-rotate 3s linear infinite"
-                } : hoveredIndex === index && !feature.isRainbow ? {
-                  borderColor: feature.glowColor.includes('amber') ? '#f59e0b' :
-                              feature.glowColor.includes('blue') ? '#3b82f6' :
-                              feature.glowColor.includes('emerald') ? '#10b981' :
-                              feature.glowColor.includes('purple') ? '#a855f7' : '#60a5fa'
-                } : {}}
+                style={{
+                  ...(isActive && hoveredIndex !== null && !feature.isRainbow ? {
+                    borderColor: borderColor
+                  } : {})
+                }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleButtonClick(index)
+                }}
               >
                 <div className="px-8">
-                  {/* Button Title - always visible */}
-                  <div className="transition-all duration-300">
-                    {feature.buttonTitle}
-                  </div>
-                  
-                  {/* Description - shown when hovered */}
-                  <div className={cn(
-                    "transition-all duration-300 text-base normal-case tracking-normal font-normal leading-relaxed",
-                    hoveredIndex === index ? "opacity-100 mt-3 max-h-96" : "opacity-0 max-h-0"
-                  )}>
-                    {feature.description}
-                  </div>
+                  {feature.buttonTitle}
                 </div>
               </button>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
-      {/* Right Box - Demo Video Placeholder */}
+      {/* Right Box - Demo Video Placeholder (2/3) */}
       <div
         className={cn(
-          "relative rounded-2xl p-8 transition-all duration-500",
+          "relative rounded-2xl p-8 transition-all duration-500 md:col-span-2",
           "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
-          "border border-slate-700/50",
           "backdrop-blur-sm",
           "flex flex-col items-center justify-center",
-          "min-h-[400px]"
+          "min-h-[400px]",
+          hoveredIndex !== null
+            ? "border-2 border-transparent"
+            : displayIndex !== null && features[displayIndex].isRainbow
+            ? "border-2 border-transparent"
+            : displayIndex !== null
+            ? "border-2"
+            : "border-2 border-slate-700/50"
         )}
+        style={hoveredIndex === null && displayIndex !== null && !features[displayIndex].isRainbow ? {
+          borderColor: features[displayIndex].glowColor.includes('amber') ? '#fbbf24' :
+                      features[displayIndex].glowColor.includes('blue') ? '#60a5fa' :
+                      features[displayIndex].glowColor.includes('emerald') ? '#34d399' :
+                      features[displayIndex].glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
+        } : {}}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-6">
-          {/* Title above video - changes on hover */}
-          <h3 className="text-xl font-bold uppercase tracking-wider text-gray-400 text-center transition-all duration-300">
-            {hoveredIndex !== null ? features[hoveredIndex].videoTitle : "Demo Coming Soon"}
+        {/* Animated glow background for demo section - only on hover */}
+        <div className={cn(
+          "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 blur-2xl -z-10",
+          hoveredIndex !== null && "opacity-60",
+          "bg-gradient-to-br",
+          hoveredIndex !== null ? features[hoveredIndex].glowColor : ""
+        )} />
+        
+        {/* Rainbow border overlay for video - maintains rounded corners */}
+        {hoveredIndex === null && displayIndex !== null && features[displayIndex].isRainbow && (
+          <div 
+            className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+            style={{
+              background: `linear-gradient(90deg, #22d3ee, #0ea5e9, #3b82f6, #4f46e5, #1e3a8a)`,
+              padding: '2px',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude'
+            }}
+          />
+        )}
+        
+
+        
+        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-4">
+          {/* Feature title - shown on hover/active, default state when not hovering */}
+          <h3 className="text-2xl font-bold uppercase tracking-wider text-center transition-all duration-300 text-white">
+            {displayIndex !== null ? features[displayIndex].title : "SUBFROST APP OVERVIEW"}
           </h3>
           
+          {/* Feature description - fixed height to fit 3 lines */}
+          <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300 min-h-[4rem]">
+            {displayIndex !== null 
+              ? features[displayIndex].description 
+              : "Click through the key features to learn about what the SUBFROST app delivers."}
+          </div>
+          
+          {/* Demo Coming Soon text */}
+          <h4 className="text-sm font-semibold uppercase tracking-wider text-center transition-all duration-300 text-gray-400">
+            {displayIndex !== null ? features[displayIndex].videoTitle : "Demo Coming Soon"}
+          </h4>
+          
           {/* Video placeholder */}
-          <div className="w-full aspect-video bg-slate-900/50 rounded-lg border border-slate-600/50 flex items-center justify-center">
+          <div className="w-full max-w-lg aspect-video bg-slate-900/50 rounded-lg border border-slate-600/50 flex items-center justify-center">
             <svg 
               viewBox="0 0 200 200" 
-              className="w-24 h-24 opacity-40"
+              className="w-16 h-16 opacity-40"
             >
               <defs>
                 <linearGradient id="videoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -194,10 +356,6 @@ export default function FeaturesGrid() {
             </svg>
           </div>
         </div>
-        
-        {/* Corner accents */}
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400/50 rounded-tl-2xl" />
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-400/50 rounded-br-2xl" />
       </div>
     </div>
   )

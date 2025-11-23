@@ -33,7 +33,8 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
         "min-h-screen", // Ensure minimum height
       )}
     >
-      <FrostBackdrop animationType="shift" invisible={false} reducedOpacity={true} />
+      {/* Snowflakes backdrop - falling animation throughout the section */}
+      <FrostBackdrop animationType="fall" invisible={false} reducedOpacity={true} longFall={true} />
 
       {/* Content container - always visible */}
       <div className="relative z-10">

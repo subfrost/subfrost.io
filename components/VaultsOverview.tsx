@@ -23,27 +23,31 @@ const DxBTCIcon = () => (
       </filter>
     </defs>
     
-    {/* Outer pulsing circle */}
-    <circle cx="70" cy="70" r="60" fill="none" stroke="url(#dxbtcGrad)" strokeWidth="2" opacity="0.3">
-      <animate attributeName="r" values="60;65;60" dur="3s" repeatCount="indefinite" />
-      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite" />
-    </circle>
+    {/* Outer non-pulsing circle */}
+    <circle cx="70" cy="70" r="45" fill="none" stroke="url(#dxbtcGrad)" strokeWidth="2" opacity="0.3" />
     
-    {/* Main vault replaced with % */}
-    <text x="70" y="85" textAnchor="middle" fontSize="50" fontWeight="bold" fill="url(#dxbtcGrad)">%</text>
+    {/* Main vault replaced with pulsating % */}
+    <text x="70" y="90" textAnchor="middle" fontSize="50" fontWeight="bold" fill="url(#dxbtcGrad)">
+      %
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+      <animate attributeName="font-size" values="50;54;50" dur="2s" repeatCount="indefinite" />
+    </text>
     
-    {/* Yield arrows pointing up */}
+    {/* Gold pulsating arrows pointing up below the circle */}
     <g opacity="0.8">
-      <path d="M 25 70 L 25 55 L 20 60 M 25 55 L 30 60" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round">
+      {/* Left arrow */}
+      <path d="M 55 140 L 55 125 L 50 130 M 55 125 L 60 130" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round">
         <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" />
       </path>
-      <path d="M 115 70 L 115 55 L 110 60 M 115 55 L 120 60" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round">
-        <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" begin="0.75s" />
+      {/* Center arrow */}
+      <path d="M 70 140 L 70 125 L 65 130 M 70 125 L 75 130" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" begin="0.2s" />
+      </path>
+      {/* Right arrow */}
+      <path d="M 85 140 L 85 125 L 80 130 M 85 125 L 90 130" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" begin="0.4s" />
       </path>
     </g>
-    
-    {/* One-click indicator */}
-    <text x="70" y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#34d399">1 TX</text>
   </svg>
 )
 
@@ -146,12 +150,54 @@ const FtrBTCIcon = () => (
     {/* Center dot */}
     <circle cx="70" cy="70" r="4" fill="white" opacity="0.9" />
     
-    {/* Mining blocks indicator */}
+    {/* Mining blocks indicator - source position */}
     <g opacity="0.7">
-      <rect x="10" y="10" width="15" height="15" rx="2" fill="none" stroke="#a78bfa" strokeWidth="2">
+      <rect x="-20" y="62" width="15" height="15" rx="2" fill="none" stroke="#a78bfa" strokeWidth="2">
         <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2s" repeatCount="indefinite" />
       </rect>
-      <text x="17" y="22" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="bold">₿</text>
+      <text x="-12" y="74" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="bold">₿</text>
+    </g>
+    
+    {/* Animated B blocks flowing into clock */}
+    <g opacity="0.8">
+      {/* Block 1 */}
+      <g>
+        <rect x="-20" y="62" width="15" height="15" rx="2" fill="#a78bfa" fillOpacity="0.3" stroke="#a78bfa" strokeWidth="1.5">
+          <animate attributeName="x" values="-20;15;50" dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" />
+        </rect>
+        <text x="-12" y="74" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="bold">
+          ₿
+          <animate attributeName="x" values="-12;23;58" dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" />
+        </text>
+      </g>
+      
+      {/* Block 2 */}
+      <g>
+        <rect x="-20" y="62" width="15" height="15" rx="2" fill="#a78bfa" fillOpacity="0.3" stroke="#a78bfa" strokeWidth="1.5">
+          <animate attributeName="x" values="-20;15;50" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+        </rect>
+        <text x="-12" y="74" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="bold">
+          ₿
+          <animate attributeName="x" values="-12;23;58" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+        </text>
+      </g>
+      
+      {/* Block 3 */}
+      <g>
+        <rect x="-20" y="62" width="15" height="15" rx="2" fill="#a78bfa" fillOpacity="0.3" stroke="#a78bfa" strokeWidth="1.5">
+          <animate attributeName="x" values="-20;15;50" dur="2.5s" repeatCount="indefinite" begin="1.6s" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="1.6s" />
+        </rect>
+        <text x="-12" y="74" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="bold">
+          ₿
+          <animate attributeName="x" values="-12;23;58" dur="2.5s" repeatCount="indefinite" begin="1.6s" />
+          <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="1.6s" />
+        </text>
+      </g>
     </g>
     
     <text x="70" y="130" textAnchor="middle" fontSize="11" fill="#c4b5fd">Block Rewards</text>

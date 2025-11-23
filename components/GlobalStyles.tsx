@@ -19,6 +19,24 @@ const GlobalStyles: React.FC = () => (
         transform: translateY(calc(100vh + 50px)) rotate(360deg);
       }
     }
+
+    @keyframes fallLongWindy {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      25% {
+        transform: translate(180vw, calc(200vh)) rotate(270deg);
+      }
+      50% {
+        transform: translate(-180vw, calc(400vh)) rotate(540deg);
+      }
+      75% {
+        transform: translate(180vw, calc(600vh)) rotate(810deg);
+      }
+      100% {
+        transform: translate(-180vw, calc(800vh)) rotate(1080deg);
+      }
+    }
     
     @keyframes rise {
       from {

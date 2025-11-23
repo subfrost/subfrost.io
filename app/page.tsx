@@ -107,6 +107,7 @@ import FeaturesGrid from "@/components/FeaturesGrid"
 import YieldFlowChart from "@/components/YieldFlowChart"
 import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
+import StickyNav from "@/components/StickyNav"
 
 const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
@@ -182,6 +183,7 @@ export default function Page() {
   return (
     <main className="relative">
       <GlobalStyles />
+      <StickyNav />
       <FrbtcActivityModal
         isOpen={isFrbtcActivityModalOpen}
         onClose={handleCloseFrbtcActivityModal}
@@ -259,13 +261,17 @@ export default function Page() {
 
         <div className="space-y-20">
           {/* Assets Overview */}
-          <AssetsOverview />
+          <div id="native-assets">
+            <AssetsOverview />
+          </div>
 
           {/* Vaults Overview */}
-          <VaultsOverview />
+          <div id="yield-products">
+            <VaultsOverview />
+          </div>
 
           {/* App Features */}
-          <div className="mt-14 pt-10 border-t border-slate-300/20">
+          <div id="subfrost-app" className="mt-14 pt-10 border-t border-slate-300/20">
           <div className="text-center mb-8">
             <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
               THE SUBFROST APP
@@ -280,7 +286,7 @@ export default function Page() {
           </div>
           
           {/* Yield Flow Chart */}
-          <div className="mt-14 pt-10 border-t border-slate-300/20">
+          <div id="yield-flow" className="mt-14 pt-10 border-t border-slate-300/20">
             <div className="text-center mb-8">
               <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
                 SUBFROST YIELD FLOW
@@ -292,26 +298,38 @@ export default function Page() {
             
             <div className="grid md:grid-cols-3 gap-8 items-start">
               {/* Left Column - 1/3 width */}
-              <div className={cn(
-                "relative rounded-2xl p-8 transition-all duration-500 md:col-span-1",
-                "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
-                "border border-slate-700/50",
-                "backdrop-blur-sm"
-              )}>
-                <div className="relative z-10">
-                  <ol className="text-lg text-gray-300 mb-6 space-y-4 list-decimal list-inside">
-                    <li>Trading volume and LP fees across all of our vaults eventually aggregate into the pure-BTC-exposure yvfrBTC vault.</li>
-                    <li>Mining pool partnerships generate revenue on the premiums paid to unlock instant access to their block rewards prior to their 100-block lock-up period, powering the ftrBTC futures, and in turn, also providing another market to earn volume-based fees from.</li>
-                    <li>These mechanisms, in addition to earning yield themselves, feed a portion of this yield into the dxBTC yield token.</li>
-                  </ol>
-                  <p className="text-lg text-gray-300">
-                    Additionally, as our partnerhsips expand we will continue to innovate and add new yield-generating offerings to benefit all parties, while further enhancing the value proposition of dxBTC.
-                  </p>
+              <div className="md:col-span-1 space-y-4">
+                {/* Step 1 */}
+                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/50">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold">1</span>
+                    <p className="text-base text-gray-300">Trading volume and LP fees across all of our vaults eventually aggregate into the pure-BTC-exposure yvfrBTC vault.</p>
+                  </div>
                 </div>
-                
-                {/* Corner accents */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400/50 rounded-tl-2xl" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-400/50 rounded-br-2xl" />
+
+                {/* Step 2 */}
+                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/50">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-purple-300 font-bold">2</span>
+                    <p className="text-base text-gray-300">Mining pool partnerships generate revenue on premiums paid to unlock block rewards prior to the 100-block lock-up period, powering ftrBTC futures, and providing another market to earn volume-based fees from.</p>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/50">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300 font-bold">3</span>
+                    <p className="text-base text-gray-300">These mechanisms, in addition to earning yield themselves, feed a portion of this yield into the dxBTC yield token.</p>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border border-slate-600/50">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 font-bold">4</span>
+                    <p className="text-base text-gray-300">Additionally, as our partnerships expand we'll continue to innovate and add new yield-generating offerings to benefit all parties, while further enhancing the value proposition of dxBTC.</p>
+                  </div>
+                </div>
               </div>
               
               {/* Right Column - 2/3 width */}
@@ -331,7 +349,7 @@ export default function Page() {
               </div>
             </div>
           </div>
-          <div className="mt-24 pt-16 border-t border-slate-300/50">
+          <div id="team-partnerships" className="mt-24 pt-16 border-t border-slate-300/50">
             <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* Left Column */}
               <div>
