@@ -203,6 +203,16 @@ export default function Page() {
       <section className="relative flex h-dvh flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
+        
+        {/* API Login Button - Top Right */}
+        <a
+          href="https://api.subfrost.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-4 right-4 z-20 flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+        >
+          API LOGIN
+        </a>
 
         {/* Updated positioning to place the bottom of the title just above center */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl px-4 h-screen">

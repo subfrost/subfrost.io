@@ -41,14 +41,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onFrbtcAc
       >
         OFFICIAL DOCS
       </a>
-      <a
-        href="https://api.subfrost.io"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-2xs sm:text-xs md:text-sm"
-      >
-        API LOGIN
-      </a>
       
       <button
         onClick={onMetricsClick}
