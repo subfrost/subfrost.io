@@ -28,6 +28,14 @@ const assets: Asset[] = [
     badge: "Live!"
   },
   {
+    symbol: "frUSD",
+    name: "Stablecoin Utilization on Bitcoin",
+    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin.",
+    icon: "/usdt_empty.svg",
+    hoverIcon: "/usdt_snowflake.svg",
+    color: "from-green-500 to-green-700"
+  },
+  {
     symbol: "frZEC",
     name: "Zcash Properties on Bitcoin",
     description: "Bringing ZEC to/from markets on Bitcoin.",
@@ -42,14 +50,6 @@ const assets: Asset[] = [
     icon: "/eth_empty.svg",
     hoverIcon: "/eth_snowflake.svg",
     color: "from-purple-500 to-purple-700"
-  },
-  {
-    symbol: "frUSD",
-    name: "Stablecoin Utilization on Bitcoin",
-    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin.",
-    icon: "/usdt_empty.svg",
-    hoverIcon: "/usdt_snowflake.svg",
-    color: "from-green-500 to-green-700"
   }
 ]
 

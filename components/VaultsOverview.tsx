@@ -287,16 +287,16 @@ export default function VaultsOverview() {
               {product.icon}
             </div>
 
-            {/* Symbol */}
-            <h4 className="text-3xl font-bold text-center mb-2">
+            {/* Name */}
+            <h4 className="text-xl md:text-2xl font-bold text-center mb-2">
               <span className={cn("bg-gradient-to-r bg-clip-text text-transparent", product.color)}>
-                {product.symbol}
+                {product.name}
               </span>
             </h4>
 
-            {/* Name */}
+            {/* Symbol */}
             <p className="text-base text-white text-center font-semibold mb-1">
-              {product.name}
+              {product.symbol}
             </p>
 
             {/* Tagline */}
