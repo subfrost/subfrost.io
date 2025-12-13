@@ -2,7 +2,7 @@
 
 // Chadson's Journal:
 // Purpose: This API route fetches the total BTC balance for a hardcoded address.
-// It calls the Sandshrew API, sums the UTXO values, and returns the total in BTC.
+// It calls the Subfrost API, sums the UTXO values, and returns the total in BTC.
 // This is part of the task to display the "BTC Locked" value on the frontend.
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,7 +24,7 @@ interface Utxo {
 
 export async function GET() {
   const address = 'bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7';
-  const apiUrl = 'https://mainnet.sandshrew.io/v2/lasereyes';
+  const apiUrl = 'https://mainnet.subfrost.io/v4/subfrost';
 
   try {
     const response = await fetch(apiUrl, {

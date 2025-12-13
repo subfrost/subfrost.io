@@ -63,7 +63,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const btcLockedValue = useMetric('/api/btc-locked', 'btcLocked');
   const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
-  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps', (value) => value / 1e8);
+  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps');
 
   const { data: btcPriceData, error: btcPriceError } = useSWR('/api/btc-price', fetcher, {
     refreshInterval: 900000, // 15 minutes
