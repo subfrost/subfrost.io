@@ -18,9 +18,17 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.example
 
-# vercel
+# vercel (removed - now using GCP)
 .vercel
+
+# testing
+coverage/
+.nyc_output/
+
+# GCP
+.gcloud/
 
 # typescript
 *.tsbuildinfo

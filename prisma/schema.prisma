@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// SUBFROST METRICS MODELS
+// ============================================
+
+// Stores aggregated BTC locked data at specific block heights
+model BtcLockedSnapshot {
+  id           String   @id @default(cuid())
+  blockHeight  Int      @unique
+  blockHash    String?
+
+  // BTC locked in the subfrost address
+  btcLocked    BigInt   // Satoshis
+  utxoCount    Int      // Number of UTXOs
+
+  // Timestamp of the block
+  blockTime    DateTime?
+
+  // When we computed this snapshot
+  createdAt    DateTime @default(now())
+
+  @@index([blockHeight])
+  @@index([createdAt])
+}
+
+// Stores frBTC total supply at specific block heights
+model FrbtcSupplySnapshot {
+  id           String   @id @default(cuid())
+  blockHeight  Int      @unique
+  blockHash    String?
+
+  // frBTC total supply
+  totalSupply  BigInt   // Satoshis (8 decimals)
+
+  // Adjusted supply (after corrections)
+  adjustedSupply BigInt?
+
+  // Timestamp of the block
+  blockTime    DateTime?
+
+  // When we computed this snapshot
+  createdAt    DateTime @default(now())
+
+  @@index([blockHeight])
+  @@index([createdAt])
+}
+
+// Stores wrap transaction history
+model WrapTransaction {
+  id           String   @id @default(cuid())
+  txid         String   @unique
+  blockHeight  Int
+  blockHash    String?
+  blockTime    DateTime?
+
+  // Transaction details
+  senderAddress String
+  recipientAddress String?
+  btcAmount    BigInt   // Satoshis sent
+  frbtcAmount  BigInt   // frBTC minted
+
+  // Status
+  confirmed    Boolean  @default(false)
+  confirmations Int     @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([blockHeight])
+  @@index([senderAddress])
+  @@index([confirmed])
+}
+
+// Stores unwrap transaction history
+model UnwrapTransaction {
+  id           String   @id @default(cuid())
+  txid         String   @unique
+  blockHeight  Int
+  blockHash    String?
+  blockTime    DateTime?
+
+  // Transaction details
+  senderAddress String
+  recipientAddress String?
+  frbtcAmount  BigInt   // frBTC burned
+  btcAmount    BigInt   // BTC released
+
+  // Status
+  confirmed    Boolean  @default(false)
+  confirmations Int     @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([blockHeight])
+  @@index([senderAddress])
+  @@index([confirmed])
+}
+
+// Stores the last processed block height for each data type
+model SyncState {
+  id              String   @id @default("default")
+
+  // Last processed heights for different data types
+  btcLockedHeight Int      @default(0)
+  frbtcSupplyHeight Int    @default(0)
+  wrapTxHeight    Int      @default(0)
+  unwrapTxHeight  Int      @default(0)
+
+  // Current chain height
+  chainHeight     Int      @default(0)
+
+  updatedAt       DateTime @updatedAt
+}
+
+// ============================================
+// METRICS AGGREGATION
+// ============================================
+
+// Daily aggregated metrics for charts
+model DailyMetrics {
+  id           String   @id @default(cuid())
+  date         DateTime @unique @db.Date
+
+  // BTC locked metrics
+  btcLockedOpen  BigInt   // Opening BTC locked for the day
+  btcLockedHigh  BigInt   // Highest BTC locked
+  btcLockedLow   BigInt   // Lowest BTC locked
+  btcLockedClose BigInt   // Closing BTC locked
+
+  // frBTC supply metrics
+  frbtcSupplyOpen  BigInt
+  frbtcSupplyHigh  BigInt
+  frbtcSupplyLow   BigInt
+  frbtcSupplyClose BigInt
+
+  // Transaction counts
+  wrapCount    Int      @default(0)
+  unwrapCount  Int      @default(0)
+  wrapVolume   BigInt   @default(0)  // Total BTC wrapped
+  unwrapVolume BigInt   @default(0)  // Total BTC unwrapped
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([date])
+}
+
+// Cache for computed API responses
+model ApiCache {
+  key          String   @id
+  value        String   @db.Text  // JSON-encoded value
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
+}
