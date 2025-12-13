@@ -3,7 +3,6 @@ import {
   reverseHex,
   formatAlkaneId,
   parseAlkaneId,
-  SUBFROST_ADDRESS,
   FRBTC_TOKEN,
 } from '@/lib/alkanes-client';
 
@@ -47,12 +46,6 @@ describe('alkanes-client utilities', () => {
   });
 
   describe('constants', () => {
-    it('has correct SUBFROST_ADDRESS', () => {
-      expect(SUBFROST_ADDRESS).toBe(
-        'bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7'
-      );
-    });
-
     it('has correct FRBTC_TOKEN config', () => {
       expect(FRBTC_TOKEN.alkaneId.block).toBe(32n);
       expect(FRBTC_TOKEN.alkaneId.tx).toBe(0n);

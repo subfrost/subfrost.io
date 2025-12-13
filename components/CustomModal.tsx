@@ -14,7 +14,7 @@ interface CustomModalProps {
   onClose: () => void
   title: string
   children: React.ReactNode
-  contentRef?: React.RefObject<HTMLDivElement>
+  contentRef?: React.RefObject<HTMLDivElement | null>
   modalClassName?: string
   bodyClassName?: string
 }

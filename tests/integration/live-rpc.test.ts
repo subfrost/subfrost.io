@@ -14,7 +14,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   alkanesClient,
-  SUBFROST_ADDRESS,
   FRBTC_TOKEN,
 } from '@/lib/alkanes-client';
 
@@ -46,7 +45,10 @@ describe.skipIf(!runIntegration)('Live RPC Integration Tests', () => {
     it(
       'should return UTXOs for Subfrost address',
       async () => {
-        const utxos = await alkanesClient.getAddressUtxos(SUBFROST_ADDRESS);
+        const subfrostAddress = await alkanesClient.getSubfrostAddress();
+        console.log(`Subfrost address: ${subfrostAddress}`);
+
+        const utxos = await alkanesClient.getAddressUtxos(subfrostAddress);
 
         console.log(`Found ${utxos.length} UTXOs`);
         if (utxos.length > 0) {

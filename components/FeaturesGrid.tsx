@@ -216,7 +216,7 @@ export default function FeaturesGrid() {
                     WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                     WebkitMaskComposite: 'xor',
                     maskComposite: 'exclude',
-                    '--fill-progress': '0',
+                    ['--fill-progress' as string]: '0',
                     animation: 'border-fill 6s linear forwards',
                     opacity: 1
                   } : {
@@ -231,7 +231,7 @@ export default function FeaturesGrid() {
                     WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                     WebkitMaskComposite: 'xor',
                     maskComposite: 'exclude',
-                    '--fill-progress': '0',
+                    ['--fill-progress' as string]: '0',
                     animation: 'border-fill 6s linear forwards',
                     opacity: 1
                   }}
