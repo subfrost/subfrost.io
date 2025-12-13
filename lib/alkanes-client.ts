@@ -13,6 +13,10 @@
  */
 
 import { AlkanesRpc } from 'alkanes/lib/rpc.js';
+import * as bitcoin from 'bitcoinjs-lib';
+import * as ecc from 'tiny-secp256k1';
+
+bitcoin.initEccLib(ecc);
 
 // ============================================================================
 // Types
@@ -46,9 +50,6 @@ export interface TokenBalance {
 // Constants
 // ============================================================================
 
-/** Subfrost BTC address */
-export const SUBFROST_ADDRESS = 'bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7';
-
 /** frBTC token configuration */
 export const FRBTC_TOKEN = {
   alkaneId: { block: 32n, tx: 0n },
@@ -66,6 +67,39 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; name: string; decima
 // ============================================================================
 // Utility Functions
 // ============================================================================
+
+/**
+ * Strip 0x prefix from hex string
+ */
+function stripHexPrefix(v: string): string {
+  return v.startsWith('0x') ? v.slice(2) : v;
+}
+
+/**
+ * Compute P2TR address from internal public key
+ */
+function computeP2TRAddress(internalPubkey: Buffer, network: string): string | undefined {
+  let bNetwork: bitcoin.Network;
+  switch (network) {
+    case 'mainnet':
+      bNetwork = bitcoin.networks.bitcoin;
+      break;
+    case 'testnet':
+    case 'signet':
+      bNetwork = bitcoin.networks.testnet;
+      break;
+    case 'regtest':
+      bNetwork = bitcoin.networks.regtest;
+      break;
+    default:
+      return undefined;
+  }
+  const { address } = bitcoin.payments.p2tr({
+    internalPubkey,
+    network: bNetwork,
+  });
+  return address;
+}
 
 /**
  * Reverse a hex string (for little-endian conversion)
@@ -109,9 +143,12 @@ export function parseAlkaneId(str: string): AlkaneId {
 class AlkanesClient {
   private rpc: AlkanesRpc | null = null;
   private rpcUrl: string;
+  private network: string;
+  private cachedSubfrostAddress: string | null = null;
 
   constructor() {
     this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+    this.network = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
   }
 
   /**
@@ -131,6 +168,83 @@ class AlkanesClient {
     return this.rpc;
   }
 
+  /**
+   * Make a JSON-RPC call to the endpoint
+   */
+  private async jsonRpcCall<T>(method: string, params: unknown[]): Promise<T> {
+    const response = await fetch(this.rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method,
+        params,
+        id: 1,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`RPC call failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(`RPC error: ${data.error.message || JSON.stringify(data.error)}`);
+    }
+
+    return data.result as T;
+  }
+
+  // ==========================================================================
+  // Subfrost Address Methods
+  // ==========================================================================
+
+  /**
+   * Fetch the subfrost signer public key via simulate
+   */
+  private async fetchSubfrostSignerKey(): Promise<Buffer> {
+    const rpc = this.getRpc();
+    const result = await rpc.simulate({
+      alkanes: [],
+      height: 880000,
+      vout: 0,
+      target: {
+        block: 32n,
+        tx: 0n,
+      },
+      inputs: [103n],
+      pointer: 0,
+      refundPointer: 0,
+      block: Buffer.from([]),
+      transaction: Buffer.from([]),
+    });
+
+    if (!result?.execution?.data) {
+      throw new Error('Failed to fetch subfrost signer key');
+    }
+
+    return Buffer.from(stripHexPrefix(result.execution.data), 'hex');
+  }
+
+  /**
+   * Get the subfrost address (dynamically derived)
+   */
+  async getSubfrostAddress(): Promise<string> {
+    if (this.cachedSubfrostAddress) {
+      return this.cachedSubfrostAddress;
+    }
+
+    const signerKey = await this.fetchSubfrostSignerKey();
+    const address = computeP2TRAddress(signerKey, this.network);
+
+    if (!address) {
+      throw new Error('Failed to compute subfrost address');
+    }
+
+    this.cachedSubfrostAddress = address;
+    return address;
+  }
+
   // ==========================================================================
   // Esplora Methods (Bitcoin/UTXO)
   // ==========================================================================
@@ -139,9 +253,8 @@ class AlkanesClient {
    * Get UTXOs for an address via esplora_address::utxo
    */
   async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const rpc = this.getRpc();
-    const result = await (rpc as any).call('esplora_address::utxo', [address]);
-    return result as UTXO[];
+    const result = await this.jsonRpcCall<UTXO[]>('esplora_address::utxo', [address]);
+    return result;
   }
 
   /**
@@ -155,13 +268,15 @@ class AlkanesClient {
   /**
    * Get BTC locked in the Subfrost address
    */
-  async getBtcLocked(): Promise<{ satoshis: number; btc: number; utxoCount: number }> {
-    const utxos = await this.getAddressUtxos(SUBFROST_ADDRESS);
+  async getBtcLocked(): Promise<{ satoshis: number; btc: number; utxoCount: number; address: string }> {
+    const address = await this.getSubfrostAddress();
+    const utxos = await this.getAddressUtxos(address);
     const satoshis = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
     return {
       satoshis,
       btc: satoshis / 100_000_000,
       utxoCount: utxos.length,
+      address,
     };
   }
 
@@ -231,8 +346,7 @@ class AlkanesClient {
    * Get current blockchain height
    */
   async getCurrentHeight(): Promise<number> {
-    const rpc = this.getRpc();
-    const result = await (rpc as any).call('metashrew_height', []);
+    const result = await this.jsonRpcCall<number>('metashrew_height', []);
     return Number(result);
   }
 
@@ -240,18 +354,16 @@ class AlkanesClient {
    * Execute a Lua script against the blockchain state
    */
   async executeLuaScript<T>(script: string, args: unknown[]): Promise<T> {
-    const rpc = this.getRpc();
-    const result = await (rpc as any).call('lua_evalscript', [script, ...args]);
-    return result as T;
+    const result = await this.jsonRpcCall<T>('lua_evalscript', [script, ...args]);
+    return result;
   }
 
   /**
    * Execute a saved Lua script by its hash
    */
   async executeSavedLuaScript<T>(scriptHash: string, args: unknown[]): Promise<T> {
-    const rpc = this.getRpc();
-    const result = await (rpc as any).call('lua_evalsaved', [scriptHash, ...args]);
-    return result as T;
+    const result = await this.jsonRpcCall<T>('lua_evalsaved', [scriptHash, ...args]);
+    return result;
   }
 }
 

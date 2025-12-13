@@ -22,6 +22,7 @@ export async function GET() {
           btcLocked: btcData.btc,
           satoshis: btcData.satoshis,
           utxoCount: btcData.utxoCount,
+          address: btcData.address,
           timestamp: Date.now(),
         };
       },
