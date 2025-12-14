@@ -10,15 +10,18 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Configure pnpm to use hoisted node_modules (avoids symlink issues in Docker)
-RUN echo "node-linker=hoisted" > .npmrc && echo "shamefully-hoist=true" >> .npmrc
-
 # Copy package files and prisma schema (needed for postinstall)
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Configure pnpm to NOT use symlinks (critical for Docker builds)
+RUN echo "node-linker=hoisted" > .npmrc && \
+    echo "shamefully-hoist=true" >> .npmrc && \
+    echo "symlink=false" >> .npmrc && \
+    echo "prefer-symlinked-executables=false" >> .npmrc
+
+# Install dependencies with explicit no-symlink flag
+RUN pnpm install --frozen-lockfile --no-optional
 
 # ============================================
 # Stage 2: Builder
