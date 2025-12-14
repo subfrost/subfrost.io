@@ -182,14 +182,43 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Run migrations via Cloud Run Job
+      - name: Setup migration job
         run: |
-          # Check if migration job exists, create if not
-          if ! gcloud run jobs describe prisma-migrate --region=${{ env.REGION }} > /dev/null 2>&1; then
-            echo "Migration job not found, skipping..."
-            exit 0
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          SQL_CONNECTION=$(gcloud sql instances describe subfrost-postgres --format='value(connectionName)' 2>/dev/null || echo "")
+
+          if [ -z "$SQL_CONNECTION" ]; then
+            echo "Error: Cloud SQL instance not found"
+            exit 1
           fi
 
+          # Check if job exists
+          if gcloud run jobs describe prisma-migrate --region=${{ env.REGION }} > /dev/null 2>&1; then
+            echo "Updating existing migration job..."
+            ACTION="update"
+          else
+            echo "Creating new migration job..."
+            ACTION="create"
+          fi
+
+          # Create or update the job with correct configuration
+          gcloud run jobs $ACTION prisma-migrate \
+            --region=${{ env.REGION }} \
+            --image="${IMAGE}" \
+            --max-retries=0 \
+            --task-timeout=10m \
+            --cpu=1 \
+            --memory=512Mi \
+            --vpc-connector=subfrost-connector \
+            --add-cloudsql-instances="${SQL_CONNECTION}" \
+            --set-secrets="DATABASE_URL=db-connection-string:latest" \
+            --set-env-vars="NODE_ENV=production" \
+            --command="prisma" \
+            --args="migrate,deploy,--schema=./prisma/schema.prisma"
+
+      - name: Run migrations
+        run: |
+          echo "Executing database migrations..."
           gcloud run jobs execute prisma-migrate \
             --region=${{ env.REGION }} \
             --wait

@@ -29,9 +29,14 @@ export GITHUB_REPO="subfrost.io"
 # 5. Add GitHub secrets (output from step 4)
 # Go to GitHub repo → Settings → Secrets and variables → Actions
 
-# 6. Push to main branch to trigger deployment
+# 6. (Optional) Setup migration job manually
+./gcp/setup-migration-job.sh
+
+# 7. Push to main branch to trigger deployment
 git push origin main
 ```
+
+**Note:** Step 6 is optional - the GitHub Actions workflow will automatically create/update the migration job during deployment.
 
 ## Scripts
 
@@ -58,6 +63,13 @@ Manual deployment script for local development:
 - Builds Docker image
 - Pushes to Artifact Registry
 - Deploys to Cloud Run
+
+### `setup-migration-job.sh`
+
+Creates/updates the Cloud Run Job for database migrations:
+- Configures Prisma migration job
+- Sets up database connection and secrets
+- Uses `prisma migrate deploy` for production migrations
 
 ## Architecture
 
@@ -121,3 +133,28 @@ gcloud run services describe subfrost-io --region=us-central1
 ```bash
 gcloud sql connect subfrost-postgres --user=subfrost --database=subfrost
 ```
+
+### Migration job failures
+
+If migrations fail during deployment:
+
+```bash
+# Check migration job status
+gcloud run jobs describe prisma-migrate --region=us-central1
+
+# View migration job logs
+gcloud run jobs executions list --job=prisma-migrate --region=us-central1
+gcloud run jobs executions describe EXECUTION_NAME --region=us-central1
+
+# Run migrations manually
+gcloud run jobs execute prisma-migrate --region=us-central1 --wait
+
+# Update migration job configuration
+./gcp/setup-migration-job.sh
+```
+
+Common issues:
+- **Missing DATABASE_URL secret**: Ensure `db-connection-string` secret exists in Secret Manager
+- **No Cloud SQL access**: Verify the job has `--add-cloudsql-instances` configured
+- **VPC connector issues**: Check that `subfrost-connector` exists and is in READY state
+- **Wrong Prisma command**: Job should use `prisma migrate deploy`, not `prisma migrate dev`
