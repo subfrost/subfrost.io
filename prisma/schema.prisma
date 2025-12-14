@@ -14,11 +14,12 @@ datasource db {
 // Stores aggregated BTC locked data at specific block heights
 model BtcLockedSnapshot {
   id           String   @id @default(cuid())
-  blockHeight  Int      @unique
+  blockHeight  Int
   blockHash    String?
 
   // BTC locked in the subfrost address
-  btcLocked    BigInt   // Satoshis
+  btcLocked    Float    // BTC as decimal
+  satoshis     BigInt   // Satoshis
   utxoCount    Int      // Number of UTXOs
 
   // Timestamp of the block
@@ -33,21 +34,20 @@ model BtcLockedSnapshot {
 
 // Stores frBTC total supply at specific block heights
 model FrbtcSupplySnapshot {
-  id           String   @id @default(cuid())
-  blockHeight  Int      @unique
-  blockHash    String?
+  id             String   @id @default(cuid())
+  blockHeight    Int
+  blockHash      String?
 
   // frBTC total supply
-  totalSupply  BigInt   // Satoshis (8 decimals)
-
-  // Adjusted supply (after corrections)
-  adjustedSupply BigInt?
+  frbtcIssued    Float    // BTC as decimal
+  rawSupply      String   // Raw supply as string (bigint)
+  adjustedSupply String   // Adjusted supply as string (bigint)
 
   // Timestamp of the block
-  blockTime    DateTime?
+  blockTime      DateTime?
 
   // When we computed this snapshot
-  createdAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
 
   @@index([blockHeight])
   @@index([createdAt])
@@ -55,24 +55,24 @@ model FrbtcSupplySnapshot {
 
 // Stores wrap transaction history
 model WrapTransaction {
-  id           String   @id @default(cuid())
-  txid         String   @unique
-  blockHeight  Int
-  blockHash    String?
-  blockTime    DateTime?
+  id              String   @id @default(cuid())
+  txid            String   @unique
+  blockHeight     Int
+  blockHash       String?
 
   // Transaction details
-  senderAddress String
+  amount          String   // Amount in satoshis as string (bigint)
+  senderAddress   String   @default("")
   recipientAddress String?
-  btcAmount    BigInt   // Satoshis sent
-  frbtcAmount  BigInt   // frBTC minted
+
+  // Timestamp
+  timestamp       DateTime
 
   // Status
-  confirmed    Boolean  @default(false)
-  confirmations Int     @default(0)
+  confirmed       Boolean  @default(false)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([blockHeight])
   @@index([senderAddress])
@@ -81,42 +81,45 @@ model WrapTransaction {
 
 // Stores unwrap transaction history
 model UnwrapTransaction {
-  id           String   @id @default(cuid())
-  txid         String   @unique
-  blockHeight  Int
-  blockHash    String?
-  blockTime    DateTime?
+  id               String   @id @default(cuid())
+  txid             String   @unique
+  blockHeight      Int
+  blockHash        String?
 
   // Transaction details
-  senderAddress String
-  recipientAddress String?
-  frbtcAmount  BigInt   // frBTC burned
-  btcAmount    BigInt   // BTC released
+  amount           String   // Amount in satoshis as string (bigint)
+  senderAddress    String?
+  recipientAddress String   @default("")
+
+  // Timestamp
+  timestamp        DateTime
 
   // Status
-  confirmed    Boolean  @default(false)
-  confirmations Int     @default(0)
+  confirmed        Boolean  @default(false)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([blockHeight])
-  @@index([senderAddress])
+  @@index([recipientAddress])
   @@index([confirmed])
 }
 
 // Stores the last processed block height for each data type
 model SyncState {
-  id              String   @id @default("default")
+  dataType        String   @id
 
-  // Last processed heights for different data types
-  btcLockedHeight Int      @default(0)
-  frbtcSupplyHeight Int    @default(0)
-  wrapTxHeight    Int      @default(0)
-  unwrapTxHeight  Int      @default(0)
+  // Last processed block height
+  lastBlockHeight Int      @default(0)
 
-  // Current chain height
-  chainHeight     Int      @default(0)
+  // Last processed transaction ID (for pagination)
+  lastTxid        String?
+
+  // Aggregated totals (stored as strings for bigint support)
+  totalWrapped    String   @default("0")
+  totalUnwrapped  String   @default("0")
+  wrapCount       Int      @default(0)
+  unwrapCount     Int      @default(0)
 
   updatedAt       DateTime @updatedAt
 }

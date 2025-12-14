@@ -4,8 +4,16 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ['@alkanes/ts-sdk'],
+  },
   test: {
     environment: 'happy-dom',
+    server: {
+      deps: {
+        inline: ['@alkanes/ts-sdk'],
+      },
+    },
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['**/*.{test,spec}.{ts,tsx}'],

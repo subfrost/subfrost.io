@@ -12,7 +12,7 @@
  * - Eliminates duplicate fetch/RPC code throughout the codebase
  */
 
-import { AlkanesRpc } from 'alkanes/lib/rpc.js';
+import { AlkanesProvider } from '@alkanes/ts-sdk';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 
@@ -44,6 +44,38 @@ export interface TokenBalance {
   balance: bigint;
   symbol?: string;
   name?: string;
+}
+
+export interface AddressTx {
+  txid: string;
+  version: number;
+  locktime: number;
+  vin: Array<{
+    txid: string;
+    vout: number;
+    prevout?: {
+      scriptpubkey: string;
+      scriptpubkey_address?: string;
+      value: number;
+    };
+    scriptsig: string;
+    sequence: number;
+    witness?: string[];
+  }>;
+  vout: Array<{
+    scriptpubkey: string;
+    scriptpubkey_address?: string;
+    value: number;
+  }>;
+  size: number;
+  weight: number;
+  fee: number;
+  status: {
+    confirmed: boolean;
+    block_height?: number;
+    block_hash?: string;
+    block_time?: number;
+  };
 }
 
 // ============================================================================
@@ -116,6 +148,22 @@ export function reverseHex(hex: string): string {
 }
 
 /**
+ * Parse little-endian u128 from hex string
+ */
+export function parseU128LE(hex: string): bigint {
+  if (!hex || hex === '0x') return 0n;
+  const cleanHex = stripHexPrefix(hex);
+  if (!cleanHex) return 0n;
+
+  // Reverse bytes for little-endian
+  let reversed = '';
+  for (let i = cleanHex.length - 2; i >= 0; i -= 2) {
+    reversed += cleanHex.slice(i, i + 2);
+  }
+  return BigInt('0x' + (reversed || '0'));
+}
+
+/**
  * Format alkane ID to string
  */
 export function formatAlkaneId(id: AlkaneId): string {
@@ -139,9 +187,11 @@ export function parseAlkaneId(str: string): AlkaneId {
 
 /**
  * Singleton client for all alkanes/blockchain interactions
+ * Uses @alkanes/ts-sdk as the driver
  */
 class AlkanesClient {
-  private rpc: AlkanesRpc | null = null;
+  private provider: AlkanesProvider | null = null;
+  private initPromise: Promise<void> | null = null;
   private rpcUrl: string;
   private network: string;
   private cachedSubfrostAddress: string | null = null;
@@ -159,40 +209,23 @@ class AlkanesClient {
   }
 
   /**
-   * Get or create RPC client
+   * Ensure provider is initialized (lazy singleton pattern)
    */
-  private getRpc(): AlkanesRpc {
-    if (!this.rpc) {
-      this.rpc = new AlkanesRpc({ baseUrl: this.rpcUrl });
-    }
-    return this.rpc;
-  }
+  private async ensureProvider(): Promise<AlkanesProvider> {
+    if (this.provider) return this.provider;
 
-  /**
-   * Make a JSON-RPC call to the endpoint
-   */
-  private async jsonRpcCall<T>(method: string, params: unknown[]): Promise<T> {
-    const response = await fetch(this.rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method,
-        params,
-        id: 1,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`RPC call failed: ${response.statusText}`);
+    if (!this.initPromise) {
+      this.initPromise = (async () => {
+        this.provider = new AlkanesProvider({
+          network: this.network as 'mainnet' | 'testnet' | 'signet' | 'regtest',
+          rpcUrl: this.rpcUrl,
+        });
+        await this.provider.initialize();
+      })();
     }
 
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(`RPC error: ${data.error.message || JSON.stringify(data.error)}`);
-    }
-
-    return data.result as T;
+    await this.initPromise;
+    return this.provider!;
   }
 
   // ==========================================================================
@@ -200,24 +233,17 @@ class AlkanesClient {
   // ==========================================================================
 
   /**
-   * Fetch the subfrost signer public key via simulate
+   * Fetch the subfrost signer public key via simulate (32:0 opcode 103)
    */
   private async fetchSubfrostSignerKey(): Promise<Buffer> {
-    const rpc = this.getRpc();
-    const result = await rpc.simulate({
-      alkanes: [],
-      height: 880000,
-      vout: 0,
-      target: {
-        block: 32n,
-        tx: 0n,
-      },
-      inputs: [103n],
-      pointer: 0,
-      refundPointer: 0,
-      block: Buffer.from([]),
-      transaction: Buffer.from([]),
-    });
+    const provider = await this.ensureProvider();
+
+    // Call simulate on 32:0 with opcode 103 to get the public key
+    const result = await provider.alkanes.simulate(
+      { block: 32, tx: 0 },
+      JSON.stringify({ inputs: [103] }),
+      'latest'
+    );
 
     if (!result?.execution?.data) {
       throw new Error('Failed to fetch subfrost signer key');
@@ -253,8 +279,20 @@ class AlkanesClient {
    * Get UTXOs for an address via esplora_address::utxo
    */
   async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const result = await this.jsonRpcCall<UTXO[]>('esplora_address::utxo', [address]);
-    return result;
+    const provider = await this.ensureProvider();
+    const utxos = await provider.esplora.getAddressUtxos(address);
+    return utxos as UTXO[];
+  }
+
+  /**
+   * Get transaction history for an address via esplora_address::txs
+   * This is critical for tracking wrap/unwrap history incrementally
+   */
+  async getAddressTxs(address: string, lastSeenTxid?: string): Promise<AddressTx[]> {
+    const provider = await this.ensureProvider();
+    // If lastSeenTxid is provided, fetch txs after that point
+    const txs = await provider.esplora.getAddressTxs(address);
+    return txs as AddressTx[];
   }
 
   /**
@@ -281,30 +319,52 @@ class AlkanesClient {
   }
 
   // ==========================================================================
-  // Alkanes/Token Methods
+  // Metashrew / Alkanes Methods
   // ==========================================================================
+
+  /**
+   * Execute a metashrew_view call
+   */
+  async metashrewView(viewFn: string, payload: string, blockTag: string = 'latest'): Promise<string> {
+    const provider = await this.ensureProvider();
+    return provider.metashrew.view(viewFn, payload, blockTag);
+  }
 
   /**
    * Get storage value for an alkane at a specific path
    */
-  async getStorageAt(id: AlkaneId, path: Uint8Array): Promise<string | undefined> {
-    const rpc = this.getRpc();
-    return rpc.getstorageat({ id, path });
+  async getStorageAt(id: AlkaneId, path: string): Promise<string | undefined> {
+    const provider = await this.ensureProvider();
+    // Use simulate to read storage
+    const result = await provider.alkanes.simulate(
+      { block: Number(id.block), tx: Number(id.tx) },
+      JSON.stringify({ storage_read: path }),
+      'latest'
+    );
+    return result?.execution?.data;
   }
 
   /**
-   * Get frBTC total supply
+   * Get frBTC total supply from storage
    */
   async getFrbtcTotalSupply(): Promise<{ raw: bigint; adjusted: bigint; btc: number }> {
-    const path = new TextEncoder().encode('/totalsupply');
-    const storageHex = await this.getStorageAt(FRBTC_TOKEN.alkaneId, path);
+    const provider = await this.ensureProvider();
 
-    if (!storageHex || storageHex === '0x') {
+    // Use metashrew_view with simulate to get total supply from 32:0 storage
+    // The storage key for total supply is '/totalsupply'
+    const result = await provider.metashrew.view(
+      'simulate',
+      // Protobuf-encoded call to 32:0 with opcode to read total supply (101)
+      '0x20e0ce382a03020065013001',
+      'latest'
+    );
+
+    if (!result || result === '0x') {
       throw new Error('Failed to retrieve frBTC storage data');
     }
 
-    const littleEndianHex = reverseHex(storageHex);
-    const totalSupply = BigInt(littleEndianHex);
+    // Parse the response - it contains the total supply as little-endian u128
+    const totalSupply = parseU128LE(result);
 
     // Correction: unwraps were not calculated in total supply until a specific block
     const adjustedTotalSupply = totalSupply - 4443097n;
@@ -321,20 +381,15 @@ class AlkanesClient {
    * Get alkane balances for an address
    */
   async getAlkaneBalances(address: string): Promise<TokenBalance[]> {
-    const rpc = this.getRpc();
-    const result = await rpc.protorunesbyaddress({ address, protocolTag: 1n });
+    const provider = await this.ensureProvider();
+    const balances = await provider.alkanes.getBalance(address);
 
-    // Parse the result into TokenBalance format
-    if (!result || !Array.isArray(result.balanceSheet)) {
-      return [];
-    }
-
-    return result.balanceSheet.map((entry: any) => ({
+    return balances.map((entry: any) => ({
       alkaneId: {
-        block: BigInt(entry.alkane?.block || entry.rune?.block || 0),
-        tx: BigInt(entry.alkane?.tx || entry.rune?.tx || 0),
+        block: BigInt(entry.alkane_id?.block || entry.id?.block || 0),
+        tx: BigInt(entry.alkane_id?.tx || entry.id?.tx || 0),
       },
-      balance: BigInt(entry.balance || 0),
+      balance: BigInt(entry.balance || entry.amount || 0),
     }));
   }
 
@@ -346,24 +401,174 @@ class AlkanesClient {
    * Get current blockchain height
    */
   async getCurrentHeight(): Promise<number> {
-    const result = await this.jsonRpcCall<number>('metashrew_height', []);
-    return Number(result);
+    const provider = await this.ensureProvider();
+    return provider.getBlockHeight();
   }
 
   /**
    * Execute a Lua script against the blockchain state
+   * Uses the SDK's Lua execution with automatic scripthash caching
    */
-  async executeLuaScript<T>(script: string, args: unknown[]): Promise<T> {
-    const result = await this.jsonRpcCall<T>('lua_evalscript', [script, ...args]);
-    return result;
+  async executeLuaScript<T>(script: string, args: unknown[] = []): Promise<T> {
+    const provider = await this.ensureProvider();
+    const result = await provider.lua.eval(script, args);
+
+    // lua.eval returns { calls, returns, runtime }
+    if (result && result.returns !== undefined) {
+      return result.returns as T;
+    }
+    return result as T;
+  }
+
+  // ==========================================================================
+  // Aggregation Methods (for incremental data sync)
+  // ==========================================================================
+
+  /**
+   * Get wrap/unwrap transaction data from address history
+   * This fetches transactions and filters for wrap/unwrap operations
+   */
+  async getWrapUnwrapHistory(fromHeight?: number): Promise<{
+    wraps: Array<{ txid: string; amount: bigint; blockHeight: number; timestamp: number }>;
+    unwraps: Array<{ txid: string; amount: bigint; blockHeight: number; timestamp: number }>;
+    lastHeight: number;
+  }> {
+    const subfrostAddress = await this.getSubfrostAddress();
+    const txs = await this.getAddressTxs(subfrostAddress);
+
+    const wraps: Array<{ txid: string; amount: bigint; blockHeight: number; timestamp: number }> = [];
+    const unwraps: Array<{ txid: string; amount: bigint; blockHeight: number; timestamp: number }> = [];
+    let lastHeight = 0;
+
+    for (const tx of txs) {
+      if (!tx.status.confirmed || !tx.status.block_height) continue;
+      if (fromHeight && tx.status.block_height <= fromHeight) continue;
+
+      lastHeight = Math.max(lastHeight, tx.status.block_height);
+
+      // Check if this is a wrap (BTC sent TO subfrost address)
+      const outputToSubfrost = tx.vout.find(
+        (v) => v.scriptpubkey_address === subfrostAddress
+      );
+
+      // Check if this is an unwrap (BTC sent FROM subfrost address)
+      const inputFromSubfrost = tx.vin.find(
+        (v) => v.prevout?.scriptpubkey_address === subfrostAddress
+      );
+
+      if (outputToSubfrost && !inputFromSubfrost) {
+        // This is a wrap
+        wraps.push({
+          txid: tx.txid,
+          amount: BigInt(outputToSubfrost.value),
+          blockHeight: tx.status.block_height,
+          timestamp: tx.status.block_time || 0,
+        });
+      } else if (inputFromSubfrost && !outputToSubfrost) {
+        // This is an unwrap (BTC leaving subfrost)
+        const totalInput = tx.vin
+          .filter((v) => v.prevout?.scriptpubkey_address === subfrostAddress)
+          .reduce((sum, v) => sum + (v.prevout?.value || 0), 0);
+
+        unwraps.push({
+          txid: tx.txid,
+          amount: BigInt(totalInput),
+          blockHeight: tx.status.block_height,
+          timestamp: tx.status.block_time || 0,
+        });
+      }
+    }
+
+    return { wraps, unwraps, lastHeight };
   }
 
   /**
-   * Execute a saved Lua script by its hash
+   * Aggregate wrap/unwrap totals using Lua script for efficiency
+   * This batches multiple RPC calls into a single request
    */
-  async executeSavedLuaScript<T>(scriptHash: string, args: unknown[]): Promise<T> {
-    const result = await this.jsonRpcCall<T>('lua_evalsaved', [scriptHash, ...args]);
-    return result;
+  async aggregateWrapUnwrapTotals(): Promise<{
+    totalWrapped: bigint;
+    totalUnwrapped: bigint;
+    wrapCount: number;
+    unwrapCount: number;
+    blockHeight: number;
+  }> {
+    const subfrostAddress = await this.getSubfrostAddress();
+
+    // Use Lua script to aggregate data efficiently
+    const luaScript = `
+      local address = args[1]
+      local results = {
+        totalWrapped = 0,
+        totalUnwrapped = 0,
+        wrapCount = 0,
+        unwrapCount = 0,
+        blockHeight = 0
+      }
+
+      -- Get current height
+      results.blockHeight = tonumber(_RPC.metashrew_height()) or 0
+
+      -- Get UTXOs to calculate current balance
+      local utxos = _RPC.esplora_addressutxo(address) or {}
+      local currentBalance = 0
+      for _, utxo in ipairs(utxos) do
+        currentBalance = currentBalance + (utxo.value or 0)
+      end
+
+      -- Get transaction history
+      local txs = _RPC.esplora_addresstxs(address) or {}
+
+      for _, tx in ipairs(txs) do
+        if tx.status and tx.status.confirmed then
+          local isWrap = false
+          local isUnwrap = false
+          local amount = 0
+
+          -- Check outputs for wraps (BTC sent to address)
+          for _, vout in ipairs(tx.vout or {}) do
+            if vout.scriptpubkey_address == address then
+              isWrap = true
+              amount = amount + (vout.value or 0)
+            end
+          end
+
+          -- Check inputs for unwraps (BTC sent from address)
+          for _, vin in ipairs(tx.vin or {}) do
+            if vin.prevout and vin.prevout.scriptpubkey_address == address then
+              isUnwrap = true
+              amount = amount + (vin.prevout.value or 0)
+            end
+          end
+
+          if isWrap and not isUnwrap then
+            results.totalWrapped = results.totalWrapped + amount
+            results.wrapCount = results.wrapCount + 1
+          elseif isUnwrap and not isWrap then
+            results.totalUnwrapped = results.totalUnwrapped + amount
+            results.unwrapCount = results.unwrapCount + 1
+          end
+        end
+      end
+
+      return results
+    `;
+
+    const result = await this.executeLuaScript<{
+      totalWrapped: number;
+      totalUnwrapped: number;
+      wrapCount: number;
+      unwrapCount: number;
+      blockHeight: number;
+    }>(luaScript, [subfrostAddress]);
+
+    return {
+      totalWrapped: BigInt(result.totalWrapped || 0),
+      totalUnwrapped: BigInt(result.totalUnwrapped || 0),
+      wrapCount: result.wrapCount || 0,
+      unwrapCount: result.unwrapCount || 0,
+      blockHeight: result.blockHeight || 0,
+    };
   }
 }
 

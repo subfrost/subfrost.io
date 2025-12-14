@@ -7,6 +7,9 @@
  * To run these tests:
  *   pnpm test:live
  *
+ * For RPC-specific tests:
+ *   RUN_INTEGRATION=true vitest run tests/integration/live-rpc.test.ts
+ *
  * Environment:
  *   ALKANES_RPC_URL - Override the default RPC endpoint (optional)
  */
@@ -15,6 +18,7 @@ import { describe, it, expect } from 'vitest';
 import {
   alkanesClient,
   FRBTC_TOKEN,
+  formatAlkaneId,
 } from '@/lib/alkanes-client';
 
 // Skip all tests unless explicitly running integration tests

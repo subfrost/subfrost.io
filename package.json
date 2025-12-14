@@ -12,7 +12,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:live": "RUN_INTEGRATION=true vitest run tests/integration/live-rpc.test.ts",
+    "test:api": "vitest run tests/api/",
+    "test:lib": "vitest run tests/lib/",
+    "test:live": "RUN_INTEGRATION=true vitest run tests/integration/",
+    "test:live:rpc": "RUN_INTEGRATION=true vitest run tests/integration/live-rpc.test.ts",
+    "test:live:api": "RUN_INTEGRATION=true vitest run tests/integration/live-api.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -26,6 +30,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@alkanes/ts-sdk": "https://alkanes.build/api/pkg/@alkanes/ts-sdk",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "1.2.2",
@@ -55,7 +60,6 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
-    "alkanes": "git+https://github.com/kungfuflex/alkanes.git",
     "autoprefixer": "^10.4.20",
     "bitcoinjs-lib": "^7.0.0",
     "class-variance-authority": "^0.7.1",
