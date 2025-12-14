@@ -20,8 +20,8 @@ RUN echo "node-linker=hoisted" > .npmrc && \
     echo "symlink=false" >> .npmrc && \
     echo "prefer-symlinked-executables=false" >> .npmrc
 
-# Install dependencies with explicit no-symlink flag
-RUN pnpm install --frozen-lockfile --no-optional
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
 # ============================================
 # Stage 2: Builder
