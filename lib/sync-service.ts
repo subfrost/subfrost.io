@@ -460,7 +460,15 @@ export async function getLatestBtcLocked(): Promise<{
     orderBy: { createdAt: 'desc' },
   });
 
-  return latest;
+  if (!latest) return null;
+
+  return {
+    btcLocked: latest.btcLocked,
+    satoshis: latest.satoshis,
+    utxoCount: latest.utxoCount,
+    blockHeight: latest.blockHeight,
+    timestamp: latest.blockTime || latest.createdAt,
+  };
 }
 
 /**

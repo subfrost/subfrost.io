@@ -24,13 +24,8 @@ export default defineConfig({
       '**/reference/**',
       '**/.next/**',
     ],
-    // Use forks pool with singleFork to properly share WASM state across tests
+    // Use forks pool to properly share WASM state across tests
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
     // Extended timeouts for RPC calls - increased for full pagination
     testTimeout: 300000,
     hookTimeout: 60000,
