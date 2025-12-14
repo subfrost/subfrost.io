@@ -4,12 +4,22 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// Mock Redis
+vi.mock('@/lib/redis', () => ({
+  cacheGet: vi.fn(),
+  cacheSet: vi.fn(),
+}));
+
+// Mock sync service
+vi.mock('@/lib/sync-service', () => ({
+  syncWrapUnwrapTransactions: vi.fn(),
+  getUnwrapHistory: vi.fn(),
+}));
 
 // Import after mocking
 import { GET } from '@/app/api/unwrap-history/route';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncWrapUnwrapTransactions, getUnwrapHistory } from '@/lib/sync-service';
 
 // Helper to create mock request
 function createMockRequest(params: Record<string, string> = {}): Request {
@@ -23,69 +33,78 @@ function createMockRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/unwrap-history', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (cacheGet as any).mockResolvedValue(null); // Default: no cache
+    (syncWrapUnwrapTransactions as any).mockResolvedValue({
+      newWraps: 0,
+      newUnwraps: 0,
+      lastHeight: 100000,
+    });
   });
 
   it('returns unwrap history with default pagination', async () => {
-    const mockData = {
-      data: {
-        items: [
-          { txid: 'abc123', amount: '100000000', timestamp: 1702500000 },
-          { txid: 'def456', amount: '50000000', timestamp: 1702510000 },
-        ],
-        total: 50,
-      },
-    };
+    const mockItems = [
+      { txid: 'abc123', amount: '100000000', blockHeight: 100000, timestamp: new Date('2024-01-01'), recipientAddress: 'bc1...' },
+      { txid: 'def456', amount: '50000000', blockHeight: 99999, timestamp: new Date('2024-01-02'), recipientAddress: 'bc1...' },
+    ];
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
+    (getUnwrapHistory as any).mockResolvedValue({
+      items: mockItems,
+      total: 50,
     });
 
     const response = await GET(createMockRequest());
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual(mockData);
+    expect(data.items).toHaveLength(2);
+    expect(data.total).toBe(50);
+    expect(data.count).toBe(25);
+    expect(data.offset).toBe(0);
   });
 
-  it('passes pagination parameters to OYL API', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: { items: [], total: 0 } }),
+  it('passes pagination parameters to getUnwrapHistory', async () => {
+    (getUnwrapHistory as any).mockResolvedValue({
+      items: [],
+      total: 0,
     });
 
     await GET(createMockRequest({ count: '50', offset: '100' }));
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://mainnet-api.oyl.gg/get-all-unwrap-history',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ count: 50, offset: 100 }),
-      })
-    );
+    expect(getUnwrapHistory).toHaveBeenCalledWith(50, 100);
   });
 
   it('uses default pagination values', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: { items: [], total: 0 } }),
+    (getUnwrapHistory as any).mockResolvedValue({
+      items: [],
+      total: 0,
     });
 
     await GET(createMockRequest());
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: JSON.stringify({ count: 25, offset: 0 }),
-      })
-    );
+    expect(getUnwrapHistory).toHaveBeenCalledWith(25, 0);
   });
 
-  it('returns error response when OYL API fails', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
+  it('returns cached result when available', async () => {
+    const cachedData = {
+      items: [{ txid: 'cached123' }],
+      total: 30,
+      count: 25,
+      offset: 0,
+      timestamp: Date.now(),
+    };
+    (cacheGet as any).mockResolvedValue(cachedData);
+
+    const response = await GET(createMockRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.items[0].txid).toBe('cached123');
+    expect(syncWrapUnwrapTransactions).not.toHaveBeenCalled();
+    expect(getUnwrapHistory).not.toHaveBeenCalled();
+  });
+
+  it('returns error response when sync fails', async () => {
+    (syncWrapUnwrapTransactions as any).mockRejectedValue(new Error('Sync failed'));
 
     const response = await GET(createMockRequest());
     const data = await response.json();

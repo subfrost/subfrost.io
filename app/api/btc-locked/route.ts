@@ -2,32 +2,39 @@
  * API Route: BTC Locked
  *
  * Returns the total BTC locked in the Subfrost address.
- * Uses Redis caching for performance and optionally persists to database.
+ * Uses Redis caching for fast responses and persists snapshots to database.
  */
 
 import { NextResponse } from 'next/server';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncBtcLocked, getLatestBtcLocked } from '@/lib/sync-service';
 import { alkanesClient } from '@/lib/alkanes-client';
-import { cacheGetOrCompute } from '@/lib/redis';
 
 const CACHE_KEY = 'btc-locked';
 const CACHE_TTL = 60; // 60 seconds
 
 export async function GET() {
   try {
-    const result = await cacheGetOrCompute(
-      CACHE_KEY,
-      async () => {
-        const btcData = await alkanesClient.getBtcLocked();
-        return {
-          btcLocked: btcData.btc,
-          satoshis: btcData.satoshis,
-          utxoCount: btcData.utxoCount,
-          address: btcData.address,
-          timestamp: Date.now(),
-        };
-      },
-      CACHE_TTL
-    );
+    // Check Redis cache first
+    const cached = await cacheGet(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
+    // Sync and persist to database
+    const btcData = await syncBtcLocked();
+
+    const result = {
+      btcLocked: btcData.btcLocked,
+      satoshis: btcData.satoshis,
+      utxoCount: btcData.utxoCount,
+      address: (await alkanesClient.getBtcLocked()).address,
+      blockHeight: btcData.blockHeight,
+      timestamp: Date.now(),
+    };
+
+    // Cache the result
+    await cacheSet(CACHE_KEY, result, CACHE_TTL);
 
     return NextResponse.json(result);
   } catch (error) {

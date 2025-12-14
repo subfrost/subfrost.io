@@ -228,28 +228,60 @@ class AlkanesClient {
     return this.provider!;
   }
 
+  /**
+   * Create a MessageContextParcel for simulate calls
+   * See: reference/alkanes-rs/crates/alkanes-web-sys/src/provider.rs
+   * See: reference/alkanes-rs/crates/alkanes-support/src/cellpack.rs
+   *
+   * The calldata is a LEB128-encoded Cellpack: [target.block, target.tx, ...inputs]
+   */
+  private createSimulateContext(block: number, tx: number, inputs: number[]): object {
+    // Calldata is LEB128-encoded Cellpack: [block, tx, ...inputs]
+    // For values < 128, LEB128 encoding is just the byte value
+    const calldata = [block, tx, ...inputs];
+
+    return {
+      alkanes: [],
+      transaction: [],
+      block: [],
+      height: 0,
+      vout: 0,
+      txindex: 0,
+      calldata,
+      pointer: 0,
+      refund_pointer: 0,
+    };
+  }
+
   // ==========================================================================
   // Subfrost Address Methods
   // ==========================================================================
 
   /**
    * Fetch the subfrost signer public key via simulate (32:0 opcode 103)
+   * See: reference/subfrost-alkanes/alkanes/fr-btc/src/lib.rs - GetSigner opcode
    */
   private async fetchSubfrostSignerKey(): Promise<Buffer> {
     const provider = await this.ensureProvider();
 
-    // Call simulate on 32:0 with opcode 103 to get the public key
+    // Call simulate on 32:0 with opcode 103 (GetSigner)
+    // Cellpack format: [block, tx, opcode] = [32, 0, 103]
+    const context = this.createSimulateContext(32, 0, [103]);
     const result = await provider.alkanes.simulate(
-      { block: 32, tx: 0 },
-      JSON.stringify({ inputs: [103] }),
+      '32:0',
+      JSON.stringify(context),
       'latest'
     );
 
-    if (!result?.execution?.data) {
+    // Result is a hex-encoded SimulateResponse protobuf
+    const hexResult = typeof result === 'string' ? result : result?.toString?.() || '';
+    const dataBuffer = this.parseSimulateResponse(hexResult);
+
+    if (!dataBuffer || dataBuffer.length === 0) {
       throw new Error('Failed to fetch subfrost signer key');
     }
 
-    return Buffer.from(stripHexPrefix(result.execution.data), 'hex');
+    return dataBuffer;
   }
 
   /**
@@ -332,39 +364,97 @@ class AlkanesClient {
 
   /**
    * Get storage value for an alkane at a specific path
+   * Note: This requires a specific opcode for storage reads which may vary by contract
    */
   async getStorageAt(id: AlkaneId, path: string): Promise<string | undefined> {
     const provider = await this.ensureProvider();
-    // Use simulate to read storage
-    const result = await provider.alkanes.simulate(
-      { block: Number(id.block), tx: Number(id.tx) },
-      JSON.stringify({ storage_read: path }),
-      'latest'
-    );
-    return result?.execution?.data;
+    // Storage reads typically use view functions, not simulate
+    // This is a placeholder - actual implementation depends on contract
+    const contractId = `${id.block}:${id.tx}`;
+    const result = await provider.alkanes.view(contractId, path, undefined, 'latest');
+    return result;
+  }
+
+  /**
+   * Parse a SimulateResponse protobuf and extract execution.data
+   * Proto structure: SimulateResponse { execution: ExtendedCallResponse { data: bytes } }
+   */
+  private parseSimulateResponse(hexResult: string): Buffer | null {
+    const hex = stripHexPrefix(hexResult);
+    const bytes = Buffer.from(hex, 'hex');
+
+    // Simple protobuf parsing for SimulateResponse
+    // Field 1 (execution) is wire type 2 (length-delimited)
+    let offset = 0;
+    while (offset < bytes.length) {
+      const tag = bytes[offset++];
+      const fieldNum = tag >> 3;
+      const wireType = tag & 0x7;
+
+      if (fieldNum === 1 && wireType === 2) {
+        // ExtendedCallResponse - length-delimited
+        const len = bytes[offset++];
+        const extCallBytes = bytes.subarray(offset, offset + len);
+
+        // Parse ExtendedCallResponse for field 3 (data)
+        let extOffset = 0;
+        while (extOffset < extCallBytes.length) {
+          const extTag = extCallBytes[extOffset++];
+          const extFieldNum = extTag >> 3;
+          const extWireType = extTag & 0x7;
+
+          if (extFieldNum === 3 && extWireType === 2) {
+            // data field - length-delimited
+            const dataLen = extCallBytes[extOffset++];
+            return extCallBytes.subarray(extOffset, extOffset + dataLen) as Buffer;
+          } else if (extWireType === 2) {
+            // Skip other length-delimited fields
+            const skipLen = extCallBytes[extOffset++];
+            extOffset += skipLen;
+          } else if (extWireType === 0) {
+            // Skip varint
+            while (extCallBytes[extOffset++] & 0x80) {}
+          }
+        }
+        offset += len;
+      } else if (wireType === 2) {
+        // Skip other length-delimited fields
+        const skipLen = bytes[offset++];
+        offset += skipLen;
+      } else if (wireType === 0) {
+        // Skip varint
+        while (bytes[offset++] & 0x80) {}
+      }
+    }
+    return null;
   }
 
   /**
    * Get frBTC total supply from storage
+   * See: reference/subfrost-alkanes/alkanes/fr-btc/src/lib.rs - GetTotalSupply opcode 105
    */
   async getFrbtcTotalSupply(): Promise<{ raw: bigint; adjusted: bigint; btc: number }> {
     const provider = await this.ensureProvider();
 
-    // Use metashrew_view with simulate to get total supply from 32:0 storage
-    // The storage key for total supply is '/totalsupply'
-    const result = await provider.metashrew.view(
-      'simulate',
-      // Protobuf-encoded call to 32:0 with opcode to read total supply (101)
-      '0x20e0ce382a03020065013001',
+    // Call simulate on 32:0 with opcode 105 (GetTotalSupply)
+    // Cellpack format: [block, tx, opcode] = [32, 0, 105]
+    const context = this.createSimulateContext(32, 0, [105]);
+    const result = await provider.alkanes.simulate(
+      '32:0',
+      JSON.stringify(context),
       'latest'
     );
 
-    if (!result || result === '0x') {
-      throw new Error('Failed to retrieve frBTC storage data');
+    // Result is a hex-encoded SimulateResponse protobuf
+    const hexResult = typeof result === 'string' ? result : result?.toString?.() || '';
+    const dataBuffer = this.parseSimulateResponse(hexResult);
+
+    if (!dataBuffer || dataBuffer.length === 0) {
+      throw new Error('Failed to retrieve frBTC total supply');
     }
 
-    // Parse the response - it contains the total supply as little-endian u128
-    const totalSupply = parseU128LE(result);
+    // Parse the data as little-endian u128
+    const totalSupply = parseU128LE('0x' + dataBuffer.toString('hex'));
 
     // Correction: unwraps were not calculated in total supply until a specific block
     const adjustedTotalSupply = totalSupply - 4443097n;
@@ -568,6 +658,150 @@ class AlkanesClient {
       wrapCount: result.wrapCount || 0,
       unwrapCount: result.unwrapCount || 0,
       blockHeight: result.blockHeight || 0,
+    };
+  }
+
+  /**
+   * Get wrap/unwrap totals from alkanes traces
+   * Uses getAddressTxsWithTraces to get accurate frBTC amounts from trace data
+   *
+   * Trace structure from alkanes-cli:
+   * - Wraps: Call to 32:0 with opcode 77, alkane_transfers shows minted frBTC
+   * - Unwraps: frBTC burned, BTC released
+   *
+   * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
+   */
+  async getWrapUnwrapFromTraces(fromBlockHeight?: number): Promise<{
+    totalWrappedFrbtc: bigint;
+    totalUnwrappedFrbtc: bigint;
+    wrapCount: number;
+    unwrapCount: number;
+    wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }>;
+    unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }>;
+    lastBlockHeight: number;
+  }> {
+    const provider = await this.ensureProvider();
+    const subfrostAddress = await this.getSubfrostAddress();
+
+    // Get transactions with traces (excludes coinbase, optionally from a specific height)
+    const txsWithTraces = await provider.esplora.getAddressTxsWithTraces(subfrostAddress, true, fromBlockHeight);
+
+    console.log('[getWrapUnwrapFromTraces] Total txs:', txsWithTraces?.length || 0);
+
+    const wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }> = [];
+    const unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }> = [];
+    let totalWrappedFrbtc = 0n;
+    let totalUnwrappedFrbtc = 0n;
+
+    // Count txs with various attributes
+    const txsWithTracesCount = txsWithTraces?.filter((tx: any) => tx.alkanes_traces?.length > 0).length || 0;
+    const txsWithRunestone = txsWithTraces?.filter((tx: any) => tx.runestone).length || 0;
+    const txsWithOpReturn = txsWithTraces?.filter((tx: any) =>
+      tx.vout?.some((v: any) => v.scriptpubkey_type === 'op_return')
+    ).length || 0;
+
+    console.log('[getWrapUnwrapFromTraces] Txs with alkanes_traces:', txsWithTracesCount);
+    console.log('[getWrapUnwrapFromTraces] Txs with runestone:', txsWithRunestone);
+    console.log('[getWrapUnwrapFromTraces] Txs with op_return:', txsWithOpReturn);
+
+    // Log first tx structure to understand format
+    if (txsWithTraces?.length > 0) {
+      const firstTx = txsWithTraces[0];
+      console.log('[getWrapUnwrapFromTraces] First tx keys:', Object.keys(firstTx));
+      if (firstTx.runestone) {
+        console.log('[getWrapUnwrapFromTraces] First tx runestone:', JSON.stringify(firstTx.runestone).substring(0, 500));
+      }
+      // Find a tx with traces
+      const txWithTrace = txsWithTraces.find((tx: any) => tx.alkanes_traces?.length > 0);
+      if (txWithTrace) {
+        console.log('[getWrapUnwrapFromTraces] Tx with trace keys:', Object.keys(txWithTrace));
+        console.log('[getWrapUnwrapFromTraces] Tx alkanes_traces[0]:', JSON.stringify(txWithTrace.alkanes_traces[0]).substring(0, 1000));
+      }
+    }
+
+    for (const tx of txsWithTraces || []) {
+      if (!tx.alkanes_traces || tx.alkanes_traces.length === 0) continue;
+
+      const blockHeight = tx.status?.block_height || 0;
+
+      for (const traceEntry of tx.alkanes_traces) {
+        const trace = traceEntry.trace?.trace;
+        if (!trace || !trace.events) continue;
+
+        // Parse trace events to find frBTC transfers
+        // Trace structure: { events: [{ event: { ReceiveIntent: {...} } }, { event: { ValueTransfer: {...} } }] }
+        for (const eventWrapper of trace.events) {
+          const event = eventWrapper.event;
+          if (!event) continue;
+
+          // Helper to check if an alkane ID is frBTC (32:0)
+          const isFrbtc = (id: any): boolean => {
+            if (!id) return false;
+            const block = id.block?.lo ?? id.block;
+            const txNum = id.tx?.lo ?? id.tx;
+            return (block === 32 || block === '32') && (txNum === 0 || txNum === '0');
+          };
+
+          // Helper to parse value (could be { lo, hi } for uint128 or direct number)
+          const parseValue = (transfer: any): bigint => {
+            const value = transfer.value;
+            if (!value) return 0n;
+            if (typeof value === 'object' && 'lo' in value) {
+              const lo = BigInt(value.lo || 0);
+              const hi = BigInt(value.hi || 0);
+              return (hi << 64n) | lo;
+            }
+            return BigInt(value);
+          };
+
+          // Check ReceiveIntent for incoming alkanes (this is the wrap - BTC coming in, frBTC being minted)
+          if (event.ReceiveIntent?.incoming_alkanes) {
+            const incoming = event.ReceiveIntent.incoming_alkanes;
+            for (const transfer of incoming) {
+              if (isFrbtc(transfer.id)) {
+                const amount = parseValue(transfer);
+                if (amount > 0n) {
+                  // This is a wrap - frBTC received at subfrost address means someone wrapped BTC
+                  totalWrappedFrbtc += amount;
+                  wraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight });
+                }
+              }
+            }
+          }
+
+          // Check ValueTransfer for outgoing transfers (unwrap - frBTC leaving subfrost)
+          if (event.ValueTransfer?.transfers) {
+            const transfers = event.ValueTransfer.transfers;
+            for (const transfer of transfers) {
+              if (isFrbtc(transfer.id)) {
+                const amount = parseValue(transfer);
+                if (amount > 0n) {
+                  // This is an unwrap - frBTC being transferred out means someone is unwrapping
+                  totalUnwrappedFrbtc += amount;
+                  unwraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Calculate the highest block height we processed
+    const allBlockHeights = [
+      ...wraps.map(w => w.blockHeight),
+      ...unwraps.map(u => u.blockHeight),
+    ];
+    const lastBlockHeight = allBlockHeights.length > 0 ? Math.max(...allBlockHeights) : fromBlockHeight || 0;
+
+    return {
+      totalWrappedFrbtc,
+      totalUnwrappedFrbtc,
+      wrapCount: wraps.length,
+      unwrapCount: unwraps.length,
+      wraps,
+      unwraps,
+      lastBlockHeight,
     };
   }
 }

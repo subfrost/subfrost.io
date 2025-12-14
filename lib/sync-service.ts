@@ -97,8 +97,9 @@ async function updateSyncState(
 // ============================================================================
 
 /**
- * Sync wrap/unwrap transactions incrementally
+ * Sync wrap/unwrap transactions incrementally using alkanes traces
  * This fetches new transactions since last sync and updates aggregates
+ * Uses trace-based approach for accurate frBTC amounts
  */
 export async function syncWrapUnwrapTransactions(): Promise<{
   newWraps: number;
@@ -107,18 +108,32 @@ export async function syncWrapUnwrapTransactions(): Promise<{
 }> {
   // Get current sync state
   const state = await getSyncState(SYNC_KEY_WRAP_UNWRAP);
-  const fromHeight = state?.lastBlockHeight || 0;
+  const fromHeight = (state?.lastBlockHeight || 0) + 1; // Start from next block
 
-  // Fetch new transactions since last sync
-  const { wraps, unwraps, lastHeight } = await alkanesClient.getWrapUnwrapHistory(fromHeight);
-
-  if (wraps.length === 0 && unwraps.length === 0) {
-    return { newWraps: 0, newUnwraps: 0, lastHeight: fromHeight };
+  // Check if there are new blocks
+  const currentHeight = await alkanesClient.getCurrentHeight();
+  if (state && currentHeight <= state.lastBlockHeight) {
+    console.log(`[SyncService] No new blocks (current: ${currentHeight}, last synced: ${state.lastBlockHeight})`);
+    return { newWraps: 0, newUnwraps: 0, lastHeight: state.lastBlockHeight };
   }
 
-  // Calculate new totals
-  const newTotalWrapped = wraps.reduce((sum, w) => sum + w.amount, 0n);
-  const newTotalUnwrapped = unwraps.reduce((sum, u) => sum + u.amount, 0n);
+  console.log(`[SyncService] Syncing from block ${fromHeight} to ${currentHeight}`);
+
+  // Fetch new transactions since last sync using trace-based method
+  const result = await alkanesClient.getWrapUnwrapFromTraces(fromHeight > 1 ? fromHeight : undefined);
+  const { wraps, unwraps, lastBlockHeight } = result;
+
+  if (wraps.length === 0 && unwraps.length === 0) {
+    // Even if no new wraps/unwraps, update the height so we don't re-scan
+    await updateSyncState(SYNC_KEY_WRAP_UNWRAP, {
+      lastBlockHeight: currentHeight,
+    });
+    return { newWraps: 0, newUnwraps: 0, lastHeight: currentHeight };
+  }
+
+  // Calculate new totals (frBTC amounts from traces)
+  const newTotalWrapped = wraps.reduce((sum, w) => sum + w.frbtcAmount, 0n);
+  const newTotalUnwrapped = unwraps.reduce((sum, u) => sum + u.frbtcAmount, 0n);
 
   // Store new wrap transactions
   for (const wrap of wraps) {
@@ -126,15 +141,16 @@ export async function syncWrapUnwrapTransactions(): Promise<{
       where: { txid: wrap.txid },
       create: {
         txid: wrap.txid,
-        amount: wrap.amount.toString(),
+        amount: wrap.frbtcAmount.toString(),
         blockHeight: wrap.blockHeight,
-        timestamp: new Date(wrap.timestamp * 1000),
-        senderAddress: '', // Will be populated by detailed fetch if needed
+        timestamp: new Date(), // Trace doesn't include timestamp
+        senderAddress: '',
         confirmed: true,
       },
       update: {
         confirmed: true,
         blockHeight: wrap.blockHeight,
+        amount: wrap.frbtcAmount.toString(),
       },
     });
   }
@@ -145,15 +161,16 @@ export async function syncWrapUnwrapTransactions(): Promise<{
       where: { txid: unwrap.txid },
       create: {
         txid: unwrap.txid,
-        amount: unwrap.amount.toString(),
+        amount: unwrap.frbtcAmount.toString(),
         blockHeight: unwrap.blockHeight,
-        timestamp: new Date(unwrap.timestamp * 1000),
-        recipientAddress: '', // Will be populated by detailed fetch if needed
+        timestamp: new Date(),
+        recipientAddress: '',
         confirmed: true,
       },
       update: {
         confirmed: true,
         blockHeight: unwrap.blockHeight,
+        amount: unwrap.frbtcAmount.toString(),
       },
     });
   }
@@ -164,23 +181,26 @@ export async function syncWrapUnwrapTransactions(): Promise<{
   const prevWrapCount = state?.wrapCount || 0;
   const prevUnwrapCount = state?.unwrapCount || 0;
 
+  const finalHeight = Math.max(lastBlockHeight, currentHeight);
   await updateSyncState(SYNC_KEY_WRAP_UNWRAP, {
-    lastBlockHeight: lastHeight,
+    lastBlockHeight: finalHeight,
     totalWrapped: prevTotalWrapped + newTotalWrapped,
     totalUnwrapped: prevTotalUnwrapped + newTotalUnwrapped,
     wrapCount: prevWrapCount + wraps.length,
     unwrapCount: prevUnwrapCount + unwraps.length,
   });
 
+  console.log(`[SyncService] Synced ${wraps.length} wraps, ${unwraps.length} unwraps up to block ${finalHeight}`);
+
   // Invalidate caches
   await cacheDel('wrap-history');
   await cacheDel('unwrap-history');
-  await cacheDel('total-unwraps');
+  await cacheDel('wrap-unwrap-totals');
 
   return {
     newWraps: wraps.length,
     newUnwraps: unwraps.length,
-    lastHeight,
+    lastHeight: finalHeight,
   };
 }
 

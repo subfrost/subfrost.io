@@ -1,39 +1,57 @@
-// app/api/wrap-history/route.ts
-
-// Chadson's Journal:
-// Purpose: This API route fetches the history of frBTC wrap transactions.
-// It calls the OYL mainnet API's `get-all-wrap-history` endpoint.
-// It supports pagination through `count` and `offset` query parameters.
+/**
+ * API Route: Wrap History
+ *
+ * Returns paginated wrap transaction history from the database.
+ * Data is populated by the sync service which fetches from alkanes traces.
+ * Supports pagination through `count` and `offset` query parameters.
+ */
 
 import { NextResponse } from 'next/server';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncWrapUnwrapTransactions, getWrapHistory } from '@/lib/sync-service';
+
+const CACHE_TTL = 120; // 2 minutes
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const count = searchParams.get('count') || '25';
-  const offset = searchParams.get('offset') || '0';
+  const count = parseInt(searchParams.get('count') || '25', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+
+  // Cache key includes pagination params
+  const cacheKey = `wrap-history:${count}:${offset}`;
 
   try {
-    const response = await fetch("https://mainnet-api.oyl.gg/get-all-wrap-history", {
-      method: "POST",
-      headers: {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "x-oyl-api-key": "d6aebfed1769128379aca7d215f0b689",
-      },
-      body: JSON.stringify({
-        count: parseInt(count, 10),
-        offset: parseInt(offset, 10),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API call failed with status: ${response.status}`);
+    // Check Redis cache first
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
     }
 
-    const data = await response.json();
-    
-    
-    return NextResponse.json(data);
+    // Ensure data is synced (fast if no new blocks)
+    await syncWrapUnwrapTransactions();
+
+    // Get wrap history from database
+    const { items, total } = await getWrapHistory(count, offset);
+
+    // Format response to match expected API format
+    const result = {
+      items: items.map(item => ({
+        txid: item.txid,
+        amount: item.amount,
+        blockHeight: item.blockHeight,
+        timestamp: item.timestamp.toISOString(),
+        senderAddress: item.senderAddress,
+      })),
+      total,
+      count,
+      offset,
+      timestamp: Date.now(),
+    };
+
+    // Cache the result
+    await cacheSet(cacheKey, result, CACHE_TTL);
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching wrap history:', error);
     return NextResponse.json(

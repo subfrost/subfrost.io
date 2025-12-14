@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import wasm from 'vite-plugin-wasm';
+import topLevelAwait from 'vite-plugin-top-level-await';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), wasm(), topLevelAwait()],
   optimizeDeps: {
     exclude: ['@alkanes/ts-sdk'],
   },
@@ -22,6 +24,16 @@ export default defineConfig({
       '**/reference/**',
       '**/.next/**',
     ],
+    // Use forks pool with singleFork to properly share WASM state across tests
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    // Extended timeouts for RPC calls - increased for full pagination
+    testTimeout: 300000,
+    hookTimeout: 60000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'json', 'html'],
@@ -47,6 +59,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      // Explicit WASM alias for proper loading
+      '@alkanes/ts-sdk/wasm': path.resolve(__dirname, './reference/alkanes-rs/ts-sdk/build/wasm/index.js'),
+      '@alkanes/ts-sdk': path.resolve(__dirname, './reference/alkanes-rs/ts-sdk/dist/index.mjs'),
     },
   },
 });

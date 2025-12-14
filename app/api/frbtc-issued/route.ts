@@ -2,31 +2,37 @@
  * API Route: frBTC Issued (Total Supply)
  *
  * Returns the total frBTC supply.
- * Uses Redis caching for performance and optionally persists to database.
+ * Uses Redis caching for fast responses and persists snapshots to database.
  */
 
 import { NextResponse } from 'next/server';
-import { alkanesClient } from '@/lib/alkanes-client';
-import { cacheGetOrCompute } from '@/lib/redis';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncFrbtcSupply } from '@/lib/sync-service';
 
 const CACHE_KEY = 'frbtc-issued';
 const CACHE_TTL = 60; // 60 seconds
 
 export async function GET() {
   try {
-    const result = await cacheGetOrCompute(
-      CACHE_KEY,
-      async () => {
-        const supplyData = await alkanesClient.getFrbtcTotalSupply();
-        return {
-          frBtcIssued: supplyData.btc,
-          rawSupply: supplyData.raw.toString(),
-          adjustedSupply: supplyData.adjusted.toString(),
-          timestamp: Date.now(),
-        };
-      },
-      CACHE_TTL
-    );
+    // Check Redis cache first
+    const cached = await cacheGet(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
+    // Sync and persist to database
+    const supplyData = await syncFrbtcSupply();
+
+    const result = {
+      frBtcIssued: supplyData.frbtcIssued,
+      rawSupply: supplyData.rawSupply,
+      adjustedSupply: supplyData.adjustedSupply,
+      blockHeight: supplyData.blockHeight,
+      timestamp: Date.now(),
+    };
+
+    // Cache the result
+    await cacheSet(CACHE_KEY, result, CACHE_TTL);
 
     return NextResponse.json(result);
   } catch (error) {

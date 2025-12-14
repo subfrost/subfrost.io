@@ -64,11 +64,65 @@ URL=$(gcloud run services describe "$SERVICE_NAME" \
     --region="$REGION" \
     --format='value(status.url)')
 
+# Update Cloudflare DNS if configured
+if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_DOMAIN" ]; then
+    echo "→ Updating Cloudflare DNS..."
+
+    DOMAIN="$CLOUDFLARE_DOMAIN"
+    # Google Cloud Run domain mapping IP
+    TARGET="216.239.32.21"
+
+    # Get Zone ID
+    if [ -n "$CLOUDFLARE_ZONE_ID" ]; then
+        CF_ZONE_ID="$CLOUDFLARE_ZONE_ID"
+    else
+        ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
+        CF_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=${ROOT_DOMAIN}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+        if [ "$CF_ZONE_ID" = "null" ] || [ -z "$CF_ZONE_ID" ]; then
+            echo "Warning: Could not find Cloudflare zone for ${ROOT_DOMAIN}"
+            echo "Skipping DNS update. Set CLOUDFLARE_ZONE_ID manually."
+        fi
+    fi
+
+    if [ -n "$CF_ZONE_ID" ] && [ "$CF_ZONE_ID" != "null" ]; then
+        # Check for existing record
+        RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?name=${DOMAIN}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json")
+
+        RECORD_ID=$(echo "$RESPONSE" | jq -r '.result[] | select(.type == "A" or .type == "CNAME") | .id' | head -1)
+
+        if [ -n "$RECORD_ID" ]; then
+            # Update existing record
+            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}" > /dev/null
+            echo "Updated A record: ${DOMAIN} -> ${TARGET}"
+        else
+            # Create new record
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}" > /dev/null
+            echo "Created A record: ${DOMAIN} -> ${TARGET}"
+        fi
+    fi
+else
+    echo "Note: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_DOMAIN to auto-update DNS"
+fi
+
 echo ""
 echo "============================================"
 echo "Deployment complete!"
 echo "============================================"
 echo ""
 echo "Service URL: $URL"
+if [ -n "$CLOUDFLARE_DOMAIN" ]; then
+    echo "Custom Domain: https://${CLOUDFLARE_DOMAIN}"
+fi
 echo "Image: ${IMAGE}:${TAG}"
 echo ""

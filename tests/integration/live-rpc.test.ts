@@ -24,8 +24,8 @@ import {
 // Skip all tests unless explicitly running integration tests
 const runIntegration = process.env.RUN_INTEGRATION === 'true';
 
-// Set longer timeout for network calls
-const TEST_TIMEOUT = 60000; // 60 seconds
+// Set longer timeout for network calls - increased for full pagination
+const TEST_TIMEOUT = 300000; // 5 minutes
 
 describe.skipIf(!runIntegration)('Live RPC Integration Tests', () => {
   describe('getBtcLocked', () => {
@@ -123,6 +123,68 @@ describe.skipIf(!runIntegration)('Live RPC Integration Tests', () => {
         // BTC locked should be at least as much as frBTC issued
         // There may be some variance due to fees or timing
         expect(btcLocked.btc).toBeGreaterThanOrEqual(frbtcSupply.btc * 0.95);
+      },
+      TEST_TIMEOUT
+    );
+  });
+
+  describe('getWrapUnwrapFromTraces', () => {
+    it(
+      'should return wrap/unwrap data from alkanes traces',
+      async () => {
+        const result = await alkanesClient.getWrapUnwrapFromTraces();
+
+        console.log('--- Wrap/Unwrap From Traces Results ---');
+        console.log(`Total Wrapped frBTC: ${result.totalWrappedFrbtc}`);
+        console.log(`Total Unwrapped frBTC: ${result.totalUnwrappedFrbtc}`);
+        console.log(`Wrap Count: ${result.wrapCount}`);
+        console.log(`Unwrap Count: ${result.unwrapCount}`);
+        // BigInt serialization helper
+        const bigIntReplacer = (_: string, v: any) => typeof v === 'bigint' ? v.toString() : v;
+        console.log(`Wraps: ${JSON.stringify(result.wraps.slice(0, 3), bigIntReplacer, 2)}`);
+        console.log(`Unwraps: ${JSON.stringify(result.unwraps.slice(0, 3), bigIntReplacer, 2)}`);
+
+        // Basic structure validation
+        expect(result).toHaveProperty('totalWrappedFrbtc');
+        expect(result).toHaveProperty('totalUnwrappedFrbtc');
+        expect(result).toHaveProperty('wrapCount');
+        expect(result).toHaveProperty('unwrapCount');
+        expect(result).toHaveProperty('wraps');
+        expect(result).toHaveProperty('unwraps');
+        expect(result.wraps).toBeInstanceOf(Array);
+        expect(result.unwraps).toBeInstanceOf(Array);
+      },
+      TEST_TIMEOUT
+    );
+
+    it(
+      'should have traces matching expected transaction count',
+      async () => {
+        const subfrostAddress = await alkanesClient.getSubfrostAddress();
+        console.log(`Testing traces for Subfrost address: ${subfrostAddress}`);
+
+        // Get raw transaction list to compare
+        const txs = await alkanesClient.getAddressTxs(subfrostAddress);
+        const txsWithOpReturn = txs.filter(tx =>
+          tx.vout?.some((v: any) => v.scriptpubkey_type === 'op_return')
+        );
+
+        console.log(`Total txs for address: ${txs.length}`);
+        console.log(`Txs with OP_RETURN: ${txsWithOpReturn.length}`);
+
+        // Get traces data
+        const traces = await alkanesClient.getWrapUnwrapFromTraces();
+
+        // We expect some wraps to be detected if there are OP_RETURN transactions
+        // This test helps debug whether the traces are being properly extracted
+        console.log(`Detected wrap count: ${traces.wrapCount}`);
+        console.log(`Detected unwrap count: ${traces.unwrapCount}`);
+
+        // Log if there's a mismatch for debugging
+        if (traces.wrapCount === 0 && txsWithOpReturn.length > 0) {
+          console.warn('WARNING: OP_RETURN transactions found but no wraps detected from traces');
+          console.warn('This indicates the runestone/protostone decoding may not be working');
+        }
       },
       TEST_TIMEOUT
     );

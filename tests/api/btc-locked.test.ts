@@ -12,35 +12,46 @@ const mockBtcLockedData = {
   address: 'bc1puvfmy5whzdq35nd2trckkm09em9u7ps6lal564jz92c9feswwrpsr7ach5',
 };
 
-// Create mock function that can be controlled in tests
-const mockGetBtcLocked = vi.fn();
-
-// Mock dependencies - these are hoisted, so we use inline mock functions
-vi.mock('@/lib/alkanes-client', () => ({
-  alkanesClient: {
-    getBtcLocked: mockGetBtcLocked,
-  },
+// Mock Redis
+vi.mock('@/lib/redis', () => ({
+  cacheGet: vi.fn(),
+  cacheSet: vi.fn(),
 }));
 
-vi.mock('@/lib/redis', () => ({
-  cacheGetOrCompute: vi.fn().mockImplementation(async <T>(
-    _key: string,
-    computeFn: () => Promise<T>,
-  ): Promise<T> => {
-    return computeFn();
-  }),
+// Mock sync service
+vi.mock('@/lib/sync-service', () => ({
+  syncBtcLocked: vi.fn(),
+  getLatestBtcLocked: vi.fn(),
+}));
+
+// Mock alkanes-client (needed for address)
+vi.mock('@/lib/alkanes-client', () => ({
+  alkanesClient: {
+    getBtcLocked: vi.fn(),
+  },
 }));
 
 // Import after mocking
 import { GET } from '@/app/api/btc-locked/route';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncBtcLocked } from '@/lib/sync-service';
+import { alkanesClient } from '@/lib/alkanes-client';
 
 describe('GET /api/btc-locked', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetBtcLocked.mockResolvedValue(mockBtcLockedData);
+    (cacheGet as any).mockResolvedValue(null); // Default: no cache
+    (alkanesClient.getBtcLocked as any).mockResolvedValue(mockBtcLockedData);
   });
 
   it('returns BTC locked data with correct structure', async () => {
+    (syncBtcLocked as any).mockResolvedValue({
+      btcLocked: mockBtcLockedData.btc,
+      satoshis: mockBtcLockedData.satoshis,
+      utxoCount: mockBtcLockedData.utxoCount,
+      blockHeight: 100000,
+    });
+
     const response = await GET();
     const data = await response.json();
 
@@ -49,18 +60,32 @@ describe('GET /api/btc-locked', () => {
     expect(data.satoshis).toBe(mockBtcLockedData.satoshis);
     expect(data.utxoCount).toBe(mockBtcLockedData.utxoCount);
     expect(data.address).toBe(mockBtcLockedData.address);
+    expect(data.blockHeight).toBe(100000);
     expect(data.timestamp).toBeDefined();
     expect(typeof data.timestamp).toBe('number');
   });
 
-  it('calls alkanesClient.getBtcLocked', async () => {
-    await GET();
+  it('returns cached result when available', async () => {
+    const cachedData = {
+      btcLocked: 2.5,
+      satoshis: 250000000,
+      utxoCount: 10,
+      address: mockBtcLockedData.address,
+      blockHeight: 99999,
+      timestamp: Date.now(),
+    };
+    (cacheGet as any).mockResolvedValue(cachedData);
 
-    expect(mockGetBtcLocked).toHaveBeenCalledTimes(1);
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.btcLocked).toBe(2.5);
+    expect(syncBtcLocked).not.toHaveBeenCalled();
   });
 
-  it('returns error response when alkanesClient fails', async () => {
-    mockGetBtcLocked.mockRejectedValueOnce(new Error('RPC error'));
+  it('returns error response when sync fails', async () => {
+    (syncBtcLocked as any).mockRejectedValue(new Error('RPC error'));
 
     const response = await GET();
     const data = await response.json();
@@ -70,6 +95,13 @@ describe('GET /api/btc-locked', () => {
   });
 
   it('returns correct numeric types', async () => {
+    (syncBtcLocked as any).mockResolvedValue({
+      btcLocked: mockBtcLockedData.btc,
+      satoshis: mockBtcLockedData.satoshis,
+      utxoCount: mockBtcLockedData.utxoCount,
+      blockHeight: 100000,
+    });
+
     const response = await GET();
     const data = await response.json();
 

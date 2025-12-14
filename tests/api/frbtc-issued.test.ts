@@ -11,35 +11,36 @@ const mockFrbtcSupplyData = {
   btc: 1.19013692,
 };
 
-// Create mock function that can be controlled in tests
-const mockGetFrbtcTotalSupply = vi.fn();
-
-// Mock dependencies - these are hoisted, so we use inline mock functions
-vi.mock('@/lib/alkanes-client', () => ({
-  alkanesClient: {
-    getFrbtcTotalSupply: mockGetFrbtcTotalSupply,
-  },
+// Mock Redis
+vi.mock('@/lib/redis', () => ({
+  cacheGet: vi.fn(),
+  cacheSet: vi.fn(),
 }));
 
-vi.mock('@/lib/redis', () => ({
-  cacheGetOrCompute: vi.fn().mockImplementation(async <T>(
-    _key: string,
-    computeFn: () => Promise<T>,
-  ): Promise<T> => {
-    return computeFn();
-  }),
+// Mock sync service
+vi.mock('@/lib/sync-service', () => ({
+  syncFrbtcSupply: vi.fn(),
 }));
 
 // Import after mocking
 import { GET } from '@/app/api/frbtc-issued/route';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { syncFrbtcSupply } from '@/lib/sync-service';
 
 describe('GET /api/frbtc-issued', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetFrbtcTotalSupply.mockResolvedValue(mockFrbtcSupplyData);
+    (cacheGet as any).mockResolvedValue(null); // Default: no cache
   });
 
   it('returns frBTC issued data with correct structure', async () => {
+    (syncFrbtcSupply as any).mockResolvedValue({
+      frbtcIssued: mockFrbtcSupplyData.btc,
+      rawSupply: mockFrbtcSupplyData.raw.toString(),
+      adjustedSupply: mockFrbtcSupplyData.adjusted.toString(),
+      blockHeight: 100000,
+    });
+
     const response = await GET();
     const data = await response.json();
 
@@ -47,18 +48,31 @@ describe('GET /api/frbtc-issued', () => {
     expect(data.frBtcIssued).toBe(mockFrbtcSupplyData.btc);
     expect(data.rawSupply).toBe(mockFrbtcSupplyData.raw.toString());
     expect(data.adjustedSupply).toBe(mockFrbtcSupplyData.adjusted.toString());
+    expect(data.blockHeight).toBe(100000);
     expect(data.timestamp).toBeDefined();
     expect(typeof data.timestamp).toBe('number');
   });
 
-  it('calls alkanesClient.getFrbtcTotalSupply', async () => {
-    await GET();
+  it('returns cached result when available', async () => {
+    const cachedData = {
+      frBtcIssued: 2.5,
+      rawSupply: '250000000',
+      adjustedSupply: '240000000',
+      blockHeight: 99999,
+      timestamp: Date.now(),
+    };
+    (cacheGet as any).mockResolvedValue(cachedData);
 
-    expect(mockGetFrbtcTotalSupply).toHaveBeenCalledTimes(1);
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.frBtcIssued).toBe(2.5);
+    expect(syncFrbtcSupply).not.toHaveBeenCalled();
   });
 
-  it('returns error response when alkanesClient fails', async () => {
-    mockGetFrbtcTotalSupply.mockRejectedValueOnce(new Error('RPC error'));
+  it('returns error response when sync fails', async () => {
+    (syncFrbtcSupply as any).mockRejectedValue(new Error('RPC error'));
 
     const response = await GET();
     const data = await response.json();
@@ -68,6 +82,13 @@ describe('GET /api/frbtc-issued', () => {
   });
 
   it('serializes bigint values correctly as strings', async () => {
+    (syncFrbtcSupply as any).mockResolvedValue({
+      frbtcIssued: mockFrbtcSupplyData.btc,
+      rawSupply: mockFrbtcSupplyData.raw.toString(),
+      adjustedSupply: mockFrbtcSupplyData.adjusted.toString(),
+      blockHeight: 100000,
+    });
+
     const response = await GET();
     const data = await response.json();
 
