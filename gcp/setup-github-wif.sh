@@ -85,6 +85,7 @@ ROLES=(
     "roles/run.admin"
     "roles/artifactregistry.writer"
     "roles/cloudsql.client"
+    "roles/cloudsql.viewer"
     "roles/secretmanager.secretAccessor"
     "roles/iam.serviceAccountUser"
     "roles/redis.viewer"
