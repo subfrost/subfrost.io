@@ -245,7 +245,7 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="absolute bottom-4">
+        <div className="absolute bottom-16">
           <ScrollArrow
             direction="down"
             onClick={handleScrollDown}
