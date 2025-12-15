@@ -5,8 +5,8 @@ set -e
 # Add Cloud SQL Viewer role to GitHub Actions SA
 # ============================================
 
-PROJECT_ID="${GCP_PROJECT_ID:-subfrost-io-app}"
-SA_NAME="github-actions"
+PROJECT_ID="${GCP_PROJECT_ID:-night-wolves-jogging}"
+SA_NAME="dark-coyote-running"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "============================================"
