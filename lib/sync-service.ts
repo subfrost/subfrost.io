@@ -144,13 +144,14 @@ export async function syncWrapUnwrapTransactions(): Promise<{
         amount: wrap.frbtcAmount.toString(),
         blockHeight: wrap.blockHeight,
         timestamp: new Date(), // Trace doesn't include timestamp
-        senderAddress: '',
+        senderAddress: wrap.senderAddress || '',
         confirmed: true,
       },
       update: {
         confirmed: true,
         blockHeight: wrap.blockHeight,
         amount: wrap.frbtcAmount.toString(),
+        senderAddress: wrap.senderAddress || '',
       },
     });
   }
@@ -164,13 +165,14 @@ export async function syncWrapUnwrapTransactions(): Promise<{
         amount: unwrap.frbtcAmount.toString(),
         blockHeight: unwrap.blockHeight,
         timestamp: new Date(),
-        recipientAddress: '',
+        recipientAddress: unwrap.recipientAddress || '',
         confirmed: true,
       },
       update: {
         confirmed: true,
         blockHeight: unwrap.blockHeight,
         amount: unwrap.frbtcAmount.toString(),
+        recipientAddress: unwrap.recipientAddress || '',
       },
     });
   }

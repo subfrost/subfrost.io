@@ -65,6 +65,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
   const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps');
 
+  // Fetch wrap/unwrap totals for lifetime transaction value
+  const { data: wrapUnwrapTotals } = useSWR('/api/wrap-unwrap-totals', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
+
   const { data: btcPriceData, error: btcPriceError } = useSWR('/api/btc-price', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
@@ -87,10 +92,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     return btcValue.toFixed(5);
   };
 
+  // Lifetime BTC Tx Value = Total Wrapped + Total Unwrapped (total transaction volume)
   const lifetimeBtcTxValue = (
-    typeof frBtcIssuedValue !== 'number' || typeof totalUnwrapsValue !== 'number'
+    !wrapUnwrapTotals || typeof wrapUnwrapTotals.totalWrappedBtc !== 'number' || typeof wrapUnwrapTotals.totalUnwrappedBtc !== 'number'
       ? '...'
-      : frBtcIssuedValue + totalUnwrapsValue
+      : wrapUnwrapTotals.totalWrappedBtc + wrapUnwrapTotals.totalUnwrappedBtc
   );
 
   const metrics = [

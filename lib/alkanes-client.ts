@@ -676,8 +676,8 @@ class AlkanesClient {
     totalUnwrappedFrbtc: bigint;
     wrapCount: number;
     unwrapCount: number;
-    wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }>;
-    unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }>;
+    wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; senderAddress: string }>;
+    unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; recipientAddress: string }>;
     lastBlockHeight: number;
   }> {
     const provider = await this.ensureProvider();
@@ -688,10 +688,47 @@ class AlkanesClient {
 
     console.log('[getWrapUnwrapFromTraces] Total txs:', txsWithTraces?.length || 0);
 
-    const wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }> = [];
-    const unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number }> = [];
+    const wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; senderAddress: string }> = [];
+    const unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; recipientAddress: string }> = [];
     let totalWrappedFrbtc = 0n;
     let totalUnwrappedFrbtc = 0n;
+
+    // Helper to extract sender address from transaction inputs (for wraps)
+    const extractSenderAddress = (tx: any): string => {
+      try {
+        // For wrap transactions, the sender is in the inputs (vin)
+        // We look for the first non-OP_RETURN input with an address
+        if (tx.vin && Array.isArray(tx.vin)) {
+          for (const input of tx.vin) {
+            if (input.prevout?.scriptpubkey_address) {
+              return input.prevout.scriptpubkey_address;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[extractSenderAddress] Error:', error);
+      }
+      return '';
+    };
+
+    // Helper to extract recipient address from transaction outputs (for unwraps)
+    const extractRecipientAddress = (tx: any, subfrostAddr: string): string => {
+      try {
+        // For unwrap transactions, the recipient is in the outputs (vout)
+        // We look for outputs that are NOT the subfrost address and NOT OP_RETURN
+        if (tx.vout && Array.isArray(tx.vout)) {
+          for (const output of tx.vout) {
+            const address = output.scriptpubkey_address;
+            if (address && address !== subfrostAddr && output.scriptpubkey_type !== 'op_return') {
+              return address;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[extractRecipientAddress] Error:', error);
+      }
+      return '';
+    };
 
     // Count txs with various attributes
     const txsWithTracesCount = txsWithTraces?.filter((tx: any) => tx.alkanes_traces?.length > 0).length || 0;
@@ -762,8 +799,9 @@ class AlkanesClient {
                 const amount = parseValue(transfer);
                 if (amount > 0n) {
                   // This is a wrap - frBTC received at subfrost address means someone wrapped BTC
+                  const senderAddress = extractSenderAddress(tx);
                   totalWrappedFrbtc += amount;
-                  wraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight });
+                  wraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight, senderAddress });
                 }
               }
             }
@@ -777,8 +815,9 @@ class AlkanesClient {
                 const amount = parseValue(transfer);
                 if (amount > 0n) {
                   // This is an unwrap - frBTC being transferred out means someone is unwrapping
+                  const recipientAddress = extractRecipientAddress(tx, subfrostAddress);
                   totalUnwrappedFrbtc += amount;
-                  unwraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight });
+                  unwraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight, recipientAddress });
                 }
               }
             }
