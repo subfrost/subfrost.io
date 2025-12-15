@@ -198,8 +198,13 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           />
           <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
         </div>
-        <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
-          Metrics refresh every block.
+        <div className="flex flex-col items-center gap-1">
+          <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+            Metrics refresh every block.
+          </div>
+          <div className="text-center text-orange-400 font-semibold" style={{ fontSize: isModal ? '0.65rem' : '0.55rem' }}>
+            ⚠️ Under Maintenance: Metrics other than BTC Locked and frBTC Supply may not be accurate.
+          </div>
         </div>
       </div>
     </div>
