@@ -51,7 +51,13 @@ interface WrapUnwrapResult {
 // ============================================================================
 
 /**
- * Get wrap/unwrap totals for a specific block height range
+ * Get wrap/unwrap totals for a specific block height range using efficient block-level tracing
+ *
+ * This approach:
+ * 1. Fetches all transactions for the subfrost address
+ * 2. Extracts unique block heights
+ * 3. Calls traceblock for each unique block (much more efficient than per-tx traces)
+ * 4. Parses traces looking for calls to alkane 32:0 with opcodes 77 (wrap) or 78 (unwrap)
  *
  * @param provider - AlkanesProvider instance
  * @param fromBlockHeight - Starting block height (inclusive), defaults to 0
@@ -68,90 +74,88 @@ export async function getWrapUnwrapFromBlockRange(
 
   console.log(`[BlockRange] Processing block range: ${rangeLabel}`);
 
-  // Step 1: Get all transactions with traces in one call
-  console.log('[BlockRange] Fetching transactions with traces...');
-  const txsWithTraces = await provider.esplora.getAddressTxsWithTraces(
-    SUBFROST_ADDRESS,
-    true, // exclude coinbase
-    fromBlockHeight
-  );
-  console.log(`[BlockRange] Found ${txsWithTraces.length} transactions with traces`);
+  // Step 1: Get all transactions for subfrost address (no traces yet)
+  console.log('[BlockRange] Fetching transactions...');
+  const txs = await provider.esplora.getAddressTxs(SUBFROST_ADDRESS);
+  console.log(`[BlockRange] Found ${txs.length} total transactions`);
 
-  // Step 2: Filter transactions by block height range and process traces
+  // Step 2: Extract unique block heights within the specified range
+  const blockHeights = new Set<number>();
+  const txsByBlock = new Map<number, any[]>();
+
+  for (const tx of txs) {
+    const height = tx.status?.block_height;
+    if (!height) continue;
+    if (height < fromBlockHeight) continue;
+    if (toBlockHeight && height > toBlockHeight) continue;
+
+    blockHeights.add(height);
+
+    if (!txsByBlock.has(height)) {
+      txsByBlock.set(height, []);
+    }
+    txsByBlock.get(height)!.push(tx);
+  }
+
+  const sortedHeights = Array.from(blockHeights).sort((a, b) => a - b);
+  console.log(`[BlockRange] Found ${sortedHeights.length} unique blocks to process`);
+
+  // Step 3: Process each block by calling traceblock
   const wraps: Array<{ txid: string; amount: bigint; blockHeight: number; senderAddress: string }> = [];
   const unwraps: Array<{ txid: string; amount: bigint; blockHeight: number; recipientAddress: string }> = [];
 
-  let lastBlockHeight = 0;
-  let processedTxs = 0;
-
-  for (const tx of txsWithTraces) {
-    const blockHeight = tx.status?.block_height || 0;
-
-    // Skip transactions outside the specified range
-    if (blockHeight < fromBlockHeight) continue;
-    if (toBlockHeight && blockHeight > toBlockHeight) continue;
-
-    if (!tx.alkanes_traces) continue;
-
-    processedTxs++;
-    if (blockHeight > lastBlockHeight) {
-      lastBlockHeight = blockHeight;
+  let processedBlocks = 0;
+  for (const blockHeight of sortedHeights) {
+    processedBlocks++;
+    if (processedBlocks % 10 === 0) {
+      console.log(`[BlockRange] Processing block ${processedBlocks}/${sortedHeights.length} (height ${blockHeight})...`);
     }
 
-    // Process each trace entry in the transaction
-    for (const traceEntry of tx.alkanes_traces) {
-      const trace = traceEntry.trace?.trace;
-      if (!trace?.events) continue;
+    try {
+      // Get all traces for this block in one call using traceBlock binding
+      const blockTraces = await provider.alkanes.traceBlock(blockHeight);
 
-      for (const eventWrapper of trace.events) {
-        const event = eventWrapper.event;
-        if (!event) continue;
-
-        // Check for wraps (ReceiveIntent with incoming frBTC)
-        if (event.ReceiveIntent?.incoming_alkanes) {
-          for (const transfer of event.ReceiveIntent.incoming_alkanes) {
-            if (isFrbtc(transfer.id)) {
-              const amount = parseValue(transfer);
-              if (amount > 0n) {
-                const senderAddress = extractSenderAddress(tx);
-                wraps.push({
-                  txid: tx.txid,
-                  amount,
-                  blockHeight,
-                  senderAddress,
-                });
-              }
-            }
-          }
-        }
-
-        // Check for unwraps (ValueTransfer with frBTC)
-        if (event.ValueTransfer?.transfers) {
-          for (const transfer of event.ValueTransfer.transfers) {
-            if (isFrbtc(transfer.id)) {
-              const amount = parseValue(transfer);
-              if (amount > 0n) {
-                const recipientAddress = extractRecipientAddress(tx, SUBFROST_ADDRESS);
-                unwraps.push({
-                  txid: tx.txid,
-                  amount,
-                  blockHeight,
-                  recipientAddress,
-                });
-              }
-            }
+      // Debug: Log trace structure for first block
+      if (processedBlocks === 1) {
+        console.log(`[BlockRange] Block ${blockHeight} trace structure (type):`, typeof blockTraces);
+        console.log(`[BlockRange] Block ${blockHeight} trace structure (full):`, JSON.stringify(blockTraces, null, 2).substring(0, 2000));
+        console.log(`[BlockRange] Block ${blockHeight} trace keys:`, Object.keys(blockTraces || {}));
+        if (Array.isArray(blockTraces)) {
+          console.log(`[BlockRange] Block ${blockHeight} is array with length:`, blockTraces.length);
+          if (blockTraces.length > 0) {
+            console.log(`[BlockRange] First element:`, JSON.stringify(blockTraces[0], null, 2).substring(0, 1000));
           }
         }
       }
+
+      // Parse the block traces for frBTC operations
+      const blockTxs = txsByBlock.get(blockHeight) || [];
+      const { wrapsInBlock, unwrapsInBlock } = parseBlockTracesForFrbtc(
+        blockTraces,
+        blockTxs,
+        blockHeight,
+        SUBFROST_ADDRESS
+      );
+
+      if (wrapsInBlock.length > 0 || unwrapsInBlock.length > 0) {
+        console.log(`[BlockRange] Block ${blockHeight}: found ${wrapsInBlock.length} wraps, ${unwrapsInBlock.length} unwraps`);
+      }
+
+      wraps.push(...wrapsInBlock);
+      unwraps.push(...unwrapsInBlock);
+    } catch (error) {
+      console.error(`[BlockRange] Error processing block ${blockHeight}:`, error);
     }
   }
 
-  console.log(`[BlockRange] Processed ${processedTxs} transactions in range ${rangeLabel}`);
+  console.log(`[BlockRange] Processed ${processedBlocks} blocks in range ${rangeLabel}`);
   console.log(`[BlockRange] Found ${wraps.length} wraps, ${unwraps.length} unwraps`);
 
-  // Step 3: Calculate totals
+  // Step 4: Calculate totals
   const totalWrapped = wraps.reduce((sum, w) => sum + w.amount, 0n);
   const totalUnwrapped = unwraps.reduce((sum, u) => sum + u.amount, 0n);
+
+  const lastBlockHeight = sortedHeights.length > 0 ? sortedHeights[sortedHeights.length - 1] : 0;
 
   return {
     totalWrapped,
@@ -244,5 +248,144 @@ function extractRecipientAddress(tx: any, subfrostAddress: string): string {
     console.error('[extractRecipientAddress] Error:', error);
   }
   return '';
+}
+
+/**
+ * Parse block traces to identify frBTC wrap/unwrap operations
+ *
+ * This function processes the complete trace data for a block and identifies:
+ * - Wraps (opcode 77): ReceiveIntent events showing incoming frBTC (32:0) to subfrost address
+ * - Unwraps (opcode 78): ValueTransfer events showing outgoing frBTC from subfrost address
+ *
+ * @param blockTraces - Raw trace data from traceblock call
+ * @param blockTxs - Array of transactions in this block (for matching txids and extracting addresses)
+ * @param blockHeight - Block height (for metadata)
+ * @param subfrostAddress - Subfrost address to identify wraps/unwraps
+ * @returns Arrays of wraps and unwraps found in this block
+ */
+/**
+ * Convert byte array to hex string (for txid)
+ * Bitcoin txids are stored in reverse byte order
+ */
+function bytesToHex(bytes: number[]): string {
+  return bytes.slice().reverse().map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function parseBlockTracesForFrbtc(
+  blockTraces: any,
+  blockTxs: any[],
+  blockHeight: number,
+  subfrostAddress: string
+): {
+  wrapsInBlock: Array<{ txid: string; amount: bigint; blockHeight: number; senderAddress: string }>;
+  unwrapsInBlock: Array<{ txid: string; amount: bigint; blockHeight: number; recipientAddress: string }>;
+} {
+  const wrapsInBlock: Array<{ txid: string; amount: bigint; blockHeight: number; senderAddress: string }> = [];
+  const unwrapsInBlock: Array<{ txid: string; amount: bigint; blockHeight: number; recipientAddress: string }> = [];
+
+  try {
+    // Create a map of txid to transaction for quick lookups
+    const txMap = new Map<string, any>();
+    for (const tx of blockTxs) {
+      txMap.set(tx.txid, tx);
+    }
+
+    // The blockTraces structure is:
+    // { events: [ { traces: { events: [ ... ] }, outpoint: { txid, vout }, txindex } ] }
+    if (!blockTraces?.events || !Array.isArray(blockTraces.events)) {
+      console.log(`[parseBlockTracesForFrbtc] No events in block traces`);
+      return { wrapsInBlock, unwrapsInBlock };
+    }
+
+    console.log(`[parseBlockTracesForFrbtc] Total trace events in block: ${blockTraces.events.length}`);
+    console.log(`[parseBlockTracesForFrbtc] Transactions in our list: ${txMap.size}`);
+
+    // Iterate through each transaction trace in the block
+    let processedCount = 0;
+
+    for (const txTrace of blockTraces.events) {
+      // Get the txid from outpoint (it's a byte array)
+      const txidBytes = txTrace.outpoint?.txid;
+      if (!txidBytes || !Array.isArray(txidBytes)) {
+        continue;
+      }
+
+      const txid = bytesToHex(txidBytes);
+
+      // Get the trace events
+      const traceEvents = txTrace.traces?.events;
+      if (!traceEvents || !Array.isArray(traceEvents)) {
+        continue;
+      }
+
+      processedCount++;
+
+      // Parse trace events to find frBTC transfers
+      // Look for:
+      // - ReceiveIntent with incoming_alkanes containing frBTC (32:0) -> WRAP
+      // - ValueTransfer with transfers containing frBTC (32:0) -> UNWRAP
+      for (const eventWrapper of traceEvents) {
+        const event = eventWrapper.event;
+        if (!event) {
+          continue;
+        }
+
+        // Check ReceiveIntent for incoming alkanes (wrap - BTC in, frBTC minted)
+        if (event.ReceiveIntent?.incoming_alkanes) {
+          const incoming = event.ReceiveIntent.incoming_alkanes;
+          for (const transfer of incoming) {
+            if (isFrbtc(transfer.id)) {
+              const amount = parseValue(transfer);
+              if (amount > 0n) {
+                // This is a wrap - frBTC received means someone wrapped BTC
+                const tx = txMap.get(txid);
+                const senderAddress = tx ? extractSenderAddress(tx) : '';
+
+                wrapsInBlock.push({
+                  txid,
+                  amount,
+                  blockHeight,
+                  senderAddress,
+                });
+
+                console.log(`[parseBlockTracesForFrbtc] Found WRAP: ${txid} amount=${amount} sender=${senderAddress}`);
+              }
+            }
+          }
+        }
+
+        // Check ValueTransfer for outgoing transfers (unwrap - frBTC out)
+        if (event.ValueTransfer?.transfers) {
+          const transfers = event.ValueTransfer.transfers;
+          for (const transfer of transfers) {
+            if (isFrbtc(transfer.id)) {
+              const amount = parseValue(transfer);
+              if (amount > 0n) {
+                // This is an unwrap - frBTC leaving subfrost
+                const tx = txMap.get(txid);
+                const recipientAddress = tx ? extractRecipientAddress(tx, subfrostAddress) : '';
+
+                unwrapsInBlock.push({
+                  txid,
+                  amount,
+                  blockHeight,
+                  recipientAddress,
+                });
+
+                console.log(`[parseBlockTracesForFrbtc] Found UNWRAP: ${txid} amount=${amount} recipient=${recipientAddress}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`[parseBlockTracesForFrbtc] Processed ${processedCount} transactions in block ${blockHeight}`);
+    console.log(`[parseBlockTracesForFrbtc] Found ${wrapsInBlock.length} wraps and ${unwrapsInBlock.length} unwraps`);
+  } catch (error) {
+    console.error(`[parseBlockTracesForFrbtc] Error parsing traces for block ${blockHeight}:`, error);
+  }
+
+  return { wrapsInBlock, unwrapsInBlock };
 }
 

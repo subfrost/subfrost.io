@@ -13,7 +13,7 @@
 
 import { prisma } from './prisma';
 import { alkanesClient } from './alkanes-client';
-import { cacheSet, cacheDel } from './redis';
+import { cacheSet, cacheDel, acquireLock, releaseLock } from './redis';
 
 // Cache TTLs
 const CACHE_TTL_BTC_LOCKED = 60; // 60 seconds
@@ -25,6 +25,16 @@ const CACHE_TTL_UNWRAP_HISTORY = 300; // 5 minutes
 const SYNC_KEY_WRAP_UNWRAP = 'wrap_unwrap_sync';
 const SYNC_KEY_BTC_LOCKED = 'btc_locked_sync';
 const SYNC_KEY_FRBTC_SUPPLY = 'frbtc_supply_sync';
+
+// Distributed lock keys (Redis)
+const LOCK_KEY_WRAP_UNWRAP = 'lock:wrap_unwrap_sync';
+const LOCK_KEY_BTC_LOCKED = 'lock:btc_locked_sync';
+const LOCK_KEY_FRBTC_SUPPLY = 'lock:frbtc_supply_sync';
+const LOCK_KEY_FULL_SYNC = 'lock:full_sync';
+
+// Lock settings
+const LOCK_TTL_SECONDS = 600; // 10 minutes - long enough for initial sync
+const LOCK_MAX_WAIT_SECONDS = 900; // 15 minutes - wait up to 15 minutes for lock
 
 // ============================================================================
 // Sync State Management
@@ -100,110 +110,136 @@ async function updateSyncState(
  * Sync wrap/unwrap transactions incrementally using alkanes traces
  * This fetches new transactions since last sync and updates aggregates
  * Uses trace-based approach for accurate frBTC amounts
+ *
+ * Uses distributed locking to prevent concurrent sync jobs
  */
 export async function syncWrapUnwrapTransactions(): Promise<{
   newWraps: number;
   newUnwraps: number;
   lastHeight: number;
 }> {
-  // Get current sync state
-  const state = await getSyncState(SYNC_KEY_WRAP_UNWRAP);
-  const fromHeight = (state?.lastBlockHeight || 0) + 1; // Start from next block
+  // Acquire distributed lock to prevent concurrent syncs
+  const lockToken = await acquireLock(LOCK_KEY_WRAP_UNWRAP, LOCK_TTL_SECONDS, LOCK_MAX_WAIT_SECONDS);
 
-  // Check if there are new blocks
-  const currentHeight = await alkanesClient.getCurrentHeight();
-  if (state && currentHeight <= state.lastBlockHeight) {
-    console.log(`[SyncService] No new blocks (current: ${currentHeight}, last synced: ${state.lastBlockHeight})`);
-    return { newWraps: 0, newUnwraps: 0, lastHeight: state.lastBlockHeight };
+  if (!lockToken) {
+    // Failed to acquire lock after max wait time
+    console.log('[SyncService] Failed to acquire lock for wrap/unwrap sync - another sync may be in progress');
+
+    // Return current state without syncing
+    const state = await getSyncState(SYNC_KEY_WRAP_UNWRAP);
+    return {
+      newWraps: 0,
+      newUnwraps: 0,
+      lastHeight: state?.lastBlockHeight || 0,
+    };
   }
 
-  console.log(`[SyncService] Syncing from block ${fromHeight} to ${currentHeight}`);
+  try {
+    console.log('[SyncService] Acquired lock for wrap/unwrap sync');
 
-  // Fetch new transactions since last sync using trace-based method
-  const result = await alkanesClient.getWrapUnwrapFromTraces(fromHeight > 1 ? fromHeight : undefined);
-  const { wraps, unwraps, lastBlockHeight } = result;
+    // Get current sync state
+    const state = await getSyncState(SYNC_KEY_WRAP_UNWRAP);
+    const fromHeight = (state?.lastBlockHeight || 0) + 1; // Start from next block
 
-  if (wraps.length === 0 && unwraps.length === 0) {
-    // Even if no new wraps/unwraps, update the height so we don't re-scan
+    // Check if there are new blocks
+    const currentHeight = await alkanesClient.getCurrentHeight();
+    if (state && currentHeight <= state.lastBlockHeight) {
+      console.log(`[SyncService] No new blocks (current: ${currentHeight}, last synced: ${state.lastBlockHeight})`);
+      return { newWraps: 0, newUnwraps: 0, lastHeight: state.lastBlockHeight };
+    }
+
+    console.log(`[SyncService] Syncing from block ${fromHeight} to ${currentHeight}`);
+
+    // Fetch new transactions since last sync using trace-based method
+    const result = await alkanesClient.getWrapUnwrapFromTraces(fromHeight > 1 ? fromHeight : undefined);
+    const { wraps, unwraps, lastBlockHeight } = result;
+
+    if (wraps.length === 0 && unwraps.length === 0) {
+      // Even if no new wraps/unwraps, update the height so we don't re-scan
+      await updateSyncState(SYNC_KEY_WRAP_UNWRAP, {
+        lastBlockHeight: currentHeight,
+      });
+      return { newWraps: 0, newUnwraps: 0, lastHeight: currentHeight };
+    }
+
+    // Calculate new totals (frBTC amounts from traces)
+    const newTotalWrapped = wraps.reduce((sum, w) => sum + w.frbtcAmount, 0n);
+    const newTotalUnwrapped = unwraps.reduce((sum, u) => sum + u.frbtcAmount, 0n);
+
+    // Store new wrap transactions
+    for (const wrap of wraps) {
+      await prisma.wrapTransaction.upsert({
+        where: { txid: wrap.txid },
+        create: {
+          txid: wrap.txid,
+          amount: wrap.frbtcAmount.toString(),
+          blockHeight: wrap.blockHeight,
+          timestamp: new Date(), // Trace doesn't include timestamp
+          senderAddress: wrap.senderAddress || '',
+          confirmed: true,
+        },
+        update: {
+          confirmed: true,
+          blockHeight: wrap.blockHeight,
+          amount: wrap.frbtcAmount.toString(),
+          senderAddress: wrap.senderAddress || '',
+        },
+      });
+    }
+
+    // Store new unwrap transactions
+    for (const unwrap of unwraps) {
+      await prisma.unwrapTransaction.upsert({
+        where: { txid: unwrap.txid },
+        create: {
+          txid: unwrap.txid,
+          amount: unwrap.frbtcAmount.toString(),
+          blockHeight: unwrap.blockHeight,
+          timestamp: new Date(),
+          recipientAddress: unwrap.recipientAddress || '',
+          confirmed: true,
+        },
+        update: {
+          confirmed: true,
+          blockHeight: unwrap.blockHeight,
+          amount: unwrap.frbtcAmount.toString(),
+          recipientAddress: unwrap.recipientAddress || '',
+        },
+      });
+    }
+
+    // Update sync state with new totals
+    const prevTotalWrapped = state?.totalWrapped || 0n;
+    const prevTotalUnwrapped = state?.totalUnwrapped || 0n;
+    const prevWrapCount = state?.wrapCount || 0;
+    const prevUnwrapCount = state?.unwrapCount || 0;
+
+    const finalHeight = Math.max(lastBlockHeight, currentHeight);
     await updateSyncState(SYNC_KEY_WRAP_UNWRAP, {
-      lastBlockHeight: currentHeight,
+      lastBlockHeight: finalHeight,
+      totalWrapped: prevTotalWrapped + newTotalWrapped,
+      totalUnwrapped: prevTotalUnwrapped + newTotalUnwrapped,
+      wrapCount: prevWrapCount + wraps.length,
+      unwrapCount: prevUnwrapCount + unwraps.length,
     });
-    return { newWraps: 0, newUnwraps: 0, lastHeight: currentHeight };
+
+    console.log(`[SyncService] Synced ${wraps.length} wraps, ${unwraps.length} unwraps up to block ${finalHeight}`);
+
+    // Invalidate caches
+    await cacheDel('wrap-history');
+    await cacheDel('unwrap-history');
+    await cacheDel('wrap-unwrap-totals');
+
+    return {
+      newWraps: wraps.length,
+      newUnwraps: unwraps.length,
+      lastHeight: finalHeight,
+    };
+  } finally {
+    // Always release the lock, even if an error occurred
+    await releaseLock(LOCK_KEY_WRAP_UNWRAP, lockToken);
+    console.log('[SyncService] Released lock for wrap/unwrap sync');
   }
-
-  // Calculate new totals (frBTC amounts from traces)
-  const newTotalWrapped = wraps.reduce((sum, w) => sum + w.frbtcAmount, 0n);
-  const newTotalUnwrapped = unwraps.reduce((sum, u) => sum + u.frbtcAmount, 0n);
-
-  // Store new wrap transactions
-  for (const wrap of wraps) {
-    await prisma.wrapTransaction.upsert({
-      where: { txid: wrap.txid },
-      create: {
-        txid: wrap.txid,
-        amount: wrap.frbtcAmount.toString(),
-        blockHeight: wrap.blockHeight,
-        timestamp: new Date(), // Trace doesn't include timestamp
-        senderAddress: wrap.senderAddress || '',
-        confirmed: true,
-      },
-      update: {
-        confirmed: true,
-        blockHeight: wrap.blockHeight,
-        amount: wrap.frbtcAmount.toString(),
-        senderAddress: wrap.senderAddress || '',
-      },
-    });
-  }
-
-  // Store new unwrap transactions
-  for (const unwrap of unwraps) {
-    await prisma.unwrapTransaction.upsert({
-      where: { txid: unwrap.txid },
-      create: {
-        txid: unwrap.txid,
-        amount: unwrap.frbtcAmount.toString(),
-        blockHeight: unwrap.blockHeight,
-        timestamp: new Date(),
-        recipientAddress: unwrap.recipientAddress || '',
-        confirmed: true,
-      },
-      update: {
-        confirmed: true,
-        blockHeight: unwrap.blockHeight,
-        amount: unwrap.frbtcAmount.toString(),
-        recipientAddress: unwrap.recipientAddress || '',
-      },
-    });
-  }
-
-  // Update sync state with new totals
-  const prevTotalWrapped = state?.totalWrapped || 0n;
-  const prevTotalUnwrapped = state?.totalUnwrapped || 0n;
-  const prevWrapCount = state?.wrapCount || 0;
-  const prevUnwrapCount = state?.unwrapCount || 0;
-
-  const finalHeight = Math.max(lastBlockHeight, currentHeight);
-  await updateSyncState(SYNC_KEY_WRAP_UNWRAP, {
-    lastBlockHeight: finalHeight,
-    totalWrapped: prevTotalWrapped + newTotalWrapped,
-    totalUnwrapped: prevTotalUnwrapped + newTotalUnwrapped,
-    wrapCount: prevWrapCount + wraps.length,
-    unwrapCount: prevUnwrapCount + unwraps.length,
-  });
-
-  console.log(`[SyncService] Synced ${wraps.length} wraps, ${unwraps.length} unwraps up to block ${finalHeight}`);
-
-  // Invalidate caches
-  await cacheDel('wrap-history');
-  await cacheDel('unwrap-history');
-  await cacheDel('wrap-unwrap-totals');
-
-  return {
-    newWraps: wraps.length,
-    newUnwraps: unwraps.length,
-    lastHeight: finalHeight,
-  };
 }
 
 // ============================================================================
@@ -213,6 +249,8 @@ export async function syncWrapUnwrapTransactions(): Promise<{
 /**
  * Sync BTC locked snapshot
  * Takes a snapshot of current BTC locked and stores it
+ *
+ * Uses distributed locking to prevent concurrent syncs
  */
 export async function syncBtcLocked(): Promise<{
   btcLocked: number;
@@ -220,40 +258,64 @@ export async function syncBtcLocked(): Promise<{
   utxoCount: number;
   blockHeight: number;
 }> {
-  const btcData = await alkanesClient.getBtcLocked();
-  const currentHeight = await alkanesClient.getCurrentHeight();
+  const lockToken = await acquireLock(LOCK_KEY_BTC_LOCKED, LOCK_TTL_SECONDS, LOCK_MAX_WAIT_SECONDS);
 
-  // Store snapshot
-  await prisma.btcLockedSnapshot.create({
-    data: {
+  if (!lockToken) {
+    console.log('[SyncService] Failed to acquire lock for BTC locked sync');
+    // Return latest from DB
+    const latest = await getLatestBtcLocked();
+    if (latest) {
+      return {
+        btcLocked: latest.btcLocked,
+        satoshis: Number(latest.satoshis),
+        utxoCount: latest.utxoCount,
+        blockHeight: latest.blockHeight,
+      };
+    }
+    throw new Error('No BTC locked data available and failed to acquire sync lock');
+  }
+
+  try {
+    console.log('[SyncService] Acquired lock for BTC locked sync');
+
+    const btcData = await alkanesClient.getBtcLocked();
+    const currentHeight = await alkanesClient.getCurrentHeight();
+
+    // Store snapshot
+    await prisma.btcLockedSnapshot.create({
+      data: {
+        btcLocked: btcData.btc,
+        satoshis: BigInt(btcData.satoshis),
+        utxoCount: btcData.utxoCount,
+        blockHeight: currentHeight,
+      },
+    });
+
+    // Update sync state
+    await updateSyncState(SYNC_KEY_BTC_LOCKED, {
+      lastBlockHeight: currentHeight,
+    });
+
+    // Cache the result
+    const cacheData = {
       btcLocked: btcData.btc,
-      satoshis: BigInt(btcData.satoshis),
+      satoshis: btcData.satoshis,
+      utxoCount: btcData.utxoCount,
+      address: btcData.address,
+      timestamp: Date.now(),
+    };
+    await cacheSet('btc-locked', cacheData, CACHE_TTL_BTC_LOCKED);
+
+    return {
+      btcLocked: btcData.btc,
+      satoshis: btcData.satoshis,
       utxoCount: btcData.utxoCount,
       blockHeight: currentHeight,
-    },
-  });
-
-  // Update sync state
-  await updateSyncState(SYNC_KEY_BTC_LOCKED, {
-    lastBlockHeight: currentHeight,
-  });
-
-  // Cache the result
-  const cacheData = {
-    btcLocked: btcData.btc,
-    satoshis: btcData.satoshis,
-    utxoCount: btcData.utxoCount,
-    address: btcData.address,
-    timestamp: Date.now(),
-  };
-  await cacheSet('btc-locked', cacheData, CACHE_TTL_BTC_LOCKED);
-
-  return {
-    btcLocked: btcData.btc,
-    satoshis: btcData.satoshis,
-    utxoCount: btcData.utxoCount,
-    blockHeight: currentHeight,
-  };
+    };
+  } finally {
+    await releaseLock(LOCK_KEY_BTC_LOCKED, lockToken);
+    console.log('[SyncService] Released lock for BTC locked sync');
+  }
 }
 
 // ============================================================================
@@ -263,6 +325,8 @@ export async function syncBtcLocked(): Promise<{
 /**
  * Sync frBTC supply snapshot
  * Takes a snapshot of current frBTC supply and stores it
+ *
+ * Uses distributed locking to prevent concurrent syncs
  */
 export async function syncFrbtcSupply(): Promise<{
   frbtcIssued: number;
@@ -270,39 +334,63 @@ export async function syncFrbtcSupply(): Promise<{
   adjustedSupply: string;
   blockHeight: number;
 }> {
-  const supplyData = await alkanesClient.getFrbtcTotalSupply();
-  const currentHeight = await alkanesClient.getCurrentHeight();
+  const lockToken = await acquireLock(LOCK_KEY_FRBTC_SUPPLY, LOCK_TTL_SECONDS, LOCK_MAX_WAIT_SECONDS);
 
-  // Store snapshot
-  await prisma.frbtcSupplySnapshot.create({
-    data: {
+  if (!lockToken) {
+    console.log('[SyncService] Failed to acquire lock for frBTC supply sync');
+    // Return latest from DB
+    const latest = await getLatestFrbtcSupply();
+    if (latest) {
+      return {
+        frbtcIssued: latest.frbtcIssued,
+        rawSupply: latest.rawSupply,
+        adjustedSupply: latest.adjustedSupply,
+        blockHeight: latest.blockHeight,
+      };
+    }
+    throw new Error('No frBTC supply data available and failed to acquire sync lock');
+  }
+
+  try {
+    console.log('[SyncService] Acquired lock for frBTC supply sync');
+
+    const supplyData = await alkanesClient.getFrbtcTotalSupply();
+    const currentHeight = await alkanesClient.getCurrentHeight();
+
+    // Store snapshot
+    await prisma.frbtcSupplySnapshot.create({
+      data: {
+        frbtcIssued: supplyData.btc,
+        rawSupply: supplyData.raw.toString(),
+        adjustedSupply: supplyData.adjusted.toString(),
+        blockHeight: currentHeight,
+      },
+    });
+
+    // Update sync state
+    await updateSyncState(SYNC_KEY_FRBTC_SUPPLY, {
+      lastBlockHeight: currentHeight,
+    });
+
+    // Cache the result
+    const cacheData = {
+      frBtcIssued: supplyData.btc,
+      rawSupply: supplyData.raw.toString(),
+      adjustedSupply: supplyData.adjusted.toString(),
+      timestamp: Date.now(),
+    };
+    await cacheSet('frbtc-issued', cacheData, CACHE_TTL_FRBTC_ISSUED);
+
+    return {
       frbtcIssued: supplyData.btc,
       rawSupply: supplyData.raw.toString(),
       adjustedSupply: supplyData.adjusted.toString(),
       blockHeight: currentHeight,
-    },
-  });
-
-  // Update sync state
-  await updateSyncState(SYNC_KEY_FRBTC_SUPPLY, {
-    lastBlockHeight: currentHeight,
-  });
-
-  // Cache the result
-  const cacheData = {
-    frBtcIssued: supplyData.btc,
-    rawSupply: supplyData.raw.toString(),
-    adjustedSupply: supplyData.adjusted.toString(),
-    timestamp: Date.now(),
-  };
-  await cacheSet('frbtc-issued', cacheData, CACHE_TTL_FRBTC_ISSUED);
-
-  return {
-    frbtcIssued: supplyData.btc,
-    rawSupply: supplyData.raw.toString(),
-    adjustedSupply: supplyData.adjusted.toString(),
-    blockHeight: currentHeight,
-  };
+    };
+  } finally {
+    await releaseLock(LOCK_KEY_FRBTC_SUPPLY, lockToken);
+    console.log('[SyncService] Released lock for frBTC supply sync');
+  }
 }
 
 // ============================================================================
@@ -312,29 +400,71 @@ export async function syncFrbtcSupply(): Promise<{
 /**
  * Run a full sync of all data types
  * This should be called on page load or periodically
+ *
+ * Uses distributed locking to prevent concurrent full syncs
+ * Individual sync functions also have their own locks for granularity
  */
 export async function runFullSync(): Promise<{
   btcLocked: { btcLocked: number; blockHeight: number };
   frbtcSupply: { frbtcIssued: number; blockHeight: number };
   wrapUnwrap: { newWraps: number; newUnwraps: number; lastHeight: number };
 }> {
-  const [btcResult, frbtcResult, wrapUnwrapResult] = await Promise.all([
-    syncBtcLocked(),
-    syncFrbtcSupply(),
-    syncWrapUnwrapTransactions(),
-  ]);
+  const lockToken = await acquireLock(LOCK_KEY_FULL_SYNC, LOCK_TTL_SECONDS, LOCK_MAX_WAIT_SECONDS);
 
-  return {
-    btcLocked: {
-      btcLocked: btcResult.btcLocked,
-      blockHeight: btcResult.blockHeight,
-    },
-    frbtcSupply: {
-      frbtcIssued: frbtcResult.frbtcIssued,
-      blockHeight: frbtcResult.blockHeight,
-    },
-    wrapUnwrap: wrapUnwrapResult,
-  };
+  if (!lockToken) {
+    console.log('[SyncService] Failed to acquire lock for full sync');
+    // Return current state from DB
+    const [btcLocked, frbtcSupply, wrapUnwrap] = await Promise.all([
+      getLatestBtcLocked(),
+      getLatestFrbtcSupply(),
+      getAggregatedTotals(),
+    ]);
+
+    if (!btcLocked || !frbtcSupply) {
+      throw new Error('No data available and failed to acquire sync lock');
+    }
+
+    return {
+      btcLocked: {
+        btcLocked: btcLocked.btcLocked,
+        blockHeight: btcLocked.blockHeight,
+      },
+      frbtcSupply: {
+        frbtcIssued: frbtcSupply.frbtcIssued,
+        blockHeight: frbtcSupply.blockHeight,
+      },
+      wrapUnwrap: {
+        newWraps: 0,
+        newUnwraps: 0,
+        lastHeight: wrapUnwrap.lastBlockHeight,
+      },
+    };
+  }
+
+  try {
+    console.log('[SyncService] Acquired lock for full sync');
+
+    const [btcResult, frbtcResult, wrapUnwrapResult] = await Promise.all([
+      syncBtcLocked(),
+      syncFrbtcSupply(),
+      syncWrapUnwrapTransactions(),
+    ]);
+
+    return {
+      btcLocked: {
+        btcLocked: btcResult.btcLocked,
+        blockHeight: btcResult.blockHeight,
+      },
+      frbtcSupply: {
+        frbtcIssued: frbtcResult.frbtcIssued,
+        blockHeight: frbtcResult.blockHeight,
+      },
+      wrapUnwrap: wrapUnwrapResult,
+    };
+  } finally {
+    await releaseLock(LOCK_KEY_FULL_SYNC, lockToken);
+    console.log('[SyncService] Released lock for full sync');
+  }
 }
 
 // ============================================================================
