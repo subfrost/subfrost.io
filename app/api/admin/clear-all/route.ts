@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       if (redis) {
         const keys = await redis.keys('*');
         if (keys.length > 0) {
-          await redis.del(...keys);
+          await redis.del(keys);
         }
         results.redis.cleared = true;
         results.redis.keys = keys.length;
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         prisma.wrapTransaction.deleteMany({}),
         prisma.unwrapTransaction.deleteMany({}),
         prisma.btcLockedSnapshot.deleteMany({}),
-        prisma.frBtcSupplySnapshot.deleteMany({}),
+        prisma.frbtcSupplySnapshot.deleteMany({}),
         prisma.syncState.deleteMany({}),
       ]);
 

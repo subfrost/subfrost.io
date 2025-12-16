@@ -257,6 +257,7 @@ export async function syncBtcLocked(): Promise<{
   satoshis: number;
   utxoCount: number;
   blockHeight: number;
+  address: string;
 }> {
   const lockToken = await acquireLock(LOCK_KEY_BTC_LOCKED, LOCK_TTL_SECONDS, LOCK_MAX_WAIT_SECONDS);
 
@@ -270,6 +271,7 @@ export async function syncBtcLocked(): Promise<{
         satoshis: Number(latest.satoshis),
         utxoCount: latest.utxoCount,
         blockHeight: latest.blockHeight,
+        address: await alkanesClient.getSubfrostAddress(),
       };
     }
     throw new Error('No BTC locked data available and failed to acquire sync lock');
@@ -311,6 +313,7 @@ export async function syncBtcLocked(): Promise<{
       satoshis: btcData.satoshis,
       utxoCount: btcData.utxoCount,
       blockHeight: currentHeight,
+      address: btcData.address,
     };
   } finally {
     await releaseLock(LOCK_KEY_BTC_LOCKED, lockToken);

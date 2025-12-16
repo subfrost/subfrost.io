@@ -691,7 +691,7 @@ class AlkanesClient {
     const subfrostAddress = await this.getSubfrostAddress();
 
     // Get transactions with traces (excludes coinbase)
-    const txsWithTraces = await provider.getAddressHistoryWithTraces(subfrostAddress, true);
+    const txsWithTraces = await provider.getAddressHistoryWithTraces(subfrostAddress);
 
     console.log('[getWrapUnwrapFromTraces] Total txs:', txsWithTraces?.length || 0);
 

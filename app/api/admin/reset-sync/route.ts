@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     if (redis) {
       const keys = await redis.keys('*');
       if (keys.length > 0) {
-        await redis.del(...keys);
+        await redis.del(keys);
         clearedKeys = keys.length;
       }
     }
