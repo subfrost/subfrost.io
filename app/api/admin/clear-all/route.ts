@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
+import { getRedisClient } from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,12 +30,15 @@ export async function POST(request: NextRequest) {
 
     // Clear all Redis cache keys
     try {
-      const keys = await redis.keys('*');
-      if (keys.length > 0) {
-        await redis.del(...keys);
+      const redis = await getRedisClient();
+      if (redis) {
+        const keys = await redis.keys('*');
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+        results.redis.cleared = true;
+        results.redis.keys = keys.length;
       }
-      results.redis.cleared = true;
-      results.redis.keys = keys.length;
     } catch (error) {
       console.error('[Admin] Error clearing Redis:', error);
     }
