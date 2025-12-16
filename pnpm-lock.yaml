@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@alkanes/ts-sdk':
-        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=20251216164517
-        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=20251216164517
+        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765917287
+        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765917287
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.68.0(react@19.2.3))
@@ -246,9 +246,9 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=20251216164517':
-    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=20251216164517}
-    version: 0.1.0-dev.20251216164517.79f444e
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765917287':
+    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765917287}
+    version: 0.1.0-dev.20251216202520.5c6151d
     peerDependencies:
       '@oyl/sdk': '*'
     peerDependenciesMeta:
@@ -749,10 +749,6 @@ packages:
 
   '@noble/curves@1.9.1':
     resolution: {integrity: sha512-k11yZxZg+t+gWvBbIswW0yoJlu8cHOC7dhunwOzoWH/mXGBiYyR4YY6hAEK/3EUs4UpB8la1RfdRpeGsFHkWsA==}
-    engines: {node: ^14.21.3 || >=16}
-
-  '@noble/curves@1.9.7':
-    resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
 
   '@noble/hashes@1.8.0':
@@ -3680,7 +3676,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=20251216164517':
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765917287':
     dependencies:
       '@bitcoinerlab/secp256k1': 1.2.0
       bip32: 4.0.0
@@ -3815,7 +3811,7 @@ snapshots:
 
   '@bitcoinerlab/secp256k1@1.2.0':
     dependencies:
-      '@noble/curves': 1.9.7
+      '@noble/curves': 1.9.1
 
   '@date-fns/tz@1.2.0': {}
 
@@ -4079,10 +4075,6 @@ snapshots:
   '@noble/ciphers@1.3.0': {}
 
   '@noble/curves@1.9.1':
-    dependencies:
-      '@noble/hashes': 1.8.0
-
-  '@noble/curves@1.9.7':
     dependencies:
       '@noble/hashes': 1.8.0
 
