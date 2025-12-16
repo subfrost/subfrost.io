@@ -740,6 +740,7 @@ class AlkanesClient {
 
     const txsWithTraces: any[] = [];
     let enrichedCount = 0;
+    let opReturnCount = 0;
 
     for (const tx of allTxs) {
       // Skip coinbase transactions
@@ -752,6 +753,8 @@ class AlkanesClient {
         // No OP_RETURN, no alkanes activity possible
         continue;
       }
+
+      opReturnCount++;
 
       try {
         // Get transaction hex to decode runestone and extract protostones
@@ -796,12 +799,13 @@ class AlkanesClient {
           enrichedCount++;
         }
       } catch (error) {
-        // Silently skip transactions that fail to enrich
-        // This is expected for some transactions
+        // Log errors for debugging
+        console.error(`[getWrapUnwrapFromTraces] Failed to enrich tx ${tx.txid}:`, error);
       }
     }
 
     console.log(`[getWrapUnwrapFromTraces] Enriched ${enrichedCount} transactions with traces out of ${allTxs.length} total`);
+    console.log(`[getWrapUnwrapFromTraces] Transactions with OP_RETURN: ${opReturnCount}`);
 
     const wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; senderAddress: string }> = [];
     const unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; recipientAddress: string }> = [];
