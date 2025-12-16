@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cacheDel, isLocked } from '@/lib/redis';
+import { cacheDel, isLocked, getRedisClient } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -39,19 +39,37 @@ export async function POST(request: Request) {
     const deletedWraps = await prisma.wrapTransaction.deleteMany();
     const deletedUnwraps = await prisma.unwrapTransaction.deleteMany();
 
-    // Clear relevant caches
-    await cacheDel('wrap-unwrap-totals-v3');
-    await cacheDel('wrap-history');
-    await cacheDel('unwrap-history');
+    // Delete all snapshots
+    const deletedBtcSnapshots = await prisma.btcLockedSnapshot.deleteMany();
+    const deletedFrbtcSnapshots = await prisma.frBtcSupplySnapshot.deleteMany();
+
+    // Clear ALL Redis cache keys
+    const redis = await getRedisClient();
+    let clearedKeys = 0;
+    if (redis) {
+      const keys = await redis.keys('*');
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        clearedKeys = keys.length;
+      }
+    }
 
     console.log(`[Admin] Deleted ${deletedWraps.count} wrap transactions`);
     console.log(`[Admin] Deleted ${deletedUnwraps.count} unwrap transactions`);
+    console.log(`[Admin] Deleted ${deletedBtcSnapshots.count} BTC locked snapshots`);
+    console.log(`[Admin] Deleted ${deletedFrbtcSnapshots.count} frBTC supply snapshots`);
+    console.log(`[Admin] Cleared ${clearedKeys} Redis cache keys`);
 
     return NextResponse.json({
       success: true,
-      deletedWraps: deletedWraps.count,
-      deletedUnwraps: deletedUnwraps.count,
-      message: 'Sync state reset complete. Next API call will trigger a full re-sync with address extraction.',
+      deleted: {
+        wraps: deletedWraps.count,
+        unwraps: deletedUnwraps.count,
+        btcSnapshots: deletedBtcSnapshots.count,
+        frbtcSnapshots: deletedFrbtcSnapshots.count,
+        redisKeys: clearedKeys,
+      },
+      message: 'All cache and database state cleared. Next API call will trigger a full re-sync.',
       warning: syncInProgress || fullSyncInProgress ? 'A sync was in progress when reset was triggered' : undefined,
     });
   } catch (error) {
