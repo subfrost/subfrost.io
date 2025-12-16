@@ -896,6 +896,16 @@ class AlkanesClient {
         const trace = traceEntry.trace?.trace;
         if (!trace || !trace.events) continue;
 
+        // Debug: Log trace structure for first few events
+        if (trace.events.length > 0) {
+          console.log(`[DEBUG] tx ${tx.txid}: trace has ${trace.events.length} events`);
+          const firstEvent = trace.events[0];
+          console.log(`[DEBUG] First event keys:`, Object.keys(firstEvent));
+          if (firstEvent.event) {
+            console.log(`[DEBUG] First event.event keys:`, Object.keys(firstEvent.event));
+          }
+        }
+
         // Parse trace events to find wrap/unwrap operations
         // We look for EnterCall events to alkane 32:0, check inputs[0] for opcode
         // Opcode 77 = wrap, 78 = unwrap
