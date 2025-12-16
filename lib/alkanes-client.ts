@@ -742,6 +742,11 @@ class AlkanesClient {
     let enrichedCount = 0;
     let opReturnCount = 0;
 
+    // Log first transaction structure for debugging
+    if (allTxs.length > 0) {
+      console.log(`[getWrapUnwrapFromTraces] Sample transaction structure:`, JSON.stringify(allTxs[0]).substring(0, 500));
+    }
+
     for (const tx of allTxs) {
       // Skip coinbase transactions
       const isCoinbase = tx.vin?.some((vin: any) => vin.is_coinbase);
