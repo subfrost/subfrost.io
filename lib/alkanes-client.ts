@@ -903,7 +903,7 @@ class AlkanesClient {
         }
 
         // Parse trace events to find wrap/unwrap operations
-        // We look for EnterCall events to alkane 32:0, check inputs[0] for opcode
+        // We look for EnterContext events to alkane 32:0, check inputs[0] for opcode
         // Opcode 77 = wrap, 78 = unwrap
 
         // Helper to check if an alkane ID is frBTC (32:0)
@@ -925,38 +925,38 @@ class AlkanesClient {
           return BigInt(value);
         };
 
-        // Look for EnterCall -> ReturnContext pairs
+        // Look for EnterContext -> ExitContext pairs
         for (let i = 0; i < trace.events.length; i++) {
           const eventWrapper = trace.events[i];
           const event = eventWrapper.event;
-          if (!event || !event.EnterCall) continue;
+          if (!event || !event.EnterContext) continue;
 
-          const enterCall = event.EnterCall;
+          const enterContext = event.EnterContext;
 
           // Check if this is a call to frBTC (32:0)
-          if (!isFrbtc(enterCall.target)) continue;
+          if (!isFrbtc(enterContext.target)) continue;
 
           // Check inputs[0] for opcode
-          const inputs = enterCall.inputs || [];
+          const inputs = enterContext.inputs || [];
           if (inputs.length === 0) continue;
 
           const opcode = inputs[0];
-          console.log(`[DEBUG] Found EnterCall to 32:0 with opcode ${opcode} in tx ${tx.txid}`);
+          console.log(`[DEBUG] Found EnterContext to 32:0 with opcode ${opcode} in tx ${tx.txid}`);
 
-          // Find the corresponding ReturnContext event
-          let returnContext = null;
+          // Find the corresponding ExitContext event
+          let exitContext = null;
           for (let j = i + 1; j < trace.events.length; j++) {
             const nextEvent = trace.events[j].event;
-            if (nextEvent?.ReturnContext) {
-              returnContext = nextEvent.ReturnContext;
+            if (nextEvent?.ExitContext) {
+              exitContext = nextEvent.ExitContext;
               break;
             }
           }
 
           if (opcode === 77) {
-            // WRAP: Check ReturnContext for amount of 32:0 returned
-            if (returnContext?.alkanes) {
-              for (const alkaneTransfer of returnContext.alkanes) {
+            // WRAP: Check ExitContext for amount of 32:0 returned
+            if (exitContext?.alkanes) {
+              for (const alkaneTransfer of exitContext.alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   const amount = parseU128(alkaneTransfer.value);
                   console.log(`[DEBUG] WRAP tx ${tx.txid}: amount=${amount}`);
@@ -969,22 +969,22 @@ class AlkanesClient {
               }
             }
           } else if (opcode === 78) {
-            // UNWRAP: Amount used in EnterCall minus amount returned in ReturnContext
+            // UNWRAP: Amount used in EnterContext minus amount returned in ExitContext
             let usedAmount = 0n;
             let returnedAmount = 0n;
 
-            // Get amount used from EnterCall
-            if (enterCall.alkanes) {
-              for (const alkaneTransfer of enterCall.alkanes) {
+            // Get amount used from EnterContext
+            if (enterContext.alkanes) {
+              for (const alkaneTransfer of enterContext.alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   usedAmount += parseU128(alkaneTransfer.value);
                 }
               }
             }
 
-            // Get amount returned from ReturnContext
-            if (returnContext?.alkanes) {
-              for (const alkaneTransfer of returnContext.alkanes) {
+            // Get amount returned from ExitContext
+            if (exitContext?.alkanes) {
+              for (const alkaneTransfer of exitContext.alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   returnedAmount += parseU128(alkaneTransfer.value);
                 }
