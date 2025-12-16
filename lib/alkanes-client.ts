@@ -933,6 +933,11 @@ class AlkanesClient {
 
           const enterContext = event.EnterContext;
 
+          // Debug: Log target info for first few EnterContext events
+          if (i < 2) {
+            console.log(`[DEBUG] tx ${tx.txid} EnterContext[${i}] target:`, JSON.stringify(enterContext.target));
+          }
+
           // Check if this is a call to frBTC (32:0)
           if (!isFrbtc(enterContext.target)) continue;
 
