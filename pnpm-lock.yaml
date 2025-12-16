@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@alkanes/ts-sdk':
-        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765919400
-        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765919400
+        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765925604
+        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765925604
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.68.0(react@19.2.3))
@@ -246,9 +246,9 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765919400':
-    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765919400}
-    version: 0.1.0-dev.20251216210526.3b5adff
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765925604':
+    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765925604}
+    version: 0.1.0-dev.20251216224827.edb0a19
     peerDependencies:
       '@oyl/sdk': '*'
     peerDependenciesMeta:
@@ -3676,7 +3676,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765919400':
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1765925604':
     dependencies:
       '@bitcoinerlab/secp256k1': 1.2.0
       bip32: 4.0.0

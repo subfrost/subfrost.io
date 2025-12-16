@@ -775,13 +775,10 @@ class AlkanesClient {
         const txBytes = Buffer.from(txHex, 'hex');
 
         // Decode runestone to check for protostones
-        console.log(`[DEBUG] Decoding runestone for tx ${tx.txid}`);
         const runestoneResult = await wasmProvider.runestoneDecodeTx(tx.txid);
-        console.log(`[DEBUG] Runestone result:`, JSON.stringify(runestoneResult).substring(0, 200));
 
         // Check if there are protostones
         const numProtostones = runestoneResult?.protostones?.length || 0;
-        console.log(`[DEBUG] Found ${numProtostones} protostones for tx ${tx.txid}`);
         if (numProtostones === 0) continue;
 
         // Add runestone to transaction
