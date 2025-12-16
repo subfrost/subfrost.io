@@ -896,14 +896,10 @@ class AlkanesClient {
         const trace = traceEntry.trace?.trace;
         if (!trace || !trace.events) continue;
 
-        // Debug: Log trace structure for first few events
+        // Debug: Log all event types in this trace
         if (trace.events.length > 0) {
-          console.log(`[DEBUG] tx ${tx.txid}: trace has ${trace.events.length} events`);
-          const firstEvent = trace.events[0];
-          console.log(`[DEBUG] First event keys:`, Object.keys(firstEvent));
-          if (firstEvent.event) {
-            console.log(`[DEBUG] First event.event keys:`, Object.keys(firstEvent.event));
-          }
+          const eventTypes = trace.events.map((e: any, i: number) => `${i}:${Object.keys(e.event || {})[0] || 'none'}`).join(', ');
+          console.log(`[DEBUG] tx ${tx.txid}: ${trace.events.length} events - ${eventTypes}`);
         }
 
         // Parse trace events to find wrap/unwrap operations
