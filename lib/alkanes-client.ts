@@ -690,10 +690,117 @@ class AlkanesClient {
     const provider = await this.ensureProvider();
     const subfrostAddress = await this.getSubfrostAddress();
 
-    // Get transactions with traces (excludes coinbase)
-    const txsWithTraces = await provider.getAddressHistoryWithTraces(subfrostAddress);
+    // Fetch ALL transactions with pagination
+    let allTxs: any[] = [];
+    let lastSeenTxid: string | undefined = undefined;
+    let pageCount = 0;
+    const maxPages = 1000; // Safety limit
 
-    console.log('[getWrapUnwrapFromTraces] Total txs:', txsWithTraces?.length || 0);
+    console.log('[getWrapUnwrapFromTraces] Starting pagination to fetch all transactions...');
+
+    while (pageCount < maxPages) {
+      pageCount++;
+
+      // Fetch next page
+      let page: any[];
+      if (lastSeenTxid === undefined) {
+        // First page
+        page = await provider.getAddressTxs(subfrostAddress);
+      } else {
+        // Subsequent pages
+        page = await provider.getAddressTxsChain(subfrostAddress, lastSeenTxid);
+      }
+
+      const pageSize = Array.isArray(page) ? page.length : 0;
+      console.log(`[getWrapUnwrapFromTraces] Page ${pageCount}: ${pageSize} transactions`);
+
+      if (pageSize === 0) {
+        console.log('[getWrapUnwrapFromTraces] No more transactions');
+        break;
+      }
+
+      allTxs.push(...page);
+
+      // Update last seen txid for next iteration
+      if (pageSize > 0) {
+        lastSeenTxid = page[pageSize - 1].txid;
+      }
+
+      // If we got less than 25 transactions, this is the last page
+      if (pageSize < 25) {
+        console.log(`[getWrapUnwrapFromTraces] Last page (${pageSize} < 25 txs)`);
+        break;
+      }
+    }
+
+    console.log(`[getWrapUnwrapFromTraces] Fetched ${allTxs.length} total transactions in ${pageCount} pages`);
+
+    // Now manually enrich transactions with traces by calling the trace endpoint
+    console.log('[getWrapUnwrapFromTraces] Enriching transactions with alkanes traces...');
+
+    const txsWithTraces: any[] = [];
+    let enrichedCount = 0;
+
+    for (const tx of allTxs) {
+      // Skip coinbase transactions
+      const isCoinbase = tx.vin?.some((vin: any) => vin.is_coinbase);
+      if (isCoinbase) continue;
+
+      // Check if transaction has OP_RETURN output (indicates potential alkanes activity)
+      const hasOpReturn = tx.vout?.some((vout: any) => vout.scriptpubkey_type === 'op_return');
+      if (!hasOpReturn) {
+        // No OP_RETURN, no alkanes activity possible
+        continue;
+      }
+
+      try {
+        // Get transaction hex to decode runestone and extract protostones
+        const txHex = await provider.getTransactionHex(tx.txid);
+        const txBytes = Buffer.from(txHex, 'hex');
+
+        // Use the provider's runestone decode method
+        const runestoneResult = await provider.runestoneDecodeTx(txHex);
+
+        // Check if there are protostones
+        const numProtostones = runestoneResult?.protostones?.length || 0;
+        if (numProtostones === 0) continue;
+
+        // Add runestone to transaction
+        tx.runestone = runestoneResult;
+
+        // Fetch traces for each protostone
+        const baseVout = tx.vout.length + 1;
+        const traces = [];
+
+        for (let i = 0; i < numProtostones; i++) {
+          const vout = baseVout + i;
+          const outpoint = `${tx.txid}:${vout}`;
+
+          try {
+            const traceResult = await provider.alkanesTrace(outpoint);
+            traces.push({
+              vout,
+              outpoint,
+              protostone_index: i,
+              trace: traceResult,
+            });
+          } catch (traceError) {
+            console.error(`[getWrapUnwrapFromTraces] Failed to fetch trace for ${outpoint}:`, traceError);
+          }
+        }
+
+        if (traces.length > 0) {
+          tx.alkanes_traces = traces;
+          txsWithTraces.push(tx);
+          enrichedCount++;
+        }
+      } catch (error) {
+        // Silently skip transactions that fail to enrich
+        // This is expected for some transactions
+      }
+    }
+
+    console.log(`[getWrapUnwrapFromTraces] Enriched ${enrichedCount} transactions with traces out of ${allTxs.length} total`);
 
     const wraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; senderAddress: string }> = [];
     const unwraps: Array<{ txid: string; frbtcAmount: bigint; blockHeight: number; recipientAddress: string }> = [];
