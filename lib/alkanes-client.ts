@@ -755,11 +755,12 @@ class AlkanesClient {
 
       try {
         // Get transaction hex to decode runestone and extract protostones
-        const txHex = await provider.getTransactionHex(tx.txid);
+        const txHex = await provider.getTxHex(tx.txid);
         const txBytes = Buffer.from(txHex, 'hex');
 
-        // Use the provider's runestone decode method
-        const runestoneResult = await provider.runestoneDecodeTx(txHex);
+        // Access the underlying WASM provider to call runestoneDecodeTx
+        const wasmProvider = (provider as any).provider || provider;
+        const runestoneResult = await wasmProvider.runestoneDecodeTx(tx.txid);
 
         // Check if there are protostones
         const numProtostones = runestoneResult?.protostones?.length || 0;
@@ -777,7 +778,7 @@ class AlkanesClient {
           const outpoint = `${tx.txid}:${vout}`;
 
           try {
-            const traceResult = await provider.alkanesTrace(outpoint);
+            const traceResult = await provider.trace(outpoint);
             traces.push({
               vout,
               outpoint,
