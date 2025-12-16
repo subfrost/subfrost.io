@@ -762,16 +762,26 @@ class AlkanesClient {
       opReturnCount++;
 
       try {
+        // Access the underlying WASM provider for methods not wrapped in AlkanesProvider
+        const wasmProvider = (provider as any)._provider;
+
         // Get transaction hex to decode runestone and extract protostones
-        const txHex = await provider.getTxHex(tx.txid);
+        const txData = await wasmProvider.esploraGetTxHex(tx.txid);
+        const txHex = typeof txData === 'string' ? txData : txData.hex;
+        if (!txHex) {
+          console.error(`[getWrapUnwrapFromTraces] No hex data for tx ${tx.txid}`);
+          continue;
+        }
         const txBytes = Buffer.from(txHex, 'hex');
 
-        // Access the underlying WASM provider to call runestoneDecodeTx
-        const wasmProvider = (provider as any).provider || provider;
+        // Decode runestone to check for protostones
+        console.log(`[DEBUG] Decoding runestone for tx ${tx.txid}`);
         const runestoneResult = await wasmProvider.runestoneDecodeTx(tx.txid);
+        console.log(`[DEBUG] Runestone result:`, JSON.stringify(runestoneResult).substring(0, 200));
 
         // Check if there are protostones
         const numProtostones = runestoneResult?.protostones?.length || 0;
+        console.log(`[DEBUG] Found ${numProtostones} protostones for tx ${tx.txid}`);
         if (numProtostones === 0) continue;
 
         // Add runestone to transaction
@@ -786,7 +796,7 @@ class AlkanesClient {
           const outpoint = `${tx.txid}:${vout}`;
 
           try {
-            const traceResult = await provider.trace(outpoint);
+            const traceResult = await wasmProvider.alkanesTrace(outpoint);
             traces.push({
               vout,
               outpoint,
