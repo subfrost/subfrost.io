@@ -896,61 +896,102 @@ class AlkanesClient {
         const trace = traceEntry.trace?.trace;
         if (!trace || !trace.events) continue;
 
-        // Parse trace events to find frBTC transfers
-        // Trace structure: { events: [{ event: { ReceiveIntent: {...} } }, { event: { ValueTransfer: {...} } }] }
-        for (const eventWrapper of trace.events) {
+        // Parse trace events to find wrap/unwrap operations
+        // We look for EnterCall events to alkane 32:0, check inputs[0] for opcode
+        // Opcode 77 = wrap, 78 = unwrap
+
+        // Helper to check if an alkane ID is frBTC (32:0)
+        const isFrbtc = (id: any): boolean => {
+          if (!id) return false;
+          const block = id.block?.lo ?? id.block;
+          const txNum = id.tx?.lo ?? id.tx;
+          return (block === 32 || block === '32') && (txNum === 0 || txNum === '0');
+        };
+
+        // Helper to parse uint128 value
+        const parseU128 = (value: any): bigint => {
+          if (!value) return 0n;
+          if (typeof value === 'object' && 'lo' in value) {
+            const lo = BigInt(value.lo || 0);
+            const hi = BigInt(value.hi || 0);
+            return (hi << 64n) | lo;
+          }
+          return BigInt(value);
+        };
+
+        // Look for EnterCall -> ReturnContext pairs
+        for (let i = 0; i < trace.events.length; i++) {
+          const eventWrapper = trace.events[i];
           const event = eventWrapper.event;
-          if (!event) continue;
+          if (!event || !event.EnterCall) continue;
 
-          // Helper to check if an alkane ID is frBTC (32:0)
-          const isFrbtc = (id: any): boolean => {
-            if (!id) return false;
-            const block = id.block?.lo ?? id.block;
-            const txNum = id.tx?.lo ?? id.tx;
-            return (block === 32 || block === '32') && (txNum === 0 || txNum === '0');
-          };
+          const enterCall = event.EnterCall;
 
-          // Helper to parse value (could be { lo, hi } for uint128 or direct number)
-          const parseValue = (transfer: any): bigint => {
-            const value = transfer.value;
-            if (!value) return 0n;
-            if (typeof value === 'object' && 'lo' in value) {
-              const lo = BigInt(value.lo || 0);
-              const hi = BigInt(value.hi || 0);
-              return (hi << 64n) | lo;
-            }
-            return BigInt(value);
-          };
+          // Check if this is a call to frBTC (32:0)
+          if (!isFrbtc(enterCall.target)) continue;
 
-          // Check ReceiveIntent for incoming alkanes (this is the wrap - BTC coming in, frBTC being minted)
-          if (event.ReceiveIntent?.incoming_alkanes) {
-            const incoming = event.ReceiveIntent.incoming_alkanes;
-            for (const transfer of incoming) {
-              if (isFrbtc(transfer.id)) {
-                const amount = parseValue(transfer);
-                if (amount > 0n) {
-                  // This is a wrap - frBTC received at subfrost address means someone wrapped BTC
-                  const senderAddress = extractSenderAddress(tx);
-                  totalWrappedFrbtc += amount;
-                  wraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight, senderAddress });
-                }
-              }
+          // Check inputs[0] for opcode
+          const inputs = enterCall.inputs || [];
+          if (inputs.length === 0) continue;
+
+          const opcode = inputs[0];
+          console.log(`[DEBUG] Found EnterCall to 32:0 with opcode ${opcode} in tx ${tx.txid}`);
+
+          // Find the corresponding ReturnContext event
+          let returnContext = null;
+          for (let j = i + 1; j < trace.events.length; j++) {
+            const nextEvent = trace.events[j].event;
+            if (nextEvent?.ReturnContext) {
+              returnContext = nextEvent.ReturnContext;
+              break;
             }
           }
 
-          // Check ValueTransfer for outgoing transfers (unwrap - frBTC leaving subfrost)
-          if (event.ValueTransfer?.transfers) {
-            const transfers = event.ValueTransfer.transfers;
-            for (const transfer of transfers) {
-              if (isFrbtc(transfer.id)) {
-                const amount = parseValue(transfer);
-                if (amount > 0n) {
-                  // This is an unwrap - frBTC being transferred out means someone is unwrapping
-                  const recipientAddress = extractRecipientAddress(tx, subfrostAddress);
-                  totalUnwrappedFrbtc += amount;
-                  unwraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight, recipientAddress });
+          if (opcode === 77) {
+            // WRAP: Check ReturnContext for amount of 32:0 returned
+            if (returnContext?.alkanes) {
+              for (const alkaneTransfer of returnContext.alkanes) {
+                if (isFrbtc(alkaneTransfer.id)) {
+                  const amount = parseU128(alkaneTransfer.value);
+                  console.log(`[DEBUG] WRAP tx ${tx.txid}: amount=${amount}`);
+                  if (amount > 0n) {
+                    const senderAddress = extractSenderAddress(tx);
+                    totalWrappedFrbtc += amount;
+                    wraps.push({ txid: tx.txid, frbtcAmount: amount, blockHeight, senderAddress });
+                  }
                 }
               }
+            }
+          } else if (opcode === 78) {
+            // UNWRAP: Amount used in EnterCall minus amount returned in ReturnContext
+            let usedAmount = 0n;
+            let returnedAmount = 0n;
+
+            // Get amount used from EnterCall
+            if (enterCall.alkanes) {
+              for (const alkaneTransfer of enterCall.alkanes) {
+                if (isFrbtc(alkaneTransfer.id)) {
+                  usedAmount += parseU128(alkaneTransfer.value);
+                }
+              }
+            }
+
+            // Get amount returned from ReturnContext
+            if (returnContext?.alkanes) {
+              for (const alkaneTransfer of returnContext.alkanes) {
+                if (isFrbtc(alkaneTransfer.id)) {
+                  returnedAmount += parseU128(alkaneTransfer.value);
+                }
+              }
+            }
+
+            // Burned amount is the difference
+            const burnedAmount = usedAmount - returnedAmount;
+            console.log(`[DEBUG] UNWRAP tx ${tx.txid}: used=${usedAmount}, returned=${returnedAmount}, burned=${burnedAmount}`);
+            if (burnedAmount > 0n) {
+              const recipientAddress = extractRecipientAddress(tx, subfrostAddress);
+              totalUnwrappedFrbtc += burnedAmount;
+              unwraps.push({ txid: tx.txid, frbtcAmount: burnedAmount, blockHeight, recipientAddress });
             }
           }
         }
