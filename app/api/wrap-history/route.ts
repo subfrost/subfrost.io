@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
 import { syncWrapUnwrapTransactions, getWrapHistory } from '@/lib/sync-service';
+import { getWrapHistoryData } from '@/lib/blockchain-data';
 
 const CACHE_TTL = 120; // 2 minutes
 
@@ -27,26 +28,40 @@ export async function GET(request: Request) {
       return NextResponse.json(cached);
     }
 
-    // Ensure data is synced (fast if no new blocks)
-    await syncWrapUnwrapTransactions();
+    let result;
+    try {
+      // Ensure data is synced (fast if no new blocks)
+      await syncWrapUnwrapTransactions();
 
-    // Get wrap history from database
-    const { items, total } = await getWrapHistory(count, offset);
+      // Get wrap history from database
+      const { items, total } = await getWrapHistory(count, offset);
 
-    // Format response to match expected API format
-    const result = {
-      items: items.map(item => ({
-        txid: item.txid,
-        amount: item.amount,
-        blockHeight: item.blockHeight,
-        timestamp: item.timestamp.toISOString(),
-        senderAddress: item.senderAddress,
-      })),
-      total,
-      count,
-      offset,
-      timestamp: Date.now(),
-    };
+      // Format response to match expected API format
+      result = {
+        items: items.map(item => ({
+          txid: item.txid,
+          amount: item.amount,
+          blockHeight: item.blockHeight,
+          timestamp: item.timestamp.toISOString(),
+          senderAddress: item.senderAddress,
+        })),
+        total,
+        count,
+        offset,
+        timestamp: Date.now(),
+      };
+    } catch (dbError) {
+      // Fallback: fetch directly from SDK if database is unavailable
+      console.log('Database unavailable, fetching directly from SDK');
+      const historyData = await getWrapHistoryData(count, offset);
+      result = {
+        items: historyData.items,
+        total: historyData.total,
+        count,
+        offset,
+        timestamp: Date.now(),
+      };
+    }
 
     // Cache the result
     await cacheSet(cacheKey, result, CACHE_TTL);

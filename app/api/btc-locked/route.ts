@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
 import { syncBtcLocked, getLatestBtcLocked } from '@/lib/sync-service';
-import { alkanesClient } from '@/lib/alkanes-client';
+import { getBtcLockedData } from '@/lib/blockchain-data';
 
 const CACHE_KEY = 'btc-locked';
 const CACHE_TTL = 60; // 60 seconds
@@ -21,17 +21,27 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    // Sync and persist to database
-    const btcData = await syncBtcLocked();
-
-    const result = {
-      btcLocked: btcData.btcLocked,
-      satoshis: btcData.satoshis,
-      utxoCount: btcData.utxoCount,
-      address: (await alkanesClient.getBtcLocked()).address,
-      blockHeight: btcData.blockHeight,
-      timestamp: Date.now(),
-    };
+    // Try to sync and persist to database
+    let result;
+    try {
+      const btcData = await syncBtcLocked();
+      result = {
+        btcLocked: btcData.btcLocked,
+        satoshis: btcData.satoshis,
+        utxoCount: btcData.utxoCount,
+        address: btcData.address,
+        blockHeight: btcData.blockHeight,
+        timestamp: Date.now(),
+      };
+    } catch (dbError) {
+      // Fallback: fetch directly from SDK if database is unavailable
+      console.log('Database unavailable, fetching directly from SDK');
+      const btcData = await getBtcLockedData();
+      result = {
+        ...btcData,
+        timestamp: Date.now(),
+      };
+    }
 
     // Cache the result
     await cacheSet(CACHE_KEY, result, CACHE_TTL);

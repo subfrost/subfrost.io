@@ -7,13 +7,13 @@ import path from 'path';
 export default defineConfig({
   plugins: [react(), wasm(), topLevelAwait()],
   optimizeDeps: {
-    exclude: ['@alkanes/ts-sdk'],
+    exclude: ['@alkanes/ts-sdk', '@alkanes/ts-sdk/wasm'],
   },
   test: {
     environment: 'happy-dom',
     server: {
       deps: {
-        inline: ['@alkanes/ts-sdk'],
+        inline: ['@alkanes/ts-sdk', '@alkanes/ts-sdk/wasm'],
       },
     },
     globals: true,
@@ -54,6 +54,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      '@alkanes/ts-sdk/wasm': path.resolve(__dirname, './node_modules/@alkanes/ts-sdk/wasm/index.js'),
     },
   },
 });

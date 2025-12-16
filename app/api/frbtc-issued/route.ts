@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
 import { syncFrbtcSupply } from '@/lib/sync-service';
+import { getFrbtcIssuedData } from '@/lib/blockchain-data';
 
 const CACHE_KEY = 'frbtc-issued';
 const CACHE_TTL = 60; // 60 seconds
@@ -20,16 +21,26 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    // Sync and persist to database
-    const supplyData = await syncFrbtcSupply();
-
-    const result = {
-      frBtcIssued: supplyData.frbtcIssued,
-      rawSupply: supplyData.rawSupply,
-      adjustedSupply: supplyData.adjustedSupply,
-      blockHeight: supplyData.blockHeight,
-      timestamp: Date.now(),
-    };
+    // Try to sync and persist to database
+    let result;
+    try {
+      const supplyData = await syncFrbtcSupply();
+      result = {
+        frBtcIssued: supplyData.frbtcIssued,
+        rawSupply: supplyData.rawSupply,
+        adjustedSupply: supplyData.adjustedSupply,
+        blockHeight: supplyData.blockHeight,
+        timestamp: Date.now(),
+      };
+    } catch (dbError) {
+      // Fallback: fetch directly from SDK if database is unavailable
+      console.log('Database unavailable, fetching directly from SDK');
+      const supplyData = await getFrbtcIssuedData();
+      result = {
+        ...supplyData,
+        timestamp: Date.now(),
+      };
+    }
 
     // Cache the result
     await cacheSet(CACHE_KEY, result, CACHE_TTL);
