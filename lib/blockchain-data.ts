@@ -123,10 +123,11 @@ export async function getTotalUnwrapsData(): Promise<TotalUnwrapsData> {
   const totalUnwrapsBtc = traces.totalUnwrappedFrbtc;
 
   // Convert BTC to satoshis (multiply by 1e8)
-  const totalUnwrapsSatoshis = Math.round(totalUnwrapsBtc * 1e8);
+  // Handle BigInt conversion if necessary
+  const totalUnwrapsSatoshis = Math.round(Number(totalUnwrapsBtc) * 1e8);
 
   return {
-    totalUnwraps: totalUnwrapsBtc,
+    totalUnwraps: Number(totalUnwrapsBtc),
     totalUnwrapsSatoshis: totalUnwrapsSatoshis.toString(),
     unwrapCount: traces.unwraps.length,
   };
