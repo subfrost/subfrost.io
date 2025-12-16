@@ -97,6 +97,7 @@ jobs:
             --set-env-vars "NODE_ENV=production" \
             --set-env-vars "NEXT_PUBLIC_NETWORK=mainnet" \
             --set-env-vars "REDIS_URL=redis://${{ steps.redis.outputs.ip }}:6379" \
+            --set-env-vars "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
             --set-secrets "DATABASE_URL=db-connection-string:latest"
 
       - name: Get Service URL
