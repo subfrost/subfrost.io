@@ -45,24 +45,18 @@ export async function POST(request: NextRequest) {
 
     // Clear all database tables
     try {
-      // Delete wrap/unwrap transactions
-      const deleteWraps = prisma.wrapTransaction.deleteMany({});
-      const deleteUnwraps = prisma.unwrapTransaction.deleteMany({});
+      // Check if prisma is available
+      if (!prisma) {
+        throw new Error('Database client not available');
+      }
 
-      // Delete snapshots
-      const deleteBtcLocked = prisma.btcLockedSnapshot.deleteMany({});
-      const deleteFrbtcSupply = prisma.frBtcSupplySnapshot.deleteMany({});
-
-      // Delete sync states
-      const deleteSyncStates = prisma.syncState.deleteMany({});
-
-      // Execute all deletions
+      // Execute deletions in parallel
       const [wraps, unwraps, btcLocked, frbtcSupply, syncStates] = await Promise.all([
-        deleteWraps,
-        deleteUnwraps,
-        deleteBtcLocked,
-        deleteFrbtcSupply,
-        deleteSyncStates,
+        prisma.wrapTransaction.deleteMany({}),
+        prisma.unwrapTransaction.deleteMany({}),
+        prisma.btcLockedSnapshot.deleteMany({}),
+        prisma.frBtcSupplySnapshot.deleteMany({}),
+        prisma.syncState.deleteMany({}),
       ]);
 
       results.database.wraps = wraps.count;
@@ -72,10 +66,13 @@ export async function POST(request: NextRequest) {
       results.database.syncStates = syncStates.count;
     } catch (error) {
       console.error('[Admin] Error clearing database:', error);
+      console.error('[Admin] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error('[Admin] Prisma client available?', !!prisma);
       return NextResponse.json(
         {
           error: 'Failed to clear database',
           details: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
         },
         { status: 500 }
       );
