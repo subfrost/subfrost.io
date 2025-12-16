@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cacheDel } from '@/lib/redis';
+import { cacheDel, isLocked } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +21,14 @@ export async function POST(request: Request) {
     }
 
     console.log('[Admin] Resetting wrap/unwrap sync state...');
+
+    // Check if a sync is currently in progress
+    const syncInProgress = await isLocked('lock:wrap_unwrap_sync');
+    const fullSyncInProgress = await isLocked('lock:full_sync');
+
+    if (syncInProgress || fullSyncInProgress) {
+      console.warn('[Admin] WARNING: Sync is currently in progress, but proceeding with reset');
+    }
 
     // Delete wrap/unwrap sync state to force re-sync from scratch
     await prisma.syncState.delete({
@@ -44,6 +52,7 @@ export async function POST(request: Request) {
       deletedWraps: deletedWraps.count,
       deletedUnwraps: deletedUnwraps.count,
       message: 'Sync state reset complete. Next API call will trigger a full re-sync with address extraction.',
+      warning: syncInProgress || fullSyncInProgress ? 'A sync was in progress when reset was triggered' : undefined,
     });
   } catch (error) {
     console.error('[Admin] Error resetting sync:', error);

@@ -63,14 +63,14 @@ describe.skipIf(!runIntegration)('frBTC Trace Sync Integration', () => {
       const subfrostAddress = await alkanesClient.getSubfrostAddress();
       console.log(`Subfrost address: ${subfrostAddress}`);
 
-      const provider = await alkanesClient.ensureProvider();
+      const provider = await alkanesClient.getProvider();
 
       // Fetch first page of transactions (default pagination)
       const txs = await provider.esplora.getAddressTxs(subfrostAddress);
       console.log(`\nFetched ${txs.length} transactions`);
 
       // Filter for transactions with OP_RETURN (potential alkanes transactions)
-      const txsWithOpReturn = txs.filter(tx =>
+      const txsWithOpReturn = txs.filter((tx: any) =>
         tx.vout?.some((output: any) => output.scriptpubkey_type === 'op_return')
       );
       console.log(`Transactions with OP_RETURN: ${txsWithOpReturn.length}`);

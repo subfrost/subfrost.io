@@ -12,7 +12,7 @@ async function main() {
   console.log('=== Block Range Query Example ===\n');
 
   // Get the provider
-  const provider = await alkanesClient.ensureProvider();
+  const provider = await alkanesClient.getProvider();
   const currentHeight = await provider.esplora.getBlockHeight();
 
   console.log(`Current block height: ${currentHeight}\n`);

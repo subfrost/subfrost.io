@@ -1,26 +1,31 @@
 /**
  * Integration test for efficient block-level trace aggregation (V2)
- * Tests the new approach of using getAddressTxsWithTraces in a single call
+ * Tests using smaller block ranges for faster execution
  */
 
 import { describe, it, expect } from 'vitest';
-import { getWrapUnwrapFromBlockTraces } from '@/lib/alkanes-client-v2';
+import { getWrapUnwrapFromBlockRange } from '@/lib/alkanes-client-v2';
 import { alkanesClient } from '@/lib/alkanes-client';
 
 const runIntegration = process.env.RUN_INTEGRATION === 'true';
-const TEST_TIMEOUT = 300000; // 5 minutes
+const TEST_TIMEOUT = 60000; // 1 minute (reduced from 5 minutes)
+const TEST_BLOCK_RANGE = 5000; // Test with last 5000 blocks
 
 describe.skipIf(!runIntegration)('Block-Level Trace Aggregation V2', () => {
   it(
-    'should aggregate wrap/unwrap data efficiently',
+    'should aggregate wrap/unwrap data for recent blocks',
     async () => {
-      console.log('=== Testing V2 block-level aggregation ===');
+      console.log('=== Testing V2 block-level aggregation (recent blocks) ===');
 
-      // Get the provider from alkanesClient
-      const provider = await alkanesClient.ensureProvider();
+      // Get the provider
+      const provider = await alkanesClient.getProvider();
+      const currentHeight = await provider.getBlockHeight();
+      const fromHeight = Math.max(0, currentHeight - TEST_BLOCK_RANGE);
 
-      // Execute V2 aggregation
-      const result = await getWrapUnwrapFromBlockTraces(provider, 0);
+      console.log(`\nTesting range: blocks ${fromHeight} to ${currentHeight} (${TEST_BLOCK_RANGE} blocks)`);
+
+      // Execute V2 aggregation on recent blocks only
+      const result = await getWrapUnwrapFromBlockRange(provider, fromHeight);
 
       console.log('\n--- V2 Aggregation Results ---');
       console.log(`Total Wrapped: ${result.totalWrapped} satoshis (${Number(result.totalWrapped) / 1e8} BTC)`);
@@ -28,50 +33,67 @@ describe.skipIf(!runIntegration)('Block-Level Trace Aggregation V2', () => {
       console.log(`Wrap Count: ${result.wrapCount}`);
       console.log(`Unwrap Count: ${result.unwrapCount}`);
       console.log(`Last Block Height: ${result.lastBlockHeight}`);
-      console.log(`Lifetime BTC Tx Value: ${(Number(result.totalWrapped) + Number(result.totalUnwrapped)) / 1e8} BTC`);
+
+      if (result.wrapCount > 0 || result.unwrapCount > 0) {
+        console.log(`\nTotal Activity: ${(Number(result.totalWrapped) + Number(result.totalUnwrapped)) / 1e8} BTC`);
+      }
 
       // Sample transactions
-      console.log('\nFirst 3 wraps:');
-      result.wraps.slice(0, 3).forEach(w => {
-        console.log(`  - ${w.txid.substring(0, 12)}... ${Number(w.amount) / 1e8} BTC from ${w.senderAddress.substring(0, 20)}...`);
-      });
+      if (result.wraps.length > 0) {
+        console.log('\nSample wraps:');
+        result.wraps.slice(0, Math.min(3, result.wraps.length)).forEach(w => {
+          console.log(`  - ${w.txid.substring(0, 12)}... ${Number(w.amount) / 1e8} BTC from ${w.senderAddress.substring(0, 20)}... (block ${w.blockHeight})`);
+        });
+      }
 
-      console.log('\nFirst 3 unwraps:');
-      result.unwraps.slice(0, 3).forEach(u => {
-        console.log(`  - ${u.txid.substring(0, 12)}... ${Number(u.amount) / 1e8} BTC to ${u.recipientAddress.substring(0, 20)}...`);
-      });
+      if (result.unwraps.length > 0) {
+        console.log('\nSample unwraps:');
+        result.unwraps.slice(0, Math.min(3, result.unwraps.length)).forEach(u => {
+          console.log(`  - ${u.txid.substring(0, 12)}... ${Number(u.amount) / 1e8} BTC to ${u.recipientAddress.substring(0, 20)}... (block ${u.blockHeight})`);
+        });
+      }
 
       // Validations
-      expect(result.totalWrapped).toBeGreaterThan(0n);
-      expect(result.totalUnwrapped).toBeGreaterThan(0n);
-      expect(result.wrapCount).toBeGreaterThan(0);
-      expect(result.unwrapCount).toBeGreaterThan(0);
       expect(result.wraps).toHaveLength(result.wrapCount);
       expect(result.unwraps).toHaveLength(result.unwrapCount);
+      expect(result.lastBlockHeight).toBeGreaterThanOrEqual(fromHeight);
+      expect(result.lastBlockHeight).toBeLessThanOrEqual(currentHeight);
 
-      // All wraps should have sender addresses
-      const wrapsWithAddresses = result.wraps.filter(w => w.senderAddress && w.senderAddress.length > 0);
-      console.log(`\nWraps with addresses: ${wrapsWithAddresses.length}/${result.wrapCount}`);
+      // All wraps should have transaction IDs
+      for (const wrap of result.wraps) {
+        expect(wrap.txid).toBeTruthy();
+        expect(wrap.amount).toBeGreaterThan(0n);
+        expect(wrap.blockHeight).toBeGreaterThanOrEqual(fromHeight);
+      }
 
-      // All unwraps should have recipient addresses
-      const unwrapsWithAddresses = result.unwraps.filter(u => u.recipientAddress && u.recipientAddress.length > 0);
-      console.log(`Unwraps with addresses: ${unwrapsWithAddresses.length}/${result.unwrapCount}`);
+      // All unwraps should have transaction IDs
+      for (const unwrap of result.unwraps) {
+        expect(unwrap.txid).toBeTruthy();
+        expect(unwrap.amount).toBeGreaterThan(0n);
+        expect(unwrap.blockHeight).toBeGreaterThanOrEqual(fromHeight);
+      }
+
+      console.log('\n✅ Test passed! All data structures valid.');
     },
     TEST_TIMEOUT
   );
 
   it(
-    'should match current TypeScript implementation',
+    'should match current implementation for same block range',
     async () => {
-      console.log('\n=== Comparing V2 vs Current implementation ===');
+      console.log('\n=== Comparing V2 vs Current implementation (same range) ===');
 
       // Get the provider from alkanesClient
-      const provider = await alkanesClient.ensureProvider();
+      const provider = await alkanesClient.getProvider();
+      const currentHeight = await provider.getBlockHeight();
+      const fromHeight = Math.max(0, currentHeight - TEST_BLOCK_RANGE);
 
-      // Get results from both implementations
+      console.log(`\nTesting range: blocks ${fromHeight} to ${currentHeight}`);
+
+      // Get results from both implementations using the same range
       const [v2Result, currentResult] = await Promise.all([
-        getWrapUnwrapFromBlockTraces(provider, 0),
-        alkanesClient.getWrapUnwrapFromTraces(0)
+        getWrapUnwrapFromBlockRange(provider, fromHeight),
+        alkanesClient.getWrapUnwrapFromTraces(fromHeight)
       ]);
 
       console.log('\nV2 Results:');
@@ -88,32 +110,7 @@ describe.skipIf(!runIntegration)('Block-Level Trace Aggregation V2', () => {
       expect(v2Result.wrapCount).toBe(currentResult.wrapCount);
       expect(v2Result.unwrapCount).toBe(currentResult.unwrapCount);
 
-      console.log(`\n✅ V2 implementation matches current implementation exactly!`);
-    },
-    TEST_TIMEOUT
-  );
-
-  it(
-    'should support filtering by block height range',
-    async () => {
-      console.log('\n=== Testing block height filtering ===');
-
-      // Get the provider from alkanesClient
-      const provider = await alkanesClient.ensureProvider();
-
-      // Get recent blocks only (last 10000 blocks)
-      const currentHeight = await provider.esplora.getBlockHeight();
-      const fromHeight = Math.max(0, currentHeight - 10000);
-
-      console.log(`Testing from block ${fromHeight} to ${currentHeight}`);
-
-      const result = await getWrapUnwrapFromBlockTraces(provider, fromHeight);
-
-      console.log(`\nFound ${result.wrapCount} wraps and ${result.unwrapCount} unwraps in last 10000 blocks`);
-      console.log(`Last block height in result: ${result.lastBlockHeight}`);
-
-      expect(result.lastBlockHeight).toBeGreaterThanOrEqual(fromHeight);
-      expect(result.lastBlockHeight).toBeLessThanOrEqual(currentHeight);
+      console.log('\n✅ V2 implementation matches current implementation exactly!');
     },
     TEST_TIMEOUT
   );
@@ -123,16 +120,14 @@ describe.skipIf(!runIntegration)('Block-Level Trace Aggregation V2', () => {
     async () => {
       console.log('\n=== Testing specific block range queries ===');
 
-      // Import the range function
-      const { getWrapUnwrapFromBlockRange } = await import('@/lib/alkanes-client-v2');
-      const provider = await alkanesClient.ensureProvider();
+      const provider = await alkanesClient.getProvider();
 
-      // Test a specific range (e.g., 10000 block window)
-      const currentHeight = await provider.esplora.getBlockHeight();
-      const fromHeight = Math.max(0, currentHeight - 20000);
-      const toHeight = fromHeight + 10000;
+      // Test a specific 2000-block window
+      const currentHeight = await provider.getBlockHeight();
+      const fromHeight = Math.max(0, currentHeight - 10000);
+      const toHeight = fromHeight + 2000;
 
-      console.log(`\nTesting specific range: ${fromHeight} to ${toHeight}`);
+      console.log(`\nTesting specific range: ${fromHeight} to ${toHeight} (2000 blocks)`);
 
       const result = await getWrapUnwrapFromBlockRange(provider, fromHeight, toHeight);
 

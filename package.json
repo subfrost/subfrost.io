@@ -31,7 +31,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@alkanes/ts-sdk": "https://alkanes.build/api/pkg/@alkanes/ts-sdk",
+    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "1.2.2",

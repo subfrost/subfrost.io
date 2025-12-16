@@ -229,6 +229,13 @@ class AlkanesClient {
   }
 
   /**
+   * Get the initialized provider (public accessor for tests)
+   */
+  async getProvider(): Promise<AlkanesProvider> {
+    return this.ensureProvider();
+  }
+
+  /**
    * Create a MessageContextParcel for simulate calls
    * See: reference/alkanes-rs/crates/alkanes-web-sys/src/provider.rs
    * See: reference/alkanes-rs/crates/alkanes-support/src/cellpack.rs
