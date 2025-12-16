@@ -19,8 +19,8 @@ async function testAddressTxs() {
   if (txs.length > 0) {
     // Show some block height stats
     const heights = txs
-      .filter(tx => tx.status?.block_height)
-      .map(tx => tx.status.block_height);
+      .filter((tx: any) => tx.status?.block_height)
+      .map((tx: any) => tx.status.block_height);
 
     if (heights.length > 0) {
       const minHeight = Math.min(...heights);
@@ -31,7 +31,7 @@ async function testAddressTxs() {
 
     // Show first few transactions
     console.log(`\nFirst 5 transactions:`);
-    txs.slice(0, 5).forEach(tx => {
+    txs.slice(0, 5).forEach((tx: any) => {
       console.log(`  - ${tx.txid} (block ${tx.status?.block_height || 'unconfirmed'})`);
     });
   }
