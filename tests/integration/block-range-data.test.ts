@@ -39,7 +39,7 @@ describe('Block Range Data Tests', () => {
 
     // Get address history - this should support pagination
     console.log('[Test] Fetching address history...');
-    const history = await provider.getAddressHistoryWithTraces(address, true);
+    const history = await provider.getAddressHistoryWithTraces(address);
 
     console.log(`[Test] Total transactions in history: ${history?.length || 0}`);
 
