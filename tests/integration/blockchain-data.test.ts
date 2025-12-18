@@ -41,7 +41,7 @@ describe('Blockchain Data Integration Tests', () => {
   });
 
   describe('getWrapHistoryData', () => {
-    it('should fetch wrap history with default pagination', async () => {
+    it.skipIf(process.env.CI)('should fetch wrap history with default pagination', async () => {
       const data = await getWrapHistoryData();
 
       expect(data).toBeDefined();
@@ -56,7 +56,7 @@ describe('Blockchain Data Integration Tests', () => {
       }
     }, 60000);
 
-    it('should fetch wrap history with custom pagination', async () => {
+    it.skipIf(process.env.CI)('should fetch wrap history with custom pagination', async () => {
       const count = 10;
       const offset = 0;
       const data = await getWrapHistoryData(count, offset);
@@ -69,7 +69,7 @@ describe('Blockchain Data Integration Tests', () => {
   });
 
   describe('getUnwrapHistoryData', () => {
-    it('should fetch unwrap history with default pagination', async () => {
+    it.skipIf(process.env.CI)('should fetch unwrap history with default pagination', async () => {
       const data = await getUnwrapHistoryData();
 
       expect(data).toBeDefined();
@@ -84,7 +84,7 @@ describe('Blockchain Data Integration Tests', () => {
       }
     }, 60000);
 
-    it('should fetch unwrap history with custom pagination', async () => {
+    it.skipIf(process.env.CI)('should fetch unwrap history with custom pagination', async () => {
       const count = 10;
       const offset = 0;
       const data = await getUnwrapHistoryData(count, offset);

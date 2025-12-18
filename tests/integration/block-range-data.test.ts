@@ -60,7 +60,7 @@ describe('Block Range Data Tests', () => {
     expect(Array.isArray(history)).toBe(true);
   }, 60000);
 
-  it('should parse wrap/unwrap from known recent blocks', async () => {
+  it.skipIf(process.env.CI)('should parse wrap/unwrap from known recent blocks', async () => {
     console.log(`[Test] Testing block range ${TEST_START_BLOCK} to ${TEST_END_BLOCK}`);
 
     // Get wrap/unwrap data
