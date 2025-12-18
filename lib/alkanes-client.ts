@@ -443,25 +443,34 @@ class AlkanesClient {
   async getFrbtcTotalSupply(): Promise<{ raw: bigint; adjusted: bigint; btc: number }> {
     const provider = await this.ensureProvider();
 
-    // Call simulate on 32:0 with opcode 105 (GetTotalSupply)
-    // Cellpack format: [block, tx, opcode] = [32, 0, 105]
-    const context = this.createSimulateContext(32, 0, [105]);
-    const result = await provider.alkanes.simulate(
-      '32:0',
-      JSON.stringify(context),
-      'latest'
+    // Use getstorageat to directly query the /totalsupply storage path
+    // This is more reliable than using simulate
+    const alkaneId = { block: 32n, tx: 0n };
+    const path = new TextEncoder().encode('/totalsupply');
+
+    const storageHex = await provider.alkanes.getstorageat(
+      `${alkaneId.block}:${alkaneId.tx}`,
+      path
     );
 
-    // Result is a hex-encoded SimulateResponse protobuf
-    const hexResult = typeof result === 'string' ? result : result?.toString?.() || '';
-    const dataBuffer = this.parseSimulateResponse(hexResult);
-
-    if (!dataBuffer || dataBuffer.length === 0) {
-      throw new Error('Failed to retrieve frBTC total supply');
+    if (!storageHex) {
+      throw new Error('Failed to retrieve frBTC total supply from storage');
     }
 
-    // Parse the data as little-endian u128
-    const totalSupply = parseU128LE('0x' + dataBuffer.toString('hex'));
+    // The returned hex value is little-endian and needs to be byte-reversed
+    const reverseHex = (hex: string): string => {
+      if (hex.startsWith('0x')) {
+        hex = hex.slice(2);
+      }
+      if (hex.length % 2) {
+        hex = '0' + hex;
+      }
+      const buf = Buffer.from(hex, 'hex');
+      return '0x' + buf.reverse().toString('hex');
+    };
+
+    const littleEndianHex = reverseHex(storageHex);
+    const totalSupply = BigInt(littleEndianHex);
 
     // Correction: unwraps were not calculated in total supply until a specific block
     const adjustedTotalSupply = totalSupply - 4443097n;
