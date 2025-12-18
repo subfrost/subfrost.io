@@ -54,6 +54,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      '@alkanes/ts-sdk/wasm/node-loader.cjs': path.resolve(__dirname, './node_modules/@alkanes/ts-sdk/wasm/node-loader.cjs'),
       '@alkanes/ts-sdk/wasm': path.resolve(__dirname, './node_modules/@alkanes/ts-sdk/wasm/index.js'),
     },
   },
