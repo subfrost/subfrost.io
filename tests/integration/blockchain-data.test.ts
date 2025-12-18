@@ -32,6 +32,12 @@ describe('Blockchain Data Integration Tests', () => {
     it('should fetch frBTC supply data from SDK', async () => {
       const data = await getFrbtcIssuedData();
 
+      console.log('\n=== frBTC Total Supply ===');
+      console.log('Raw Supply:     ', data.rawSupply);
+      console.log('Adjusted Supply:', data.adjustedSupply);
+      console.log('BTC Amount:     ', data.frBtcIssued.toFixed(8), 'BTC');
+      console.log('========================\n');
+
       expect(data).toBeDefined();
       expect(data.frBtcIssued).toBeTypeOf('number');
       expect(data.frBtcIssued).toBeGreaterThan(0);

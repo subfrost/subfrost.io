@@ -465,8 +465,9 @@ class AlkanesClient {
     const littleEndianHex = reverseHex(storageHex);
     const totalSupply = BigInt(littleEndianHex);
 
-    // Correction: unwraps were not calculated in total supply until a specific block
-    const adjustedTotalSupply = totalSupply - 4443097n;
+    // Correction: offset to match wrap/unwrap calculation
+    // Adjusted 2025-12-18 to align with actual wrap/unwrap totals
+    const adjustedTotalSupply = totalSupply - 5031097n;
     const totalSupplyBtc = Number(adjustedTotalSupply) / 1e8;
 
     return {
