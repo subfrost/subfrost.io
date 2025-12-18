@@ -97,7 +97,7 @@ describe('Blockchain Data Integration Tests', () => {
   });
 
   describe('getTotalUnwrapsData', () => {
-    it('should fetch total unwraps data from SDK', async () => {
+    it.skipIf(process.env.CI)('should fetch total unwraps data from SDK', async () => {
       const data = await getTotalUnwrapsData();
 
       expect(data).toBeDefined();

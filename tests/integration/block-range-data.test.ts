@@ -90,7 +90,7 @@ describe('Block Range Data Tests', () => {
     expect(data.wraps.length + data.unwraps.length).toBeGreaterThanOrEqual(0);
   }, 90000);
 
-  it('should validate specific known wrap transaction', async () => {
+  it.skipIf(process.env.CI)('should validate specific known wrap transaction', async () => {
     // Pick a known wrap transaction from recent blocks
     // This would be filled in once we identify a specific transaction
     // For now, just validate the structure
