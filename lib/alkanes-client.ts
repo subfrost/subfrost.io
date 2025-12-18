@@ -896,12 +896,6 @@ class AlkanesClient {
         const trace = traceEntry.trace?.trace;
         if (!trace || !trace.events) continue;
 
-        // Debug: Log all event types in this trace
-        if (trace.events.length > 0) {
-          const eventTypes = trace.events.map((e: any, i: number) => `${i}:${Object.keys(e.event || {})[0] || 'none'}`).join(', ');
-          console.log(`[DEBUG] tx ${tx.txid}: ${trace.events.length} events - ${eventTypes}`);
-        }
-
         // Parse trace events to find wrap/unwrap operations
         // We look for EnterContext events to alkane 32:0, check inputs[0] for opcode
         // Opcode 77 = wrap, 78 = unwrap
@@ -932,21 +926,18 @@ class AlkanesClient {
           if (!event || !event.EnterContext) continue;
 
           const enterContext = event.EnterContext;
-
-          // Debug: Log target info for first few EnterContext events
-          if (i < 2) {
-            console.log(`[DEBUG] tx ${tx.txid} EnterContext[${i}] target:`, JSON.stringify(enterContext.target));
-          }
+          const inner = enterContext.context?.inner;
+          if (!inner) continue;
 
           // Check if this is a call to frBTC (32:0)
-          if (!isFrbtc(enterContext.target)) continue;
+          if (!isFrbtc(inner.myself)) continue;
 
           // Check inputs[0] for opcode
-          const inputs = enterContext.inputs || [];
+          const inputs = inner.inputs || [];
           if (inputs.length === 0) continue;
 
-          const opcode = inputs[0];
-          console.log(`[DEBUG] Found EnterContext to 32:0 with opcode ${opcode} in tx ${tx.txid}`);
+          const opcodeValue = inputs[0];
+          const opcode = opcodeValue?.lo ?? opcodeValue;
 
           // Find the corresponding ExitContext event
           let exitContext = null;
@@ -959,12 +950,11 @@ class AlkanesClient {
           }
 
           if (opcode === 77) {
-            // WRAP: Check ExitContext for amount of 32:0 returned
-            if (exitContext?.alkanes) {
-              for (const alkaneTransfer of exitContext.alkanes) {
+            // WRAP: Check ExitContext response for amount of 32:0 returned
+            if (exitContext?.response?.alkanes) {
+              for (const alkaneTransfer of exitContext.response.alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   const amount = parseU128(alkaneTransfer.value);
-                  console.log(`[DEBUG] WRAP tx ${tx.txid}: amount=${amount}`);
                   if (amount > 0n) {
                     const senderAddress = extractSenderAddress(tx);
                     totalWrappedFrbtc += amount;
@@ -978,18 +968,18 @@ class AlkanesClient {
             let usedAmount = 0n;
             let returnedAmount = 0n;
 
-            // Get amount used from EnterContext
-            if (enterContext.alkanes) {
-              for (const alkaneTransfer of enterContext.alkanes) {
+            // Get amount used from EnterContext.context.inner.incoming_alkanes
+            if (inner.incoming_alkanes) {
+              for (const alkaneTransfer of inner.incoming_alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   usedAmount += parseU128(alkaneTransfer.value);
                 }
               }
             }
 
-            // Get amount returned from ExitContext
-            if (exitContext?.alkanes) {
-              for (const alkaneTransfer of exitContext.alkanes) {
+            // Get amount returned from ExitContext.response.alkanes
+            if (exitContext?.response?.alkanes) {
+              for (const alkaneTransfer of exitContext.response.alkanes) {
                 if (isFrbtc(alkaneTransfer.id)) {
                   returnedAmount += parseU128(alkaneTransfer.value);
                 }
@@ -998,7 +988,6 @@ class AlkanesClient {
 
             // Burned amount is the difference
             const burnedAmount = usedAmount - returnedAmount;
-            console.log(`[DEBUG] UNWRAP tx ${tx.txid}: used=${usedAmount}, returned=${returnedAmount}, burned=${burnedAmount}`);
             if (burnedAmount > 0n) {
               const recipientAddress = extractRecipientAddress(tx, subfrostAddress);
               totalUnwrappedFrbtc += burnedAmount;
