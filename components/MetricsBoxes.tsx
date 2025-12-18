@@ -65,6 +65,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
   const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps');
 
+  // Fetch BRC2.0 frBTC stats
+  const { data: brc20Stats } = useSWR('/api/brc20-frbtc-stats', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
+
   // Fetch wrap/unwrap totals for lifetime transaction value
   const { data: wrapUnwrapTotals } = useSWR('/api/wrap-unwrap-totals', fetcher, {
     refreshInterval: 900000, // 15 minutes
@@ -99,40 +104,49 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       : wrapUnwrapTotals.totalWrappedBtc + wrapUnwrapTotals.totalUnwrappedBtc
   );
 
+  // BRC2.0 values
+  const brc20FrbtcSupply = brc20Stats?.totalSupplyBtc ?? 0;
+  const brc20BtcLocked = brc20Stats?.btcLocked?.btc ?? 0;
+  const brc20SignerAddress = brc20Stats?.signerAddress ?? '';
+
+  // Combined totals (Alkanes + BRC2.0)
+  const combinedFrbtcSupply = (typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue : 0) + brc20FrbtcSupply;
+  const combinedBtcLocked = (typeof btcLockedValue === 'number' ? btcLockedValue : 0) + brc20BtcLocked;
+
   const metrics = [
-    { 
+    {
       superTitle: 'Current',
-      title: 'frBTC Supply', 
-      value: getDisplayValue(frBtcIssuedValue), 
-      linkText: 'Contracts', 
+      title: 'frBTC Supply',
+      value: getDisplayValue(combinedFrbtcSupply),
+      linkText: 'Contracts',
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: frBTC <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
-          <p>BRC2.0: FR-BTC <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(6-byte)</a></p>
+          <p>Alkanes: {typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue.toFixed(5) : '...'} <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
+          <p>BRC2.0: {brc20FrbtcSupply.toFixed(5)} <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(FR-BTC)</a></p>
         </div>
       )
     },
-    { 
+    {
       superTitle: 'Current',
-      title: 'BTC Locked', 
-      value: getDisplayValue(btcLockedValue), 
-      linkText: 'Verify', 
+      title: 'BTC Locked',
+      value: getDisplayValue(combinedBtcLocked),
+      linkText: 'Verify',
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
-          <p>BRC2.0: TBD</p>
+          <p>Alkanes: {typeof btcLockedValue === 'number' ? btcLockedValue.toFixed(5) : '...'} <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
+          <p>BRC2.0: {brc20BtcLocked.toFixed(5)} {brc20SignerAddress && <a href={`https://mempool.space/address/${brc20SignerAddress}`} target="_blank" rel="noopener noreferrer" className="underline">bc1p..qaj</a>}</p>
         </div>
       )
     },
     { superTitle: 'Lifetime', title: 'BTC Tx Value', value: getDisplayValue(lifetimeBtcTxValue) },
-    { 
+    {
       superTitle: 'Early',
-      title: 'Partnerships', 
-      value: '19', 
+      title: 'Partnerships',
+      value: '19',
       linkText: 'Visit Them!',
-      linkType: 'modal' 
+      linkType: 'modal'
     },
   ];
 
