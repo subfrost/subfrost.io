@@ -49,6 +49,7 @@ describe('GET /api/btc-locked', () => {
       btcLocked: mockBtcLockedData.btc,
       satoshis: mockBtcLockedData.satoshis,
       utxoCount: mockBtcLockedData.utxoCount,
+      address: mockBtcLockedData.address,
       blockHeight: 100000,
     });
 
@@ -85,7 +86,8 @@ describe('GET /api/btc-locked', () => {
   });
 
   it('returns error response when sync fails', async () => {
-    (syncBtcLocked as any).mockRejectedValue(new Error('RPC error'));
+    (syncBtcLocked as any).mockRejectedValue(new Error('Database error'));
+    (alkanesClient.getBtcLocked as any).mockRejectedValue(new Error('RPC error'));
 
     const response = await GET();
     const data = await response.json();
@@ -99,6 +101,7 @@ describe('GET /api/btc-locked', () => {
       btcLocked: mockBtcLockedData.btc,
       satoshis: mockBtcLockedData.satoshis,
       utxoCount: mockBtcLockedData.utxoCount,
+      address: mockBtcLockedData.address,
       blockHeight: 100000,
     });
 

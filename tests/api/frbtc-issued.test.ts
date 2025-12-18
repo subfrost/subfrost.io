@@ -22,10 +22,18 @@ vi.mock('@/lib/sync-service', () => ({
   syncFrbtcSupply: vi.fn(),
 }));
 
+// Mock alkanes-client
+vi.mock('@/lib/alkanes-client', () => ({
+  alkanesClient: {
+    getFrbtcTotalSupply: vi.fn(),
+  },
+}));
+
 // Import after mocking
 import { GET } from '@/app/api/frbtc-issued/route';
 import { cacheGet, cacheSet } from '@/lib/redis';
 import { syncFrbtcSupply } from '@/lib/sync-service';
+import { alkanesClient } from '@/lib/alkanes-client';
 
 describe('GET /api/frbtc-issued', () => {
   beforeEach(() => {
@@ -72,7 +80,8 @@ describe('GET /api/frbtc-issued', () => {
   });
 
   it('returns error response when sync fails', async () => {
-    (syncFrbtcSupply as any).mockRejectedValue(new Error('RPC error'));
+    (syncFrbtcSupply as any).mockRejectedValue(new Error('Database error'));
+    (alkanesClient.getFrbtcTotalSupply as any).mockRejectedValue(new Error('RPC error'));
 
     const response = await GET();
     const data = await response.json();
