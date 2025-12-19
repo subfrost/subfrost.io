@@ -216,12 +216,18 @@ class AlkanesClient {
 
     if (!this.initPromise) {
       this.initPromise = (async () => {
-        this.provider = new AlkanesProvider({
+        const provider = new AlkanesProvider({
           network: this.network as 'mainnet' | 'testnet' | 'signet' | 'regtest',
           rpcUrl: this.rpcUrl,
         });
-        await this.provider.initialize();
-      })();
+        await provider.initialize();
+        // Only set this.provider after successful initialization
+        this.provider = provider;
+      })().catch((error) => {
+        // Reset state on failure so next call can retry
+        this.initPromise = null;
+        throw error;
+      });
     }
 
     await this.initPromise;

@@ -11,7 +11,7 @@
  * - getBtcLockedAtSignerAddress(): Query BTC locked at the computed taproot address
  */
 
-import { keccak256, toHex, encodeFunctionData, decodeFunctionResult } from 'viem';
+import { keccak256, toHex } from 'viem';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { alkanesClient } from './alkanes-client';
