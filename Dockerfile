@@ -71,7 +71,8 @@ COPY --from=builder /app/.next/static ./.next/static
 
 # Copy packages with binary/WASM files that standalone misses
 COPY --from=builder /app/node_modules/tiny-secp256k1 ./node_modules/tiny-secp256k1
-COPY --from=builder /app/node_modules/@alkanes/ts-sdk/wasm ./node_modules/@alkanes/ts-sdk/wasm
+# Copy entire @alkanes/ts-sdk package (marked as serverExternalPackages in next.config)
+COPY --from=builder /app/node_modules/@alkanes ./node_modules/@alkanes
 
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
