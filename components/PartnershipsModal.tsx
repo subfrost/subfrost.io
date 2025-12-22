@@ -28,12 +28,6 @@ const partnershipSections = [
         link: 'https://app.oyl.io/portfolio/',
       },
       {
-        logo: '/Partner Logos/idclub.png',
-        name: 'iDclub',
-        description: 'Alkanes Marketplace & Launchpad',
-        link: 'https://idclub.io/marketplace',
-      },
-      {
         logo: '/Partner Logos/satonomylogo.png',
         name: 'Satonomy',
         description: 'UTXO Management Platform',

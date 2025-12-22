@@ -113,7 +113,6 @@ const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
   { name: "Saturn BTC", logo: "Saturn.svg", description: "Premier AMM/DEX on Arch Network", link: "https://www.saturnbtc.io/app/swap", tag: "DeFi" },
   { name: "[Best in Slot]", logo: "bestinslot.png", description: "Sequencer-powered AMM on BRC2.0", link: "https://bestinslot.xyz/", tag: "DeFi" },
-  { name: "iDclub", logo: "idclub.png", description: "Alkanes Marketplace & Launchpad", link: "https://idclub.io/marketplace", tag: "DeFi" },
   { name: "Sats Terminal", logo: "satsterminal.jpg", description: "Swap for Alkanes, Runes, and Spark Tokens", link: "https://www.satsterminal.com/", tag: "DeFi" },
   { name: "Yuzo", logo: "Yuzo.png", description: "₿apps on Bitcoin Layer-1 via BRC2.0", link: "https://yuzo.xyz/", tag: "DeFi" },
   { name: "CatSwap", logo: "catswap.jpg", description: "Premier AMM/DEX on BRC2.0", link: "https://catswap.fun/", tag: "DeFi" },
