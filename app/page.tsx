@@ -213,10 +213,10 @@ export default function Page() {
           API LOGIN
         </a>
 
-        {/* Updated positioning to place the bottom of the title just above center */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl px-4 h-screen">
-          {/* Content container with adjusted positioning */}
-          <div className="flex flex-col items-center w-full absolute top-[50%] left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        {/* Main content - centered using flex, takes available space */}
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center w-full max-w-4xl px-4 pt-16">
+          {/* Content container */}
+          <div className="flex flex-col items-center w-full">
             {/* SUBFROST title - changed B to ₿ */}
             <div className="w-full px-2 sm:px-0">
               <h1
@@ -244,7 +244,8 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="absolute bottom-16">
+        {/* Arrow at bottom - in document flow, will be clipped when viewport shrinks */}
+        <div className="flex-shrink-0 pb-2">
           <ScrollArrow
             direction="down"
             onClick={handleScrollDown}

@@ -21,7 +21,7 @@ const ScrollArrow: React.FC<ScrollArrowProps> = ({
   showLabel = true,
 }) => {
   return (
-    <div className="flex flex-col items-center mt-16 cursor-pointer" onClick={onClick}>
+    <div className="flex flex-col items-center mt-8 cursor-pointer" onClick={onClick}>
       {/* Label above the arrow for downward arrows */}
       {direction === "down" && label && showLabel && (
         <p

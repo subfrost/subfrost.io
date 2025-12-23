@@ -217,7 +217,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             Metrics refresh every block.
           </div>
           <div className="text-center text-orange-400 font-semibold" style={{ fontSize: isModal ? '0.65rem' : '0.55rem' }}>
-            ⚠️ Under Maintenance: Metrics other than BTC Locked and frBTC Supply may not be accurate.
+            ⚠️  Under Maintenance: Metrics other than BTC Locked are not accurate.
           </div>
         </div>
       </div>

@@ -27,12 +27,14 @@ interface ActionButtonsProps {
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onFrbtcActivityClick }) => {
   return (
     <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
-      <button
-        onClick={onFrbtcActivityClick}
-        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm"
+      <a
+        href="https://api.subfrost.io/docs"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex justify-center px-2 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm whitespace-nowrap"
       >
-        frBTC ACTIVITY
-      </button>
+        SUBFROST API DOCS
+      </a>
       <a
         href="https://docs.subfrost.io/"
         target="_blank"
