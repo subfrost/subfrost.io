@@ -117,13 +117,13 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     {
       superTitle: 'Current',
       title: 'frBTC Supply',
-      value: getDisplayValue(combinedFrbtcSupply),
+      value: '...',
       linkText: 'Contracts',
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue.toFixed(5) : '...'} <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
-          <p>BRC2.0: {brc20FrbtcSupply.toFixed(5)} <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(FR-BTC)</a></p>
+          <p>Alkanes: ... <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
+          <p>BRC2.0: ... <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(FR-BTC)</a></p>
         </div>
       )
     },
@@ -140,11 +140,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: getDisplayValue(lifetimeBtcTxValue) },
+    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: '...' },
     {
       superTitle: 'Early',
       title: 'Partnerships',
-      value: '19',
+      value: '...',
       linkText: 'Visit Them!',
       linkType: 'modal'
     },
