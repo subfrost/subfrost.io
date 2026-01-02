@@ -63,15 +63,10 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const btcLockedValue = useMetric('/api/btc-locked', 'btcLocked');
   const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
-  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps');
+  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps', (value) => value / 1e8);
 
   // Fetch BRC2.0 frBTC stats
   const { data: brc20Stats } = useSWR('/api/brc20-frbtc-stats', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
-
-  // Fetch wrap/unwrap totals for lifetime transaction value
-  const { data: wrapUnwrapTotals } = useSWR('/api/wrap-unwrap-totals', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
 
@@ -97,11 +92,11 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     return btcValue.toFixed(5);
   };
 
-  // Lifetime BTC Tx Value = Total Wrapped + Total Unwrapped (total transaction volume)
+  // Lifetime BTC Tx Value = frBTC Supply + Total Unwrapped (equals total wrapped)
   const lifetimeBtcTxValue = (
-    !wrapUnwrapTotals || typeof wrapUnwrapTotals.totalWrappedBtc !== 'number' || typeof wrapUnwrapTotals.totalUnwrappedBtc !== 'number'
+    typeof frBtcIssuedValue !== 'number' || typeof totalUnwrapsValue !== 'number'
       ? '...'
-      : wrapUnwrapTotals.totalWrappedBtc + wrapUnwrapTotals.totalUnwrappedBtc
+      : frBtcIssuedValue + totalUnwrapsValue
   );
 
   // BRC2.0 values

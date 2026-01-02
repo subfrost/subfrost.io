@@ -1,108 +1,108 @@
 /**
  * Unit tests for /api/wrap-unwrap-totals endpoint
+ *
+ * This endpoint fetches totals from OYL API:
+ * - Total unwrap amount from get-total-unwrap-amount
+ * - Total wrap amount by summing all wraps from get-all-wrap-history (paginated)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Redis
-vi.mock('@/lib/redis', () => ({
-  cacheGet: vi.fn(),
-  cacheSet: vi.fn(),
-}));
+// Mock fetch globally
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
-// Mock sync service
-vi.mock('@/lib/sync-service', () => ({
-  syncWrapUnwrapTransactions: vi.fn(),
-  getAggregatedTotals: vi.fn(),
-}));
-
-// Mock alkanes client
-vi.mock('@/lib/alkanes-client', () => ({
-  alkanesClient: {
-    getCurrentHeight: vi.fn(),
-  },
-}));
-
-// Import after mocking
+// Import after setting up mocks
 import { GET } from '@/app/api/wrap-unwrap-totals/route';
-import { cacheGet, cacheSet } from '@/lib/redis';
-import { syncWrapUnwrapTransactions, getAggregatedTotals } from '@/lib/sync-service';
-import { alkanesClient } from '@/lib/alkanes-client';
+
+// Helper to create mock wrap history response
+function createWrapHistoryResponse(items: any[], total: number) {
+  return {
+    ok: true,
+    json: async () => ({
+      data: {
+        items,
+        total,
+      },
+    }),
+  };
+}
+
+// Helper to create mock total unwrap response
+function createTotalUnwrapResponse(totalAmount: string) {
+  return {
+    ok: true,
+    json: async () => ({
+      data: {
+        totalAmount,
+      },
+    }),
+  };
+}
 
 describe('GET /api/wrap-unwrap-totals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (cacheGet as any).mockResolvedValue(null); // Default: no cache
-    (alkanesClient.getCurrentHeight as any).mockResolvedValue(100000);
   });
 
-  it('returns wrap/unwrap totals from aggregated data', async () => {
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 5,
-      newUnwraps: 3,
-      lastHeight: 100000,
-    });
-    (getAggregatedTotals as any).mockResolvedValue({
-      totalWrapped: 500000000n, // 5 BTC in satoshis
-      totalUnwrapped: 175000000n, // 1.75 BTC in satoshis
-      wrapCount: 100,
-      unwrapCount: 50,
-      lastBlockHeight: 100000,
-    });
+  it('returns wrap/unwrap totals with correct structure', async () => {
+    // Mock total unwrap call
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse('175000000'));
+
+    // Mock wrap history call (single page with 2 items)
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse(
+      [
+        { txid: 'wrap1', amount: '100000000' },
+        { txid: 'wrap2', amount: '150000000' },
+      ],
+      2
+    ));
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalWrappedFrbtc).toBe('500000000');
+    expect(data.totalWrappedFrbtc).toBe('250000000'); // 100M + 150M satoshis
     expect(data.totalUnwrappedFrbtc).toBe('175000000');
-    expect(data.totalWrappedBtc).toBe(5);
+    expect(data.totalWrappedBtc).toBe(2.5);
     expect(data.totalUnwrappedBtc).toBe(1.75);
-    expect(data.wrapCount).toBe(100);
-    expect(data.unwrapCount).toBe(50);
-    expect(data.lastBlockHeight).toBe(100000);
-    expect(data.currentBlockHeight).toBe(100000);
+    expect(data.wrapCount).toBe(2);
     expect(data.timestamp).toBeDefined();
-    expect(cacheSet).toHaveBeenCalled();
+    expect(typeof data.timestamp).toBe('number');
   });
 
-  it('returns cached result when available', async () => {
-    const cachedData = {
-      totalWrappedFrbtc: '250000000',
-      totalUnwrappedFrbtc: '100000000',
-      totalWrappedBtc: 2.5,
-      totalUnwrappedBtc: 1,
-      wrapCount: 50,
-      unwrapCount: 25,
-      lastBlockHeight: 99999,
-      currentBlockHeight: 99999,
-      timestamp: Date.now(),
-    };
-    (cacheGet as any).mockResolvedValue(cachedData);
+  it('handles pagination for wrap history correctly', async () => {
+    // Mock total unwrap call
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse('50000000'));
+
+    // Mock first page of wrap history
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse(
+      Array(100).fill({ txid: 'wrap', amount: '1000000' }), // 100 items of 0.01 BTC each
+      150 // Total is 150, so need another page
+    ));
+
+    // Mock second page of wrap history
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse(
+      Array(50).fill({ txid: 'wrap', amount: '1000000' }), // 50 items of 0.01 BTC each
+      150
+    ));
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalWrappedBtc).toBe(2.5);
-    expect(data.totalUnwrappedBtc).toBe(1);
-    expect(syncWrapUnwrapTransactions).not.toHaveBeenCalled();
-    expect(getAggregatedTotals).not.toHaveBeenCalled();
+    // 150 items * 1000000 satoshis = 150000000 satoshis = 1.5 BTC
+    expect(data.totalWrappedFrbtc).toBe('150000000');
+    expect(data.totalWrappedBtc).toBe(1.5);
+    expect(data.wrapCount).toBe(150);
+
+    // Should have made 3 fetch calls: 1 for total unwrap, 2 for wrap history pages
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
-  it('handles empty transaction history', async () => {
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 0,
-      newUnwraps: 0,
-      lastHeight: 100000,
-    });
-    (getAggregatedTotals as any).mockResolvedValue({
-      totalWrapped: 0n,
-      totalUnwrapped: 0n,
-      wrapCount: 0,
-      unwrapCount: 0,
-      lastBlockHeight: 100000,
-    });
+  it('handles empty wrap history', async () => {
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse('0'));
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse([], 0));
 
     const response = await GET();
     const data = await response.json();
@@ -111,11 +111,13 @@ describe('GET /api/wrap-unwrap-totals', () => {
     expect(data.totalWrappedBtc).toBe(0);
     expect(data.totalUnwrappedBtc).toBe(0);
     expect(data.wrapCount).toBe(0);
-    expect(data.unwrapCount).toBe(0);
   });
 
-  it('returns error response when sync fails', async () => {
-    (syncWrapUnwrapTransactions as any).mockRejectedValue(new Error('Sync failed'));
+  it('handles OYL API error for total unwrap', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
 
     const response = await GET();
     const data = await response.json();
@@ -124,8 +126,12 @@ describe('GET /api/wrap-unwrap-totals', () => {
     expect(data.error).toBe('Failed to fetch wrap/unwrap totals.');
   });
 
-  it('returns error response when getCurrentHeight fails', async () => {
-    (alkanesClient.getCurrentHeight as any).mockRejectedValue(new Error('RPC error'));
+  it('handles OYL API error for wrap history', async () => {
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse('50000000'));
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
 
     const response = await GET();
     const data = await response.json();
@@ -134,13 +140,8 @@ describe('GET /api/wrap-unwrap-totals', () => {
     expect(data.error).toBe('Failed to fetch wrap/unwrap totals.');
   });
 
-  it('returns error response when getAggregatedTotals fails', async () => {
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 0,
-      newUnwraps: 0,
-      lastHeight: 100000,
-    });
-    (getAggregatedTotals as any).mockRejectedValue(new Error('DB error'));
+  it('handles network errors gracefully', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
     const response = await GET();
     const data = await response.json();
@@ -149,26 +150,50 @@ describe('GET /api/wrap-unwrap-totals', () => {
     expect(data.error).toBe('Failed to fetch wrap/unwrap totals.');
   });
 
-  it('includes current and last block height in response', async () => {
-    (alkanesClient.getCurrentHeight as any).mockResolvedValue(100005);
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 2,
-      newUnwraps: 1,
-      lastHeight: 100005,
-    });
-    (getAggregatedTotals as any).mockResolvedValue({
-      totalWrapped: 100000000n,
-      totalUnwrapped: 50000000n,
-      wrapCount: 10,
-      unwrapCount: 5,
-      lastBlockHeight: 100005,
-    });
+  it('calls OYL API with correct parameters', async () => {
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse('0'));
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse([], 0));
+
+    await GET();
+
+    // First call should be total unwrap amount
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://mainnet-api.oyl.gg/get-total-unwrap-amount',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'x-oyl-api-key': 'd6aebfed1769128379aca7d215f0b689',
+        }),
+      })
+    );
+
+    // Second call should be wrap history with pagination
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://mainnet-api.oyl.gg/get-all-wrap-history',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ count: 100, offset: 0 }),
+      })
+    );
+  });
+
+  it('handles large amounts correctly', async () => {
+    const largeAmount = '99999999999999'; // Large satoshi amount
+    mockFetch.mockResolvedValueOnce(createTotalUnwrapResponse(largeAmount));
+    mockFetch.mockResolvedValueOnce(createWrapHistoryResponse(
+      [{ txid: 'wrap1', amount: largeAmount }],
+      1
+    ));
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.currentBlockHeight).toBe(100005);
-    expect(data.lastBlockHeight).toBe(100005);
+    expect(data.totalWrappedFrbtc).toBe(largeAmount);
+    expect(data.totalUnwrappedFrbtc).toBe(largeAmount);
+    // Verify BTC conversion is correct
+    expect(data.totalWrappedBtc).toBe(Number(BigInt(largeAmount)) / 1e8);
   });
 });

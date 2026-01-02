@@ -1,103 +1,106 @@
 /**
  * Unit tests for /api/total-unwraps endpoint
+ *
+ * This endpoint calls the OYL mainnet API to get total unwrap amount.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Redis
-vi.mock('@/lib/redis', () => ({
-  cacheGet: vi.fn(),
-  cacheSet: vi.fn(),
-}));
+// Mock fetch globally
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
-// Mock sync service
-vi.mock('@/lib/sync-service', () => ({
-  syncWrapUnwrapTransactions: vi.fn(),
-  getAggregatedTotals: vi.fn(),
-}));
-
-// Import after mocking
+// Import after setting up mocks
 import { GET } from '@/app/api/total-unwraps/route';
-import { cacheGet, cacheSet } from '@/lib/redis';
-import { syncWrapUnwrapTransactions, getAggregatedTotals } from '@/lib/sync-service';
 
 describe('GET /api/total-unwraps', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (cacheGet as any).mockResolvedValue(null); // Default: no cache
   });
 
-  it('returns total unwraps from aggregated data', async () => {
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 0,
-      newUnwraps: 0,
-      lastHeight: 100000,
-    });
-    (getAggregatedTotals as any).mockResolvedValue({
-      totalWrapped: 500000000n,
-      totalUnwrapped: 175000000n, // 1.75 BTC in satoshis
-      wrapCount: 10,
-      unwrapCount: 5,
-      lastBlockHeight: 100000,
+  it('returns total unwraps from OYL API', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          totalAmount: '89494469', // satoshis
+        },
+      }),
     });
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.totalUnwraps).toBe(1.75);
-    expect(data.totalUnwrapsSatoshis).toBe('175000000');
-    expect(data.unwrapCount).toBe(5);
-    expect(cacheSet).toHaveBeenCalled();
+    expect(data.totalUnwraps).toBe('89494469');
+
+    // Verify correct API call
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://mainnet-api.oyl.gg/get-total-unwrap-amount',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'x-oyl-api-key': 'd6aebfed1769128379aca7d215f0b689',
+        }),
+      })
+    );
   });
 
-  it('returns cached result when available', async () => {
-    const cachedData = {
-      totalUnwraps: 2.5,
-      totalUnwrapsSatoshis: '250000000',
-      unwrapCount: 8,
-      lastBlockHeight: 99999,
-      timestamp: Date.now(),
-    };
-    (cacheGet as any).mockResolvedValue(cachedData);
-
-    const response = await GET();
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.totalUnwraps).toBe(2.5);
-    expect(syncWrapUnwrapTransactions).not.toHaveBeenCalled();
-  });
-
-  it('handles empty unwrap history', async () => {
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 0,
-      newUnwraps: 0,
-      lastHeight: 100000,
+  it('handles OYL API errors gracefully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
     });
-    (getAggregatedTotals as any).mockResolvedValue({
-      totalWrapped: 0n,
-      totalUnwrapped: 0n,
-      wrapCount: 0,
-      unwrapCount: 0,
-      lastBlockHeight: 100000,
-    });
-
-    const response = await GET();
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.totalUnwraps).toBe(0);
-    expect(data.unwrapCount).toBe(0);
-  });
-
-  it.skipIf(process.env.CI)('returns error response when sync fails', async () => {
-    (syncWrapUnwrapTransactions as any).mockRejectedValue(new Error('Sync failed'));
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to fetch total unwraps.');
+  });
+
+  it('handles network errors gracefully', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('Failed to fetch total unwraps.');
+  });
+
+  it('handles zero unwraps', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          totalAmount: '0',
+        },
+      }),
+    });
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.totalUnwraps).toBe('0');
+  });
+
+  it('handles large amounts correctly', async () => {
+    const largeAmount = '999999999999999'; // Large satoshi amount
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          totalAmount: largeAmount,
+        },
+      }),
+    });
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.totalUnwraps).toBe(largeAmount);
   });
 });

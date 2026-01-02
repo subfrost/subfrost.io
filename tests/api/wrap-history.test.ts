@@ -1,25 +1,17 @@
 /**
  * Unit tests for /api/wrap-history endpoint
+ *
+ * This endpoint calls the OYL mainnet API to get wrap history with pagination.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Redis
-vi.mock('@/lib/redis', () => ({
-  cacheGet: vi.fn(),
-  cacheSet: vi.fn(),
-}));
+// Mock fetch globally
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
-// Mock sync service
-vi.mock('@/lib/sync-service', () => ({
-  syncWrapUnwrapTransactions: vi.fn(),
-  getWrapHistory: vi.fn(),
-}));
-
-// Import after mocking
+// Import after setting up mocks
 import { GET } from '@/app/api/wrap-history/route';
-import { cacheGet, cacheSet } from '@/lib/redis';
-import { syncWrapUnwrapTransactions, getWrapHistory } from '@/lib/sync-service';
 
 // Helper to create mock request
 function createMockRequest(params: Record<string, string> = {}): Request {
@@ -33,83 +25,149 @@ function createMockRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/wrap-history', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (cacheGet as any).mockResolvedValue(null); // Default: no cache
-    (syncWrapUnwrapTransactions as any).mockResolvedValue({
-      newWraps: 0,
-      newUnwraps: 0,
-      lastHeight: 100000,
-    });
   });
 
   it('returns wrap history with default pagination', async () => {
     const mockItems = [
-      { txid: 'abc123', amount: '100000000', blockHeight: 100000, timestamp: new Date('2024-01-01'), senderAddress: 'bc1...' },
-      { txid: 'def456', amount: '50000000', blockHeight: 99999, timestamp: new Date('2024-01-02'), senderAddress: 'bc1...' },
+      { txid: 'abc123', amount: '100000000', blockHeight: 100000 },
+      { txid: 'def456', amount: '50000000', blockHeight: 99999 },
     ];
 
-    (getWrapHistory as any).mockResolvedValue({
-      items: mockItems,
-      total: 100,
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          items: mockItems,
+          total: 100,
+        },
+      }),
     });
 
     const response = await GET(createMockRequest());
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.items).toHaveLength(2);
-    expect(data.total).toBe(100);
-    expect(data.count).toBe(25);
-    expect(data.offset).toBe(0);
+    expect(data.data.items).toHaveLength(2);
+    expect(data.data.total).toBe(100);
+
+    // Verify default pagination was used
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://mainnet-api.oyl.gg/get-all-wrap-history',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ count: 25, offset: 0 }),
+      })
+    );
   });
 
-  it('passes pagination parameters to getWrapHistory', async () => {
-    (getWrapHistory as any).mockResolvedValue({
-      items: [],
-      total: 0,
+  it('passes pagination parameters correctly', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          items: [],
+          total: 0,
+        },
+      }),
     });
 
     await GET(createMockRequest({ count: '50', offset: '100' }));
 
-    expect(getWrapHistory).toHaveBeenCalledWith(50, 100);
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://mainnet-api.oyl.gg/get-all-wrap-history',
+      expect.objectContaining({
+        body: JSON.stringify({ count: 50, offset: 100 }),
+      })
+    );
   });
 
-  it('uses default pagination values', async () => {
-    (getWrapHistory as any).mockResolvedValue({
-      items: [],
-      total: 0,
+  it('includes required headers in OYL API call', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { items: [], total: 0 },
+      }),
     });
 
     await GET(createMockRequest());
 
-    expect(getWrapHistory).toHaveBeenCalledWith(25, 0);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'x-oyl-api-key': 'd6aebfed1769128379aca7d215f0b689',
+        }),
+      })
+    );
   });
 
-  it('returns cached result when available', async () => {
-    const cachedData = {
-      items: [{ txid: 'cached123' }],
-      total: 50,
-      count: 25,
-      offset: 0,
-      timestamp: Date.now(),
-    };
-    (cacheGet as any).mockResolvedValue(cachedData);
-
-    const response = await GET(createMockRequest());
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.items[0].txid).toBe('cached123');
-    expect(syncWrapUnwrapTransactions).not.toHaveBeenCalled();
-    expect(getWrapHistory).not.toHaveBeenCalled();
-  });
-
-  it.skipIf(process.env.CI)('returns error response when sync fails', async () => {
-    (syncWrapUnwrapTransactions as any).mockRejectedValue(new Error('Sync failed'));
+  it('handles OYL API errors gracefully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
 
     const response = await GET(createMockRequest());
     const data = await response.json();
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to fetch wrap history.');
+  });
+
+  it('handles network errors gracefully', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    const response = await GET(createMockRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('Failed to fetch wrap history.');
+  });
+
+  it('returns empty array when no wraps exist', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          items: [],
+          total: 0,
+        },
+      }),
+    });
+
+    const response = await GET(createMockRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.data.items).toHaveLength(0);
+    expect(data.data.total).toBe(0);
+  });
+
+  it('preserves all item properties from OYL response', async () => {
+    const mockItem = {
+      txid: 'abc123',
+      amount: '100000000',
+      blockHeight: 100000,
+      timestamp: '2024-01-01T00:00:00Z',
+      senderAddress: 'bc1p...',
+      recipientAddress: 'bc1q...',
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          items: [mockItem],
+          total: 1,
+        },
+      }),
+    });
+
+    const response = await GET(createMockRequest());
+    const data = await response.json();
+
+    expect(data.data.items[0]).toEqual(mockItem);
   });
 });

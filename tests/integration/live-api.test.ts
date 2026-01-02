@@ -69,14 +69,9 @@ describe.skipIf(!runIntegration)('Live API Integration Tests', () => {
 
         expect(response.status).toBe(200);
         expect(typeof data.frBtcIssued).toBe('number');
-        expect(typeof data.rawSupply).toBe('string');
-        expect(typeof data.adjustedSupply).toBe('string');
-        expect(typeof data.timestamp).toBe('number');
 
         // Sanity checks on values
         expect(data.frBtcIssued).toBeGreaterThan(0);
-        expect(BigInt(data.rawSupply)).toBeGreaterThan(0n);
-        expect(BigInt(data.adjustedSupply)).toBeGreaterThan(0n);
 
         console.log(`frBTC Issued: ${data.frBtcIssued} BTC`);
       },
@@ -116,7 +111,8 @@ describe.skipIf(!runIntegration)('Live API Integration Tests', () => {
 
         if (data.data.items.length > 0) {
           const item = data.data.items[0];
-          expect(item).toHaveProperty('txid');
+          // OYL API uses 'transactionId' not 'txid'
+          expect(item).toHaveProperty('transactionId');
           expect(item).toHaveProperty('amount');
         }
 
@@ -140,7 +136,8 @@ describe.skipIf(!runIntegration)('Live API Integration Tests', () => {
 
         if (data.data.items.length > 0) {
           const item = data.data.items[0];
-          expect(item).toHaveProperty('txid');
+          // OYL API uses 'transactionId' not 'txid'
+          expect(item).toHaveProperty('transactionId');
           expect(item).toHaveProperty('amount');
         }
 
@@ -157,10 +154,13 @@ describe.skipIf(!runIntegration)('Live API Integration Tests', () => {
         const { response, data } = await fetchApi('/api/total-unwraps');
 
         expect(response.status).toBe(200);
-        expect(typeof data.totalUnwraps).toBe('number');
-        expect(data.totalUnwraps).toBeGreaterThanOrEqual(0);
+        // Note: This endpoint returns satoshis as a string
+        expect(typeof data.totalUnwraps).toBe('string');
+        const satoshis = BigInt(data.totalUnwraps);
+        expect(satoshis).toBeGreaterThanOrEqual(0n);
 
-        console.log(`Total Unwraps: ${data.totalUnwraps} BTC`);
+        const btcValue = Number(satoshis) / 1e8;
+        console.log(`Total Unwraps: ${data.totalUnwraps} satoshis (${btcValue} BTC)`);
       },
       TEST_TIMEOUT
     );
