@@ -14,6 +14,7 @@ interface Asset {
   description: string
   icon: string
   hoverIcon?: string
+  icons?: { icon: string; hoverIcon?: string }[]
   color: string
   badge?: string
 }
@@ -30,26 +31,21 @@ const assets: Asset[] = [
   {
     symbol: "frUSD",
     name: "Stablecoin Utilization on Bitcoin",
-    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin.",
+    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin L1.",
     icon: "/usdt_empty.svg",
     hoverIcon: "/usdt_snowflake.svg",
     color: "from-green-500 to-green-700"
   },
   {
-    symbol: "frZEC",
-    name: "Zcash Properties on Bitcoin",
-    description: "Bringing ZEC to/from markets on Bitcoin.",
-    icon: "/zec_empty.svg",
-    hoverIcon: "/zec_snowflake.svg",
-    color: "from-yellow-500 to-yellow-700"
-  },
-  {
-    symbol: "frETH",
-    name: "ETH Exposure on Bitcoin",
-    description: "Ethereum access directly within Bitcoin DeFi.",
-    icon: "/eth_empty.svg",
-    hoverIcon: "/eth_snowflake.svg",
-    color: "from-purple-500 to-purple-700"
+    symbol: "Other Mains",
+    name: "Bridge High Volume Assets to Bitcoin",
+    description: "SUBFROST can bridge any EVM- or UTXO-based asset to Bitcoin L1.",
+    icon: "",
+    icons: [
+      { icon: "/eth_empty.svg", hoverIcon: "/eth_snowflake.svg" },
+      { icon: "/zec_empty.svg", hoverIcon: "/zec_snowflake.svg" }
+    ],
+    color: "from-purple-500 to-yellow-500"
   }
 ]
 
@@ -67,7 +63,7 @@ export default function AssetsOverview() {
       </div>
 
       {/* Assets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {assets.map((asset, index) => (
           <div
             key={index}
@@ -96,24 +92,54 @@ export default function AssetsOverview() {
 
             {/* Icon */}
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center relative">
-              <Image 
-                src={asset.icon} 
-                alt={`${asset.symbol} Icon`} 
-                width={100} 
-                height={100}
-                className={cn(
-                  "transition-opacity duration-300",
-                  asset.hoverIcon && "group-hover:opacity-0"
-                )}
-              />
-              {asset.hoverIcon && (
-                <Image 
-                  src={asset.hoverIcon} 
-                  alt={`${asset.symbol} Icon Hover`} 
-                  width={100} 
-                  height={100}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                />
+              {asset.icons ? (
+                <div className="flex items-center justify-center gap-2">
+                  {asset.icons.map((iconSet, i) => (
+                    <div key={i} className="relative w-12 h-12">
+                      <Image
+                        src={iconSet.icon}
+                        alt={`${asset.symbol} Icon ${i + 1}`}
+                        width={48}
+                        height={48}
+                        className={cn(
+                          "transition-opacity duration-300",
+                          iconSet.hoverIcon && "group-hover:opacity-0"
+                        )}
+                      />
+                      {iconSet.hoverIcon && (
+                        <Image
+                          src={iconSet.hoverIcon}
+                          alt={`${asset.symbol} Icon ${i + 1} Hover`}
+                          width={48}
+                          height={48}
+                          className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <Image
+                    src={asset.icon}
+                    alt={`${asset.symbol} Icon`}
+                    width={100}
+                    height={100}
+                    className={cn(
+                      "transition-opacity duration-300",
+                      asset.hoverIcon && "group-hover:opacity-0"
+                    )}
+                  />
+                  {asset.hoverIcon && (
+                    <Image
+                      src={asset.hoverIcon}
+                      alt={`${asset.symbol} Icon Hover`}
+                      width={100}
+                      height={100}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    />
+                  )}
+                </>
               )}
             </div>
 

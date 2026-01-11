@@ -110,9 +110,9 @@ import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
 
 const partners = [
-  { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
+  { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes (now open-source)", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
   { name: "Saturn BTC", logo: "Saturn.svg", description: "Premier AMM/DEX on Arch Network", link: "https://www.saturnbtc.io/app/swap", tag: "DeFi" },
-  { name: "[Best in Slot]", logo: "bestinslot.png", description: "Sequencer-powered AMM on BRC2.0", link: "https://bestinslot.xyz/", tag: "DeFi" },
+  { name: "[Best in Slot]", logo: "bestinslot.png", description: "Premier AMM on BRC2.0 (instant swaps on Bitcoin)", link: "https://bestinslot.xyz/", tag: "DeFi" },
   { name: "Sats Terminal", logo: "satsterminal.jpg", description: "Swap for Alkanes, Runes, and Spark Tokens", link: "https://www.satsterminal.com/", tag: "DeFi" },
   { name: "Yuzo", logo: "Yuzo.png", description: "₿apps on Bitcoin Layer-1 via BRC2.0", link: "https://yuzo.xyz/", tag: "DeFi" },
   { name: "CatSwap", logo: "catswap.jpg", description: "Premier AMM/DEX on BRC2.0", link: "https://catswap.fun/", tag: "DeFi" },
@@ -131,12 +131,13 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Flex", title: "CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Founder/CTO of Oyl Corp, Polymarket, and IDEX." },
-  { name: "Gabe", title: "CEO", image: "gabe.jpg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could change the world." },
+  { name: "Flex", title: "Founder/CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes. Former CTO of Polymarket and IDEX." },
+  { name: "Gabe", title: "Founder/CEO", image: "gabelee.jpeg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could impact 1B+ people." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
-  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
+  { name: "Brooks", title: "Chinese Ambassador", image: "brooks.jpg", link: "", description: "Early BTC & ETH Miner. 10+ years of Blockchain Marketing in China." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
+  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
   { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
   { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
 ]
@@ -416,11 +417,11 @@ export default function Page() {
                   {/* Section: Partners */}
                   <div className="text-center mb-8">
                     <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                      Partners
+                      Featured Partners
                     </h2>
                   </div>
-                    <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 p-2">
-                      {partners.map((partner, index) => (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
+                      {partners.filter(p => ["OYL Corp", "Saturn BTC", "[Best in Slot]", "Sats Terminal", "Bound Money", "Layer 1 Foundation"].includes(p.name)).map((partner, index) => (
                         <a
                           key={index}
                           href={partner.link || "#"}
@@ -453,6 +454,7 @@ export default function Page() {
                         </a>
                       ))}
                     </div>
+                    <p className="text-center text-gray-400 mt-6 text-sm">10+ other partners. Please inquire and we will confirm authenticity of relationships.</p>
               </div>
             </div>
           </div>

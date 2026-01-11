@@ -93,7 +93,7 @@ const features: Feature[] = [
     description: "Lock up your LP tokens in vaults and earn rewards. The best part? You don't even have to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
     videoTitle: "YIELD VAULT DEMO COMING SOON",
     glowColor: "from-emerald-500 to-emerald-700",
-    image: "/app screenshots/Vault.png"
+    image: "/app screenshots/Vaults.png"
   },
   {
     buttonTitle: "BITCOIN FUTURES",
