@@ -24,7 +24,8 @@ const assets: Asset[] = [
     symbol: "frBTC",
     name: "The BTC Synthetic",
     description: "Enabling the seamless use of native BTC in dApps, completely abstracting away the wrap process.",
-    icon: "/btc_snowflake.svg",
+    icon: "/btc_empty.svg",
+    hoverIcon: "/btc_snowflake.svg",
     color: "from-amber-500 to-orange-600",
     badge: "Live!"
   },
@@ -69,10 +70,11 @@ export default function AssetsOverview() {
             key={index}
             className={cn(
               "group relative rounded-2xl p-6 transition-all duration-500",
-              "bg-gradient-to-br from-slate-800/40 to-slate-900/40",
-              "border border-slate-700/50 hover:border-slate-500/70",
+              "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
+              "shadow-lg shadow-black/20",
+              "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
               "backdrop-blur-sm",
-              "hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10"
+              "hover:scale-105 hover:shadow-2xl"
             )}
           >
             {/* Badge */}
@@ -82,12 +84,12 @@ export default function AssetsOverview() {
               </div>
             )}
 
-            {/* Animated border glow */}
+            {/* Animated glow background */}
             <div className={cn(
-              "absolute inset-[-5px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+              "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
               "bg-gradient-to-br",
               asset.color,
-              "blur-md -z-10"
+              "blur-md"
             )} />
 
             {/* Icon */}
@@ -146,13 +148,13 @@ export default function AssetsOverview() {
             {/* Symbol */}
             <h4 className="text-2xl font-bold text-center mb-2">
               <span className={cn(
-                "bg-gradient-to-r bg-clip-text text-transparent group-hover:text-white group-hover:bg-none transition-all duration-300 delay-[50ms]",
+                "bg-gradient-to-r bg-clip-text text-transparent",
                 asset.color
               )}>{asset.symbol}</span>
             </h4>
 
             {/* Name */}
-            <p className="text-sm text-gray-400 text-center font-semibold mb-3 group-hover:text-white transition-colors duration-300 delay-[50ms]">
+            <p className="text-sm text-gray-400 text-center font-semibold mb-3">
               {asset.name}
             </p>
 
@@ -160,10 +162,6 @@ export default function AssetsOverview() {
             <p className="text-sm text-gray-300 text-center leading-relaxed">
               {asset.description}
             </p>
-
-            {/* Corner accent */}
-            <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-blue-400/30 rounded-tr-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-purple-400/30 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         ))}
       </div>

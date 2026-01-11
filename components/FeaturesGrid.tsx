@@ -117,11 +117,10 @@ const features: Feature[] = [
 export default function FeaturesGrid() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const [isPaused, setIsPaused] = useState(false)
 
-  // Auto-rotate through features every 8 seconds
+  // Auto-rotate through features every 6 seconds
   React.useEffect(() => {
-    if (isPaused || hoveredIndex !== null) {
+    if (hoveredIndex !== null) {
       return
     }
 
@@ -138,24 +137,14 @@ export default function FeaturesGrid() {
     }, 6000)
 
     return () => clearInterval(interval)
-  }, [isPaused, hoveredIndex, activeIndex])
-
-  const handleButtonClick = (index: number) => {
-    setIsPaused(true)
-    setActiveIndex(index)
-  }
-
-  const handleOutsideClick = () => {
-    setIsPaused(false)
-    setActiveIndex(null)
-  }
+  }, [hoveredIndex, activeIndex])
 
   const displayIndex = hoveredIndex !== null ? hoveredIndex : activeIndex
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16" onClick={handleOutsideClick}>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
       {/* Left Side - Feature Buttons (1/3) */}
-      <div className="flex flex-col md:col-span-1" onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-col md:col-span-1">
         {/* Title */}
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-6">
           Key Features
@@ -173,14 +162,6 @@ export default function FeaturesGrid() {
             
             return (
             <div key={index} className="relative">
-              {/* Animated glow background - shows only on hover */}
-              <div className={cn(
-                "absolute inset-0 rounded-lg opacity-0 transition-opacity duration-500 blur-2xl -z-10",
-                hoveredIndex === index && "opacity-60",
-                "bg-gradient-to-br",
-                feature.glowColor
-              )} />
-              
               {/* Rainbow border overlay for hover state - maintains rounded corners */}
               {isActive && hoveredIndex === index && feature.isRainbow && (
                 <div 
@@ -238,34 +219,31 @@ export default function FeaturesGrid() {
                 />
               )}
               
-              <button
+              <div
                 className={cn(
                   "relative w-full text-lg font-bold uppercase tracking-wider text-white snow-title-no-filter",
-                  "rounded-lg transition-all duration-500 text-left overflow-hidden group py-4",
-                  isActive && hoveredIndex !== null
-                    ? feature.isRainbow 
-                      ? "bg-transparent border-2 border-transparent"
-                      : "bg-transparent border-2"
+                  "rounded-lg transition-all duration-500 text-left overflow-hidden group py-4 cursor-default",
+                  "bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-2",
+                  hoveredIndex === index
+                    ? feature.isRainbow
+                      ? "border-transparent"
+                      : ""
                     : isActive
-                    ? "bg-transparent border-2 border-slate-600/50"
-                    : "bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-2 border-slate-600/50"
+                    ? "border-slate-600/50"
+                    : "border-slate-600/50"
                 )}
                 style={{
-                  ...(isActive && hoveredIndex !== null && !feature.isRainbow ? {
+                  ...(hoveredIndex === index && !feature.isRainbow ? {
                     borderColor: borderColor
                   } : {})
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleButtonClick(index)
-                }}
               >
                 <div className="px-8">
                   {feature.buttonTitle}
                 </div>
-              </button>
+              </div>
             </div>
           )})}
         </div>
@@ -279,32 +257,34 @@ export default function FeaturesGrid() {
           "backdrop-blur-sm",
           "flex flex-col items-center justify-center",
           "min-h-[400px]",
-          hoveredIndex !== null
-            ? "border-2 border-transparent"
+          "border-2",
+          hoveredIndex !== null && features[hoveredIndex].isRainbow
+            ? "border-transparent"
             : displayIndex !== null && features[displayIndex].isRainbow
-            ? "border-2 border-transparent"
-            : displayIndex !== null
-            ? "border-2"
-            : "border-2 border-slate-700/50"
+            ? "border-transparent"
+            : displayIndex === null
+            ? "border-slate-700/50"
+            : ""
         )}
-        style={hoveredIndex === null && displayIndex !== null && !features[displayIndex].isRainbow ? {
-          borderColor: features[displayIndex].glowColor.includes('amber') ? '#fbbf24' :
-                      features[displayIndex].glowColor.includes('blue') ? '#60a5fa' :
-                      features[displayIndex].glowColor.includes('emerald') ? '#34d399' :
-                      features[displayIndex].glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
-        } : {}}
-        onClick={(e) => e.stopPropagation()}
+        style={(() => {
+          const getColor = (glowColor: string) =>
+            glowColor.includes('amber') ? '#fbbf24' :
+            glowColor.includes('blue') ? '#60a5fa' :
+            glowColor.includes('emerald') ? '#34d399' :
+            glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
+
+          if (hoveredIndex !== null && !features[hoveredIndex].isRainbow) {
+            return { borderColor: getColor(features[hoveredIndex].glowColor) }
+          }
+          if (hoveredIndex === null && displayIndex !== null && !features[displayIndex].isRainbow) {
+            return { borderColor: getColor(features[displayIndex].glowColor) }
+          }
+          return {}
+        })()}
       >
-        {/* Animated glow background for demo section - only on hover */}
-        <div className={cn(
-          "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 blur-2xl -z-10",
-          hoveredIndex !== null && "opacity-60",
-          "bg-gradient-to-br",
-          hoveredIndex !== null ? features[hoveredIndex].glowColor : ""
-        )} />
-        
         {/* Rainbow border overlay for video - maintains rounded corners */}
-        {hoveredIndex === null && displayIndex !== null && features[displayIndex].isRainbow && (
+        {((hoveredIndex !== null && features[hoveredIndex].isRainbow) ||
+          (hoveredIndex === null && displayIndex !== null && features[displayIndex].isRainbow)) && (
           <div 
             className="absolute inset-0 rounded-2xl pointer-events-none z-10"
             style={{

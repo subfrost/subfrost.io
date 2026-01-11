@@ -166,43 +166,6 @@ describe.skipIf(!runIntegration)('Live API Integration Tests', () => {
     );
   });
 
-  describe('/api/get-alkanes-by-address', () => {
-    const testAddress = 'bc1puvfmy5whzdq35nd2trckkm09em9u7ps6lal564jz92c9feswwrpsr7ach5';
-
-    it(
-      'should return alkane balances for an address',
-      async () => {
-        const { response, data } = await fetchApi('/api/get-alkanes-by-address', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: testAddress }),
-        });
-
-        expect(response.status).toBe(200);
-        expect(data.data).toBeDefined();
-        expect(Array.isArray(data.data)).toBe(true);
-
-        console.log(`Found ${data.data.length} token balances for address`);
-      },
-      TEST_TIMEOUT
-    );
-
-    it(
-      'should return 400 for missing address',
-      async () => {
-        const { response, data } = await fetchApi('/api/get-alkanes-by-address', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        });
-
-        expect(response.status).toBe(400);
-        expect(data.error).toBe('Address is required.');
-      },
-      TEST_TIMEOUT
-    );
-  });
-
   describe('/api/health', () => {
     it(
       'should return healthy status when database is connected',

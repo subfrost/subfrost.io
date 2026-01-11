@@ -227,14 +227,14 @@ const products: VaultProduct[] = [
     symbol: "yvfrBTC",
     name: "BTC Yield Aggregator",
     tagline: "Classic DeFi Vault Strategy",
-    description: "Earn fees and capture incentives from deep liquidity pools across BTC, ZEC, ETH, and USD markets on Bitcoin.",
+    description: "Earn fees and capture incentives from deep liquidity pools across BTC, USD, DIESEL, and other markets on Bitcoin.",
     icon: <YvFrBTCIcon />,
     color: "from-blue-500 to-blue-700"
   },
   {
     symbol: "dxBTC",
-    name: "Tokenized Yield",
-    tagline: "Superior UX for BTC Staking: One-Click",
+    name: "dxBTC: Tokenized Yield",
+    tagline: "Superior UX for BTC Staking",
     description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategies that maintain full exposure to the price of BTC. Unstake anytime with no lock-up period.",
     icon: <DxBTCIcon />,
     color: "from-emerald-500 to-emerald-700"
@@ -261,8 +261,9 @@ export default function VaultsOverview() {
             key={index}
             className={cn(
               "group relative rounded-2xl p-8 transition-all duration-500",
-              "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
-              "border-2 border-slate-700/50 hover:border-slate-500/70",
+              "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
+              "shadow-lg shadow-black/20",
+              "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
               "backdrop-blur-sm",
               "hover:scale-105 hover:shadow-2xl"
             )}
@@ -279,7 +280,7 @@ export default function VaultsOverview() {
               "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
               "bg-gradient-to-br",
               product.color,
-              "blur-2xl"
+              "blur-md"
             )} />
 
             {/* Icon */}
@@ -294,11 +295,6 @@ export default function VaultsOverview() {
               </span>
             </h4>
 
-            {/* Symbol */}
-            <p className="text-base text-white text-center font-semibold mb-1">
-              {product.symbol}
-            </p>
-
             {/* Tagline */}
             <p className="text-sm text-gray-400 text-center italic mb-4">
               {product.tagline}
@@ -308,22 +304,8 @@ export default function VaultsOverview() {
             <p className="text-sm text-gray-300 text-center leading-relaxed">
               {product.description}
             </p>
-
-            {/* Corner accents */}
-            <div className="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-blue-400/40 rounded-tl-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-purple-400/40 rounded-br-xl opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         ))}
-      </div>
-
-      {/* Call to action */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border-2 border-emerald-400/40 hover:border-emerald-400/70 transition-all duration-300 cursor-pointer group">
-          <span className="text-base font-bold text-white">
-            No yield dependencies on token incentives.
-          </span>
-          <div className="w-3 h-3 rounded-full bg-emerald-400 group-hover:animate-pulse" />
-        </div>
       </div>
     </div>
   )
