@@ -9,7 +9,7 @@
 "use client"
 
 import type React from "react"
-import { Github, FileText, Mail } from "lucide-react"
+import { Github, Mail } from "lucide-react"
 import XIcon from "./XIcon"
 import {
   Popover,
@@ -65,15 +65,6 @@ const SocialButtons: React.FC = () => {
         aria-label="GitHub"
       >
         <Github className="w-4 h-4" />
-      </a>
-      <a
-        href="https://docs.subfrost.io/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
-        aria-label="Documentation"
-      >
-        <FileText className="w-4 h-4" />
       </a>
     </div>
   )
