@@ -134,7 +134,7 @@ const teamMembers = [
   { name: "Gabe", title: "Founder/CEO", image: "gabelee.jpeg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could impact 1B+ people." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
-  { name: "Brooks", title: "Chinese Ambassador", image: "brooks.jpg", link: "", description: "Early BTC & ETH Miner. 10+ years of Blockchain Marketing in China." },
+  { name: "Brooks", title: "Advisor", image: "brooks.jpg", link: "", description: "Chinese Ambassador (for SUBFROST & Alkanes) with 10+ years in Blockchain Marketing." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
   { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },

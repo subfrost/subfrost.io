@@ -189,7 +189,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             <div>
               {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
               <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem' }}>{metric.value}</p>
+              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem', ...(isModal && { textShadow: '0 0 5px hsl(var(--brand-blue))' }) }}>{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}
@@ -211,8 +211,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
             Metrics refresh every block.
           </div>
-          <div className="text-center text-orange-400 font-semibold" style={{ fontSize: isModal ? '0.65rem' : '0.55rem' }}>
-            ⚠️  Under Maintenance: Metrics other than BTC Locked are not accurate.
+          <div className="text-center text-[hsl(var(--brand-blue))] italic" style={{ fontSize: isModal ? '0.65rem' : '0.55rem' }}>
+            ⚠️ Data Under Maintenance: Metrics other than BTC Locked are not accurate.
           </div>
         </div>
       </div>
