@@ -32,7 +32,7 @@ const assets: Asset[] = [
   {
     symbol: "frUSD",
     name: "Stablecoin Utilization on Bitcoin",
-    description: "The most capital-efficient bridge from USDT/USDC to Bitcoin L1.",
+    description: "The most capital-efficient bridge from USDT and USDC to Bitcoin L1.",
     icon: "/usdt_empty.svg",
     hoverIcon: "/usdt_snowflake.svg",
     color: "from-green-500 to-green-700"
