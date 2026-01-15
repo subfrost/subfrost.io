@@ -1,19 +1,105 @@
 /**
- * Redis client for caching
+ * Redis client for caching with in-memory fallback
  */
 import { createClient, type RedisClientType } from 'redis';
 
 let client: RedisClientType | null = null;
 let connectionPromise: Promise<RedisClientType> | null = null;
 
+// ============================================================================
+// In-Memory Fallback Cache (persists across Next.js hot reloads)
+// ============================================================================
+
+interface MemoryCacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+// Use globalThis to persist cache across Next.js hot reloads in development
+const globalForCache = globalThis as unknown as {
+  memoryCache: Map<string, MemoryCacheEntry<unknown>> | undefined;
+  memoryCacheCleanupInterval: ReturnType<typeof setInterval> | undefined;
+};
+
+const memoryCache = globalForCache.memoryCache ?? new Map<string, MemoryCacheEntry<unknown>>();
+globalForCache.memoryCache = memoryCache;
+
+/**
+ * Clean expired entries from memory cache
+ */
+function cleanExpiredEntries(): void {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [key, entry] of memoryCache.entries()) {
+    if (entry.expiresAt <= now) {
+      memoryCache.delete(key);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`[MemoryCache] Cleaned ${cleaned} expired entries, ${memoryCache.size} remaining`);
+  }
+}
+
+// Clean expired entries every 60 seconds (only set up once)
+if (!globalForCache.memoryCacheCleanupInterval) {
+  globalForCache.memoryCacheCleanupInterval = setInterval(cleanExpiredEntries, 60000);
+}
+
+/**
+ * Get value from memory cache
+ */
+function memoryGet<T>(key: string): T | null {
+  const entry = memoryCache.get(key);
+  if (!entry) {
+    console.log(`[MemoryCache] MISS: ${key} (not found, cache size: ${memoryCache.size})`);
+    return null;
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    memoryCache.delete(key);
+    console.log(`[MemoryCache] MISS: ${key} (expired)`);
+    return null;
+  }
+
+  console.log(`[MemoryCache] HIT: ${key}`);
+  return entry.value as T;
+}
+
+/**
+ * Set value in memory cache
+ */
+function memorySet<T>(key: string, value: T, ttlSeconds: number): void {
+  memoryCache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlSeconds * 1000,
+  });
+  console.log(`[MemoryCache] SET: ${key} (TTL: ${ttlSeconds}s, cache size: ${memoryCache.size})`);
+}
+
+/**
+ * Delete value from memory cache
+ */
+function memoryDel(key: string): void {
+  memoryCache.delete(key);
+}
+
+// Track if Redis connection has failed to avoid repeated attempts
+let redisConnectionFailed = false;
+
 /**
  * Get or create Redis client
+ * Returns null immediately if Redis is unavailable (uses memory cache fallback)
  */
 export async function getRedisClient(): Promise<RedisClientType | null> {
   const redisUrl = process.env.REDIS_URL;
 
   if (!redisUrl) {
-    console.warn('REDIS_URL not configured, caching disabled');
+    return null;  // No URL configured, silently use memory cache
+  }
+
+  // If we already know Redis is unavailable, don't try again
+  if (redisConnectionFailed) {
     return null;
   }
 
@@ -22,25 +108,42 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
   }
 
   if (connectionPromise) {
-    return connectionPromise;
+    try {
+      return await connectionPromise;
+    } catch {
+      return null;
+    }
   }
 
   connectionPromise = (async () => {
     try {
-      client = createClient({ url: redisUrl });
+      client = createClient({
+        url: redisUrl,
+        socket: {
+          connectTimeout: 3000,  // 3 second timeout
+          reconnectStrategy: false,  // Don't auto-reconnect, use memory cache instead
+        },
+      });
 
+      // Suppress repeated error logs
+      let errorLogged = false;
       client.on('error', (err) => {
-        console.error('Redis client error:', err);
+        if (!errorLogged) {
+          console.warn('Redis unavailable, using memory cache fallback');
+          errorLogged = true;
+        }
+        redisConnectionFailed = true;
       });
 
       await client.connect();
       console.log('Redis connected');
       return client;
     } catch (error) {
-      console.error('Failed to connect to Redis:', error);
+      console.warn('Redis connection failed, using memory cache fallback');
+      redisConnectionFailed = true;
       client = null;
       connectionPromise = null;
-      throw error;
+      return null;
     }
   })();
 
@@ -49,11 +152,15 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
 
 /**
  * Cache wrapper with automatic serialization
+ * Falls back to in-memory cache when Redis is unavailable
  */
 export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
     const redis = await getRedisClient();
-    if (!redis) return null;
+    if (!redis) {
+      // Fallback to memory cache
+      return memoryGet<T>(key);
+    }
 
     const value = await redis.get(key);
     if (!value) return null;
@@ -61,18 +168,23 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     return JSON.parse(value) as T;
   } catch (error) {
     console.error('Cache get error:', error);
-    return null;
+    // Fallback to memory cache on error
+    return memoryGet<T>(key);
   }
 }
 
 /**
  * Cache set with automatic serialization
+ * Falls back to in-memory cache when Redis is unavailable
  */
 export async function cacheSet<T>(
   key: string,
   value: T,
   ttlSeconds: number = 60
 ): Promise<void> {
+  // Always set in memory cache as fallback
+  memorySet(key, value, ttlSeconds);
+
   try {
     const redis = await getRedisClient();
     if (!redis) return;
@@ -80,13 +192,18 @@ export async function cacheSet<T>(
     await redis.set(key, JSON.stringify(value), { EX: ttlSeconds });
   } catch (error) {
     console.error('Cache set error:', error);
+    // Memory cache already set above, so we're covered
   }
 }
 
 /**
  * Cache delete
+ * Removes from both Redis and in-memory cache
  */
 export async function cacheDel(key: string): Promise<void> {
+  // Always delete from memory cache
+  memoryDel(key);
+
   try {
     const redis = await getRedisClient();
     if (!redis) return;

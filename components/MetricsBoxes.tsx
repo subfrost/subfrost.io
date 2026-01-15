@@ -58,15 +58,28 @@ interface MetricsBoxesProps {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const LoadingDots = () => (
+  <span className="inline-flex">
+    <span className="animate-pulse">.</span>
+    <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>.</span>
+    <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>.</span>
+  </span>
+);
+
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
   const [currency, setCurrency] = useState('BTC');
 
-  const btcLockedValue = useMetric('/api/btc-locked', 'btcLocked');
+  const alkanesBtcLocked = useMetric('/api/alkanes-btc-locked', 'btcLocked');
+  const brc20BtcLockedValue = useMetric('/api/brc20-btc-locked', 'btcLocked');
   const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
-  const totalUnwrapsValue = useMetric('/api/total-unwraps', 'totalUnwraps', (value) => value / 1e8);
+  const alkanesTotalUnwraps = useMetric('/api/alkanes-total-unwraps', 'totalUnwrapsBtc');
+  const brc20TotalUnwraps = useMetric('/api/brc20-total-unwraps', 'totalUnwrapsBtc');
 
-  // Fetch BRC2.0 frBTC stats
-  const { data: brc20Stats } = useSWR('/api/brc20-frbtc-stats', fetcher, {
+  // Fetch addresses from the btc-locked endpoints
+  const { data: alkanesBtcLockedData } = useSWR('/api/alkanes-btc-locked', fetcher, {
+    refreshInterval: 900000, // 15 minutes
+  });
+  const { data: brc20BtcLockedData } = useSWR('/api/brc20-btc-locked', fetcher, {
     refreshInterval: 900000, // 15 minutes
   });
 
@@ -81,44 +94,63 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  const getDisplayValue = (btcValue: number | string) => {
+  const getDisplayValue = (btcValue: number | string | React.ReactNode): string | React.ReactNode => {
     if (typeof btcValue !== 'number') {
       return btcValue;
     }
     if (currency === 'USD') {
-      if (btcPriceError || !btcPriceData) return '...';
+      if (btcPriceError || !btcPriceData) return <LoadingDots />;
       return formatUsd(btcValue * btcPriceData.btcPrice);
     }
     return btcValue.toFixed(5);
   };
 
-  // Lifetime BTC Tx Value = frBTC Supply + Total Unwrapped (equals total wrapped)
-  const lifetimeBtcTxValue = (
-    typeof frBtcIssuedValue !== 'number' || typeof totalUnwrapsValue !== 'number'
-      ? '...'
-      : frBtcIssuedValue + totalUnwrapsValue
-  );
+  // Address values
+  const alkanesAddress = alkanesBtcLockedData?.address ?? '';
+  const brc20Address = brc20BtcLockedData?.address ?? '';
+
+  // Helper to shorten address for display
+  const shortenAddress = (addr: string) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 4)}..${addr.slice(-3)}`;
+  };
 
   // BRC2.0 values
-  const brc20FrbtcSupply = brc20Stats?.totalSupplyBtc ?? 0;
-  const brc20BtcLocked = brc20Stats?.btcLocked?.btc ?? 0;
-  const brc20SignerAddress = brc20Stats?.signerAddress ?? '';
+  const brc20BtcLocked = typeof brc20BtcLockedValue === 'number' ? brc20BtcLockedValue : 0;
+
+  // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued + brc20 btc locked
+  const lifetimeBtcTxValue: number | React.ReactNode = (
+    typeof alkanesTotalUnwraps !== 'number' ||
+    typeof brc20TotalUnwraps !== 'number' ||
+    typeof frBtcIssuedValue !== 'number'
+      ? <LoadingDots />
+      : alkanesTotalUnwraps + brc20TotalUnwraps + frBtcIssuedValue + brc20BtcLocked
+  );
 
   // Combined totals (Alkanes + BRC2.0)
-  const combinedFrbtcSupply = (typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue : 0) + brc20FrbtcSupply;
-  const combinedBtcLocked = (typeof btcLockedValue === 'number' ? btcLockedValue : 0) + brc20BtcLocked;
+  // Note: Using brc20BtcLocked as proxy for BRC2.0 frBTC supply for now
+  const combinedFrbtcSupply: number | React.ReactNode = (
+    typeof frBtcIssuedValue !== 'number' || typeof brc20BtcLockedValue !== 'number'
+      ? <LoadingDots />
+      : frBtcIssuedValue + brc20BtcLocked
+  );
+  const combinedBtcLocked: number | React.ReactNode = (
+    typeof alkanesBtcLocked !== 'number' || typeof brc20BtcLockedValue !== 'number'
+      ? <LoadingDots />
+      : alkanesBtcLocked + brc20BtcLocked
+  );
 
   const metrics = [
     {
       superTitle: 'Current',
       title: 'frBTC Supply',
-      value: '...',
-      linkText: 'Contracts',
+      value: getDisplayValue(combinedFrbtcSupply),
+      linkText: 'Breakdown',
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: ... <a href="https://ordiscan.com/alkane/SUBFROST%20BTC/32:0" target="_blank" rel="noopener noreferrer" className="underline">[32, 0]</a></p>
-          <p>BRC2.0: ... <a href="https://bestinslot.xyz/brc2.0/fr-btc" target="_blank" rel="noopener noreferrer" className="underline">(FR-BTC)</a></p>
+          <p>Alkanes: {typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue.toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">frBTC</a>}</p>
+          <p>BRC2.0: {brc20BtcLocked.toFixed(5)} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">FR-BTC</a>}</p>
         </div>
       )
     },
@@ -130,12 +162,24 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof btcLockedValue === 'number' ? btcLockedValue.toFixed(5) : '...'} <a href="https://mempool.space/address/bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7" target="_blank" rel="noopener noreferrer" className="underline">bc1p..sx7</a></p>
-          <p>BRC2.0: {brc20BtcLocked.toFixed(5)} {brc20SignerAddress && <a href={`https://mempool.space/address/${brc20SignerAddress}`} target="_blank" rel="noopener noreferrer" className="underline">bc1p..qaj</a>}</p>
+          <p>Alkanes: {typeof alkanesBtcLocked === 'number' ? alkanesBtcLocked.toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(alkanesAddress)}</a>}</p>
+          <p>BRC2.0: {brc20BtcLocked.toFixed(5)} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(brc20Address)}</a>}</p>
         </div>
       )
     },
-    { superTitle: 'Lifetime', title: 'BTC Tx Value', value: '...' },
+    {
+      superTitle: 'Lifetime',
+      title: 'BTC Tx Value',
+      value: getDisplayValue(lifetimeBtcTxValue),
+      linkText: 'Breakdown',
+      linkType: 'popover',
+      popoverContent: (
+        <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
+          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof frBtcIssuedValue === 'number' ? (alkanesTotalUnwraps + frBtcIssuedValue).toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">frBTC</a>}</p>
+          <p>BRC2.0: {typeof brc20TotalUnwraps === 'number' ? (brc20TotalUnwraps + brc20BtcLocked).toFixed(5) : '...'} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">FR-BTC</a>}</p>
+        </div>
+      )
+    },
     {
       superTitle: 'Early',
       title: 'Partnerships',
@@ -198,22 +242,24 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         ))}
       </div>
       <div className={`w-full flex items-center mt-4 px-2 gap-2 ${isModal ? 'flex-col justify-center' : 'flex-col md:flex-row justify-center md:justify-between'}`} style={{ maxWidth: isModal ? 'calc(15rem + 1rem)' : 'calc(39rem + 1rem)' }}>
-        <div className="flex items-center space-x-2">
-          <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">BTC</Label>
-          <Switch
-            id="currency-toggle"
-            checked={currency === 'USD'}
-            onCheckedChange={(checked) => setCurrency(checked ? 'USD' : 'BTC')}
-          />
-          <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
+        <div className="relative flex flex-col items-center">
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">BTC</Label>
+            <Switch
+              id="currency-toggle"
+              checked={currency === 'USD'}
+              onCheckedChange={(checked) => setCurrency(checked ? 'USD' : 'BTC')}
+            />
+            <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
+          </div>
+          {currency === 'USD' && (
+            <div className="absolute top-full mt-1 text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+              BTC Price: {btcPriceData?.btcPrice ? `$${Math.round(btcPriceData.btcPrice).toLocaleString('en-US')}` : '...'}
+            </div>
+          )}
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
-            Metrics refresh every block.
-          </div>
-          <div className="text-center text-[hsl(var(--brand-blue))] italic" style={{ fontSize: isModal ? '0.65rem' : '0.55rem' }}>
-            ⚠️ Data Under Maintenance: Metrics other than BTC Locked are not accurate.
-          </div>
+        <div className={`text-center text-[hsl(var(--brand-blue))] ${isModal ? 'mt-4' : ''}`} style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+          Metrics refresh every 15 minutes.
         </div>
       </div>
     </div>

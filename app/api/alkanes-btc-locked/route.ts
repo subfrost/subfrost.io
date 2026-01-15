@@ -1,7 +1,7 @@
 /**
- * API Route: BTC Locked
+ * API Route: Alkanes BTC Locked
  *
- * Returns the total BTC locked in the Subfrost address.
+ * Returns the total BTC locked in the Alkanes Subfrost address.
  * Uses Redis caching for fast responses and persists snapshots to database.
  */
 
@@ -10,7 +10,7 @@ import { cacheGet, cacheSet } from '@/lib/redis';
 import { syncBtcLocked, getLatestBtcLocked } from '@/lib/sync-service';
 import { getBtcLockedData } from '@/lib/blockchain-data';
 
-const CACHE_KEY = 'btc-locked';
+const CACHE_KEY = 'alkanes-btc-locked';
 const CACHE_TTL = 60; // 60 seconds
 
 export async function GET() {
