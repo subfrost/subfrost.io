@@ -103,7 +103,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       if (btcPriceError || !btcPriceData) return <LoadingDots />;
       return formatUsd(btcValue * btcPriceData.btcPrice);
     }
-    return btcValue.toFixed(5);
+    return btcValue.toFixed(4);
   };
 
   // Address values
