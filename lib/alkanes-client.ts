@@ -202,10 +202,15 @@ class AlkanesClient {
 
   /**
    * Get the RPC URL (read lazily from environment)
+   * Falls back to mainnet.subfrost.io if not configured
    */
   private get rpcUrl(): string {
     if (!this._rpcUrl) {
-      this._rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+      const envUrl = process.env.ALKANES_RPC_URL;
+      // Ensure we have a valid URL, fallback to default if empty/undefined
+      this._rpcUrl = (envUrl && envUrl.startsWith('http'))
+        ? envUrl
+        : 'https://mainnet.subfrost.io/v4/subfrost';
     }
     return this._rpcUrl;
   }

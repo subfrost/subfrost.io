@@ -2,34 +2,20 @@
  * API Route: BRC2.0 Circulating Supply
  *
  * Returns the circulating frBTC supply on BRC2.0 by calling totalSupply()
- * on the fr-BTC contract address using the @alkanes/ts-sdk brc20-prog client.
+ * on the fr-BTC contract address.
  *
- * Uses Redis/memory caching for fast responses.
+ * Uses direct RPC calls for reliability in serverless environments.
  */
 
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
-import { AlkanesProvider } from '@alkanes/ts-sdk';
+import { getBrc20TotalSupply } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'brc20-circulating';
 const CACHE_TTL = 300; // 5 minutes
 
 // fr-BTC contract address on BRC2.0
 const FRBTC_CONTRACT_ADDRESS = '0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337';
-
-// totalSupply() function selector (keccak256("totalSupply()") first 4 bytes)
-const TOTAL_SUPPLY_SELECTOR = '0x18160ddd';
-
-// Subfrost API URL
-const SUBFROST_API_URL = 'https://mainnet.subfrost.io/v4/subfrost/';
-
-/**
- * Decode uint256 from hex string
- */
-function decodeUint256(hex: string): bigint {
-  if (!hex || hex === '0x') return 0n;
-  return BigInt(hex);
-}
 
 export async function GET() {
   try {
@@ -39,26 +25,12 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    // Create provider with Subfrost API
-    const provider = new AlkanesProvider({
-      network: 'mainnet',
-      url: SUBFROST_API_URL,
-    });
-    await provider.initialize();
-
-    // Call totalSupply() on the fr-BTC contract
-    const result = await provider.brc20prog.call(
-      FRBTC_CONTRACT_ADDRESS,
-      TOTAL_SUPPLY_SELECTOR
-    );
-
-    // Parse the uint256 result
-    const totalSupply = decodeUint256(result);
-    const totalSupplyBtc = Number(totalSupply) / 1e8;
+    // Fetch total supply using direct RPC
+    const supplyData = await getBrc20TotalSupply();
 
     const response = {
-      circulatingSatoshis: totalSupply.toString(),
-      circulatingBtc: totalSupplyBtc,
+      circulatingSatoshis: supplyData.totalSupply.toString(),
+      circulatingBtc: supplyData.totalSupplyBtc,
       contractAddress: FRBTC_CONTRACT_ADDRESS,
       timestamp: Date.now(),
     };
@@ -68,9 +40,10 @@ export async function GET() {
 
     return NextResponse.json(response);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching BRC2.0 circulating supply:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch BRC2.0 circulating supply.' },
+      { error: 'Failed to fetch BRC2.0 circulating supply.', details: errorMessage },
       { status: 500 }
     );
   }

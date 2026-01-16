@@ -2,12 +2,12 @@
  * API Route: BRC2.0 BTC Locked
  *
  * Returns the total BTC locked in the BRC2.0 frBTC signer address.
- * Uses Redis caching for fast responses.
+ * Uses direct RPC calls for reliability in serverless environments.
  */
 
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
-import { brc20Client } from '@/lib/brc20-client';
+import { getBrc20BtcLocked } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'brc20-btc-locked';
 const CACHE_TTL = 60; // 60 seconds
@@ -20,11 +20,11 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    // Fetch BTC locked at the BRC2.0 signer address
-    const btcData = await brc20Client.getBtcLockedAtSignerAddress();
+    // Fetch BTC locked using direct RPC
+    const btcData = await getBrc20BtcLocked();
 
     const result = {
-      btcLocked: btcData.btc,
+      btcLocked: btcData.btcLocked,
       satoshis: btcData.satoshis,
       utxoCount: btcData.utxoCount,
       address: btcData.address,
