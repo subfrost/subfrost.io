@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
     <>
       <footer
         className={cn(
-          "fixed bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-center md:justify-end items-center space-x-2 bg-transparent z-30 uppercase font-bold",
+          "fixed bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-end items-center space-x-2 bg-transparent z-30 uppercase font-bold",
         )}
       >
         <div className="flex items-center space-x-2 md:pr-8">

@@ -283,8 +283,8 @@ export default function VaultsOverview() {
               "blur-md"
             )} />
 
-            {/* Icon */}
-            <div className="w-32 h-32 mx-auto mb-6">
+            {/* Icon - hidden */}
+            <div className="hidden w-32 h-32 mx-auto mb-6">
               {product.icon}
             </div>
 

@@ -230,8 +230,8 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Arrow at bottom - in document flow, will be clipped when viewport shrinks */}
-        <div className="flex-shrink-0 pb-2">
+        {/* Arrow at bottom - absolute positioned like SocialButtons, clipped by overflow-hidden */}
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
           <ScrollArrow
             direction="down"
             onClick={handleScrollDown}
