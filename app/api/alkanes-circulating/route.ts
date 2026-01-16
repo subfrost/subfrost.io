@@ -4,16 +4,57 @@
  * Returns the circulating frBTC supply on Alkanes by summing all holder balances
  * EXCEPT for the 32:0 holder (which represents burned/unwrapped frBTC).
  *
- * Uses the espo.getHolders API via @alkanes/ts-sdk with pagination.
+ * Uses the Alkanode essentials.get_holders RPC API with pagination.
  * Uses Redis/memory caching for fast responses.
  */
 
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
-import { alkanesClient } from '@/lib/alkanes-client';
 
 const CACHE_KEY = 'alkanes-circulating';
 const CACHE_TTL = 300; // 5 minutes
+const ALKANODE_RPC_URL = 'https://api.alkanode.com/rpc';
+
+interface HolderItem {
+  address?: string;
+  alkane?: string;
+  amount: string;
+  type: 'address' | 'alkane';
+}
+
+interface GetHoldersResponse {
+  ok?: boolean;
+  error?: string;
+  alkane: string;
+  items: HolderItem[];
+  total?: number;
+  page?: number;
+  has_more: boolean;
+}
+
+async function rpcCall<T>(method: string, params: object): Promise<T> {
+  const response = await fetch(ALKANODE_RPC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method,
+      params,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`RPC request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`RPC error: ${JSON.stringify(data.error)}`);
+  }
+
+  return data.result as T;
+}
 
 export async function GET() {
   try {
@@ -23,18 +64,24 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    const provider = await alkanesClient.getProvider();
-
     let circulatingSatoshis = 0;
     let burnedSatoshis = 0;
     let holderCount = 0;
-    let page = 0;
+    let page = 1;
     let hasMore = true;
-    const limit = 100000;
+    const limit = 1000;
 
-    // Paginate through all holders
+    // Paginate through all holders using Alkanode RPC
     while (hasMore) {
-      const holders = await provider.espo.getHolders('32:0', page, limit);
+      const holders = await rpcCall<GetHoldersResponse>('essentials.get_holders', {
+        alkane: '32:0',
+        limit,
+        page,
+      });
+
+      if (holders.error) {
+        throw new Error(`API error: ${holders.error}`);
+      }
 
       for (const holder of holders.items || []) {
         const amount = parseInt(holder.amount, 10);
@@ -70,8 +117,9 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching Alkanes circulating supply:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to fetch Alkanes circulating supply.' },
+      { error: 'Failed to fetch Alkanes circulating supply.', details: errorMessage },
       { status: 500 }
     );
   }

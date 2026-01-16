@@ -71,7 +71,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const alkanesBtcLocked = useMetric('/api/alkanes-btc-locked', 'btcLocked');
   const brc20BtcLockedValue = useMetric('/api/brc20-btc-locked', 'btcLocked');
-  const frBtcIssuedValue = useMetric('/api/frbtc-issued', 'frBtcIssued');
+  const alkanesCirculatingFrbtc = useMetric('/api/alkanes-circulating', 'circulatingBtc');
+  const brc20CirculatingFrbtc = useMetric('/api/brc20-circulating', 'circulatingBtc');
   const alkanesTotalUnwraps = useMetric('/api/alkanes-total-unwraps', 'totalUnwrapsBtc');
   const brc20TotalUnwraps = useMetric('/api/brc20-total-unwraps', 'totalUnwrapsBtc');
 
@@ -117,22 +118,23 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   // BRC2.0 values
   const brc20BtcLocked = typeof brc20BtcLockedValue === 'number' ? brc20BtcLockedValue : 0;
+  const brc20Circulating = typeof brc20CirculatingFrbtc === 'number' ? brc20CirculatingFrbtc : 0;
 
-  // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued + brc20 btc locked
+  // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued (alkanes) + frbtc issued (brc20)
   const lifetimeBtcTxValue: number | React.ReactNode = (
     typeof alkanesTotalUnwraps !== 'number' ||
     typeof brc20TotalUnwraps !== 'number' ||
-    typeof frBtcIssuedValue !== 'number'
+    typeof alkanesCirculatingFrbtc !== 'number' ||
+    typeof brc20CirculatingFrbtc !== 'number'
       ? <LoadingDots />
-      : alkanesTotalUnwraps + brc20TotalUnwraps + frBtcIssuedValue + brc20BtcLocked
+      : alkanesTotalUnwraps + brc20TotalUnwraps + alkanesCirculatingFrbtc + brc20Circulating
   );
 
   // Combined totals (Alkanes + BRC2.0)
-  // Note: Using brc20BtcLocked as proxy for BRC2.0 frBTC supply for now
   const combinedFrbtcSupply: number | React.ReactNode = (
-    typeof frBtcIssuedValue !== 'number' || typeof brc20BtcLockedValue !== 'number'
+    typeof alkanesCirculatingFrbtc !== 'number' || typeof brc20CirculatingFrbtc !== 'number'
       ? <LoadingDots />
-      : frBtcIssuedValue + brc20BtcLocked
+      : alkanesCirculatingFrbtc + brc20Circulating
   );
   const combinedBtcLocked: number | React.ReactNode = (
     typeof alkanesBtcLocked !== 'number' || typeof brc20BtcLockedValue !== 'number'
@@ -149,8 +151,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof frBtcIssuedValue === 'number' ? frBtcIssuedValue.toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">frBTC</a>}</p>
-          <p>BRC2.0: {brc20BtcLocked.toFixed(5)} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">FR-BTC</a>}</p>
+          <p>Alkanes: {typeof alkanesCirculatingFrbtc === 'number' ? alkanesCirculatingFrbtc.toFixed(5) : '...'} frBTC</p>
+          <p>BRC2.0: {brc20Circulating.toFixed(5)} FR-BTC</p>
         </div>
       )
     },
@@ -175,8 +177,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof frBtcIssuedValue === 'number' ? (alkanesTotalUnwraps + frBtcIssuedValue).toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">frBTC</a>}</p>
-          <p>BRC2.0: {typeof brc20TotalUnwraps === 'number' ? (brc20TotalUnwraps + brc20BtcLocked).toFixed(5) : '...'} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">FR-BTC</a>}</p>
+          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof alkanesCirculatingFrbtc === 'number' ? (alkanesTotalUnwraps + alkanesCirculatingFrbtc).toFixed(5) : '...'} frBTC</p>
+          <p>BRC2.0: {typeof brc20TotalUnwraps === 'number' && typeof brc20CirculatingFrbtc === 'number' ? (brc20TotalUnwraps + brc20Circulating).toFixed(5) : '...'} FR-BTC</p>
         </div>
       )
     },

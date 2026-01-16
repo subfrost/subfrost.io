@@ -197,7 +197,7 @@ class AlkanesClient {
   private cachedSubfrostAddress: string | null = null;
 
   constructor() {
-    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://api.alkanode.com/rpc';
     this.network = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
   }
 

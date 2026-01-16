@@ -307,7 +307,7 @@ export default function Page() {
                 <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-purple-300 font-bold">2</span>
-                    <p className="text-base text-gray-300">Mining pool partnerships generate revenue on premiums paid to unlock block rewards prior to the 100-block lock-up period, powering ftrBTC futures, and providing another market to earn volume-based fees from.</p>
+                    <p className="text-base text-gray-300">We generate revenue on premiums paid by Mining Pools to hedge their 100-block lock-up period, powering ftrBTC futures, and providing another market to earn volume-based fees from.</p>
                   </div>
                 </div>
 
@@ -323,7 +323,7 @@ export default function Page() {
                 <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
                   <div className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 font-bold">4</span>
-                    <p className="text-base text-gray-300">Additionally, as our partnerships expand we'll continue to innovate and add new yield-generating offerings to benefit all parties, while further enhancing the value proposition of dxBTC.</p>
+                    <p className="text-base text-gray-300">Additionally, as our partnerships expand we'll continue to innovate on new yield-generating offerings to benefit all parties and enhance the yield of dxBTC.</p>
                   </div>
                 </div>
               </div>

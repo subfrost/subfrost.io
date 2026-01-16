@@ -74,7 +74,7 @@ const features: Feature[] = [
   {
     buttonTitle: "AMM SWAPS",
     title: "AMM SWAPS",
-    description: "For the first time ever, execute AMM swaps of MAIN assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, ZEC, ETH, Stablecoins, and others! Seamless wrapping and unwrapping is handled automatically and completely abstracted away for the user.",
+    description: "For the first time ever, execute AMM swaps of major assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, Stablecoins, SOL, ZEC, and others! Seamless wrapping and unwrapping is completely abstracted away for the user.",
     videoTitle: "SWAP DEMO COMING SOON",
     glowColor: "from-amber-500 to-orange-600",
     image: "/app screenshots/swap.png"
@@ -82,7 +82,7 @@ const features: Feature[] = [
   {
     buttonTitle: "LIQUIDITY POOLS",
     title: "LIDUIDITY POOLS",
-    description: "Earn LP fees by supplying assets like BTC, ZEC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
+    description: "Earn LP fees by supplying assets like BTC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
     videoTitle: "LP DEMO COMING SOON",
     glowColor: "from-blue-500 to-blue-700",
     image: "/app screenshots/lp.png"
@@ -90,18 +90,10 @@ const features: Feature[] = [
   {
     buttonTitle: "YIELD VAULTS",
     title: "YIELD VAULTS",
-    description: "Lock up your LP tokens in vaults and earn rewards. The best part? You don't even have to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
+    description: "Lock up your LP tokens in vaults and earn rewards. The best part? No need to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
     videoTitle: "YIELD VAULT DEMO COMING SOON",
     glowColor: "from-emerald-500 to-emerald-700",
     image: "/app screenshots/Vaults.png"
-  },
-  {
-    buttonTitle: "BITCOIN FUTURES",
-    title: "BITCOIN FUTURES MARKET",
-    description: "Participate in the first permissionless futures market for miner block rewards. Miners will hedge against their 100-block lock-up period, and users can bet on the price of BTC 100-blocks from now.",
-    videoTitle: "FUTURES DEMO COMING SOON",
-    glowColor: "from-purple-500 to-purple-700",
-    image: "/app screenshots/futures.png"
   },
   {
     buttonTitle: "GAUGE REWARDS",
@@ -111,6 +103,14 @@ const features: Feature[] = [
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/gauge.png"
+  },
+  {
+    buttonTitle: "BITCOIN FUTURES",
+    title: "BITCOIN FUTURES MARKET",
+    description: "Participate in the first permissionless futures market on Bitcoin. Miners hedge against their 100-block lock-up period, and users can bet on the price of BTC 100-blocks from now.",
+    videoTitle: "FUTURES DEMO COMING SOON",
+    glowColor: "from-purple-500 to-purple-700",
+    image: "/app screenshots/futures.png"
   }
 ]
 
