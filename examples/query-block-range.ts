@@ -13,7 +13,7 @@ async function main() {
 
   // Get the provider
   const provider = await alkanesClient.getProvider();
-  const currentHeight = await provider.esplora.getBlockHeight();
+  const currentHeight = await provider.getBlockHeight();
 
   console.log(`Current block height: ${currentHeight}\n`);
 

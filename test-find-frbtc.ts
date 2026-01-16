@@ -50,7 +50,8 @@ async function findFrbtcActivity() {
     try {
       const blockTraces = await provider.alkanes.traceBlock(blockHeight);
 
-      if (!blockTraces?.events || !Array.isArray(blockTraces.events)) {
+      const tracesObj = blockTraces as any;
+      if (!tracesObj?.events || !Array.isArray(tracesObj.events)) {
         continue;
       }
 
@@ -58,7 +59,7 @@ async function findFrbtcActivity() {
       let wrapsInBlock = 0;
       let unwrapsInBlock = 0;
 
-      for (const txTrace of blockTraces.events) {
+      for (const txTrace of tracesObj.events) {
         const traceEvents = txTrace.traces?.events;
         if (!traceEvents || !Array.isArray(traceEvents)) continue;
 

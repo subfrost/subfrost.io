@@ -58,11 +58,12 @@ async function testTraceStructure() {
       console.log(`Is Array: ${Array.isArray(blockTraces)}`);
       console.log(`Keys:`, Object.keys(blockTraces || {}));
 
-      if (blockTraces?.events && Array.isArray(blockTraces.events)) {
-        console.log(`\nTotal trace events in block: ${blockTraces.events.length}`);
+      const tracesObj = blockTraces as any;
+      if (tracesObj?.events && Array.isArray(tracesObj.events)) {
+        console.log(`\nTotal trace events in block: ${tracesObj.events.length}`);
 
         // Look at first few events in detail
-        const firstEvents = blockTraces.events.slice(0, 3);
+        const firstEvents = tracesObj.events.slice(0, 3);
         console.log(`\nFirst ${firstEvents.length} trace events:`);
 
         for (let i = 0; i < firstEvents.length; i++) {

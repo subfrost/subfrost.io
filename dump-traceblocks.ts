@@ -75,7 +75,7 @@ async function dumpTraceblocks() {
           subfrostAddress: SUBFROST_ADDRESS,
           subfrostTxsInBlock: blockTxs.length,
           subfrostTxids: blockTxs.map(tx => tx.txid),
-          totalTraceEvents: blockTraces?.events?.length || 0,
+          totalTraceEvents: (blockTraces as any)?.events?.length || 0,
           dumpedAt: new Date().toISOString(),
         },
         traces: blockTraces,
@@ -91,8 +91,9 @@ async function dumpTraceblocks() {
       }));
 
       // Convert txid bytes to hex in traces for readability
-      if (blockTraces?.events && Array.isArray(blockTraces.events)) {
-        for (const txTrace of blockTraces.events) {
+      const tracesObj = blockTraces as any;
+      if (tracesObj?.events && Array.isArray(tracesObj.events)) {
+        for (const txTrace of tracesObj.events) {
           if (txTrace.outpoint?.txid && Array.isArray(txTrace.outpoint.txid)) {
             const txidBytes = txTrace.outpoint.txid;
             const txidHex = bytesToHex(txidBytes);

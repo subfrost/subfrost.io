@@ -4,7 +4,7 @@
 import { createClient, type RedisClientType } from 'redis';
 
 let client: RedisClientType | null = null;
-let connectionPromise: Promise<RedisClientType> | null = null;
+let connectionPromise: Promise<RedisClientType | null> | null = null;
 
 // ============================================================================
 // In-Memory Fallback Cache (persists across Next.js hot reloads)

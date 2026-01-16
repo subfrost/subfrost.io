@@ -96,13 +96,14 @@ async function traceTransactionsInParallel() {
     const { txid, vout, blockHeight, trace } = result;
 
     // Parse trace events
-    if (!trace?.events || !Array.isArray(trace.events)) {
+    const traceObj = trace as any;
+    if (!traceObj?.events || !Array.isArray(traceObj.events)) {
       continue;
     }
 
     tracesWithEvents++;
 
-    for (const eventWrapper of trace.events) {
+    for (const eventWrapper of traceObj.events) {
       const event = eventWrapper.event;
       if (!event) continue;
 
@@ -163,12 +164,13 @@ async function traceTransactionsInParallel() {
 
   // Show sample trace structure if we have any
   if (tracesWithEvents > 0) {
-    const firstTraceWithEvents = results.find(r => r.success && r.trace?.events?.length > 0);
+    const firstTraceWithEvents = results.find(r => r.success && (r.trace as any)?.events?.length > 0);
     if (firstTraceWithEvents) {
+      const traceData = firstTraceWithEvents.trace as any;
       console.log(`\n--- Sample Trace Structure (${firstTraceWithEvents.outpoint}) ---`);
-      console.log(`Event count: ${firstTraceWithEvents.trace.events.length}`);
+      console.log(`Event count: ${traceData.events.length}`);
 
-      const firstEvent = firstTraceWithEvents.trace.events[0];
+      const firstEvent = traceData.events[0];
       if (firstEvent?.event) {
         console.log(`First event keys: ${Object.keys(firstEvent.event).join(', ')}`);
 

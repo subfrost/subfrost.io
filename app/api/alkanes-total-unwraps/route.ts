@@ -128,9 +128,10 @@ export async function GET() {
 
     return NextResponse.json(result);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Alkanes total unwraps:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Alkanes total unwraps.' },
+      { error: 'Failed to fetch Alkanes total unwraps.', details: errorMessage },
       { status: 500 }
     );
   }

@@ -129,9 +129,10 @@ export async function GET() {
 
     return NextResponse.json(result);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching BRC2.0 total unwraps:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch BRC2.0 total unwraps.' },
+      { error: 'Failed to fetch BRC2.0 total unwraps.', details: errorMessage },
       { status: 500 }
     );
   }

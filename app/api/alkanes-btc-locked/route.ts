@@ -35,7 +35,7 @@ export async function GET() {
       };
     } catch (dbError) {
       // Fallback: fetch directly from SDK if database is unavailable
-      console.log('Database unavailable, fetching directly from SDK');
+      console.log('Database unavailable, fetching directly from SDK:', dbError);
       const btcData = await getBtcLockedData();
       result = {
         ...btcData,
@@ -48,9 +48,10 @@ export async function GET() {
 
     return NextResponse.json(result);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching BTC balance:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch BTC balance.' },
+      { error: 'Failed to fetch BTC balance.', details: errorMessage },
       { status: 500 }
     );
   }

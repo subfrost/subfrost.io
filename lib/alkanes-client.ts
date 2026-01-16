@@ -192,13 +192,32 @@ export function parseAlkaneId(str: string): AlkaneId {
 class AlkanesClient {
   private provider: AlkanesProvider | null = null;
   private initPromise: Promise<void> | null = null;
-  private rpcUrl: string;
-  private network: string;
+  private _rpcUrl: string | null = null;
+  private _network: string | null = null;
   private cachedSubfrostAddress: string | null = null;
 
   constructor() {
-    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://api.alkanode.com/rpc';
-    this.network = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
+    // Environment variables are read lazily to ensure .env is loaded first
+  }
+
+  /**
+   * Get the RPC URL (read lazily from environment)
+   */
+  private get rpcUrl(): string {
+    if (!this._rpcUrl) {
+      this._rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+    }
+    return this._rpcUrl;
+  }
+
+  /**
+   * Get the network (read lazily from environment)
+   */
+  private get network(): string {
+    if (!this._network) {
+      this._network = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
+    }
+    return this._network;
   }
 
   /**
@@ -385,7 +404,11 @@ class AlkanesClient {
     // This is a placeholder - actual implementation depends on contract
     const contractId = `${id.block}:${id.tx}`;
     const result = await provider.alkanes.view(contractId, path, undefined, 'latest');
-    return result;
+    // The view function returns an object with data/error, extract the data as string
+    if (typeof result === 'object' && result !== null && 'data' in result) {
+      return result.data as string | undefined;
+    }
+    return result as string | undefined;
   }
 
   /**
