@@ -151,8 +151,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesCirculatingFrbtc === 'number' ? alkanesCirculatingFrbtc.toFixed(5) : '...'} frBTC</p>
-          <p>BRC2.0: {brc20Circulating.toFixed(5)} FR-BTC</p>
+          <p>Alkanes: {typeof alkanesCirculatingFrbtc === 'number' ? alkanesCirculatingFrbtc.toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
+          <p>BRC2.0: {brc20Circulating.toFixed(5)} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
         </div>
       )
     },
@@ -177,8 +177,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof alkanesCirculatingFrbtc === 'number' ? (alkanesTotalUnwraps + alkanesCirculatingFrbtc).toFixed(5) : '...'} frBTC</p>
-          <p>BRC2.0: {typeof brc20TotalUnwraps === 'number' && typeof brc20CirculatingFrbtc === 'number' ? (brc20TotalUnwraps + brc20Circulating).toFixed(5) : '...'} FR-BTC</p>
+          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof alkanesCirculatingFrbtc === 'number' ? (alkanesTotalUnwraps + alkanesCirculatingFrbtc).toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
+          <p>BRC2.0: {typeof brc20TotalUnwraps === 'number' && typeof brc20CirculatingFrbtc === 'number' ? (brc20TotalUnwraps + brc20Circulating).toFixed(5) : '...'} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
         </div>
       )
     },

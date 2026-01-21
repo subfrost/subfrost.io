@@ -54,6 +54,24 @@ export interface AddressTx {
   };
 }
 
+export interface AddressStats {
+  address: string;
+  chain_stats: {
+    funded_txo_count: number;
+    funded_txo_sum: number;
+    spent_txo_count: number;
+    spent_txo_sum: number;
+    tx_count: number;
+  };
+  mempool_stats: {
+    funded_txo_count: number;
+    funded_txo_sum: number;
+    spent_txo_count: number;
+    spent_txo_sum: number;
+    tx_count: number;
+  };
+}
+
 // ============================================================================
 // RPC Helpers
 // ============================================================================
@@ -114,21 +132,36 @@ async function brc20Rpc<T>(method: string, params: unknown[]): Promise<T> {
  * Get UTXOs for an address
  */
 export async function getAddressUtxos(address: string): Promise<UTXO[]> {
-  return subfrostRpc<UTXO[]>('esplora_address::utxo', [address]);
+  const result = await subfrostRpc<UTXO[]>('esplora_address::utxo', [address]);
+  return Array.isArray(result) ? result : [];
 }
 
 /**
  * Get transactions for an address
  */
 export async function getAddressTxs(address: string): Promise<AddressTx[]> {
-  return subfrostRpc<AddressTx[]>('esplora_address::txs', [address]);
+  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs', [address]);
+  return Array.isArray(result) ? result : [];
 }
 
 /**
  * Get transactions for an address with pagination (after a specific txid)
  */
 export async function getAddressTxsChain(address: string, lastSeenTxid: string): Promise<AddressTx[]> {
-  return subfrostRpc<AddressTx[]>('esplora_address::txs:chain', [address, lastSeenTxid]);
+  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs:chain', [address, lastSeenTxid]);
+  return Array.isArray(result) ? result : [];
+}
+
+/**
+ * Get address stats (balance via funded/spent sums) from mempool.space
+ * This is useful for addresses with many UTXOs that exceed RPC limits
+ */
+export async function getAddressStats(address: string): Promise<AddressStats> {
+  const response = await fetch(`https://mempool.space/api/address/${address}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch address stats: ${response.status}`);
+  }
+  return response.json();
 }
 
 // ============================================================================
@@ -144,6 +177,7 @@ export function getAlkanesSubfrostAddress(): string {
 
 /**
  * Get BTC locked in Alkanes Subfrost address
+ * Uses address stats for efficiency and scalability
  */
 export async function getAlkanesBtcLocked(): Promise<{
   btcLocked: number;
@@ -152,13 +186,16 @@ export async function getAlkanesBtcLocked(): Promise<{
   address: string;
 }> {
   const address = ALKANES_SUBFROST_ADDRESS;
-  const utxos = await getAddressUtxos(address);
-  const satoshis = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
+  const stats = await getAddressStats(address);
+
+  // Balance = total funded - total spent (confirmed only)
+  const satoshis = stats.chain_stats.funded_txo_sum - stats.chain_stats.spent_txo_sum;
+  const utxoCount = stats.chain_stats.funded_txo_count - stats.chain_stats.spent_txo_count;
 
   return {
     btcLocked: satoshis / 100_000_000,
     satoshis,
-    utxoCount: utxos.length,
+    utxoCount,
     address,
   };
 }
@@ -176,6 +213,7 @@ export function getBrc20SignerAddress(): string {
 
 /**
  * Get BTC locked in BRC2.0 signer address
+ * Uses address stats instead of UTXOs since this address has >500 UTXOs
  */
 export async function getBrc20BtcLocked(): Promise<{
   btcLocked: number;
@@ -184,13 +222,16 @@ export async function getBrc20BtcLocked(): Promise<{
   address: string;
 }> {
   const address = BRC20_SIGNER_ADDRESS;
-  const utxos = await getAddressUtxos(address);
-  const satoshis = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
+  const stats = await getAddressStats(address);
+
+  // Balance = total funded - total spent (confirmed only)
+  const satoshis = stats.chain_stats.funded_txo_sum - stats.chain_stats.spent_txo_sum;
+  const utxoCount = stats.chain_stats.funded_txo_count - stats.chain_stats.spent_txo_count;
 
   return {
     btcLocked: satoshis / 100_000_000,
     satoshis,
-    utxoCount: utxos.length,
+    utxoCount,
     address,
   };
 }
