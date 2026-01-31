@@ -93,7 +93,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
           className={`bg-white/20 backdrop-blur-lg border-transparent rounded-lg max-w-md max-h-[80vh] overflow-hidden ${modalClassName}`}
         >
           <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-lg font-bold text-white" style={{ textShadow: "0 0 10px rgba(255, 255, 255, 0.8)" }}>{title}</h2>
+            <h2 className="text-lg font-bold text-white" style={{ textShadow: "0 0 2px rgba(255, 255, 255, 0.5)" }}>{title}</h2>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">
               <X size={20} />
             </button>

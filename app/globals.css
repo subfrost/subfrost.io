@@ -124,7 +124,7 @@
 }
 .responsive-shadow {
   color: white;
-  text-shadow: 0 0 10px hsl(var(--brand-blue));
+  text-shadow: 0 0 3px hsl(var(--brand-blue));
 }
 
 @media (min-width: 768px) {

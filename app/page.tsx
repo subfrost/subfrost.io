@@ -231,12 +231,12 @@ export default function Page() {
         </div>
 
         {/* Arrow at bottom - absolute positioned like SocialButtons, clipped by overflow-hidden */}
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-20">
           <ScrollArrow
             direction="down"
             onClick={handleScrollDown}
             color="hsl(var(--brand-blue))"
-            label="Scroll to Learn (A LOT) More"
+            label="Learn More"
           />
         </div>
 

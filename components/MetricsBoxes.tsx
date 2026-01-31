@@ -35,8 +35,8 @@
 // - 2025-10-07 (Chadson): Updated toggle/refresh text section to stack vertically in the modal view by conditionally applying flexbox classes based on the `isModal` prop.
 // - 2025-10-07 (Chadson): Added links to the contracts popover.
 // - 2025-10-17 (Chadlina): Underlined the links in the metrics boxes.
-// - 2025-10-17 (Chadlina): Increased the font size of the "Visit Them!" link.
-// - 2025-10-17 (Chadlina): Adjusted "Visit Them!" link font size to match title font size on different screen sizes.
+// - 2025-10-17 (Chadlina): Increased the font size of the "Visit Them" link.
+// - 2025-10-17 (Chadlina): Adjusted "Visit Them" link font size to match title font size on different screen sizes.
 
 "use client";
 
@@ -103,7 +103,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       if (btcPriceError || !btcPriceData) return <LoadingDots />;
       return formatUsd(btcValue * btcPriceData.btcPrice);
     }
-    return btcValue.toFixed(4);
+    return btcValue >= 10 ? btcValue.toFixed(3) : btcValue.toFixed(4);
   };
 
   // Address values
@@ -144,7 +144,6 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const metrics = [
     {
-      superTitle: 'Current',
       title: 'frBTC Supply',
       value: getDisplayValue(combinedFrbtcSupply),
       linkText: 'Breakdown',
@@ -157,7 +156,6 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      superTitle: 'Current',
       title: 'BTC Locked',
       value: getDisplayValue(combinedBtcLocked),
       linkText: 'Verify',
@@ -170,8 +168,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      superTitle: 'Lifetime',
-      title: 'BTC Tx Value',
+      title: 'Total Tx Value',
       value: getDisplayValue(lifetimeBtcTxValue),
       linkText: 'Breakdown',
       linkType: 'popover',
@@ -183,10 +180,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      superTitle: 'Early',
       title: 'Partnerships',
       value: '20+',
-      linkText: 'Visit Them!',
+      linkText: 'Visit Them',
       linkType: 'modal'
     },
   ];
@@ -215,7 +211,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     }
     if (metric.linkType === 'modal') {
         return (
-            <button onClick={onPartnershipsClick} className={`${linkClasses} glowing-button`} style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+            <button onClick={onPartnershipsClick} className="text-[hsl(var(--brand-blue))] glowing-button" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
                 {metric.linkText}
             </button>
         )
@@ -235,7 +231,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             <div>
               {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
               <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem', ...(isModal && { textShadow: '0 0 5px hsl(var(--brand-blue))' }) }}>{metric.value}</p>
+              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem', ...(isModal && { textShadow: '0 0 3px hsl(var(--brand-blue))' }) }}>{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}

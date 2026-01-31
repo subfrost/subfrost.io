@@ -24,15 +24,15 @@ const ScrollArrow: React.FC<ScrollArrowProps> = ({
     <div className="flex flex-col items-center mt-8 cursor-pointer" onClick={onClick}>
       {/* Label above the arrow for downward arrows */}
       {direction === "down" && label && showLabel && (
-        <p
+        <span
           className={cn(
-            "mb-4 uppercase font-bold",
+            "mb-2 uppercase font-bold px-3 py-1 rounded-full tracking-wider glowing-button",
             useSnowEffect ? "snow-title" : "",
           )}
-          style={{ color, fontSize: '0.6rem' }}
+          style={{ fontSize: '0.6rem' }}
         >
           {label}
-        </p>
+        </span>
       )}
 
       <div className="animate-bounce">
