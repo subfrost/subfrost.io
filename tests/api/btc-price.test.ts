@@ -16,12 +16,14 @@ describe('GET /api/btc-price', () => {
     vi.clearAllMocks();
   });
 
-  it('returns BTC price from CoinGecko', async () => {
+  it('returns BTC price from Subfrost API', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        bitcoin: {
-          usd: 99500.25,
+        data: {
+          bitcoin: {
+            usd: 99500.25,
+          },
         },
       }),
     });
@@ -33,22 +35,30 @@ describe('GET /api/btc-price', () => {
     expect(data.btcPrice).toBe(99500.25);
   });
 
-  it('calls CoinGecko API with correct URL', async () => {
+  it('calls Subfrost API with correct URL and method', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        bitcoin: { usd: 99500 },
+        data: {
+          bitcoin: { usd: 99500 },
+        },
       }),
     });
 
     await GET();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('api.coingecko.com')
+      'https://mainnet.subfrost.io/v4/subfrost/get-bitcoin-price',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
   });
 
-  it('returns error response when CoinGecko fails', async () => {
+  it('returns error response when Subfrost API fails', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 429,
