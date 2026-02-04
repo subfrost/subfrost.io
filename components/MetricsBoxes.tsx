@@ -144,7 +144,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   const metrics = [
     {
-      title: 'frBTC Supply',
+      title: <>Current<br />frBTC Supply</>,
       value: getDisplayValue(combinedFrbtcSupply),
       linkText: 'Breakdown',
       linkType: 'popover',
@@ -156,7 +156,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      title: 'BTC Locked',
+      title: <>Total<br />BTC Locked</>,
       value: getDisplayValue(combinedBtcLocked),
       linkText: 'Verify',
       linkType: 'popover',
@@ -168,7 +168,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      title: 'Total Tx Value',
+      title: <>Lifetime<br />Tx Value</>,
       value: getDisplayValue(lifetimeBtcTxValue),
       linkText: 'Breakdown',
       linkType: 'popover',
@@ -180,7 +180,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       )
     },
     {
-      title: 'Partnerships',
+      title: <>Ecosystem<br />Partnerships</>,
       value: '20+',
       linkText: 'Visit Them',
       linkType: 'modal'
