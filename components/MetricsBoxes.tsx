@@ -142,7 +142,14 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
       : alkanesBtcLocked + brc20BtcLocked
   );
 
-  const metrics = [
+  const metrics: {
+    title: React.ReactNode;
+    value: React.ReactNode;
+    linkText: string;
+    linkType: string;
+    superTitle?: string;
+    popoverContent?: React.ReactNode;
+  }[] = [
     {
       title: <>Current<br />frBTC Supply</>,
       value: getDisplayValue(combinedFrbtcSupply),
