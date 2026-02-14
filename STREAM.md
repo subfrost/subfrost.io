@@ -4,6 +4,19 @@ Remaining infrastructure setup to get the Guangzhou conference streaming operati
 
 ---
 
+## 0. Cloudflare: Set SSL/TLS to Full (Strict)
+
+**Do this first before enabling proxying on any record.**
+
+1. Go to **Cloudflare dashboard > subfrost.io > SSL/TLS > Overview**
+2. Set encryption mode to **Full (Strict)**
+
+Without this, proxied records cause an infinite redirect loop — Cloudflare connects to Cloud Run over HTTP, Cloud Run redirects to HTTPS, repeat forever. Cloud Run has a valid Google-issued TLS cert so Full (Strict) works fine.
+
+Once this is set, you can also flip the main `subfrost.io` A record to proxied (orange cloud) for GFW bypass on the main domain. The deploy scripts currently leave it as DNS-only to avoid the loop.
+
+---
+
 ## 1. GCP: Create GCS Bucket
 
 ```bash
