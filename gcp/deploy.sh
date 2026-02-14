@@ -100,14 +100,14 @@ if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_DOMAIN" ]; then
             curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
                 -H "Content-Type: application/json" \
-                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":true}" > /dev/null
+                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}" > /dev/null
             echo "Updated A record: ${DOMAIN} -> ${TARGET}"
         else
             # Create new record
             curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
                 -H "Content-Type: application/json" \
-                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":true}" > /dev/null
+                --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}" > /dev/null
             echo "Created A record: ${DOMAIN} -> ${TARGET}"
         fi
     fi
