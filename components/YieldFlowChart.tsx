@@ -64,13 +64,13 @@ export default function YieldFlowChart() {
         
         {/* Level 1: Source Assets */}
         <g id="sources">
-          {/* BTC/ZEC/ETH Pool */}
+          {/* BTC/USD/ADA/ZEC Pool */}
           <circle cx="150" cy="150" r="45" fill="url(#btcGradient)" filter="url(#glow)" opacity="0.9">
             <animate attributeName="r" values="45;48;45" dur="3s" repeatCount="indefinite" />
           </circle>
           <text x="150" y="145" textAnchor="middle" fontSize="16" fontWeight="bold" fill="white">BTC</text>
-          <text x="150" y="162" textAnchor="middle" fontSize="12" fill="white">ZEC · ETH</text>
-          <text x="150" y="180" textAnchor="middle" fontSize="12" fill="white">USD</text>
+          <text x="150" y="162" textAnchor="middle" fontSize="12" fill="white">USD · ADA</text>
+          <text x="150" y="180" textAnchor="middle" fontSize="12" fill="white">ZEC</text>
           <text x="135" y="210" textAnchor="middle" fontSize="12" fill="#d1d5db">Swap Fees </text>
           
           {/* LP Incentives */}

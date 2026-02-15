@@ -4,8 +4,9 @@
  */
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { cn } from "@/lib/utils"
+import YieldFlowChart from "@/components/YieldFlowChart"
 
 const DxBTCIcon = () => (
   <svg viewBox="0 0 140 140" className="w-full h-full">
@@ -306,6 +307,107 @@ export default function VaultsOverview() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Collapsible Yield Flow Section */}
+      <YieldFlowSection />
+    </div>
+  )
+}
+
+function YieldFlowSection() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div id="yield-flow" className="mt-10">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-center group cursor-pointer"
+      >
+        <p className="text-lg text-gray-400 inline-flex items-center gap-3">
+          Learn about our Yield Flow
+          <span className={cn(
+            "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
+            "bg-transparent",
+            "",
+            ""
+          )}>
+            <svg
+              className={cn(
+                "w-4 h-4 transition-transform duration-300 text-gray-300 group-hover:text-white",
+                isOpen && "rotate-180"
+              )}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </p>
+      </button>
+
+      <div
+        className={cn(
+          "grid transition-all duration-500 ease-in-out",
+          isOpen ? "grid-rows-[1fr] opacity-100 mt-8" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
+          <p className="text-xl text-gray-300 tracking-wider max-w-2xl mx-auto text-center mb-8">
+            Real Bitcoin yield from Real Bitcoin Activity.
+          </p>
+          <div className="grid md:grid-cols-3 gap-8 items-start">
+            {/* Left Column - 1/3 width */}
+            <div className="md:col-span-1 space-y-4">
+              {/* Step 1 */}
+              <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold">1</span>
+                  <p className="text-base text-gray-300">Trading volume and LP fees across all of our vaults eventually aggregate into the pure-BTC-exposure yvfrBTC vault.</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-purple-300 font-bold">2</span>
+                  <p className="text-base text-gray-300">We generate revenue on premiums paid by Mining Pools to hedge their 100-block lock-up period, powering ftrBTC futures, and providing another market to earn volume-based fees from.</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300 font-bold">3</span>
+                  <p className="text-base text-gray-300">These mechanisms, in addition to earning yield themselves, feed a portion of this yield into the dxBTC yield token.</p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 font-bold">4</span>
+                  <p className="text-base text-gray-300">Additionally, as our partnerships expand we&apos;ll continue to innovate on new yield-generating offerings to benefit all parties and enhance the yield of dxBTC.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - 2/3 width */}
+            <div className={cn(
+              "relative rounded-2xl p-8 transition-all duration-500 md:col-span-2",
+              "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
+              "shadow-lg shadow-black/20",
+              "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
+              "backdrop-blur-sm"
+            )}>
+              <div className="relative z-10">
+                <YieldFlowChart />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

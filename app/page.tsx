@@ -103,7 +103,6 @@ import CustomModal from "@/components/CustomModal"
 import InfoSection from "@/components/InfoSection"
 import ScrollArrow from "@/components/ScrollArrow"
 import FeaturesGrid from "@/components/FeaturesGrid"
-import YieldFlowChart from "@/components/YieldFlowChart"
 import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
@@ -132,9 +131,9 @@ const partners = [
 const teamMembers = [
   { name: "Flex", title: "Founder/CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes. Former CTO of Polymarket and IDEX." },
   { name: "Gabe", title: "Founder/CEO", image: "gabelee.jpeg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could impact 1B+ people." },
+  { name: "Brooks", title: "Advisor", image: "brooks.jpg", link: "", description: "Chinese Ambassador (for SUBFROST & Alkanes) with 10+ years in Blockchain Marketing." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
-  { name: "Brooks", title: "Advisor", image: "brooks.jpg", link: "", description: "Chinese Ambassador (for SUBFROST & Alkanes) with 10+ years in Blockchain Marketing." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
   { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
@@ -261,13 +260,12 @@ export default function Page() {
             <AssetsOverview />
           </div>
 
-          {/* Vaults Overview */}
-          <div id="yield-products">
+          {/* Vaults Overview + App Features (tighter gap) */}
+          <div id="yield-products" className="space-y-6">
             <VaultsOverview />
-          </div>
 
           {/* App Features */}
-          <div id="subfrost-app" className="mt-14 pt-10 border-t border-slate-300/20">
+          <div id="subfrost-app" className="pt-10 border-t border-slate-300/20">
           <div className="text-center mb-8">
             <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
               THE SUBFROST APP
@@ -280,68 +278,8 @@ export default function Page() {
           {/* Features Grid with SVG visuals */}
           <FeaturesGrid />
           </div>
-          
-          {/* Yield Flow Chart */}
-          <div id="yield-flow" className="mt-14 pt-10 border-t border-slate-300/20">
-            <div className="text-center mb-8">
-              <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
-                SUBFROST YIELD FLOW
-              </h3>
-              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                Real Bitcoin yield from Real Bitcoin Activity.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8 items-start">
-              {/* Left Column - 1/3 width */}
-              <div className="md:col-span-1 space-y-4">
-                {/* Step 1 */}
-                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold">1</span>
-                    <p className="text-base text-gray-300">Trading volume and LP fees across all of our vaults eventually aggregate into the pure-BTC-exposure yvfrBTC vault.</p>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-purple-300 font-bold">2</span>
-                    <p className="text-base text-gray-300">We generate revenue on premiums paid by Mining Pools to hedge their 100-block lock-up period, powering ftrBTC futures, and providing another market to earn volume-based fees from.</p>
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300 font-bold">3</span>
-                    <p className="text-base text-gray-300">These mechanisms, in addition to earning yield themselves, feed a portion of this yield into the dxBTC yield token.</p>
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="relative rounded-lg p-6 bg-gradient-to-br from-slate-800/60 to-slate-900/60 shadow-lg shadow-black/20 before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-lg before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 font-bold">4</span>
-                    <p className="text-base text-gray-300">Additionally, as our partnerships expand we'll continue to innovate on new yield-generating offerings to benefit all parties and enhance the yield of dxBTC.</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Right Column - 2/3 width */}
-              <div className={cn(
-                "relative rounded-2xl p-8 transition-all duration-500 md:col-span-2",
-                "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
-                "shadow-lg shadow-black/20",
-                "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
-                "backdrop-blur-sm"
-              )}>
-                <div className="relative z-10">
-                  <YieldFlowChart />
-                </div>
-              </div>
-            </div>
           </div>
+
           <div id="team-partnerships" className="mt-24 pt-16 border-t border-slate-300/50">
             <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* Left Column */}

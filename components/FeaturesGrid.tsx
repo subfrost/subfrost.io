@@ -77,7 +77,7 @@ const features: Feature[] = [
     description: "For the first time ever, execute AMM swaps of major assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, Stablecoins, SOL, ZEC, and others! Seamless wrapping and unwrapping is completely abstracted away for the user.",
     videoTitle: "SWAP DEMO COMING SOON",
     glowColor: "from-amber-500 to-orange-600",
-    image: "/app screenshots/swap.png"
+    image: "/screenshots/swap.png"
   },
   {
     buttonTitle: "LIQUIDITY POOLS",
@@ -85,7 +85,7 @@ const features: Feature[] = [
     description: "Earn LP fees by supplying assets like BTC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
     videoTitle: "LP DEMO COMING SOON",
     glowColor: "from-blue-500 to-blue-700",
-    image: "/app screenshots/lp.png"
+    image: "/screenshots/lp.png"
   },
   {
     buttonTitle: "YIELD VAULTS",
@@ -93,7 +93,7 @@ const features: Feature[] = [
     description: "Lock up your LP tokens in vaults and earn rewards. The best part? No need to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
     videoTitle: "YIELD VAULT DEMO COMING SOON",
     glowColor: "from-emerald-500 to-emerald-700",
-    image: "/app screenshots/Vaults.png"
+    image: "/screenshots/vaults.png"
   },
   {
     buttonTitle: "GAUGE REWARDS",
@@ -102,7 +102,7 @@ const features: Feature[] = [
     videoTitle: "GAUGE DEMO COMING SOON",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
-    image: "/app screenshots/gauge.png"
+    image: "/screenshots/gauge.png"
   },
   {
     buttonTitle: "BITCOIN FUTURES",
@@ -110,7 +110,7 @@ const features: Feature[] = [
     description: "Participate in the first permissionless futures market on Bitcoin. Miners hedge against their 100-block lock-up period, and users can bet on the price of BTC 100-blocks from now.",
     videoTitle: "FUTURES DEMO COMING SOON",
     glowColor: "from-purple-500 to-purple-700",
-    image: "/app screenshots/futures.png"
+    image: "/screenshots/futures.png"
   }
 ]
 
