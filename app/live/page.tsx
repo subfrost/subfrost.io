@@ -5,8 +5,9 @@ import useSWR from "swr"
 import { DualStreamView } from "@/components/stream/DualStreamView"
 import { CaptionOverlay } from "@/components/stream/CaptionOverlay"
 import { LanguageToggle } from "@/components/stream/LanguageToggle"
+import { StreamOffline } from "@/components/stream/StreamOffline"
 import { Button } from "@/components/ui/button"
-import { Maximize, WifiOff } from "lucide-react"
+import { Maximize } from "lucide-react"
 import type { CaptionLanguage, StreamStatusResponse } from "@/lib/stream-types"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -35,26 +36,9 @@ export default function LivePage() {
   const isLive = data?.live === true && data.session !== null
   const session = data?.session ?? null
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="text-zinc-500 text-sm">Connecting...</div>
-      </div>
-    )
-  }
-
-  // Offline state
-  if (!isLive || !session) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-black">
-        <WifiOff className="h-12 w-12 text-zinc-600 mb-4" />
-        <h1 className="text-xl font-semibold text-zinc-400">Stream Offline</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          No active broadcast right now. Check back later.
-        </p>
-      </div>
-    )
+  // Loading or offline state
+  if (isLoading || !isLive || !session) {
+    return <StreamOffline />
   }
 
   // Live state
