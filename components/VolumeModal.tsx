@@ -154,7 +154,7 @@ function StatsCards({ period }: { period: string }) {
 /*  Volume Histogram Chart                                             */
 /* ------------------------------------------------------------------ */
 
-const CHART_BG = "#192335"
+const CHART_BG = "transparent"
 const GRID_COLOR = "rgba(255,255,255,0.04)"
 const CHART_START = "2025-10-01" as Time
 const CHART_HEIGHT = typeof window !== "undefined" && window.innerWidth < 640 ? 250 : 350
@@ -577,7 +577,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-black/[.15] backdrop-blur-[2px]"
         onClick={onClose}
       />
 

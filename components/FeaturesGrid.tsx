@@ -81,7 +81,7 @@ const features: Feature[] = [
   },
   {
     buttonTitle: "LIQUIDITY POOLS",
-    title: "LIDUIDITY POOLS",
+    title: "LIQUIDITY POOLS",
     description: "Earn LP fees by supplying assets like BTC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
     videoTitle: "LP DEMO COMING SOON",
     glowColor: "from-blue-500 to-blue-700",
@@ -151,7 +151,7 @@ export default function FeaturesGrid() {
         </h3>
         
         {/* Buttons */}
-        <div className="space-y-4">
+        <div className="space-y-4" onMouseLeave={() => setHoveredIndex(null)}>
           {features.map((feature, index) => {
             const isActive = hoveredIndex === index || (hoveredIndex === null && activeIndex === index)
             // Use brighter colors to match the timer effect
@@ -159,9 +159,9 @@ export default function FeaturesGrid() {
                                feature.glowColor.includes('blue') ? '#60a5fa' :
                                feature.glowColor.includes('emerald') ? '#34d399' :
                                feature.glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
-            
+
             return (
-            <div key={index} className="relative">
+            <div key={index} className="relative" onMouseEnter={() => setHoveredIndex(index)}>
               {/* Rainbow border overlay for hover state - maintains rounded corners */}
               {isActive && hoveredIndex === index && feature.isRainbow && (
                 <div 
@@ -237,8 +237,6 @@ export default function FeaturesGrid() {
                     borderColor: borderColor
                   } : {})
                 }}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
               >
                 <div className="px-8">
                   {feature.buttonTitle}
@@ -323,11 +321,13 @@ export default function FeaturesGrid() {
               <>
                 {/* Screenshot */}
                 <Image
+                  key={displayIndex}
                   src={features[displayIndex].image}
                   alt={features[displayIndex].title}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 66vw"
+                  priority
                 />
                 {/* Play button overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">

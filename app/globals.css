@@ -119,6 +119,30 @@
   }
 }
 
+/* Dark scrollbars for internal containers (not the main page scrollbar) */
+*:not(html):not(body) {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a #d0d0d0;
+}
+*:not(html):not(body)::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+*:not(html):not(body)::-webkit-scrollbar-track {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+*:not(html):not(body)::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+*:not(html):not(body)::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+*:not(html):not(body)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .font-satoshi {
   font-family: "Satoshi", sans-serif;
 }
