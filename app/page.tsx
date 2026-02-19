@@ -106,6 +106,7 @@ import FeaturesGrid from "@/components/FeaturesGrid"
 import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
+import VolumeModal from "@/components/VolumeModal"
 
 const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes (now open-source)", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
@@ -142,6 +143,7 @@ const teamMembers = [
 
 export default function Page() {
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false)
+  const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
   const partnersSectionRef = useRef<HTMLDivElement | null>(null)
 
@@ -184,20 +186,35 @@ export default function Page() {
         </CustomModal>
       </div>
 
+      <VolumeModal
+        isOpen={isVolumeModalOpen}
+        onClose={() => setIsVolumeModalOpen(false)}
+      />
+
       {/* Hero Section */}
       <section className="relative flex h-dvh flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
         
-        {/* API Login Button - Top Right */}
-        <a
-          href="https://api.subfrost.io"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute top-4 right-4 z-20 flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
-        >
-          API LOGIN
-        </a>
+        {/* Top Right Buttons */}
+        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+          <a
+            href="https://api.subfrost.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+          >
+            API LOGIN
+          </a>
+          <a
+            href="https://api.subfrost.io/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+          >
+            API DOCS
+          </a>
+        </div>
 
         {/* Main content - centered using flex, takes available space */}
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center w-full max-w-4xl px-4 pt-16">
@@ -221,6 +238,7 @@ export default function Page() {
               </div>
               <ActionButtons
                 onMetricsClick={handleOpenMetricsModal}
+                onVolumeChartsClick={() => setIsVolumeModalOpen(true)}
               />
               <div className="hidden md:block">
                 <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />

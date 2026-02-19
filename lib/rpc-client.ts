@@ -41,16 +41,19 @@ export interface AddressTx {
     vout: number;
     prevout?: {
       scriptpubkey_address?: string;
+      scriptpubkey_type?: string;
       value: number;
     };
   }>;
   vout: Array<{
     scriptpubkey_address?: string;
+    scriptpubkey_type?: string;
     value: number;
   }>;
   status: {
     confirmed: boolean;
     block_height?: number;
+    block_time?: number;
   };
 }
 

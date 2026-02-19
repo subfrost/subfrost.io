@@ -38,7 +38,7 @@ const assets: Asset[] = [
     color: "from-green-500 to-green-700"
   },
   {
-    symbol: "Other Mains",
+    symbol: "Other Majors",
     name: "Bridge High Volume Assets to Bitcoin",
     description: "SUBFROST can bridge any EVM- or UTXO-based asset to Bitcoin L1.",
     icon: "",

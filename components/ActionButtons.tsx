@@ -16,9 +16,10 @@ import type React from "react"
 
 interface ActionButtonsProps {
   onMetricsClick: () => void;
+  onVolumeChartsClick: () => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onVolumeChartsClick }) => {
   return (
     <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
       <a
@@ -29,14 +30,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick }) => {
       >
         OFFICIAL DOCS
       </a>
-      <a
-        href="https://api.subfrost.io/docs"
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        onClick={onVolumeChartsClick}
         className="flex justify-center px-2 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm whitespace-nowrap"
       >
-        SUBFROST API DOCS
-      </a>
+        VOLUME CHARTS
+      </button>
       
       <button
         onClick={onMetricsClick}
