@@ -130,7 +130,7 @@ function StatsCards({ period }: { period: string }) {
           className={cn(
             cardClass,
             "p-4 sm:p-5",
-            i === allCards.length - 1 && "col-span-2 sm:col-span-1"
+            i === allCards.length - 1 && "hidden sm:block"
           )}
         >
           <p className="text-xs sm:text-sm text-gray-400 mb-1">{card.label}</p>
