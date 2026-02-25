@@ -222,7 +222,7 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
     setStatus('connecting');
     setError(null);
 
-    const wsUrl = `wss://media.subfrost.io/ingest?streamKey=${encodeURIComponent(streamKey)}`;
+    const wsUrl = `wss://media.subfrost.io/ingest?key=${encodeURIComponent(streamKey)}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

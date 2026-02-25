@@ -237,28 +237,29 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           DOMAIN="media.subfrost.io"
-          # Extract Cloud Run hostname from URL
-          MEDIA_HOST=$(echo "${{ steps.media-service.outputs.url }}" | sed 's|https://||')
+          # Static IP of the GCP Application Load Balancer (serverless NEG -> Cloud Run)
+          # GCP LB handles SSL with a Google-managed cert, so Cloudflare proxy is off.
+          MEDIA_IP="34.128.174.75"
           CF_ZONE_ID="${{ vars.CLOUDFLARE_ZONE_ID }}"
 
           RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?name=${DOMAIN}" \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -H "Content-Type: application/json")
 
-          RECORD_ID=$(echo "$RESPONSE" | jq -r '.result[] | select(.type == "CNAME") | .id' | head -1)
+          RECORD_ID=$(echo "$RESPONSE" | jq -r '.result[] | select(.type == "A" or .type == "CNAME") | .id' | head -1)
 
           if [ -n "$RECORD_ID" ]; then
             curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
               -H "Authorization: Bearer ${CF_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"${DOMAIN}\",\"content\":\"${MEDIA_HOST}\",\"ttl\":1,\"proxied\":true}" > /dev/null
-            echo "Updated CNAME: ${DOMAIN} -> ${MEDIA_HOST}"
+              --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${MEDIA_IP}\",\"ttl\":1,\"proxied\":false}" > /dev/null
+            echo "Updated A record: ${DOMAIN} -> ${MEDIA_IP}"
           else
             curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
               -H "Authorization: Bearer ${CF_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"${DOMAIN}\",\"content\":\"${MEDIA_HOST}\",\"ttl\":1,\"proxied\":true}" > /dev/null
-            echo "Created CNAME: ${DOMAIN} -> ${MEDIA_HOST}"
+              --data "{\"type\":\"A\",\"name\":\"${DOMAIN}\",\"content\":\"${MEDIA_IP}\",\"ttl\":1,\"proxied\":false}" > /dev/null
+            echo "Created A record: ${DOMAIN} -> ${MEDIA_IP}"
           fi
 
   migrate:
