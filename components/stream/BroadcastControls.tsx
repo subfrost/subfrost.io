@@ -2,23 +2,11 @@
 
 // components/stream/BroadcastControls.tsx
 // Presenter controls for managing screen capture, camera, and live broadcast.
-//
-// Design Decisions:
-// - Wraps useBroadcast to provide a full control panel in a Card layout.
-// - Toggle buttons reflect active state: outlined when off, filled when on.
-// - "Go Live" is disabled until at least one source (screen or camera) is active.
-// - Preview videos use srcObject to display local MediaStream without HLS.
-// - The status indicator at the bottom shows connection state via StreamStatus.
-//
-// Journal:
-// - 2026-02-14 (Claude): Created broadcast controls panel component.
+// Styled to match the broadcast-slate design system (dark navy + blue accents).
 
 import { useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useBroadcast } from "@/hooks/use-broadcast"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { StreamStatus } from "@/components/stream/StreamStatus"
 import { Monitor, Camera, Radio, Square } from "lucide-react"
 
@@ -48,7 +36,13 @@ function StreamPreview({
   }, [stream])
 
   return (
-    <div className="relative bg-black rounded-md overflow-hidden aspect-video">
+    <div
+      className="relative overflow-hidden rounded-md aspect-video"
+      style={{
+        background: "rgba(0,0,0,0.5)",
+        border: "1px solid rgba(91,156,255,0.1)",
+      }}
+    >
       {stream ? (
         <video
           ref={videoRef}
@@ -59,13 +53,73 @@ function StreamPreview({
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs text-zinc-500">{label} off</span>
+          <span
+            style={{
+              fontSize: 10,
+              fontFamily: '"Courier New", monospace',
+              color: "rgba(91,156,255,0.25)",
+              letterSpacing: 2,
+              textTransform: "uppercase",
+            }}
+          >
+            {label} OFF
+          </span>
         </div>
       )}
-      <div className="absolute top-0 left-0 bg-black/50 px-1.5 py-0.5 rounded-br-md">
-        <span className="text-[10px] font-medium text-white/80">{label}</span>
+      <div
+        className="absolute top-0 left-0 px-2 py-1 rounded-br-md"
+        style={{ background: "rgba(0,0,0,0.6)" }}
+      >
+        <span
+          style={{
+            fontSize: 9,
+            fontFamily: '"Courier New", monospace',
+            color: "rgba(91,156,255,0.6)",
+            letterSpacing: 2,
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </span>
       </div>
     </div>
+  )
+}
+
+function BroadcastButton({
+  onClick,
+  disabled,
+  active,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex items-center gap-2 rounded px-3 py-1.5 text-xs transition-all",
+        disabled && "cursor-not-allowed opacity-40"
+      )}
+      style={{
+        fontFamily: '"Courier New", monospace',
+        letterSpacing: 2,
+        textTransform: "uppercase",
+        background: active
+          ? "rgba(91,156,255,0.15)"
+          : "rgba(91,156,255,0.04)",
+        border: `1px solid ${active ? "rgba(91,156,255,0.35)" : "rgba(91,156,255,0.12)"}`,
+        color: active
+          ? "rgba(91,156,255,0.9)"
+          : "rgba(91,156,255,0.5)",
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -88,74 +142,136 @@ export function BroadcastControls({ streamKey, className }: BroadcastControlsPro
   const hasSource = screenStream !== null || cameraStream !== null
 
   return (
-    <Card className={cn("w-full", className)}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg">Broadcast Controls</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Source controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={screenStream ? "default" : "outline"}
-            size="sm"
-            onClick={screenStream ? stopScreen : startScreen}
-            disabled={isLive || isConnecting}
+    <div className={cn("w-full space-y-5", className)}>
+      {/* Section label */}
+      <div className="flex items-center gap-3">
+        <span
+          style={{
+            fontSize: 10,
+            fontFamily: '"Courier New", monospace',
+            color: "rgba(91,156,255,0.4)",
+            letterSpacing: 3,
+            textTransform: "uppercase",
+          }}
+        >
+          SOURCES
+        </span>
+        <div className="flex-1" style={{ borderBottom: "1px solid rgba(91,156,255,0.1)" }} />
+      </div>
+
+      {/* Source controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <BroadcastButton
+          active={!!screenStream}
+          onClick={screenStream ? stopScreen : startScreen}
+          disabled={isLive || isConnecting}
+        >
+          <Monitor className="h-3.5 w-3.5" />
+          {screenStream ? "STOP SCREEN" : "SHARE SCREEN"}
+        </BroadcastButton>
+
+        <BroadcastButton
+          active={!!cameraStream}
+          onClick={cameraStream ? stopCamera : startCamera}
+          disabled={isLive || isConnecting}
+        >
+          <Camera className="h-3.5 w-3.5" />
+          {cameraStream ? "STOP CAMERA" : "START CAMERA"}
+        </BroadcastButton>
+
+        {/* Separator */}
+        <div
+          className="mx-1 h-6"
+          style={{ borderLeft: "1px solid rgba(91,156,255,0.15)" }}
+        />
+
+        {isLive ? (
+          <button
+            onClick={stopBroadcast}
+            className="flex items-center gap-2 rounded px-3 py-1.5 text-xs transition-all"
+            style={{
+              fontFamily: '"Courier New", monospace',
+              letterSpacing: 2,
+              textTransform: "uppercase",
+              background: "rgba(239,68,68,0.15)",
+              border: "1px solid rgba(239,68,68,0.35)",
+              color: "rgba(239,68,68,0.9)",
+            }}
           >
-            <Monitor className="h-4 w-4" />
-            {screenStream ? "Stop Screen" : "Share Screen"}
-          </Button>
-
-          <Button
-            variant={cameraStream ? "default" : "outline"}
-            size="sm"
-            onClick={cameraStream ? stopCamera : startCamera}
-            disabled={isLive || isConnecting}
+            <Square className="h-3.5 w-3.5" />
+            STOP BROADCAST
+          </button>
+        ) : (
+          <button
+            onClick={goLive}
+            disabled={!hasSource || isConnecting}
+            className={cn(
+              "flex items-center gap-2 rounded px-4 py-1.5 text-xs transition-all",
+              (!hasSource || isConnecting) && "cursor-not-allowed opacity-40"
+            )}
+            style={{
+              fontFamily: '"Courier New", monospace',
+              letterSpacing: 2,
+              textTransform: "uppercase",
+              background: hasSource
+                ? "rgba(34,197,94,0.15)"
+                : "rgba(34,197,94,0.05)",
+              border: `1px solid ${hasSource ? "rgba(34,197,94,0.35)" : "rgba(34,197,94,0.12)"}`,
+              color: hasSource
+                ? "rgba(34,197,94,0.9)"
+                : "rgba(34,197,94,0.3)",
+            }}
           >
-            <Camera className="h-4 w-4" />
-            {cameraStream ? "Stop Camera" : "Start Camera"}
-          </Button>
+            <Radio className="h-3.5 w-3.5" />
+            {isConnecting ? "CONNECTING..." : "GO LIVE"}
+          </button>
+        )}
+      </div>
 
-          <Separator orientation="vertical" className="h-6 mx-1" />
+      {/* Preview section */}
+      <div className="flex items-center gap-3">
+        <span
+          style={{
+            fontSize: 10,
+            fontFamily: '"Courier New", monospace',
+            color: "rgba(91,156,255,0.4)",
+            letterSpacing: 3,
+            textTransform: "uppercase",
+          }}
+        >
+          PREVIEW
+        </span>
+        <div className="flex-1" style={{ borderBottom: "1px solid rgba(91,156,255,0.1)" }} />
+      </div>
 
-          {isLive ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={stopBroadcast}
-            >
-              <Square className="h-4 w-4" />
-              Stop Broadcast
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={goLive}
-              disabled={!hasSource || isConnecting}
-              className={cn(
-                "bg-green-600 text-white hover:bg-green-700",
-                "disabled:bg-green-600/50"
-              )}
-            >
-              <Radio className="h-4 w-4" />
-              {isConnecting ? "Connecting..." : "Go Live"}
-            </Button>
-          )}
-        </div>
+      <div className="grid grid-cols-2 gap-3">
+        <StreamPreview stream={screenStream} label="Screen" />
+        <StreamPreview stream={cameraStream} label="Camera" />
+      </div>
 
-        {/* Preview */}
-        <div className="grid grid-cols-2 gap-2">
-          <StreamPreview stream={screenStream} label="Screen" />
-          <StreamPreview stream={cameraStream} label="Camera" />
-        </div>
-
-        {/* Status and error */}
-        <div className="flex items-center justify-between">
-          <StreamStatus status={status === "idle" && !hasSource ? "offline" : status} />
-          {error && (
-            <span className="text-xs text-red-400 truncate ml-2">{error}</span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {/* Status bar */}
+      <div
+        className="flex items-center justify-between rounded px-3 py-2"
+        style={{
+          background: "rgba(91,156,255,0.04)",
+          border: "1px solid rgba(91,156,255,0.1)",
+        }}
+      >
+        <StreamStatus status={status === "idle" && !hasSource ? "offline" : status} />
+        {error && (
+          <span
+            className="truncate ml-2"
+            style={{
+              fontSize: 10,
+              fontFamily: '"Courier New", monospace',
+              color: "rgba(239,68,68,0.7)",
+              letterSpacing: 1,
+            }}
+          >
+            {error}
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
