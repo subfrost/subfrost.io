@@ -44,7 +44,7 @@ export function DualStreamView({
           <VideoPanel src={screenSrc} label="Screen" muted className="h-full w-full" />
         )}
         {hasCamera && (
-          <VideoPanel src={cameraSrc} label="Camera" className="h-full w-full" />
+          <VideoPanel src={cameraSrc} label="Camera" muted className="h-full w-full" />
         )}
         {!hasScreen && !hasCamera && (
           <div className="flex h-full w-full items-center justify-center bg-black">
@@ -65,7 +65,7 @@ export function DualStreamView({
         <VideoPanel
           src={isPrimaryScreen ? screenSrc : cameraSrc}
           label={isPrimaryScreen ? "Screen" : "Camera"}
-          muted={isPrimaryScreen}
+          muted
           className="h-full w-full transition-all duration-500"
         />
 
@@ -82,7 +82,7 @@ export function DualStreamView({
           <VideoPanel
             src={isPrimaryScreen ? cameraSrc : screenSrc}
             label={isPrimaryScreen ? "Camera" : "Screen"}
-            muted={!isPrimaryScreen}
+            muted
             className="w-full"
           />
         </div>
@@ -97,7 +97,7 @@ export function DualStreamView({
         <VideoPanel src={screenSrc} label="Screen" muted className="h-full w-full" />
       </div>
       <div className="flex-1 min-w-0 transition-all duration-500">
-        <VideoPanel src={cameraSrc} label="Camera" className="h-full w-full" />
+        <VideoPanel src={cameraSrc} label="Camera" muted className="h-full w-full" />
       </div>
     </div>
   )
