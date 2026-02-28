@@ -9,7 +9,7 @@ import { LanguageToggle } from "@/components/stream/LanguageToggle"
 import { StreamOffline } from "@/components/stream/StreamOffline"
 import { LiveChat } from "@/components/stream/LiveChat"
 import { Button } from "@/components/ui/button"
-import { Maximize, MessageSquare } from "lucide-react"
+import { Maximize, MessageSquare, X } from "lucide-react"
 import { useFocus } from "@/hooks/use-focus"
 import type { CaptionLanguage, StreamStatusResponse } from "@/lib/stream-types"
 
@@ -17,7 +17,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function LivePage() {
   const [captionLang, setCaptionLang] = useState<CaptionLanguage>("original")
-  const [chatOpen, setChatOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   const { data, isLoading } = useSWR<StreamStatusResponse>(
@@ -53,35 +53,37 @@ export default function LivePage() {
 
   // Live state
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="flex h-dvh flex-col bg-black">
       {/* Title bar */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between border-b border-zinc-800 px-4 lg:px-6 py-2 lg:py-3 flex-shrink-0">
+        <div className="flex items-center gap-2 lg:gap-3 min-w-0">
           {/* Live indicator dot */}
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5 lg:h-3 lg:w-3 flex-shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+            <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
           </span>
-          <h1 className="text-lg font-semibold text-white">
+          <h1 className="text-sm lg:text-lg font-semibold text-white truncate">
             {session.title || "Live Stream"}
           </h1>
         </div>
 
-        {/* Chat toggle (visible on smaller screens) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setChatOpen((prev) => !prev)}
-          className="text-white/70 hover:text-white hover:bg-white/10 lg:hidden"
-        >
-          <MessageSquare className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Chat toggle — mobile only */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setChatOpen((prev) => !prev)}
+            className="h-8 w-8 lg:hidden text-white/70 hover:text-white hover:bg-white/10"
+          >
+            {chatOpen ? <X className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+          </Button>
+        </div>
       </header>
 
-      {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Content: vertical on mobile, horizontal on desktop */}
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden min-h-0">
         {/* Video area */}
-        <main className="relative flex-1 min-w-0" ref={containerRef}>
+        <main className="relative flex-1 min-w-0 min-h-0" ref={containerRef}>
           {/* Dual stream view with focus */}
           <DualStreamView
             screenSrc={screenHlsUrl}
@@ -93,33 +95,39 @@ export default function LivePage() {
           {/* Caption overlay at bottom */}
           <CaptionOverlay
             language={captionLang}
-            className="absolute bottom-16 left-0 right-0"
+            className="absolute bottom-12 lg:bottom-16 left-0 right-0"
           />
 
           {/* Fullscreen button - top right */}
-          <div className="absolute right-4 top-4">
+          <div className="absolute right-2 top-2 lg:right-4 lg:top-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className="text-white/70 hover:text-white hover:bg-white/10"
+              className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
             >
-              <Maximize className="h-5 w-5" />
+              <Maximize className="h-4 w-4 lg:h-5 lg:w-5" />
             </Button>
           </div>
 
           {/* Language toggle - bottom right */}
-          <div className="absolute bottom-4 right-4 z-10">
+          <div className="absolute bottom-2 right-2 lg:bottom-4 lg:right-4 z-10">
             <LanguageToggle value={captionLang} onChange={setCaptionLang} />
           </div>
         </main>
 
-        {/* Chat sidebar - desktop always, mobile togglable */}
+        {/* Chat panel */}
+        {/* Desktop: always-visible right sidebar */}
+        {/* Mobile: togglable bottom panel at 40vh */}
         <aside
           className={cn(
-            "w-80 border-l border-zinc-800 flex-shrink-0",
-            "hidden lg:flex",
-            chatOpen && "max-lg:flex max-lg:absolute max-lg:right-0 max-lg:top-0 max-lg:bottom-0 max-lg:z-20 max-lg:bg-black"
+            "flex-shrink-0 border-zinc-800 flex flex-col",
+            // Desktop: always visible as sidebar
+            "lg:w-80 lg:border-l lg:border-t-0 lg:h-auto lg:flex",
+            // Mobile: bottom panel when open, hidden when closed
+            chatOpen
+              ? "h-[40dvh] border-t"
+              : "hidden lg:flex"
           )}
         >
           <LiveChat />

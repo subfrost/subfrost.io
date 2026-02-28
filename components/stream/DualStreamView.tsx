@@ -8,12 +8,15 @@
 //   'none': Side-by-side 50/50 (or full width if only one stream active)
 //   'screen': Screen fills viewport, camera as small PiP bottom-right
 //   'camera': Camera fills viewport, screen as PiP bottom-right
+// - Mobile (<lg): Always single stream only, based on focus target.
+//   The secondary stream is hidden to avoid cramped dual views.
 // - CSS transitions for smooth focus changes (avoids framer-motion on video).
 // - PiP overlay is ~25% width with rounded corners and border.
 //
 // Journal:
 // - 2026-02-14 (Claude): Created dual-stream resizable layout component.
 // - 2026-02-28 (Claude): Rewritten for focus-aware layout with PiP overlays.
+// - 2026-02-28 (Claude): Mobile optimization — single stream only on small screens.
 
 import { VideoPanel } from "@/components/stream/VideoPanel"
 import { cn } from "@/lib/utils"
@@ -36,7 +39,7 @@ export function DualStreamView({
   const hasCamera = cameraSrc !== null
   const hasBoth = hasScreen && hasCamera
 
-  // Single stream: always full width
+  // Single stream: always full width on all breakpoints
   if (!hasBoth) {
     return (
       <div className={cn("relative h-full w-full", className)}>
@@ -55,13 +58,13 @@ export function DualStreamView({
     )
   }
 
-  // Focused layout: one fills, other is PiP
+  // Focused layout: primary fills, secondary as PiP (desktop) or hidden (mobile)
   if (focusTarget === "screen" || focusTarget === "camera") {
     const isPrimaryScreen = focusTarget === "screen"
 
     return (
       <div className={cn("relative h-full w-full", className)}>
-        {/* Primary (full) */}
+        {/* Primary: always full */}
         <VideoPanel
           src={isPrimaryScreen ? screenSrc : cameraSrc}
           label={isPrimaryScreen ? "Screen" : "Camera"}
@@ -69,9 +72,10 @@ export function DualStreamView({
           className="h-full w-full transition-all duration-500"
         />
 
-        {/* PiP overlay */}
+        {/* PiP: desktop only */}
         <div
           className={cn(
+            "hidden lg:block",
             "absolute bottom-4 right-4 z-10",
             "w-1/4 min-w-[180px] max-w-[320px]",
             "rounded-lg overflow-hidden shadow-2xl",
@@ -90,13 +94,13 @@ export function DualStreamView({
     )
   }
 
-  // None: side-by-side 50/50
+  // None: side-by-side on desktop, screen-only on mobile
   return (
-    <div className={cn("flex h-full w-full gap-1", className)}>
-      <div className="flex-1 min-w-0 transition-all duration-500">
+    <div className={cn("flex h-full w-full gap-0 lg:gap-1", className)}>
+      <div className="w-full lg:flex-1 lg:w-auto min-w-0 transition-all duration-500">
         <VideoPanel src={screenSrc} label="Screen" muted className="h-full w-full" />
       </div>
-      <div className="flex-1 min-w-0 transition-all duration-500">
+      <div className="hidden lg:block lg:flex-1 min-w-0 transition-all duration-500">
         <VideoPanel src={cameraSrc} label="Camera" muted className="h-full w-full" />
       </div>
     </div>
