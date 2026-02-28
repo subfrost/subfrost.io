@@ -6,11 +6,27 @@
  */
 
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Find the active session (status is "live" or "created")
+    const streamKey = request.nextUrl.searchParams.get('streamKey');
+
+    // If a stream key is provided, look up that specific session (any status)
+    if (streamKey) {
+      const session = await prisma.streamSession.findFirst({
+        where: { streamKey },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return NextResponse.json({
+        live: session?.status === 'live',
+        session,
+      });
+    }
+
+    // Default: find the most recent active session
     const session = await prisma.streamSession.findFirst({
       where: {
         status: { in: ['live', 'created'] },

@@ -37,6 +37,20 @@ export interface StopStreamResponse {
 
 export type CaptionLanguage = "original" | "translated" | "both"
 
+export type FocusTarget = 'screen' | 'camera' | 'none'
+
+export interface FocusState {
+  target: FocusTarget
+  autofocus: boolean
+}
+
+export interface ChatMessage {
+  id: string
+  nickname: string
+  message: string
+  createdAt: string
+}
+
 export interface IngestMessage {
   type: "video-chunk"
   streamKey: string

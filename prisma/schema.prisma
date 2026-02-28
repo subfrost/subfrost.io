@@ -183,6 +183,7 @@ model StreamSession {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   captions      StreamCaption[]
+  chatMessages  ChatMessage[]
 
   @@index([status])
 }
@@ -200,4 +201,15 @@ model StreamCaption {
   createdAt      DateTime      @default(now())
 
   @@index([sessionId, timestamp])
+}
+
+model ChatMessage {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   StreamSession @relation(fields: [sessionId], references: [id])
+  nickname  String
+  message   String
+  createdAt DateTime      @default(now())
+
+  @@index([sessionId, createdAt])
 }

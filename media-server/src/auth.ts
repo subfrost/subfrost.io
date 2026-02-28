@@ -17,14 +17,8 @@ export async function validateStreamKey(streamKey: string): Promise<AuthResult> 
 
   // Primary: validate against the main application API
   try {
-    const url = `${MAIN_APP_URL}/api/stream/status`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${streamKey}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const url = `${MAIN_APP_URL}/api/stream/status?streamKey=${encodeURIComponent(streamKey)}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       console.log(`[auth] Stream status API returned ${response.status}`);
@@ -32,20 +26,24 @@ export async function validateStreamKey(streamKey: string): Promise<AuthResult> 
     }
 
     const data = (await response.json()) as {
-      active?: boolean;
-      sessionId?: string;
-      streamKey?: string;
+      live?: boolean;
+      session?: {
+        id?: string;
+        streamKey?: string;
+        status?: string;
+      };
     };
 
-    if (data.active && data.sessionId) {
-      console.log(`[auth] Stream key validated via API, sessionId=${data.sessionId}`);
-      return { valid: true, sessionId: data.sessionId };
+    const session = data.session;
+    if (!session?.id) {
+      console.log(`[auth] No active session found`);
+      return { valid: false };
     }
 
-    // Check if the stream key matches
-    if (data.streamKey === streamKey && data.sessionId) {
-      console.log(`[auth] Stream key matched via API, sessionId=${data.sessionId}`);
-      return { valid: true, sessionId: data.sessionId };
+    // Check if the stream key matches the active session
+    if (session.streamKey === streamKey) {
+      console.log(`[auth] Stream key matched via API, sessionId=${session.id}`);
+      return { valid: true, sessionId: session.id };
     }
 
     return { valid: false };

@@ -22,6 +22,16 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK || 'mainnet',
   },
+
+  // Proxy HLS segments from GCS through the main domain (same-origin, no CORS)
+  async rewrites() {
+    return [
+      {
+        source: '/stream/:path*',
+        destination: `https://storage.googleapis.com/${process.env.GCS_BUCKET || 'subfrost-live-streams'}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

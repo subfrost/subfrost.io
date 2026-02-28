@@ -8,13 +8,17 @@
 // - MediaRecorder uses VP9/Opus by default, falling back to VP8/Opus.
 // - A keepalive ping is sent every 30s to prevent idle WS disconnects.
 // - All media tracks and connections are cleaned up on unmount or stop.
+// - Sources can be started/stopped mid-stream while the WS remains open.
+// - Focus control messages use 0x03 prefix with JSON payload.
 //
 // Journal:
 // - 2026-02-14 (Claude): Created hook for presenter broadcast management.
+// - 2026-02-28 (Claude): Added mid-stream source toggling, focus control, autofocus.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-type BroadcastStatus = 'idle' | 'connecting' | 'live' | 'error';
+export type BroadcastStatus = 'idle' | 'connecting' | 'live' | 'error';
+export type FocusTarget = 'screen' | 'camera' | 'none';
 
 interface UseBroadcastOptions {
   streamKey: string | null;
@@ -25,16 +29,22 @@ interface UseBroadcastReturn {
   screenStream: MediaStream | null;
   cameraStream: MediaStream | null;
   error: string | null;
+  focusTarget: FocusTarget;
+  autofocus: boolean;
   startScreen: () => Promise<void>;
   startCamera: () => Promise<void>;
   stopScreen: () => void;
   stopCamera: () => void;
   goLive: () => void;
   stopBroadcast: () => void;
+  setFocusTarget: (target: FocusTarget) => void;
+  toggleAutofocus: () => void;
+  sendControl: (msg: Record<string, unknown>) => void;
 }
 
 const SCREEN_PREFIX = 0x01;
 const CAMERA_PREFIX = 0x02;
+const CONTROL_PREFIX = 0x03;
 const KEEPALIVE_INTERVAL = 30_000;
 const TIMESLICE_MS = 1_000;
 
@@ -70,6 +80,8 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focusTarget, setFocusTargetState] = useState<FocusTarget>('none');
+  const [autofocus, setAutofocus] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const screenRecorderRef = useRef<MediaRecorder | null>(null);
@@ -78,11 +90,13 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
   const screenStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const statusRef = useRef<BroadcastStatus>(status);
+  const autofocusRef = useRef(autofocus);
 
   // Keep refs in sync with state for cleanup access
   screenStreamRef.current = screenStream;
   cameraStreamRef.current = cameraStream;
   statusRef.current = status;
+  autofocusRef.current = autofocus;
 
   const clearKeepalive = useCallback(() => {
     if (keepaliveRef.current) {
@@ -96,6 +110,62 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
       recorder.stop();
     }
   }, []);
+
+  const startRecorder = useCallback(
+    (stream: MediaStream, prefix: number, bitrate: number): MediaRecorder | null => {
+      const mimeType = getSupportedMimeType();
+      if (!mimeType) {
+        setError('No supported video MIME type found');
+        return null;
+      }
+
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: bitrate,
+      });
+
+      recorder.ondataavailable = async (event) => {
+        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          const prefixedBlob = await prefixChunk(prefix, event.data);
+          wsRef.current.send(prefixedBlob);
+        }
+      };
+
+      recorder.onerror = () => {
+        setError('MediaRecorder error');
+        setStatus('error');
+      };
+
+      recorder.start(TIMESLICE_MS);
+      return recorder;
+    },
+    []
+  );
+
+  // Send a control message over the WS (0x03 prefix + JSON)
+  const sendControl = useCallback((msg: Record<string, unknown>) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const json = JSON.stringify(msg);
+      const encoded = new TextEncoder().encode(json);
+      const prefixed = new Uint8Array(1 + encoded.byteLength);
+      prefixed[0] = CONTROL_PREFIX;
+      prefixed.set(encoded, 1);
+      wsRef.current.send(prefixed);
+    }
+  }, []);
+
+  const setFocusTarget = useCallback((target: FocusTarget) => {
+    setFocusTargetState(target);
+    sendControl({ type: 'focus', target, autofocus: autofocusRef.current });
+  }, [sendControl]);
+
+  const toggleAutofocus = useCallback(() => {
+    setAutofocus((prev) => {
+      const next = !prev;
+      sendControl({ type: 'focus', target: 'none', autofocus: next });
+      return next;
+    });
+  }, [sendControl]);
 
   const startScreen = useCallback(async () => {
     try {
@@ -112,14 +182,22 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
 
       // Handle user stopping screen share via browser UI
       stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        // Stop the recorder if we're live
+        stopRecorder(screenRecorderRef.current);
+        screenRecorderRef.current = null;
         setScreenStream(null);
       });
+
+      // If already live, immediately start recording
+      if (statusRef.current === 'live' && wsRef.current?.readyState === WebSocket.OPEN) {
+        screenRecorderRef.current = startRecorder(stream, SCREEN_PREFIX, 2_500_000);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to capture screen'
       );
     }
-  }, []);
+  }, [startRecorder, stopRecorder]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -133,12 +211,17 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
       });
       setCameraStream(stream);
       setError(null);
+
+      // If already live, immediately start recording
+      if (statusRef.current === 'live' && wsRef.current?.readyState === WebSocket.OPEN) {
+        cameraRecorderRef.current = startRecorder(stream, CAMERA_PREFIX, 1_000_000);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to access camera'
       );
     }
-  }, []);
+  }, [startRecorder]);
 
   const stopScreen = useCallback(() => {
     stopRecorder(screenRecorderRef.current);
@@ -172,38 +255,9 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
     setCameraStream(null);
     setStatus('idle');
     setError(null);
+    setFocusTargetState('none');
+    setAutofocus(false);
   }, [stopRecorder, clearKeepalive]);
-
-  const startRecorder = useCallback(
-    (stream: MediaStream, prefix: number, bitrate: number): MediaRecorder | null => {
-      const mimeType = getSupportedMimeType();
-      if (!mimeType) {
-        setError('No supported video MIME type found');
-        return null;
-      }
-
-      const recorder = new MediaRecorder(stream, {
-        mimeType,
-        videoBitsPerSecond: bitrate,
-      });
-
-      recorder.ondataavailable = async (event) => {
-        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          const prefixedBlob = await prefixChunk(prefix, event.data);
-          wsRef.current.send(prefixedBlob);
-        }
-      };
-
-      recorder.onerror = () => {
-        setError('MediaRecorder error');
-        setStatus('error');
-      };
-
-      recorder.start(TIMESLICE_MS);
-      return recorder;
-    },
-    []
-  );
 
   const goLive = useCallback(() => {
     if (!streamKey) {
@@ -293,11 +347,16 @@ export const useBroadcast = ({ streamKey }: UseBroadcastOptions): UseBroadcastRe
     screenStream,
     cameraStream,
     error,
+    focusTarget,
+    autofocus,
     startScreen,
     startCamera,
     stopScreen,
     stopCamera,
     goLive,
     stopBroadcast,
+    setFocusTarget,
+    toggleAutofocus,
+    sendControl,
   };
 };

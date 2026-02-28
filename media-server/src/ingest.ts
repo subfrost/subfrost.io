@@ -1,9 +1,12 @@
 import WebSocket from "ws";
 import { Transcoder } from "./transcoder";
+import { notifyLive } from "./callback";
+import { notifyFocusChange } from "./control";
 
+const PREFIX_PING = 0x00;
 const PREFIX_SCREEN = 0x01;
 const PREFIX_CAMERA = 0x02;
-const PREFIX_PING = 0x00;
+const PREFIX_CONTROL = 0x03;
 
 export function handleIngest(ws: WebSocket, streamKey: string, sessionId: string): void {
   console.log(`[ingest] New connection for session=${sessionId}, streamKey=${streamKey.slice(0, 8)}...`);
@@ -72,6 +75,21 @@ export function handleIngest(ws: WebSocket, streamKey: string, sessionId: string
           }
           break;
 
+        case PREFIX_CONTROL:
+          try {
+            const json = JSON.parse(payload.toString("utf-8"));
+            if (json.type === "focus") {
+              notifyFocusChange(sessionId, json.target, json.autofocus).catch((err) => {
+                console.error(`[ingest][${sessionId}] Failed to relay focus change:`, err);
+              });
+            } else {
+              console.warn(`[ingest][${sessionId}] Unknown control type: ${json.type}`);
+            }
+          } catch (parseErr) {
+            console.error(`[ingest][${sessionId}] Failed to parse control message:`, parseErr);
+          }
+          break;
+
         default:
           console.warn(`[ingest][${sessionId}] Unknown prefix byte: 0x${prefix.toString(16).padStart(2, "0")}`);
       }
@@ -99,11 +117,17 @@ export function handleIngest(ws: WebSocket, streamKey: string, sessionId: string
     } catch (err) {
       console.error(`[ingest][${sessionId}] Error stopping transcoders:`, err);
     }
-  });
+
+});
 
   ws.on("error", (err) => {
     console.error(`[ingest][${sessionId}] WebSocket error:`, err);
     connected = false;
+  });
+
+  // Notify main app that stream is live
+  notifyLive(sessionId).catch((err) => {
+    console.error(`[ingest][${sessionId}] Failed to notify live status:`, err);
   });
 
   // Send ready signal

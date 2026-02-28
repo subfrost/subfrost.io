@@ -10,7 +10,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-const STREAM_CDN_URL = 'https://stream.subfrost.io';
+// HLS served via Next.js rewrite → GCS (same-origin, no CORS issues)
+const STREAM_CDN_URL = '';
 
 export async function POST(request: NextRequest) {
   try {

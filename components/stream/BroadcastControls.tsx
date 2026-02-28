@@ -3,12 +3,17 @@
 // components/stream/BroadcastControls.tsx
 // Presenter controls for managing screen capture, camera, and live broadcast.
 // Styled to match the broadcast-slate design system (dark navy + blue accents).
+//
+// Journal:
+// - 2026-02-14 (Claude): Created presenter broadcast controls.
+// - 2026-02-28 (Claude): Allow mid-stream source toggling, add focus section.
 
-import { useRef, useEffect } from "react"
+import React, { useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useBroadcast } from "@/hooks/use-broadcast"
+import { useBroadcast, type FocusTarget } from "@/hooks/use-broadcast"
+import { useAudioActivity } from "@/hooks/use-audio-activity"
 import { StreamStatus } from "@/components/stream/StreamStatus"
-import { Monitor, Camera, Radio, Square } from "lucide-react"
+import { Monitor, Camera, Radio, Square, Focus, Mic } from "lucide-react"
 
 interface BroadcastControlsProps {
   streamKey: string
@@ -18,9 +23,11 @@ interface BroadcastControlsProps {
 function StreamPreview({
   stream,
   label,
+  focused,
 }: {
   stream: MediaStream | null
   label: string
+  focused?: boolean
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
@@ -37,10 +44,12 @@ function StreamPreview({
 
   return (
     <div
-      className="relative overflow-hidden rounded-md aspect-video"
+      className="relative overflow-hidden rounded-md aspect-video transition-all duration-300"
       style={{
         background: "rgba(0,0,0,0.5)",
-        border: "1px solid rgba(91,156,255,0.1)",
+        border: focused
+          ? "2px solid rgba(91,156,255,0.6)"
+          : "1px solid rgba(91,156,255,0.1)",
       }}
     >
       {stream ? (
@@ -82,6 +91,24 @@ function StreamPreview({
           {label}
         </span>
       </div>
+      {focused && (
+        <div
+          className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded"
+          style={{ background: "rgba(91,156,255,0.2)" }}
+        >
+          <span
+            style={{
+              fontSize: 8,
+              fontFamily: '"Courier New", monospace',
+              color: "rgba(91,156,255,0.8)",
+              letterSpacing: 1,
+              textTransform: "uppercase",
+            }}
+          >
+            FOCUSED
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -123,48 +150,77 @@ function BroadcastButton({
   )
 }
 
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        style={{
+          fontSize: 10,
+          fontFamily: '"Courier New", monospace',
+          color: "rgba(91,156,255,0.4)",
+          letterSpacing: 3,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
+      <div className="flex-1" style={{ borderBottom: "1px solid rgba(91,156,255,0.1)" }} />
+    </div>
+  )
+}
+
 export function BroadcastControls({ streamKey, className }: BroadcastControlsProps) {
+  // Two-phase: first get camera stream, then feed audio activity back into broadcast
+  const broadcastState = useBroadcast({ streamKey })
+  const { isSpeaking } = useAudioActivity(broadcastState.cameraStream)
+
+  // Wire autofocus: when isSpeaking changes and autofocus is on, update focus
+  const autofocusRef = React.useRef(broadcastState.autofocus)
+  autofocusRef.current = broadcastState.autofocus
+
+  React.useEffect(() => {
+    if (!autofocusRef.current || broadcastState.status !== "live") return
+    const target = isSpeaking ? "camera" : "screen"
+    broadcastState.setFocusTarget(target)
+  }, [isSpeaking]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const {
     status,
     screenStream,
     cameraStream,
     error,
+    focusTarget,
+    autofocus,
     startScreen,
     startCamera,
     stopScreen,
     stopCamera,
     goLive,
     stopBroadcast,
-  } = useBroadcast({ streamKey })
+    setFocusTarget,
+    toggleAutofocus,
+  } = broadcastState
 
   const isLive = status === "live"
   const isConnecting = status === "connecting"
   const hasSource = screenStream !== null || cameraStream !== null
 
+  const focusOptions: { target: FocusTarget; label: string; icon: React.ReactNode }[] = [
+    { target: "screen", label: "SCREEN", icon: <Monitor className="h-3.5 w-3.5" /> },
+    { target: "camera", label: "CAMERA", icon: <Camera className="h-3.5 w-3.5" /> },
+    { target: "none", label: "NONE", icon: <Focus className="h-3.5 w-3.5" /> },
+  ]
+
   return (
     <div className={cn("w-full space-y-5", className)}>
-      {/* Section label */}
-      <div className="flex items-center gap-3">
-        <span
-          style={{
-            fontSize: 10,
-            fontFamily: '"Courier New", monospace',
-            color: "rgba(91,156,255,0.4)",
-            letterSpacing: 3,
-            textTransform: "uppercase",
-          }}
-        >
-          SOURCES
-        </span>
-        <div className="flex-1" style={{ borderBottom: "1px solid rgba(91,156,255,0.1)" }} />
-      </div>
+      {/* Sources section */}
+      <SectionLabel label="SOURCES" />
 
-      {/* Source controls */}
       <div className="flex flex-wrap items-center gap-2">
         <BroadcastButton
           active={!!screenStream}
           onClick={screenStream ? stopScreen : startScreen}
-          disabled={isLive || isConnecting}
+          disabled={isConnecting}
         >
           <Monitor className="h-3.5 w-3.5" />
           {screenStream ? "STOP SCREEN" : "SHARE SCREEN"}
@@ -173,7 +229,7 @@ export function BroadcastControls({ streamKey, className }: BroadcastControlsPro
         <BroadcastButton
           active={!!cameraStream}
           onClick={cameraStream ? stopCamera : startCamera}
-          disabled={isLive || isConnecting}
+          disabled={isConnecting}
         >
           <Camera className="h-3.5 w-3.5" />
           {cameraStream ? "STOP CAMERA" : "START CAMERA"}
@@ -228,25 +284,55 @@ export function BroadcastControls({ streamKey, className }: BroadcastControlsPro
         )}
       </div>
 
+      {/* Focus section - only when live */}
+      {isLive && (
+        <>
+          <SectionLabel label="FOCUS" />
+
+          <div className="flex flex-wrap items-center gap-2">
+            {focusOptions.map(({ target, label, icon }) => (
+              <BroadcastButton
+                key={target}
+                active={focusTarget === target && !autofocus}
+                onClick={() => setFocusTarget(target)}
+                disabled={!isLive}
+              >
+                {icon}
+                {label}
+              </BroadcastButton>
+            ))}
+
+            <div
+              className="mx-1 h-6"
+              style={{ borderLeft: "1px solid rgba(91,156,255,0.15)" }}
+            />
+
+            <BroadcastButton
+              active={autofocus}
+              onClick={toggleAutofocus}
+              disabled={!isLive}
+            >
+              <Mic className="h-3.5 w-3.5" />
+              AUTOFOCUS
+            </BroadcastButton>
+          </div>
+        </>
+      )}
+
       {/* Preview section */}
-      <div className="flex items-center gap-3">
-        <span
-          style={{
-            fontSize: 10,
-            fontFamily: '"Courier New", monospace',
-            color: "rgba(91,156,255,0.4)",
-            letterSpacing: 3,
-            textTransform: "uppercase",
-          }}
-        >
-          PREVIEW
-        </span>
-        <div className="flex-1" style={{ borderBottom: "1px solid rgba(91,156,255,0.1)" }} />
-      </div>
+      <SectionLabel label="PREVIEW" />
 
       <div className="grid grid-cols-2 gap-3">
-        <StreamPreview stream={screenStream} label="Screen" />
-        <StreamPreview stream={cameraStream} label="Camera" />
+        <StreamPreview
+          stream={screenStream}
+          label="Screen"
+          focused={focusTarget === "screen"}
+        />
+        <StreamPreview
+          stream={cameraStream}
+          label="Camera"
+          focused={focusTarget === "camera"}
+        />
       </div>
 
       {/* Status bar */}
