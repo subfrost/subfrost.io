@@ -16,15 +16,14 @@ describe('GET /api/btc-price', () => {
     vi.clearAllMocks();
   });
 
-  it('returns BTC price from Subfrost API', async () => {
+  it('returns BTC price from mempool.space API', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: {
-          bitcoin: {
-            usd: 99500.25,
-          },
-        },
+        time: 1772443502,
+        USD: 66524,
+        EUR: 56634,
+        GBP: 49737,
       }),
     });
 
@@ -32,33 +31,26 @@ describe('GET /api/btc-price', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.btcPrice).toBe(99500.25);
+    expect(data.btcPrice).toBe(66524);
   });
 
-  it('calls Subfrost API with correct URL and method', async () => {
+  it('calls mempool.space API with correct URL', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: {
-          bitcoin: { usd: 99500 },
-        },
+        time: 1772443502,
+        USD: 66524,
       }),
     });
 
     await GET();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://mainnet.subfrost.io/v4/subfrost/get-bitcoin-price',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      'https://mempool.space/api/v1/prices'
     );
   });
 
-  it('returns error response when Subfrost API fails', async () => {
+  it('returns error response when mempool.space API fails', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 429,
