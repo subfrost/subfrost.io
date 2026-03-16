@@ -1,15 +1,22 @@
 /**
  * Browser wallet configuration with custom ordering.
- * Uses SDK wallet data (including base64 icons) with our preferred display order.
- * Wallets not in the SDK (oyl, tokeo, keplr) use local definitions.
+ *
+ * SDK wallets are loaded lazily at runtime (to avoid bundling WASM during build).
+ * Local wallets (oyl, tokeo, keplr) are defined inline.
  */
 
-import {
-  BROWSER_WALLETS as SDK_WALLETS,
-  type BrowserWalletInfo,
-} from '@alkanes/ts-sdk';
-
-export type { BrowserWalletInfo };
+export interface BrowserWalletInfo {
+  id: string;
+  name: string;
+  icon: string;
+  website: string;
+  injectionKey: string;
+  supportsPsbt: boolean;
+  supportsTaproot: boolean;
+  supportsOrdinals: boolean;
+  mobileSupport: boolean;
+  deepLinkScheme?: string;
+}
 
 // Wallets not included in the SDK — local definitions with icons
 const LOCAL_WALLETS: BrowserWalletInfo[] = [
@@ -65,22 +72,61 @@ const WALLET_ORDER = [
   'keplr',
 ];
 
-// Build lookup from SDK + local wallets
-const allWallets = [...SDK_WALLETS, ...LOCAL_WALLETS];
-const walletMap = new Map(allWallets.map(w => [w.id, w]));
+// Cache for lazily-loaded wallet list
+let _cachedWallets: BrowserWalletInfo[] | null = null;
+
+/**
+ * Build the ordered wallet list, merging SDK wallets (loaded lazily) with local definitions.
+ * Called once on first access; cached thereafter.
+ */
+function buildWalletList(): BrowserWalletInfo[] {
+  if (_cachedWallets) return _cachedWallets;
+
+  let sdkWallets: BrowserWalletInfo[] = [];
+  try {
+    // Dynamic require to avoid WASM being pulled into the build bundle
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const sdk = require('@alkanes/ts-sdk');
+    sdkWallets = sdk.BROWSER_WALLETS || [];
+  } catch {
+    // SDK not available (e.g., during SSR build) — use local-only wallets
+  }
+
+  const allWallets = [...sdkWallets, ...LOCAL_WALLETS];
+  const walletMap = new Map(allWallets.map(w => [w.id, w]));
+
+  _cachedWallets = WALLET_ORDER
+    .map(id => walletMap.get(id))
+    .filter((w): w is BrowserWalletInfo => w !== undefined);
+
+  return _cachedWallets;
+}
 
 /**
  * Ordered list of supported browser extension wallets.
- * SDK wallets retain their embedded base64 icons.
+ * Lazily initialized to avoid WASM bundling during build.
  */
-export const BROWSER_WALLETS: BrowserWalletInfo[] = WALLET_ORDER
-  .map(id => walletMap.get(id))
-  .filter((w): w is BrowserWalletInfo => w !== undefined);
+export function getBrowserWallets(): BrowserWalletInfo[] {
+  return buildWalletList();
+}
+
+// For backward compat — getter that lazily loads
+export const BROWSER_WALLETS: BrowserWalletInfo[] = new Proxy([] as BrowserWalletInfo[], {
+  get(target, prop, receiver) {
+    const wallets = buildWalletList();
+    if (prop === 'length') return wallets.length;
+    if (prop === Symbol.iterator) return wallets[Symbol.iterator].bind(wallets);
+    if (typeof prop === 'string' && !isNaN(Number(prop))) return wallets[Number(prop)];
+    if (typeof prop === 'string' && prop in Array.prototype) {
+      const val = (wallets as any)[prop];
+      return typeof val === 'function' ? val.bind(wallets) : val;
+    }
+    return Reflect.get(wallets, prop, receiver);
+  },
+});
 
 /**
  * Detect if a wallet is installed in the browser.
- * Some wallets have nested providers (e.g., phantom.bitcoin, magicEden.bitcoin)
- * or use non-standard injection keys (e.g., Orange uses OrangeBitcoinProvider).
  */
 export function isWalletInstalled(wallet: BrowserWalletInfo): boolean {
   if (typeof window === 'undefined') return false;
@@ -88,34 +134,22 @@ export function isWalletInstalled(wallet: BrowserWalletInfo): boolean {
   try {
     const win = window as any;
 
-    // Special cases for wallets with non-standard injection patterns
     switch (wallet.id) {
       case 'phantom':
-        // Phantom injects at window.phantom.bitcoin for BTC
         return win.phantom?.bitcoin !== undefined;
-
       case 'magic-eden':
-        // Magic Eden injects at window.magicEden.bitcoin for BTC
         return win.magicEden?.bitcoin !== undefined;
-
       case 'orange':
-        // Orange uses multiple possible injection points
         return (
           win.OrangeBitcoinProvider !== undefined ||
           win.OrangecryptoProviders?.BitcoinProvider !== undefined ||
           win.OrangeWalletProviders?.OrangeBitcoinProvider !== undefined
         );
-
       case 'tokeo':
-        // Tokeo injects at window.tokeo.bitcoin
         return win.tokeo?.bitcoin !== undefined;
-
       case 'xverse':
-        // Xverse injects at window.XverseProviders.BitcoinProvider
         return win.XverseProviders?.BitcoinProvider !== undefined;
-
       default:
-        // Standard injection key check
         const walletObj = win[wallet.injectionKey];
         return walletObj !== undefined && walletObj !== null;
     }
@@ -128,5 +162,5 @@ export function isWalletInstalled(wallet: BrowserWalletInfo): boolean {
  * Get all installed wallets
  */
 export function getInstalledWallets(): BrowserWalletInfo[] {
-  return BROWSER_WALLETS.filter(isWalletInstalled);
+  return getBrowserWallets().filter(isWalletInstalled);
 }
