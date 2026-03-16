@@ -496,8 +496,8 @@ export default function ConnectWalletModal() {
     setIsLoading(true);
     setError(null);
     try {
-      const dynamicRequire = new Function('mod', 'return require(mod)');
-      const { unlockKeystore } = dynamicRequire('@alkanes/ts-sdk');
+      const dynamicImport = new Function('m', 'return import(m)');
+      const { unlockKeystore } = await dynamicImport('@alkanes/ts-sdk');
       let parsed: any;
       try { parsed = JSON.parse(jsonFile); } catch { parsed = jsonFile; }
       const result = await unlockKeystore(parsed, jsonPassword);
@@ -541,8 +541,8 @@ export default function ConnectWalletModal() {
     setIsLoading(true);
     setError(null);
     try {
-      const dynamicRequire = new Function('mod', 'return require(mod)');
-      const { unlockKeystore } = dynamicRequire('@alkanes/ts-sdk');
+      const dynamicImport = new Function('m', 'return import(m)');
+      const { unlockKeystore } = await dynamicImport('@alkanes/ts-sdk');
       let parsed: any;
       try { parsed = JSON.parse(driveKeystoreJson); } catch { parsed = driveKeystoreJson; }
       const result = await unlockKeystore(parsed, drivePassword);

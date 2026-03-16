@@ -83,14 +83,7 @@ function buildWalletList(): BrowserWalletInfo[] {
   if (_cachedWallets) return _cachedWallets;
 
   let sdkWallets: BrowserWalletInfo[] = [];
-  try {
-    // Use indirect require to prevent bundler from following the dependency
-    const dynamicRequire = new Function('mod', 'return require(mod)');
-    const sdk = dynamicRequire('@alkanes/ts-sdk');
-    sdkWallets = sdk.BROWSER_WALLETS || [];
-  } catch {
-    // SDK not available (e.g., during SSR build) — use local-only wallets
-  }
+  // SDK wallets are loaded via initWalletList() — only local wallets available synchronously
 
   const allWallets = [...sdkWallets, ...LOCAL_WALLETS];
   const walletMap = new Map(allWallets.map(w => [w.id, w]));
@@ -124,6 +117,29 @@ export const BROWSER_WALLETS: BrowserWalletInfo[] = new Proxy([] as BrowserWalle
     return Reflect.get(wallets, prop, receiver);
   },
 });
+
+/**
+ * Initialize wallet list with SDK wallets (async — call once on app load).
+ * Updates the cached wallet list to include SDK wallet icons/metadata.
+ */
+export async function initWalletList(): Promise<void> {
+  if (_cachedWallets && _cachedWallets.length > LOCAL_WALLETS.length) return; // Already initialized with SDK
+
+  try {
+    const dynamicImport = new Function('m', 'return import(m)');
+    const sdk = await dynamicImport('@alkanes/ts-sdk');
+    const sdkWallets: BrowserWalletInfo[] = sdk.BROWSER_WALLETS || [];
+
+    const allWallets = [...sdkWallets, ...LOCAL_WALLETS];
+    const walletMap = new Map(allWallets.map(w => [w.id, w]));
+
+    _cachedWallets = WALLET_ORDER
+      .map(id => walletMap.get(id))
+      .filter((w): w is BrowserWalletInfo => w !== undefined);
+  } catch {
+    // SDK not available — keep using local-only wallets
+  }
+}
 
 /**
  * Detect if a wallet is installed in the browser.

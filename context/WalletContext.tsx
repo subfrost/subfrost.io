@@ -2,30 +2,35 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { BROWSER_WALLETS, getInstalledWallets, isWalletInstalled, type BrowserWalletInfo } from '@/constants/wallets';
+import { BROWSER_WALLETS, getInstalledWallets, isWalletInstalled, initWalletList, type BrowserWalletInfo } from '@/constants/wallets';
 
-// ConnectedWallet is loaded lazily from @alkanes/ts-sdk to avoid WASM bundling during build.
-// We use Function constructor to create a truly opaque require that bundlers cannot analyze.
-let _ConnectedWallet: any = null;
-function getConnectedWalletClass(): any {
-  if (!_ConnectedWallet) {
-    try {
-      // Use indirect require to prevent bundler from following the dependency
-      const dynamicRequire = new Function('mod', 'return require(mod)');
-      const sdk = dynamicRequire('@alkanes/ts-sdk');
-      _ConnectedWallet = sdk.ConnectedWallet;
-    } catch {
-      // Fallback: won't be available during SSR build
-    }
+// Lazy-load @alkanes/ts-sdk via dynamic import() to avoid WASM bundling during build.
+// We cache the resolved module. import() works in both browser and Node.js.
+let _sdkPromise: Promise<any> | null = null;
+let _sdkResolved: any = null;
+
+async function loadSDK(): Promise<any> {
+  if (_sdkResolved) return _sdkResolved;
+  if (!_sdkPromise) {
+    // Use new Function to create an opaque import() call that bundlers cannot analyze
+    const dynamicImport = new Function('m', 'return import(m)');
+    _sdkPromise = dynamicImport('@alkanes/ts-sdk').then((mod: any) => {
+      _sdkResolved = mod;
+      return mod;
+    });
   }
-  return _ConnectedWallet;
+  return _sdkPromise;
 }
 
-// Lazily load SDK functions for keystore wallet operations.
-// All SDK imports use opaque require to avoid WASM bundling.
-function getSDK(): any {
-  const dynamicRequire = new Function('mod', 'return require(mod)');
-  return dynamicRequire('@alkanes/ts-sdk');
+function getConnectedWalletClass(): any {
+  // Return cached class if SDK already loaded synchronously
+  return _sdkResolved?.ConnectedWallet ?? null;
+}
+
+// Synchronous SDK access (only works after loadSDK has resolved)
+function getSDKSync(): any {
+  if (!_sdkResolved) throw new Error('SDK not loaded yet — call await loadSDK() first');
+  return _sdkResolved;
 }
 
 // Minimal type for ConnectedWallet instances
@@ -99,7 +104,7 @@ const WalletContext = createContext<WalletContextType | null>(null);
 
 // Helper: derive addresses from an AlkanesWallet and return WalletAddresses
 function deriveAddressesFromWallet(wallet: any): WalletAddresses {
-  const sdk = getSDK();
+  const sdk = getSDKSync();
   const AddressType = sdk.AddressType;
   const addrs: WalletAddresses = {};
 
@@ -124,9 +129,9 @@ function deriveAddressesFromWallet(wallet: any): WalletAddresses {
   return addrs;
 }
 
-// Helper: create AlkanesWallet from mnemonic using SDK
+// Helper: create AlkanesWallet from mnemonic using SDK (sync — SDK must be loaded)
 function createWalletFromMnemonicSDK(mnemonic: string, network?: string): any {
-  const sdk = getSDK();
+  const sdk = getSDKSync();
   return sdk.createWalletFromMnemonic(mnemonic, network ? { network } : undefined);
 }
 
@@ -158,29 +163,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const installed = getInstalledWallets();
     setInstalledBrowserWallets(installed);
 
-    // Auto-reconnect: keystore wallet from session
-    try {
-      const storedType = localStorage.getItem(STORAGE_KEYS.WALLET_TYPE);
-      if (storedType === 'keystore') {
-        const sessionMnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
-        if (sessionMnemonic) {
-          const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
-          const restoredWallet = createWalletFromMnemonicSDK(sessionMnemonic, network);
-          const derivedAddrs = deriveAddressesFromWallet(restoredWallet);
+    // Load SDK and wallet list, then attempt auto-reconnect
+    Promise.all([loadSDK(), initWalletList()]).then(() => {
+      // Re-detect installed wallets now that SDK wallet metadata is loaded
+      setInstalledBrowserWallets(getInstalledWallets());
+      // Auto-reconnect: keystore wallet from session
+      try {
+        const storedType = localStorage.getItem(STORAGE_KEYS.WALLET_TYPE);
+        if (storedType === 'keystore') {
+          const sessionMnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
+          if (sessionMnemonic) {
+            const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
+            const restoredWallet = createWalletFromMnemonicSDK(sessionMnemonic, network);
+            const derivedAddrs = deriveAddressesFromWallet(restoredWallet);
 
-          setWallet(restoredWallet);
-          setAddresses(derivedAddrs);
-          setWalletType('keystore');
-          console.log('[WalletContext] Restored keystore wallet from session');
-          return; // Don't try browser reconnect
+            setWallet(restoredWallet);
+            setAddresses(derivedAddrs);
+            setWalletType('keystore');
+            console.log('[WalletContext] Restored keystore wallet from session');
+            return; // Don't try browser reconnect
+          }
         }
+      } catch (error) {
+        console.warn('[WalletContext] Failed to auto-reconnect keystore wallet:', error);
       }
-    } catch (error) {
-      console.warn('[WalletContext] Failed to auto-reconnect keystore wallet:', error);
-    }
 
-    // Auto-reconnect from cached localStorage (browser wallet)
-    try {
+      // Auto-reconnect from cached localStorage (browser wallet)
+      try {
       const storedWalletId = localStorage.getItem(STORAGE_KEYS.BROWSER_WALLET_ID);
       const storedType = localStorage.getItem(STORAGE_KEYS.WALLET_TYPE);
       if (!storedWalletId || storedType !== 'browser') return;
@@ -227,12 +236,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(STORAGE_KEYS.WALLET_TYPE);
       localStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET_ADDRESSES);
     }
+    }).catch(() => {
+      // SDK failed to load — wallet features will be unavailable
+      console.warn('[WalletContext] Failed to load SDK');
+    });
   }, []);
 
   // ===== Keystore wallet methods =====
 
   const createWallet = useCallback(async (password: string): Promise<{ mnemonic: string }> => {
-    const sdk = getSDK();
+    const sdk = await loadSDK();
     const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
     const result = await sdk.createKeystore(password, network ? { network } : {});
     const encrypted = result.encrypted || result.keystore || result;
@@ -261,7 +274,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unlockWallet = useCallback(async (password: string): Promise<void> => {
-    const sdk = getSDK();
+    const sdk = await loadSDK();
     const encryptedRaw = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
     if (!encryptedRaw) throw new Error('No stored keystore found');
 
@@ -292,7 +305,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const restoreWallet = useCallback(async (mnemonic: string, password: string): Promise<void> => {
-    const sdk = getSDK();
+    const sdk = await loadSDK();
 
     // Validate mnemonic
     const manager = new sdk.KeystoreManager();
@@ -638,9 +651,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     } else {
       // Fallback: use generic WalletConnector from SDK
-      const dynamicRequire = new Function('mod', 'return require(mod)');
-      const { WalletConnector } = dynamicRequire('@alkanes/ts-sdk');
-      const connector = new WalletConnector();
+      const sdk = await loadSDK();
+      const connector = new sdk.WalletConnector();
       connected = await connector.connect(walletInfo);
 
       // Try to extract addresses from connected wallet
