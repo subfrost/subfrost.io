@@ -21,6 +21,13 @@ function getConnectedWalletClass(): any {
   return _ConnectedWallet;
 }
 
+// Lazily load SDK functions for keystore wallet operations.
+// All SDK imports use opaque require to avoid WASM bundling.
+function getSDK(): any {
+  const dynamicRequire = new Function('mod', 'return require(mod)');
+  return dynamicRequire('@alkanes/ts-sdk');
+}
+
 // Minimal type for ConnectedWallet instances
 interface ConnectedWalletInstance {
   address: string;
@@ -33,6 +40,9 @@ const STORAGE_KEYS = {
   BROWSER_WALLET_ID: 'subfrost_browser_wallet_id',
   WALLET_TYPE: 'subfrost_wallet_type',
   BROWSER_WALLET_ADDRESSES: 'subfrost_browser_wallet_addresses',
+  ENCRYPTED_KEYSTORE: 'subfrost_encrypted_keystore',
+  WALLET_NETWORK: 'subfrost_wallet_network',
+  SESSION_MNEMONIC: 'subfrost_session_mnemonic',
 } as const;
 
 // Address types stored per wallet
@@ -62,30 +72,75 @@ type WalletContextType = {
   // Wallet data
   browserWallet: ConnectedWalletInstance | null;
   addresses: WalletAddresses | null;
-  walletType: string | null; // currently always 'browser' or null
+  walletType: 'keystore' | 'browser' | null;
   primaryAddress: string | null; // taproot preferred, then segwit
 
   // Wallet lists
   availableBrowserWallets: BrowserWalletInfo[];
   installedBrowserWallets: BrowserWalletInfo[];
 
-  // Actions
+  // Keystore state
+  hasStoredKeystore: boolean;
+  wallet: any; // AlkanesWallet instance from createWalletFromMnemonic
+
+  // Actions — browser wallet
   connectBrowserWallet: (walletId: string) => Promise<void>;
   disconnect: () => void;
   signMessage: (message: string) => Promise<string>;
+
+  // Actions — keystore wallet
+  createWallet: (password: string) => Promise<{ mnemonic: string }>;
+  unlockWallet: (password: string) => Promise<void>;
+  restoreWallet: (mnemonic: string, password: string) => Promise<void>;
+  deleteKeystore: () => void;
 };
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
+// Helper: derive addresses from an AlkanesWallet and return WalletAddresses
+function deriveAddressesFromWallet(wallet: any): WalletAddresses {
+  const sdk = getSDK();
+  const AddressType = sdk.AddressType;
+  const addrs: WalletAddresses = {};
+
+  try {
+    const taprootAddr = wallet.deriveAddress(AddressType.P2TR, 0, 0);
+    if (taprootAddr) {
+      addrs.taproot = { address: typeof taprootAddr === 'string' ? taprootAddr : taprootAddr.address };
+    }
+  } catch (e) {
+    console.warn('[WalletContext] Failed to derive taproot address:', e);
+  }
+
+  try {
+    const segwitAddr = wallet.deriveAddress(AddressType.P2WPKH, 0, 0);
+    if (segwitAddr) {
+      addrs.nativeSegwit = { address: typeof segwitAddr === 'string' ? segwitAddr : segwitAddr.address };
+    }
+  } catch (e) {
+    console.warn('[WalletContext] Failed to derive segwit address:', e);
+  }
+
+  return addrs;
+}
+
+// Helper: create AlkanesWallet from mnemonic using SDK
+function createWalletFromMnemonicSDK(mnemonic: string, network?: string): any {
+  const sdk = getSDK();
+  return sdk.createWalletFromMnemonic(mnemonic, network ? { network } : undefined);
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [browserWallet, setBrowserWallet] = useState<ConnectedWalletInstance | null>(null);
+  const [wallet, setWallet] = useState<any>(null); // AlkanesWallet for keystore
   const [addresses, setAddresses] = useState<WalletAddresses | null>(null);
-  const [walletType, setWalletType] = useState<string | null>(null);
+  const [walletType, setWalletType] = useState<'keystore' | 'browser' | null>(null);
   const [isConnectModalOpen, setConnectModalOpen] = useState(false);
   const [installedBrowserWallets, setInstalledBrowserWallets] = useState<BrowserWalletInfo[]>([]);
+  const [hasStoredKeystore, setHasStoredKeystore] = useState(false);
   const initRef = useRef(false);
 
-  const isConnected = browserWallet !== null;
+  const isConnected = browserWallet !== null || wallet !== null;
   const primaryAddress = addresses?.taproot?.address || addresses?.nativeSegwit?.address || null;
 
   // Detect installed wallets + auto-reconnect on mount
@@ -93,11 +148,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (initRef.current) return;
     initRef.current = true;
 
+    // Check for stored keystore
+    try {
+      const hasKeystore = !!localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+      setHasStoredKeystore(hasKeystore);
+    } catch { /* ignore */ }
+
     // Detect installed wallets
     const installed = getInstalledWallets();
     setInstalledBrowserWallets(installed);
 
-    // Auto-reconnect from cached localStorage
+    // Auto-reconnect: keystore wallet from session
+    try {
+      const storedType = localStorage.getItem(STORAGE_KEYS.WALLET_TYPE);
+      if (storedType === 'keystore') {
+        const sessionMnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
+        if (sessionMnemonic) {
+          const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
+          const restoredWallet = createWalletFromMnemonicSDK(sessionMnemonic, network);
+          const derivedAddrs = deriveAddressesFromWallet(restoredWallet);
+
+          setWallet(restoredWallet);
+          setAddresses(derivedAddrs);
+          setWalletType('keystore');
+          console.log('[WalletContext] Restored keystore wallet from session');
+          return; // Don't try browser reconnect
+        }
+      }
+    } catch (error) {
+      console.warn('[WalletContext] Failed to auto-reconnect keystore wallet:', error);
+    }
+
+    // Auto-reconnect from cached localStorage (browser wallet)
     try {
       const storedWalletId = localStorage.getItem(STORAGE_KEYS.BROWSER_WALLET_ID);
       const storedType = localStorage.getItem(STORAGE_KEYS.WALLET_TYPE);
@@ -146,6 +228,117 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET_ADDRESSES);
     }
   }, []);
+
+  // ===== Keystore wallet methods =====
+
+  const createWallet = useCallback(async (password: string): Promise<{ mnemonic: string }> => {
+    const sdk = getSDK();
+    const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
+    const result = await sdk.createKeystore(password, network ? { network } : {});
+    const encrypted = result.encrypted || result.keystore || result;
+    const mnemonic = result.mnemonic;
+
+    // Store encrypted keystore
+    localStorage.setItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE, typeof encrypted === 'string' ? encrypted : JSON.stringify(encrypted));
+    localStorage.setItem(STORAGE_KEYS.WALLET_TYPE, 'keystore');
+    setHasStoredKeystore(true);
+
+    // Store mnemonic in session for auto-reconnect
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, mnemonic);
+
+    // Create wallet from mnemonic and derive addresses
+    const newWallet = createWalletFromMnemonicSDK(mnemonic, network);
+    const derivedAddrs = deriveAddressesFromWallet(newWallet);
+
+    setWallet(newWallet);
+    setAddresses(derivedAddrs);
+    setWalletType('keystore');
+    setBrowserWallet(null);
+    setConnectModalOpen(false);
+
+    console.log('[WalletContext] Created new keystore wallet');
+    return { mnemonic };
+  }, []);
+
+  const unlockWallet = useCallback(async (password: string): Promise<void> => {
+    const sdk = getSDK();
+    const encryptedRaw = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+    if (!encryptedRaw) throw new Error('No stored keystore found');
+
+    let encrypted: any;
+    try { encrypted = JSON.parse(encryptedRaw); } catch { encrypted = encryptedRaw; }
+
+    const result = await sdk.unlockKeystore(encrypted, password);
+    const mnemonic = result.mnemonic || result;
+
+    const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
+
+    // Store mnemonic in session for auto-reconnect
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, mnemonic);
+
+    // Create wallet from mnemonic and derive addresses
+    const unlockedWallet = createWalletFromMnemonicSDK(mnemonic, network);
+    const derivedAddrs = deriveAddressesFromWallet(unlockedWallet);
+
+    localStorage.setItem(STORAGE_KEYS.WALLET_TYPE, 'keystore');
+
+    setWallet(unlockedWallet);
+    setAddresses(derivedAddrs);
+    setWalletType('keystore');
+    setBrowserWallet(null);
+    setConnectModalOpen(false);
+
+    console.log('[WalletContext] Unlocked keystore wallet');
+  }, []);
+
+  const restoreWallet = useCallback(async (mnemonic: string, password: string): Promise<void> => {
+    const sdk = getSDK();
+
+    // Validate mnemonic
+    const manager = new sdk.KeystoreManager();
+    const isValid = manager.validateMnemonic(mnemonic);
+    if (!isValid) throw new Error('Invalid mnemonic phrase');
+
+    const network = localStorage.getItem(STORAGE_KEYS.WALLET_NETWORK) || undefined;
+
+    // Create and encrypt keystore from mnemonic
+    const result = await sdk.createKeystore(password, { network, mnemonic });
+    const encrypted = result.encrypted || result.keystore || result;
+
+    // Store encrypted keystore
+    localStorage.setItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE, typeof encrypted === 'string' ? encrypted : JSON.stringify(encrypted));
+    localStorage.setItem(STORAGE_KEYS.WALLET_TYPE, 'keystore');
+    setHasStoredKeystore(true);
+
+    // Store mnemonic in session for auto-reconnect
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, mnemonic);
+
+    // Create wallet from mnemonic and derive addresses
+    const restoredWallet = createWalletFromMnemonicSDK(mnemonic, network);
+    const derivedAddrs = deriveAddressesFromWallet(restoredWallet);
+
+    setWallet(restoredWallet);
+    setAddresses(derivedAddrs);
+    setWalletType('keystore');
+    setBrowserWallet(null);
+    setConnectModalOpen(false);
+
+    console.log('[WalletContext] Restored keystore wallet from mnemonic');
+  }, []);
+
+  const deleteKeystore = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+    localStorage.removeItem(STORAGE_KEYS.WALLET_NETWORK);
+    localStorage.removeItem(STORAGE_KEYS.WALLET_TYPE);
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_MNEMONIC);
+    setWallet(null);
+    setAddresses(null);
+    setWalletType(null);
+    setHasStoredKeystore(false);
+    console.log('[WalletContext] Deleted keystore');
+  }, []);
+
+  // ===== Browser wallet methods =====
 
   const connectBrowserWallet = useCallback(async (walletId: string) => {
     const walletInfo = BROWSER_WALLETS.find(w => w.id === walletId);
@@ -468,6 +661,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEYS.BROWSER_WALLET_ADDRESSES, JSON.stringify(additionalAddresses));
     }
 
+    // Clear any keystore session state when switching to browser wallet
+    setWallet(null);
+
     setBrowserWallet(connected);
     setAddresses(additionalAddresses);
     setWalletType('browser');
@@ -482,14 +678,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try { browserWallet.disconnect(); } catch { /* ignore */ }
     }
     setBrowserWallet(null);
+    setWallet(null);
     setAddresses(null);
     setWalletType(null);
     localStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET_ID);
     localStorage.removeItem(STORAGE_KEYS.WALLET_TYPE);
     localStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET_ADDRESSES);
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_MNEMONIC);
   }, [browserWallet]);
 
   const signMessage = useCallback(async (message: string): Promise<string> => {
+    // Keystore wallet signing
+    if (walletType === 'keystore' && wallet) {
+      return await wallet.signMessage(message, 0);
+    }
+
+    // Browser wallet signing
     if (!browserWallet) throw new Error('Wallet not connected');
 
     const connectedWalletId = localStorage.getItem(STORAGE_KEYS.BROWSER_WALLET_ID);
@@ -517,7 +721,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     // Standard ConnectedWallet.signMessage() for all others
     return browserWallet.signMessage(message);
-  }, [browserWallet]);
+  }, [browserWallet, walletType, wallet]);
 
   const value: WalletContextType = {
     isConnected,
@@ -529,9 +733,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     primaryAddress,
     availableBrowserWallets: BROWSER_WALLETS,
     installedBrowserWallets,
+    hasStoredKeystore,
+    wallet,
     connectBrowserWallet,
     disconnect,
     signMessage,
+    createWallet,
+    unlockWallet,
+    restoreWallet,
+    deleteKeystore,
   };
 
   return (
