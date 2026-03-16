@@ -23,6 +23,8 @@ export function toRoomInfo(room: Room): RoomInfo {
     id: p.id,
     displayName: p.displayName,
     walletAddress: p.walletAddress,
+    walletVerified: p.walletVerified,
+    communityGroup: (p as any).communityGroup || null,
     permissions: p.permissions,
     isAdmin: p.isAdmin,
     joinedAt: p.joinedAt,

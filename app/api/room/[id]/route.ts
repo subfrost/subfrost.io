@@ -59,6 +59,8 @@ export async function GET(
         id: participant.id,
         displayName: participant.displayName,
         walletAddress: participant.walletAddress,
+        walletVerified: participant.walletVerified,
+        communityGroup: (participant as any).communityGroup || null,
         permissions: participant.permissions,
         isAdmin: participant.isAdmin,
         joinedAt: participant.joinedAt,

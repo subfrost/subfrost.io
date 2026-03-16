@@ -13,6 +13,12 @@ import type {
 const STORAGE_PREFIX = 'subfrost-room-';
 const POLL_INTERVAL = 3000;
 
+export interface WalletAuthParams {
+  walletSignature: string;
+  walletTimestamp: number;
+  walletMessage: string;
+}
+
 interface UseRoomOptions {
   roomId: string | null;
 }
@@ -25,8 +31,8 @@ interface UseRoomReturn {
   isAdmin: boolean;
   isPresenter: boolean;
   // Actions
-  createRoom: (name: string, displayName: string, walletAddress?: string) => Promise<CreateRoomResponse | null>;
-  joinRoom: (roomId: string, password: string, displayName: string, walletAddress?: string) => Promise<JoinRoomResponse | null>;
+  createRoom: (name: string, displayName: string, walletAddress?: string, walletAuth?: WalletAuthParams) => Promise<CreateRoomResponse | null>;
+  joinRoom: (roomId: string, password: string, displayName: string, walletAddress?: string, walletAuth?: WalletAuthParams) => Promise<JoinRoomResponse | null>;
   setPermissions: (participantId: string, mic?: boolean, screen?: boolean) => Promise<boolean>;
   kickParticipant: (participantId: string) => Promise<boolean>;
   startStream: () => Promise<{ streamSessionId: string; streamKey: string } | null>;
@@ -109,13 +115,13 @@ export function useRoom({ roomId }: UseRoomOptions): UseRoomReturn {
   }, [roomId]);
 
   const createRoom = useCallback(
-    async (name: string, displayName: string, walletAddress?: string) => {
+    async (name: string, displayName: string, walletAddress?: string, walletAuth?: WalletAuthParams) => {
       try {
         setError(null);
         const res = await fetch('/api/room/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, displayName, walletAddress }),
+          body: JSON.stringify({ name, displayName, walletAddress, ...walletAuth }),
         });
 
         if (!res.ok) {
@@ -137,7 +143,7 @@ export function useRoom({ roomId }: UseRoomOptions): UseRoomReturn {
   );
 
   const joinRoom = useCallback(
-    async (joinRoomId: string, password: string, displayName: string, walletAddress?: string) => {
+    async (joinRoomId: string, password: string, displayName: string, walletAddress?: string, walletAuth?: WalletAuthParams) => {
       try {
         setError(null);
         const res = await fetch('/api/room/join', {
@@ -148,6 +154,7 @@ export function useRoom({ roomId }: UseRoomOptions): UseRoomReturn {
             password,
             displayName,
             walletAddress,
+            ...walletAuth,
           }),
         });
 

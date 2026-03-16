@@ -3,9 +3,17 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useRoom } from "@/hooks/use-room"
-import { Radio, Users, Plus, LogIn } from "lucide-react"
+import { useWallet } from "@/context/WalletContext"
+import { Radio, Users, Plus, LogIn, Wallet, Unplug } from "lucide-react"
+import AddressAvatar from "@/components/conference/AddressAvatar"
+import ConnectWalletModal from "@/components/conference/ConnectWalletModal"
 
 type Mode = "lobby" | "create" | "join" | "created"
+
+function truncateAddress(address: string): string {
+  if (!address || address.length < 12) return address
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
 
 export default function ConferenceLobbyPage() {
   const router = useRouter()
@@ -17,32 +25,61 @@ export default function ConferenceLobbyPage() {
   // Create form
   const [roomName, setRoomName] = useState("")
   const [createDisplayName, setCreateDisplayName] = useState("")
-  const [createWallet, setCreateWallet] = useState("")
 
   // Join form
   const [joinRoomId, setJoinRoomId] = useState("")
   const [joinPassword, setJoinPassword] = useState("")
   const [joinDisplayName, setJoinDisplayName] = useState("")
-  const [joinWallet, setJoinWallet] = useState("")
 
   const { createRoom, joinRoom } = useRoom({ roomId: null })
+  const {
+    isConnected: walletConnected,
+    primaryAddress,
+    addresses,
+    setConnectModalOpen,
+    disconnect,
+    signMessage,
+  } = useWallet()
+
+  // Get wallet challenge and sign it
+  async function getWalletAuth(action: string) {
+    if (!walletConnected || !primaryAddress) return undefined
+
+    try {
+      const res = await fetch(`/api/room/wallet-challenge?action=${action}`)
+      if (!res.ok) return undefined
+      const { message, timestamp } = await res.json()
+      const signature = await signMessage(message)
+      return {
+        walletSignature: signature,
+        walletTimestamp: timestamp,
+        walletMessage: message,
+      }
+    } catch (err) {
+      console.error("Failed to sign wallet challenge:", err)
+      return undefined
+    }
+  }
 
   async function handleCreate() {
-    if (!createDisplayName.trim()) {
-      setError("Display name is required")
+    const displayName = createDisplayName.trim() || (primaryAddress ? truncateAddress(primaryAddress) : "")
+    if (!displayName) {
+      setError("Display name is required (or connect a wallet)")
       return
     }
     setLoading(true)
     setError(null)
 
+    const walletAuth = await getWalletAuth("create")
+
     const result = await createRoom(
       roomName.trim() || "Conference Room",
-      createDisplayName.trim(),
-      createWallet.trim() || undefined
+      displayName,
+      primaryAddress || undefined,
+      walletAuth
     )
 
     if (result) {
-      // Store password so admin can view it in the room
       sessionStorage.setItem(
         `subfrost-room-password-${result.roomId}`,
         result.password
@@ -60,18 +97,22 @@ export default function ConferenceLobbyPage() {
       setError("Room ID and password are required")
       return
     }
-    if (!joinDisplayName.trim()) {
-      setError("Display name is required")
+    const displayName = joinDisplayName.trim() || (primaryAddress ? truncateAddress(primaryAddress) : "")
+    if (!displayName) {
+      setError("Display name is required (or connect a wallet)")
       return
     }
     setLoading(true)
     setError(null)
 
+    const walletAuth = await getWalletAuth("join")
+
     const result = await joinRoom(
       joinRoomId.trim(),
       joinPassword.trim(),
-      joinDisplayName.trim(),
-      joinWallet.trim() || undefined
+      displayName,
+      primaryAddress || undefined,
+      walletAuth
     )
 
     if (result) {
@@ -97,6 +138,63 @@ export default function ConferenceLobbyPage() {
     letterSpacing: 3,
     textTransform: "uppercase" as const,
   }
+
+  // Can submit create: either has display name or wallet connected
+  const canCreate = createDisplayName.trim() || walletConnected
+  // Can submit join: need room ID + password + (display name or wallet)
+  const canJoin = joinRoomId.trim() && joinPassword.trim() && (joinDisplayName.trim() || walletConnected)
+
+  // Wallet connection display component
+  const WalletSection = () => (
+    <div>
+      <label style={labelStyle}>WALLET</label>
+      {walletConnected && primaryAddress ? (
+        <div
+          className="mt-2 flex items-center gap-2 rounded px-3 py-2"
+          style={{
+            background: "rgba(0,0,0,0.4)",
+            border: "1px solid rgba(34,197,94,0.3)",
+          }}
+        >
+          <AddressAvatar address={primaryAddress} size={24} />
+          <span
+            className="flex-1 text-sm"
+            style={{
+              color: "rgba(34,197,94,0.8)",
+              fontFamily: '"Courier New", monospace',
+            }}
+          >
+            {truncateAddress(primaryAddress)}
+          </span>
+          <button
+            type="button"
+            onClick={disconnect}
+            className="p-1 rounded hover:bg-white/5 transition-colors"
+            title="Disconnect wallet"
+          >
+            <Unplug className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConnectModalOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded px-3 py-2 text-sm transition-all"
+          style={{
+            background: "rgba(91,156,255,0.06)",
+            border: "1px solid rgba(91,156,255,0.2)",
+            color: "rgba(91,156,255,0.7)",
+            fontFamily: '"Courier New", monospace',
+            letterSpacing: 2,
+            cursor: "pointer",
+          }}
+        >
+          <Wallet className="h-3.5 w-3.5" />
+          CONNECT WALLET
+        </button>
+      )}
+    </div>
+  )
 
   return (
     <div
@@ -150,7 +248,9 @@ export default function ConferenceLobbyPage() {
               ? "Create or join a conference room"
               : mode === "create"
               ? "Set up a new conference room"
-              : "Enter room credentials"}
+              : mode === "join"
+              ? "Enter room credentials"
+              : "Room created"}
           </span>
         </div>
 
@@ -221,14 +321,18 @@ export default function ConferenceLobbyPage() {
               }}
               className="space-y-4"
             >
+              <WalletSection />
+
               <div>
-                <label style={labelStyle}>YOUR NAME</label>
+                <label style={labelStyle}>
+                  DISPLAY NAME {walletConnected ? "(OPTIONAL)" : ""}
+                </label>
                 <input
                   type="text"
-                  placeholder="Enter your name..."
+                  placeholder={walletConnected && primaryAddress ? truncateAddress(primaryAddress) : "Enter your name..."}
                   value={createDisplayName}
                   onChange={(e) => setCreateDisplayName(e.target.value)}
-                  autoFocus
+                  autoFocus={!walletConnected}
                   maxLength={30}
                   className="mt-2 w-full rounded px-3 py-2 text-sm outline-none"
                   style={inputStyle}
@@ -242,17 +346,6 @@ export default function ConferenceLobbyPage() {
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   maxLength={50}
-                  className="mt-2 w-full rounded px-3 py-2 text-sm outline-none"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>WALLET ADDRESS (OPTIONAL)</label>
-                <input
-                  type="text"
-                  placeholder="bc1q..."
-                  value={createWallet}
-                  onChange={(e) => setCreateWallet(e.target.value)}
                   className="mt-2 w-full rounded px-3 py-2 text-sm outline-none"
                   style={inputStyle}
                 />
@@ -279,19 +372,19 @@ export default function ConferenceLobbyPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !createDisplayName.trim()}
+                  disabled={loading || !canCreate}
                   className="flex flex-1 items-center justify-center gap-2 rounded py-2.5 text-sm font-medium transition-all"
                   style={{
-                    background: createDisplayName.trim()
+                    background: canCreate
                       ? "rgba(91,156,255,0.15)"
                       : "rgba(91,156,255,0.05)",
                     border: "1px solid rgba(91,156,255,0.25)",
-                    color: createDisplayName.trim()
+                    color: canCreate
                       ? "rgba(91,156,255,0.9)"
                       : "rgba(91,156,255,0.3)",
                     fontFamily: '"Courier New", monospace',
                     letterSpacing: 3,
-                    cursor: createDisplayName.trim() && !loading ? "pointer" : "not-allowed",
+                    cursor: canCreate && !loading ? "pointer" : "not-allowed",
                   }}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -318,14 +411,18 @@ export default function ConferenceLobbyPage() {
               }}
               className="space-y-4"
             >
+              <WalletSection />
+
               <div>
-                <label style={labelStyle}>YOUR NAME</label>
+                <label style={labelStyle}>
+                  DISPLAY NAME {walletConnected ? "(OPTIONAL)" : ""}
+                </label>
                 <input
                   type="text"
-                  placeholder="Enter your name..."
+                  placeholder={walletConnected && primaryAddress ? truncateAddress(primaryAddress) : "Enter your name..."}
                   value={joinDisplayName}
                   onChange={(e) => setJoinDisplayName(e.target.value)}
-                  autoFocus
+                  autoFocus={!walletConnected}
                   maxLength={30}
                   className="mt-2 w-full rounded px-3 py-2 text-sm outline-none"
                   style={inputStyle}
@@ -353,17 +450,6 @@ export default function ConferenceLobbyPage() {
                   style={inputStyle}
                 />
               </div>
-              <div>
-                <label style={labelStyle}>WALLET ADDRESS (OPTIONAL)</label>
-                <input
-                  type="text"
-                  placeholder="bc1q..."
-                  value={joinWallet}
-                  onChange={(e) => setJoinWallet(e.target.value)}
-                  className="mt-2 w-full rounded px-3 py-2 text-sm outline-none"
-                  style={inputStyle}
-                />
-              </div>
 
               <div className="flex gap-2">
                 <button
@@ -386,29 +472,19 @@ export default function ConferenceLobbyPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={
-                    loading ||
-                    !joinRoomId.trim() ||
-                    !joinPassword.trim() ||
-                    !joinDisplayName.trim()
-                  }
+                  disabled={loading || !canJoin}
                   className="flex flex-1 items-center justify-center gap-2 rounded py-2.5 text-sm font-medium transition-all"
                   style={{
-                    background:
-                      joinRoomId.trim() && joinPassword.trim() && joinDisplayName.trim()
-                        ? "rgba(91,156,255,0.15)"
-                        : "rgba(91,156,255,0.05)",
+                    background: canJoin
+                      ? "rgba(91,156,255,0.15)"
+                      : "rgba(91,156,255,0.05)",
                     border: "1px solid rgba(91,156,255,0.25)",
-                    color:
-                      joinRoomId.trim() && joinPassword.trim() && joinDisplayName.trim()
-                        ? "rgba(91,156,255,0.9)"
-                        : "rgba(91,156,255,0.3)",
+                    color: canJoin
+                      ? "rgba(91,156,255,0.9)"
+                      : "rgba(91,156,255,0.3)",
                     fontFamily: '"Courier New", monospace',
                     letterSpacing: 3,
-                    cursor:
-                      joinRoomId.trim() && joinPassword.trim() && joinDisplayName.trim() && !loading
-                        ? "pointer"
-                        : "not-allowed",
+                    cursor: canJoin && !loading ? "pointer" : "not-allowed",
                   }}
                 >
                   <LogIn className="h-3.5 w-3.5" />
@@ -519,6 +595,9 @@ export default function ConferenceLobbyPage() {
       <svg className="pointer-events-none absolute bottom-4 right-4 z-20" width="20" height="20" fill="none">
         <path d="M20 0 L20 20 L0 20" stroke="rgba(91,156,255,0.15)" strokeWidth="1" />
       </svg>
+
+      {/* Wallet Connect Modal */}
+      <ConnectWalletModal />
     </div>
   )
 }

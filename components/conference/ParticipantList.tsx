@@ -4,8 +4,9 @@
 // Read-only participant list for non-admin users.
 
 import { cn } from "@/lib/utils"
-import { Mic, Monitor, Users, Crown } from "lucide-react"
+import { Mic, Monitor, Users, Crown, ShieldCheck } from "lucide-react"
 import type { ParticipantInfo } from "@/lib/room-types"
+import AddressAvatar from "@/components/conference/AddressAvatar"
 
 interface ParticipantListProps {
   participants: ParticipantInfo[]
@@ -46,15 +47,39 @@ export function ParticipantList({
               activePresenter === p.id && "bg-blue-500/5"
             )}
           >
-            {p.isAdmin && (
+            {/* Avatar: identicon for wallet-verified, crown for admin */}
+            {p.walletVerified && p.walletAddress ? (
+              <AddressAvatar address={p.walletAddress} size={20} className="flex-shrink-0" />
+            ) : p.isAdmin ? (
               <Crown className="h-3 w-3 text-amber-400/70 flex-shrink-0" />
-            )}
+            ) : null}
+
             <span
               className="text-xs text-zinc-300 truncate flex-1"
               style={{ fontFamily: '"Courier New", monospace' }}
             >
               {p.displayName}
             </span>
+
+            {/* Verified badge */}
+            {p.walletVerified && (
+              <span title="Wallet verified"><ShieldCheck className="h-3 w-3 text-green-400/60 flex-shrink-0" /></span>
+            )}
+
+            {/* Community group tag */}
+            {p.communityGroup && (
+              <span
+                className="text-[8px] px-1.5 py-0.5 rounded-full flex-shrink-0"
+                style={{
+                  background: "rgba(91,156,255,0.1)",
+                  color: "rgba(91,156,255,0.7)",
+                  fontFamily: '"Courier New", monospace',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {p.communityGroup}
+              </span>
+            )}
 
             {/* Permission indicators */}
             <div className="flex items-center gap-1 flex-shrink-0">

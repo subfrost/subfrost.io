@@ -5,8 +5,9 @@
 
 import { useCallback } from "react"
 import { cn } from "@/lib/utils"
-import { Mic, MicOff, Monitor, MonitorOff, UserX, Shield, Crown } from "lucide-react"
+import { Mic, MicOff, Monitor, MonitorOff, UserX, Shield, Crown, ShieldCheck } from "lucide-react"
 import type { ParticipantInfo } from "@/lib/room-types"
+import AddressAvatar from "@/components/conference/AddressAvatar"
 
 interface AdminPanelProps {
   participants: ParticipantInfo[]
@@ -69,15 +70,25 @@ export function AdminPanel({
           >
             {/* Name + role */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              {p.isAdmin && (
+              {/* Avatar: identicon for wallet-verified, crown for admin */}
+              {p.walletVerified && p.walletAddress ? (
+                <AddressAvatar address={p.walletAddress} size={20} className="flex-shrink-0" />
+              ) : p.isAdmin ? (
                 <Crown className="h-3 w-3 text-amber-400/70 flex-shrink-0" />
-              )}
+              ) : null}
+
               <span
                 className="text-xs text-zinc-300 truncate"
                 style={{ fontFamily: '"Courier New", monospace' }}
               >
                 {p.displayName}
               </span>
+
+              {/* Verified badge */}
+              {p.walletVerified && (
+                <span title="Wallet verified"><ShieldCheck className="h-3 w-3 text-green-400/60 flex-shrink-0" /></span>
+              )}
+
               {activePresenter === p.id && (
                 <span
                   className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400/80 flex-shrink-0"
@@ -86,6 +97,23 @@ export function AdminPanel({
                   PRESENTING
                 </span>
               )}
+
+              {/* Community group pill */}
+              {p.communityGroup && (
+                <span
+                  className="text-[8px] px-1.5 py-0.5 rounded-full flex-shrink-0"
+                  style={{
+                    background: "rgba(91,156,255,0.1)",
+                    color: "rgba(91,156,255,0.7)",
+                    fontFamily: '"Courier New", monospace',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {p.communityGroup}
+                </span>
+              )}
+
+              {/* Full wallet address on hover */}
               {p.walletAddress && (
                 <span
                   className="text-[9px] text-zinc-600 truncate max-w-[80px]"

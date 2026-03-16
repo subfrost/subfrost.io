@@ -2,21 +2,40 @@
  * API Route: Join Conference Room
  *
  * Validates password and adds participant to the room.
+ * Supports wallet-verified join with signature.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { JoinRoomResponse } from '@/lib/room-types';
 import { getRoom, saveRoom, toRoomInfo, generateToken } from '@/lib/room-utils';
+import { verifyWalletSignature } from '@/lib/wallet-verify';
+import { lookupCommunityData } from '@/lib/community-bridge';
+
+function truncateAddress(address: string): string {
+  if (!address || address.length < 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { roomId, password, displayName, walletAddress } = body as {
+    const {
+      roomId,
+      password,
+      displayName,
+      walletAddress,
+      walletSignature,
+      walletTimestamp,
+      walletMessage,
+    } = body as {
       roomId?: string;
       password?: string;
       displayName?: string;
       walletAddress?: string;
+      walletSignature?: string;
+      walletTimestamp?: number;
+      walletMessage?: string;
     };
 
     if (!roomId?.trim() || !password?.trim()) {
@@ -26,9 +45,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!displayName?.trim()) {
+    // Wallet verification
+    let walletVerified = false;
+    if (walletAddress && walletSignature && walletTimestamp && walletMessage) {
+      walletVerified = verifyWalletSignature(walletAddress, walletMessage, walletSignature, walletTimestamp);
+    }
+
+    // Default display name to truncated address if wallet connected
+    const resolvedDisplayName = displayName?.trim() || (walletAddress ? truncateAddress(walletAddress) : '');
+    if (!resolvedDisplayName) {
       return NextResponse.json(
-        { error: 'displayName is required' },
+        { error: 'displayName is required (or connect a wallet)' },
         { status: 400 }
       );
     }
@@ -55,7 +82,8 @@ export async function POST(request: NextRequest) {
         if (p.walletAddress === walletAddress.trim()) {
           // Rejoin: update lastSeen and return existing token
           p.lastSeen = new Date().toISOString();
-          p.displayName = displayName.trim().slice(0, 30);
+          p.displayName = resolvedDisplayName.slice(0, 30);
+          if (walletVerified) p.walletVerified = true;
           await saveRoom(room);
 
           const response: JoinRoomResponse = {
@@ -73,8 +101,9 @@ export async function POST(request: NextRequest) {
 
     room.participants[participantId] = {
       id: participantId,
-      displayName: displayName.trim().slice(0, 30),
+      displayName: resolvedDisplayName.slice(0, 30),
       walletAddress: walletAddress?.trim() || null,
+      walletVerified,
       token,
       permissions: { mic: false, screen: false },
       isAdmin: false,
@@ -83,6 +112,19 @@ export async function POST(request: NextRequest) {
     };
 
     await saveRoom(room);
+
+    // Non-blocking community data lookup
+    if (walletVerified && walletAddress) {
+      lookupCommunityData(walletAddress).then((data) => {
+        if (data?.found && data.code) {
+          room.participants[participantId] = {
+            ...room.participants[participantId],
+            ...(data.code ? { communityGroup: data.code } : {}),
+          } as any;
+          saveRoom(room).catch(() => {});
+        }
+      }).catch(() => {});
+    }
 
     const response: JoinRoomResponse = {
       participantId,

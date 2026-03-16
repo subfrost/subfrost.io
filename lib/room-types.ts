@@ -10,6 +10,7 @@ export interface Participant {
   id: string;
   displayName: string;
   walletAddress: string | null;
+  walletVerified: boolean;
   token: string;
   permissions: ParticipantPermissions;
   isAdmin: boolean;
@@ -44,6 +45,8 @@ export interface ParticipantInfo {
   id: string;
   displayName: string;
   walletAddress: string | null;
+  walletVerified: boolean;
+  communityGroup?: string | null;
   permissions: ParticipantPermissions;
   isAdmin: boolean;
   joinedAt: string;
