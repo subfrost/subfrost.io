@@ -4,16 +4,18 @@ import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { BROWSER_WALLETS, getInstalledWallets, isWalletInstalled, type BrowserWalletInfo } from '@/constants/wallets';
 
-// ConnectedWallet is loaded lazily from @alkanes/ts-sdk to avoid WASM bundling during build
+// ConnectedWallet is loaded lazily from @alkanes/ts-sdk to avoid WASM bundling during build.
+// We use Function constructor to create a truly opaque require that bundlers cannot analyze.
 let _ConnectedWallet: any = null;
 function getConnectedWalletClass(): any {
   if (!_ConnectedWallet) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const sdk = require('@alkanes/ts-sdk');
+      // Use indirect require to prevent bundler from following the dependency
+      const dynamicRequire = new Function('mod', 'return require(mod)');
+      const sdk = dynamicRequire('@alkanes/ts-sdk');
       _ConnectedWallet = sdk.ConnectedWallet;
     } catch {
-      // Fallback: won't be available during SSR
+      // Fallback: won't be available during SSR build
     }
   }
   return _ConnectedWallet;
@@ -443,7 +445,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     } else {
       // Fallback: use generic WalletConnector from SDK
-      const { WalletConnector } = await import('@alkanes/ts-sdk');
+      const dynamicRequire = new Function('mod', 'return require(mod)');
+      const { WalletConnector } = dynamicRequire('@alkanes/ts-sdk');
       const connector = new WalletConnector();
       connected = await connector.connect(walletInfo);
 

@@ -84,9 +84,9 @@ function buildWalletList(): BrowserWalletInfo[] {
 
   let sdkWallets: BrowserWalletInfo[] = [];
   try {
-    // Dynamic require to avoid WASM being pulled into the build bundle
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const sdk = require('@alkanes/ts-sdk');
+    // Use indirect require to prevent bundler from following the dependency
+    const dynamicRequire = new Function('mod', 'return require(mod)');
+    const sdk = dynamicRequire('@alkanes/ts-sdk');
     sdkWallets = sdk.BROWSER_WALLETS || [];
   } catch {
     // SDK not available (e.g., during SSR build) — use local-only wallets
