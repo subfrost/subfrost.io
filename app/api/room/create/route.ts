@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       adminToken,
       streamKey: null,
       streamSessionId: null,
-      activePresenter: null,
+      activePresenter: adminParticipantId,
       participants: {
         [adminParticipantId]: {
           id: adminParticipantId,

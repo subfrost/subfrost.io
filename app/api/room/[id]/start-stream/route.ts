@@ -73,6 +73,10 @@ export async function POST(
 
     room.streamKey = streamKey;
     room.streamSessionId = session.id;
+
+    // Auto-set the admin as the active presenter
+    room.activePresenter = callerId;
+
     await saveRoom(room);
 
     return NextResponse.json({
