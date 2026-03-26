@@ -1,42 +1,27 @@
 "use client"
 
 // components/stream/LiveChat.tsx
-// Live chat panel for the viewer page.
+// Room-scoped live chat panel for the conference room.
 //
-// Design Decisions:
-// - Dark style consistent with live viewer theme (black/zinc).
-// - Nickname persisted in localStorage.
-// - Auto-scrolls to bottom on new messages.
-// - Connection indicator dot in header.
-//
-// Journal:
-// - 2026-02-28 (Claude): Created live chat component.
+// Uses room token for auth — participant identity comes from the room,
+// no separate nickname input needed.
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react"
 import { useChat } from "@/hooks/use-chat"
 import { cn } from "@/lib/utils"
 
-const NICKNAME_KEY = "subfrost-chat-nickname"
+interface LiveChatProps {
+  roomId: string | null
+  token: string | null
+  className?: string
+}
 
-export function LiveChat({ className }: { className?: string }) {
-  const { messages, isConnected, sendMessage } = useChat()
-  const [nickname, setNickname] = useState("")
+export function LiveChat({ roomId, token, className }: LiveChatProps) {
+  const { messages, isConnected, sendMessage } = useChat({ roomId, token })
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const isAtBottomRef = useRef(true)
-
-  // Load nickname from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(NICKNAME_KEY)
-    if (saved) setNickname(saved)
-  }, [])
-
-  // Save nickname to localStorage
-  const updateNickname = useCallback((value: string) => {
-    setNickname(value)
-    localStorage.setItem(NICKNAME_KEY, value)
-  }, [])
 
   // Auto-scroll when new messages arrive (only if already at bottom)
   useEffect(() => {
@@ -54,14 +39,13 @@ export function LiveChat({ className }: { className?: string }) {
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault()
     const trimmed = input.trim()
-    const nick = nickname.trim() || "anon"
     if (!trimmed || sending) return
 
     setSending(true)
-    const ok = await sendMessage(nick, trimmed)
+    const ok = await sendMessage(trimmed)
     if (ok) setInput("")
     setSending(false)
-  }, [input, nickname, sending, sendMessage])
+  }, [input, sending, sendMessage])
 
   return (
     <div className={cn("flex h-full flex-col bg-black", className)}>
@@ -79,7 +63,7 @@ export function LiveChat({ className }: { className?: string }) {
               textTransform: "uppercase",
             }}
           >
-            LIVE CHAT
+            CHAT
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -129,24 +113,7 @@ export function LiveChat({ className }: { className?: string }) {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-zinc-800 px-4 py-3 space-y-2">
-        {/* Nickname input */}
-        <input
-          type="text"
-          value={nickname}
-          onChange={(e) => updateNickname(e.target.value)}
-          placeholder="Nickname"
-          maxLength={20}
-          className={cn(
-            "w-full rounded px-2 py-1 text-xs",
-            "bg-zinc-900 border border-zinc-800 text-zinc-300",
-            "placeholder:text-zinc-600",
-            "focus:outline-none focus:border-zinc-700"
-          )}
-          style={{ fontFamily: '"Courier New", monospace' }}
-        />
-
-        {/* Message input */}
+      <div className="border-t border-zinc-800 px-4 py-3">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"

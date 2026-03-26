@@ -61,7 +61,19 @@ export default function ConferenceRoomPage() {
   const [copied, setCopied] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [roomPassword, setRoomPassword] = useState<string | null>(null)
+  const [roomToken, setRoomToken] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+
+  // Load room token from sessionStorage for chat
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(`subfrost-room-${roomId}`)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setRoomToken(parsed.token || null)
+      }
+    } catch { /* ignore */ }
+  }, [roomId])
 
   // If admin just created the room, show password from session storage
   useEffect(() => {
@@ -488,7 +500,7 @@ export default function ConferenceRoomPage() {
               : "hidden lg:flex"
           )}
         >
-          {sidePanel === "chat" && <LiveChat />}
+          {sidePanel === "chat" && <LiveChat roomId={roomId} token={roomToken} />}
           {sidePanel === "participants" && (
             isAdmin ? (
               <AdminPanel

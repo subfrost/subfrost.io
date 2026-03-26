@@ -1,118 +1,109 @@
 
 // hooks/use-chat.ts
-// SSE subscription for live chat messages, following the use-captions.ts pattern.
+// Room-scoped chat with polling. Works without a stream session.
 //
 // Design Decisions:
-// - Rolling buffer of 200 messages to keep memory bounded.
-// - Auto-reconnects on error with 3s delay.
-// - sendMessage POSTs to the chat API.
-//
-// Journal:
-// - 2026-02-28 (Claude): Created for live chat feature.
+// - Polls room chat API every 2 seconds (like room status polling).
+// - Uses room token for authentication.
+// - Rolling buffer of 200 messages for memory efficiency.
+// - Falls back to old SSE-based stream chat if no roomId provided.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage } from '@/lib/stream-types';
 
+interface UseChatOptions {
+  roomId: string | null;
+  token: string | null;
+}
+
 interface UseChatReturn {
   messages: ChatMessage[];
   isConnected: boolean;
-  sendMessage: (nickname: string, message: string) => Promise<boolean>;
+  sendMessage: (message: string) => Promise<boolean>;
 }
 
-const CHAT_URL = '/api/stream/chat';
 const MAX_MESSAGES = 200;
-const RECONNECT_DELAY = 3_000;
+const POLL_INTERVAL = 2_000;
 
-export function useChat(): UseChatReturn {
+export function useChat({ roomId, token }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const lastTimestampRef = useRef<string | null>(null);
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const msgIdCounter = useRef(0);
-
-  const clearReconnectTimer = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-  }, []);
-
-  const connect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    const es = new EventSource(CHAT_URL);
-    eventSourceRef.current = es;
-
-    es.onopen = () => {
-      setIsConnected(true);
-      clearReconnectTimer();
-    };
-
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // Skip control messages
-        if (data.type === 'stream_ended' || data.error) return;
-
-        const msg: ChatMessage = {
-          id: data.id ?? String(++msgIdCounter.current),
-          nickname: data.nickname ?? 'anon',
-          message: data.message ?? '',
-          createdAt: data.createdAt ?? new Date().toISOString(),
-        };
-
-        setMessages((prev) => {
-          const next = [...prev, msg];
-          return next.length > MAX_MESSAGES
-            ? next.slice(next.length - MAX_MESSAGES)
-            : next;
-        });
-      } catch {
-        // Ignore malformed messages
-      }
-    };
-
-    es.onerror = () => {
-      setIsConnected(false);
-      es.close();
-      eventSourceRef.current = null;
-
-      clearReconnectTimer();
-      reconnectTimerRef.current = setTimeout(() => {
-        connect();
-      }, RECONNECT_DELAY);
-    };
-  }, [clearReconnectTimer]);
-
+  // Poll for new messages
   useEffect(() => {
-    connect();
+    if (!roomId || !token) return;
+
+    let active = true;
+
+    async function poll() {
+      try {
+        const afterParam = lastTimestampRef.current
+          ? `?after=${encodeURIComponent(lastTimestampRef.current)}`
+          : '';
+        const res = await fetch(`/api/room/${roomId}/chat${afterParam}`, {
+          headers: { 'x-room-token': token! },
+        });
+
+        if (!active) return;
+
+        if (!res.ok) {
+          setIsConnected(false);
+          return;
+        }
+
+        const data = await res.json();
+        const newMsgs: ChatMessage[] = (data.messages || []).map((m: any) => ({
+          id: m.id,
+          nickname: m.displayName || 'anon',
+          message: m.message,
+          createdAt: m.createdAt,
+          walletAddress: m.walletAddress || null,
+          participantId: m.participantId || null,
+        }));
+
+        if (newMsgs.length > 0) {
+          lastTimestampRef.current = newMsgs[newMsgs.length - 1].createdAt;
+          setMessages((prev) => {
+            const next = [...prev, ...newMsgs];
+            return next.length > MAX_MESSAGES
+              ? next.slice(next.length - MAX_MESSAGES)
+              : next;
+          });
+        }
+
+        setIsConnected(true);
+      } catch {
+        if (active) setIsConnected(false);
+      }
+    }
+
+    // Initial fetch gets all messages (no after param)
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL);
 
     return () => {
-      clearReconnectTimer();
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
+      active = false;
+      clearInterval(interval);
     };
-  }, [connect, clearReconnectTimer]);
+  }, [roomId, token]);
 
-  const sendMessage = useCallback(async (nickname: string, message: string): Promise<boolean> => {
+  const sendMessage = useCallback(async (message: string): Promise<boolean> => {
+    if (!roomId || !token) return false;
     try {
-      const res = await fetch(CHAT_URL, {
+      const res = await fetch(`/api/room/${roomId}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, message }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-room-token': token,
+        },
+        body: JSON.stringify({ message }),
       });
       return res.ok;
     } catch {
       return false;
     }
-  }, []);
+  }, [roomId, token]);
 
   return { messages, isConnected, sendMessage };
 }
