@@ -30,7 +30,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm store prune && pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         run: pnpm db:generate
@@ -61,7 +61,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm store prune && pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         run: pnpm db:generate
@@ -89,7 +89,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm store prune && pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         run: pnpm db:generate
