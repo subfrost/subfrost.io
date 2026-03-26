@@ -11,13 +11,13 @@ import { useChat } from "@/hooks/use-chat"
 import { cn } from "@/lib/utils"
 
 interface LiveChatProps {
-  roomId: string | null
-  token: string | null
+  roomId?: string | null
+  token?: string | null
   className?: string
 }
 
-export function LiveChat({ roomId, token, className }: LiveChatProps) {
-  const { messages, isConnected, sendMessage } = useChat({ roomId, token })
+export function LiveChat({ roomId = null, token = null, className }: LiveChatProps) {
+  const { messages, isConnected, sendMessage } = useChat({ roomId: roomId ?? null, token: token ?? null })
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
