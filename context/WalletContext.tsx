@@ -220,7 +220,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const isTaproot = primaryAddr.startsWith('bc1p') || primaryAddr.startsWith('tb1p') || primaryAddr.startsWith('bcrt1p');
 
       const providerObj = (window as any)[walletInfo.injectionKey];
-      const connected = new (getConnectedWalletClass())(walletInfo, providerObj, {
+      const ReconnectClass = getConnectedWalletClass();
+      if (!ReconnectClass) {
+        console.warn('[WalletContext] ConnectedWallet class not available for auto-reconnect');
+        return;
+      }
+      const connected = new ReconnectClass(walletInfo, providerObj, {
         address: primaryAddr,
         publicKey: primaryPubKey,
         addressType: isTaproot ? 'p2tr' : 'p2wpkh',
@@ -354,9 +359,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // ===== Browser wallet methods =====
 
   const connectBrowserWallet = useCallback(async (walletId: string) => {
+    // Ensure SDK is loaded before any wallet connection — ConnectedWallet class is required
+    await loadSDK();
+
     const walletInfo = BROWSER_WALLETS.find(w => w.id === walletId);
     if (!walletInfo) throw new Error(`Unknown wallet: ${walletId}`);
     if (!isWalletInstalled(walletInfo)) throw new Error(`${walletInfo.name} is not installed`);
+
+    const ConnectedWalletClass = getConnectedWalletClass();
+    if (!ConnectedWalletClass) throw new Error('Failed to load wallet SDK. Please refresh and try again.');
 
     let connected: ConnectedWalletInstance | null = null;
     const additionalAddresses: WalletAddresses = {};
@@ -393,7 +404,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const primaryAddr = ordinalsAccount?.address || paymentAccount?.address;
       const isTaproot = primaryAddr?.startsWith('bc1p') || primaryAddr?.startsWith('tb1p') || primaryAddr?.startsWith('bcrt1p');
 
-      connected = new (getConnectedWalletClass())(walletInfo, xverseProvider, {
+      connected = new ConnectedWalletClass(walletInfo, xverseProvider, {
         address: primaryAddr,
         publicKey: ordinalsAccount?.publicKey || paymentAccount?.publicKey,
         addressType: isTaproot ? 'p2tr' : 'p2wpkh',
@@ -421,7 +432,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!primaryAccount) throw new Error('No BTC addresses returned from Leather');
 
       const provider = (window as any)[walletInfo.injectionKey];
-      connected = new (getConnectedWalletClass())(walletInfo, provider, {
+      connected = new ConnectedWalletClass(walletInfo, provider, {
         address: primaryAccount.address,
         publicKey: primaryAccount.publicKey,
         addressType: primaryAccount.type,
@@ -442,7 +453,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (isTaproot) additionalAddresses.taproot = { address: addr, publicKey: pubKey };
       else additionalAddresses.nativeSegwit = { address: addr, publicKey: pubKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, phantomBtcProvider, {
+      connected = new ConnectedWalletClass(walletInfo, phantomBtcProvider, {
         address: addr, publicKey: pubKey, addressType: isTaproot ? 'p2tr' : 'p2wpkh',
       });
 
@@ -470,7 +481,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (isTaproot) additionalAddresses.taproot = { address: addr, publicKey: pubKeyHex };
       else additionalAddresses.nativeSegwit = { address: addr, publicKey: pubKeyHex };
 
-      connected = new (getConnectedWalletClass())(walletInfo, keplrBtcProvider, {
+      connected = new ConnectedWalletClass(walletInfo, keplrBtcProvider, {
         address: addr, publicKey: pubKeyHex, addressType: isTaproot ? 'p2tr' : 'p2wpkh',
       });
 
@@ -497,7 +508,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } else if (rawAddresses && typeof rawAddresses === 'object') {
         if (typeof rawAddresses.nativeSegwit === 'string') {
           oylAddresses.nativeSegwit = { address: rawAddresses.nativeSegwit };
-          oylAddresses.taproot = { address: rawAddresses.taproot };
+          if (rawAddresses.taproot) oylAddresses.taproot = { address: rawAddresses.taproot };
         } else {
           oylAddresses = rawAddresses;
         }
@@ -513,7 +524,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const primaryPubKey = oylAddresses.taproot?.publicKey || oylAddresses.nativeSegwit?.publicKey;
       const primaryType = oylAddresses.taproot?.address ? 'p2tr' : 'p2wpkh';
 
-      connected = new (getConnectedWalletClass())(walletInfo, oylProvider, {
+      connected = new ConnectedWalletClass(walletInfo, oylProvider, {
         address: primaryAddress, publicKey: primaryPubKey, addressType: primaryType,
       });
 
@@ -532,7 +543,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       additionalAddresses.taproot = { address: taprootAccount.address, publicKey: taprootAccount.publicKey };
       if (segwitAccount) additionalAddresses.nativeSegwit = { address: segwitAccount.address, publicKey: segwitAccount.publicKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, tokeoProvider, {
+      connected = new ConnectedWalletClass(walletInfo, tokeoProvider, {
         address: taprootAccount.address, publicKey: taprootAccount.publicKey, addressType: 'p2tr',
       });
 
@@ -555,7 +566,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (ordinalsAddr) additionalAddresses.taproot = { address: typeof ordinalsAddr === 'string' ? ordinalsAddr : ordinalsAddr.address, publicKey: typeof ordinalsAddr === 'string' ? undefined : ordinalsAddr.publicKey };
       if (paymentAddr) additionalAddresses.nativeSegwit = { address: typeof paymentAddr === 'string' ? paymentAddr : paymentAddr.address, publicKey: typeof paymentAddr === 'string' ? undefined : paymentAddr.publicKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, orangeProvider, {
+      connected = new ConnectedWalletClass(walletInfo, orangeProvider, {
         address: addr, publicKey: pubKey, addressType: addr?.startsWith('bc1p') || addr?.startsWith('tb1p') ? 'p2tr' : 'p2wpkh',
       });
 
@@ -577,7 +588,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (ordinalsAddr) additionalAddresses.taproot = { address: typeof ordinalsAddr === 'string' ? ordinalsAddr : ordinalsAddr.address, publicKey: typeof ordinalsAddr === 'string' ? undefined : ordinalsAddr.publicKey };
       if (paymentAddr) additionalAddresses.nativeSegwit = { address: typeof paymentAddr === 'string' ? paymentAddr : paymentAddr.address, publicKey: typeof paymentAddr === 'string' ? undefined : paymentAddr.publicKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, magicEdenProvider, {
+      connected = new ConnectedWalletClass(walletInfo, magicEdenProvider, {
         address: addr, publicKey: pubKey, addressType: addr?.startsWith('bc1p') || addr?.startsWith('tb1p') ? 'p2tr' : 'p2wpkh',
       });
 
@@ -600,7 +611,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (isTaproot) additionalAddresses.taproot = { address: addr, publicKey: pubKey };
       else additionalAddresses.nativeSegwit = { address: addr, publicKey: pubKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, okxProvider, {
+      connected = new ConnectedWalletClass(walletInfo, okxProvider, {
         address: addr, publicKey: pubKey, addressType: isTaproot ? 'p2tr' : 'p2wpkh',
       });
 
@@ -645,7 +656,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (isTaproot) additionalAddresses.taproot = { address: addr, publicKey: pubKey };
       else additionalAddresses.nativeSegwit = { address: addr, publicKey: pubKey };
 
-      connected = new (getConnectedWalletClass())(walletInfo, unisatProvider, {
+      connected = new ConnectedWalletClass(walletInfo, unisatProvider, {
         address: addr, publicKey: pubKey, addressType: isTaproot ? 'p2tr' : 'p2wpkh',
       });
 
