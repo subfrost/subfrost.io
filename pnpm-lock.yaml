@@ -129,7 +129,7 @@ importers:
         specifier: ^1.3.1
         version: 1.5.1(next@16.0.10(@babel/core@7.28.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
       hls.js:
-        specifier: ^1.5
+        specifier: ^1.6.15
         version: 1.6.15
       input-otp:
         specifier: 1.4.1
@@ -254,7 +254,7 @@ packages:
 
   '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk':
     resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk}
-    version: 0.1.5-3d660ce
+    version: 0.1.5-852ce21
     hasBin: true
     peerDependencies:
       '@oyl/sdk': '*'

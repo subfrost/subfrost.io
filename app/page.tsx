@@ -130,14 +130,14 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Flex", title: "Founder/CTO", image: "flex.jpg", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes. Former CTO of Polymarket and IDEX." },
-  { name: "Gabe", title: "Founder/CEO", image: "gabelee.jpeg", link: "https://x.com/GabeLee0", description: "Strategy Consultant turned Founder once the idea could impact 1B+ people." },
-  { name: "Brooks", title: "Advisor", image: "brooks.jpg", link: "", description: "Chinese Ambassador (for SUBFROST & Alkanes) with 10+ years in Blockchain Marketing." },
+  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", link: "https://x.com/GabeLee0", description: "Strategy Consultant with an obsession for lowering the friction in finance." },
+  { name: "Flex", title: "Founder/CTO", image: "flex.png", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX." },
+  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", link: "", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
-  { name: "Eran", title: "Advisor", image: "1731879773679.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
+  { name: "Eran", title: "Advisor", image: "eran.jpg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
   { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
 ]
 
@@ -310,14 +310,15 @@ export default function Page() {
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
                     {teamMembers.map((member, index) => {
+                      const isFounderOrBrooks = index < 3
                       const cardContent = (
-                        <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
+                        <div className={`flex flex-col items-center justify-center ${isFounderOrBrooks ? "space-y-1" : "space-y-2"} transition-opacity duration-300 group-hover:opacity-0`}>
                           <Image
                             src={`/Team/${member.image}`}
                             alt={member.name}
-                            width={64}
-                            height={64}
-                            className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
+                            width={isFounderOrBrooks ? 160 : 64}
+                            height={isFounderOrBrooks ? 160 : 64}
+                            className={`${isFounderOrBrooks ? "w-36 h-36" : "w-16 h-16"} rounded-full mx-auto mb-2 object-cover`}
                           />
                           <h4 className="text-lg font-bold text-white">{member.name}</h4>
                           <p className="text-gray-400 text-sm">{member.title}</p>
@@ -332,8 +333,9 @@ export default function Page() {
                         </div>
                       )
 
-                      const cardClassName =
-                        "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
+                      const cardClassName = isFounderOrBrooks
+                        ? "group relative min-h-40 pt-2 px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
+                        : "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
 
                       return member.link ? (
                         <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
