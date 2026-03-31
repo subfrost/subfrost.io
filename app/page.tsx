@@ -137,7 +137,7 @@ const teamMembers = [
   { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
-  { name: "Eran", title: "Advisor", image: "eran.jpg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
+  { name: "Eran", title: "Advisor", image: "eran.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
   { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
 ]
 

@@ -265,6 +265,16 @@ function aggregateCandles(txs: ClassifiedTx[], interval: string, cumulative: boo
   const mode = interval === "1w" ? "week" : "day";
   const buckets = new Map<string, BucketData>();
 
+  // Pre-fill every bucket from MIN_DATE to today so charts always start in early October
+  const start = new Date(MIN_DATE);
+  const today = new Date();
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+  while (cursor <= today) {
+    const key = truncDate(cursor, mode);
+    if (!buckets.has(key)) buckets.set(key, emptyBucket());
+    cursor.setUTCDate(cursor.getUTCDate() + (mode === "week" ? 7 : 1));
+  }
+
   for (const tx of txs) {
     const key = truncDate(tx.block_time, mode);
     const b = buckets.get(key) || emptyBucket();
@@ -359,14 +369,21 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
 // Public API
 // ============================================================================
 
-export async function getVolumeStats(): Promise<VolumeStats> {
-  const txs = await getAllTxs();
-  return aggregateStats(txs);
+export type SourceFilter = "both" | "alkanes" | "brc20";
+
+function filterBySource(txs: ClassifiedTx[], source: SourceFilter): ClassifiedTx[] {
+  if (source === "both") return txs;
+  return txs.filter((tx) => tx.source === source);
 }
 
-export async function getVolumeCandles(interval: string, cumulative: boolean): Promise<CandleRow[]> {
+export async function getVolumeStats(source: SourceFilter = "both"): Promise<VolumeStats> {
   const txs = await getAllTxs();
-  return aggregateCandles(txs, interval, cumulative);
+  return aggregateStats(filterBySource(txs, source));
+}
+
+export async function getVolumeCandles(interval: string, cumulative: boolean, source: SourceFilter = "both"): Promise<CandleRow[]> {
+  const txs = await getAllTxs();
+  return aggregateCandles(filterBySource(txs, source), interval, cumulative);
 }
 
 // Pre-warm cache on module load

@@ -83,24 +83,30 @@ function ButtonGroup({
 /*  Stats Cards                                                        */
 /* ------------------------------------------------------------------ */
 
-function StatsCards({ period }: { period: string }) {
-  const { data, isLoading } = useSWR("/api/volume/stats", fetcher, {
+function StatsCards({ period, source }: { period: string; source: string }) {
+  const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 300_000,
   })
-  const { data: alkCirc } = useSWR("/api/alkanes-circulating", fetcher, {
-    refreshInterval: 300_000,
-  })
-  const { data: brcCirc } = useSWR("/api/brc20-circulating", fetcher, {
-    refreshInterval: 300_000,
-  })
+  const { data: alkCirc } = useSWR(
+    source !== "brc20" ? "/api/alkanes-circulating" : null,
+    fetcher,
+    { refreshInterval: 300_000 }
+  )
+  const { data: brcCirc } = useSWR(
+    source !== "alkanes" ? "/api/brc20-circulating" : null,
+    fetcher,
+    { refreshInterval: 300_000 }
+  )
 
   // Total Volume = unwraps + circulating frBTC (matches Lifetime Tx Value)
+  const circLoaded =
+    (source === "brc20" || alkCirc) && (source === "alkanes" || brcCirc)
   const totalVolumeSats =
-    data && alkCirc && brcCirc
+    data && circLoaded
       ? String(
           Number(data.unwrap_volume_sats) +
-          (alkCirc.circulatingSatoshis || 0) +
-          Number(brcCirc.circulatingSatoshis || 0)
+          (source !== "brc20" ? (alkCirc?.circulatingSatoshis || 0) : 0) +
+          (source !== "alkanes" ? Number(brcCirc?.circulatingSatoshis || 0) : 0)
         )
       : undefined
 
@@ -120,7 +126,7 @@ function StatsCards({ period }: { period: string }) {
   ]
 
   const allCards = [...periodCards, ...totalCards]
-  const loading = isLoading || !alkCirc || !brcCirc
+  const loading = isLoading || !circLoaded
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
@@ -157,9 +163,10 @@ function StatsCards({ period }: { period: string }) {
 const CHART_BG = "transparent"
 const GRID_COLOR = "rgba(255,255,255,0.04)"
 const CHART_START = "2025-10-01" as Time
-const CHART_HEIGHT = typeof window !== "undefined" && window.innerWidth < 640 ? 250 : 350
+const CHART_HEIGHT_MOBILE = 250
 
-function VolumeChart({ period, interval }: { period: string; interval: string }) {
+function VolumeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -168,13 +175,16 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
   const candleLookupRef = useRef<Map<string, CandleData>>(new Map())
 
   const { data: candles } = useSWR(
-    `/api/volume/candles?interval=${interval}`,
+    `/api/volume/candles?interval=${interval}&source=${source}`,
     fetcher,
     { refreshInterval: 300_000 }
   )
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || !wrapperRef.current) return
+
+    const isMobile = window.innerWidth < 640
+    const initialHeight = isMobile ? CHART_HEIGHT_MOBILE : wrapperRef.current.clientHeight
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -186,7 +196,7 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
         horzLines: { color: GRID_COLOR },
       },
       width: containerRef.current.clientWidth,
-      height: CHART_HEIGHT,
+      height: initialHeight,
       timeScale: { timeVisible: false, borderColor: GRID_COLOR },
       rightPriceScale: { borderColor: GRID_COLOR },
       crosshair: { vertLine: { labelVisible: false } },
@@ -259,15 +269,17 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
     wrapRef.current = wrapSeries
     unwrapRef.current = unwrapSeries
 
-    const handleResize = () => {
-      if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth })
+    const ro = new ResizeObserver(() => {
+      if (wrapperRef.current && containerRef.current) {
+        const isMobile = window.innerWidth < 640
+        const h = isMobile ? CHART_HEIGHT_MOBILE : wrapperRef.current.clientHeight
+        chart.applyOptions({ width: containerRef.current.clientWidth, height: h })
       }
-    }
-    window.addEventListener("resize", handleResize)
+    })
+    ro.observe(wrapperRef.current)
 
     return () => {
-      window.removeEventListener("resize", handleResize)
+      ro.disconnect()
       chart.remove()
       chartRef.current = null
     }
@@ -314,7 +326,7 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
   }, [candles])
 
   return (
-    <div className={cn(cardClass, "p-4")} style={{ position: "relative" }}>
+    <div className={cn(cardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -325,7 +337,7 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
           <span className="text-gray-400">Unwrap volume</span>
         </div>
       </div>
-      <div style={{ position: "relative" }}>
+      <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
         <div ref={containerRef} />
         <div
           ref={tooltipRef}
@@ -351,7 +363,8 @@ function VolumeChart({ period, interval }: { period: string; interval: string })
 /*  Cumulative Area Chart                                              */
 /* ------------------------------------------------------------------ */
 
-function CumulativeChart({ period, interval }: { period: string; interval: string }) {
+function CumulativeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -360,13 +373,16 @@ function CumulativeChart({ period, interval }: { period: string; interval: strin
   const candleLookupRef = useRef<Map<string, CandleData>>(new Map())
 
   const { data: candles } = useSWR(
-    `/api/volume/candles?interval=${interval}&cumulative=true`,
+    `/api/volume/candles?interval=${interval}&cumulative=true&source=${source}`,
     fetcher,
     { refreshInterval: 300_000 }
   )
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || !wrapperRef.current) return
+
+    const isMobile = window.innerWidth < 640
+    const initialHeight = isMobile ? CHART_HEIGHT_MOBILE : wrapperRef.current.clientHeight
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -378,7 +394,7 @@ function CumulativeChart({ period, interval }: { period: string; interval: strin
         horzLines: { color: GRID_COLOR },
       },
       width: containerRef.current.clientWidth,
-      height: CHART_HEIGHT,
+      height: initialHeight,
       timeScale: { timeVisible: false, borderColor: GRID_COLOR },
       rightPriceScale: { borderColor: GRID_COLOR },
       crosshair: { vertLine: { labelVisible: false } },
@@ -455,15 +471,17 @@ function CumulativeChart({ period, interval }: { period: string; interval: strin
     wrapRef.current = wrapSeries
     unwrapRef.current = unwrapSeries
 
-    const handleResize = () => {
-      if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth })
+    const ro = new ResizeObserver(() => {
+      if (wrapperRef.current && containerRef.current) {
+        const isMobile = window.innerWidth < 640
+        const h = isMobile ? CHART_HEIGHT_MOBILE : wrapperRef.current.clientHeight
+        chart.applyOptions({ width: containerRef.current.clientWidth, height: h })
       }
-    }
-    window.addEventListener("resize", handleResize)
+    })
+    ro.observe(wrapperRef.current)
 
     return () => {
-      window.removeEventListener("resize", handleResize)
+      ro.disconnect()
       chart.remove()
       chartRef.current = null
     }
@@ -508,7 +526,7 @@ function CumulativeChart({ period, interval }: { period: string; interval: strin
   }, [candles])
 
   return (
-    <div className={cn(cardClass, "p-4")} style={{ position: "relative" }}>
+    <div className={cn(cardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -519,7 +537,7 @@ function CumulativeChart({ period, interval }: { period: string; interval: strin
           <span className="text-gray-400">Cumulative unwrap</span>
         </div>
       </div>
-      <div style={{ position: "relative" }}>
+      <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
         <div ref={containerRef} />
         <div
           ref={tooltipRef}
@@ -553,6 +571,7 @@ interface VolumeModalProps {
 export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
   const [period, setPeriod] = useState("24h")
   const [chartType, setChartType] = useState("volume")
+  const [source, setSource] = useState("both")
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -585,7 +604,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={modalRef}
-          className="bg-[#121A2C] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative pointer-events-auto"
+          className="bg-[#121A2C] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto sm:h-[90vh] sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6 relative pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
@@ -597,12 +616,12 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
           </button>
 
           {/* Subtitle */}
-          <p className="mt-1 text-xl text-gray-300 mb-6">
+          <p className="mt-1 text-xl text-gray-300 mb-6 sm:shrink-0">
             BTC volume flowing through the SUBFROST protocol
           </p>
 
           {/* Tab selectors */}
-          <div className="flex items-center gap-4 flex-wrap mb-6">
+          <div className="flex items-center gap-4 flex-wrap mb-6 sm:shrink-0">
             <ButtonGroup
               options={[
                 { value: "24h", label: "24H" },
@@ -619,18 +638,27 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
               value={chartType}
               onChange={setChartType}
             />
+            <ButtonGroup
+              options={[
+                { value: "both", label: "Both" },
+                { value: "alkanes", label: "Alkanes" },
+                { value: "brc20", label: "BRC20" },
+              ]}
+              value={source}
+              onChange={setSource}
+            />
           </div>
 
           {/* Stats cards */}
-          <div className="mb-6">
-            <StatsCards period={period} />
+          <div className="mb-6 sm:shrink-0">
+            <StatsCards period={period} source={source} />
           </div>
 
           {/* Chart — key forces remount when interval changes */}
           {chartType === "volume" ? (
-            <VolumeChart key={period} period={period} interval={period === "7d" ? "1w" : "1d"} />
+            <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
           ) : (
-            <CumulativeChart key={period} period={period} interval={period === "7d" ? "1w" : "1d"} />
+            <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
           )}
         </div>
       </div>
