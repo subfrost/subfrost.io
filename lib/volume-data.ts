@@ -154,7 +154,7 @@ function classifyBrc20Tx(tx: AddressTx, address: string): ClassifiedTx | null {
   return null;
 }
 
-async function fetchAllBrc20(): Promise<ClassifiedTx[]> {
+async function fetchAllBrc20(knownTxids?: Set<string>): Promise<ClassifiedTx[]> {
   const address = getBrc20SignerAddress();
   const results: ClassifiedTx[] = [];
   let lastSeenTxid: string | undefined;
@@ -175,13 +175,24 @@ async function fetchAllBrc20(): Promise<ClassifiedTx[]> {
 
     if (!page || page.length === 0) break;
 
+    let hitKnown = false;
     let allBeforeMinDate = true;
     for (const tx of page) {
+      // Incremental mode: stop when we reach a transaction we already have
+      if (knownTxids?.has(tx.txid)) {
+        hitKnown = true;
+        break;
+      }
       if (tx.status?.block_time && tx.status.block_time >= minDateEpoch) {
         allBeforeMinDate = false;
       }
       const classified = classifyBrc20Tx(tx, address);
       if (classified) results.push(classified);
+    }
+
+    if (hitKnown) {
+      console.log(`[volume-data] BRC20: caught up at page ${pageNum} (incremental)`);
+      break;
     }
 
     // Txs are returned newest-first; if all on this page are before MIN_DATE, stop
@@ -322,6 +333,7 @@ function aggregateCandles(txs: ClassifiedTx[], interval: string, cumulative: boo
 // ============================================================================
 
 let cachedTxs: ClassifiedTx[] | null = null;
+let cachedTxids: Set<string> = new Set();
 let cacheTimestamp = 0;
 let fetchPromise: Promise<ClassifiedTx[]> | null = null;
 
@@ -333,11 +345,39 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
 
   if (fetchPromise) return fetchPromise;
 
+  const isIncremental = cachedTxs !== null && cachedTxids.size > 0;
+
   fetchPromise = (async () => {
     try {
+      if (isIncremental) {
+        // Incremental refresh — only fetch new transactions since last cache
+        console.log("[volume-data] Incremental refresh...");
+
+        const [alkanesTxs, brc20Txs] = await Promise.all([
+          fetchAllAlkanes(),
+          fetchAllBrc20(cachedTxids),
+        ]);
+
+        // Filter to only truly new transactions
+        const newTxs = [...alkanesTxs, ...brc20Txs].filter(
+          (tx) => !cachedTxids.has(tx.txid)
+        );
+
+        if (newTxs.length > 0) {
+          for (const tx of newTxs) cachedTxids.add(tx.txid);
+          cachedTxs = [...cachedTxs!, ...newTxs];
+          console.log(`[volume-data] Added ${newTxs.length} new transactions (total: ${cachedTxs.length})`);
+        } else {
+          console.log("[volume-data] No new transactions");
+        }
+
+        cacheTimestamp = Date.now();
+        return cachedTxs!;
+      }
+
+      // Full fetch (cold start)
       console.log("[volume-data] Fetching Alkanes + BRC20 volume data...");
 
-      // Fetch Alkanes (data API) and BRC20 (Esplora) in parallel
       const [alkanesTxs, brc20Txs] = await Promise.all([
         fetchAllAlkanes(),
         fetchAllBrc20(),
@@ -354,6 +394,7 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
       });
 
       cachedTxs = deduped;
+      cachedTxids = seen;
       cacheTimestamp = Date.now();
       console.log(`[volume-data] Cached ${deduped.length} transactions total`);
       return deduped;

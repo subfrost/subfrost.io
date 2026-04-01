@@ -26,13 +26,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onVolumeC
         href="https://docs.subfrost.io/"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm"
+        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm"
       >
         OFFICIAL DOCS
       </a>
       <button
         onClick={onVolumeChartsClick}
-        className="flex justify-center px-2 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs md:text-sm whitespace-nowrap"
+        className="flex justify-center px-2 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm whitespace-nowrap"
       >
         VOLUME CHARTS
       </button>

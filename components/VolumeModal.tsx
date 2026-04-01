@@ -38,12 +38,16 @@ interface CandleData {
   brc20_unwrap_sats: string
 }
 
-const cardClass = cn(
+const statCardClass = cn(
   "relative rounded-2xl overflow-hidden",
-  "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
-  "shadow-lg shadow-black/20",
-  "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
-  "backdrop-blur-sm",
+  "bg-white",
+  "shadow-[0_4px_20px_rgba(0,0,0,0.12)]",
+)
+
+const chartCardClass = cn(
+  "relative rounded-2xl overflow-hidden",
+  "bg-white",
+  "shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
 )
 
 /* ------------------------------------------------------------------ */
@@ -60,16 +64,18 @@ function ButtonGroup({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="flex rounded-lg overflow-hidden border border-white/10">
+    <div className="inline-flex items-center gap-2 p-1 rounded-lg">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "px-4 py-2 text-sm font-medium transition-colors",
+            "px-5 py-2 text-sm font-bold uppercase tracking-wide rounded-md",
+            "shadow-[0_2px_12px_rgba(0,0,0,0.08)]",
+            "transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none",
             value === opt.value
-              ? "bg-[#5b9cff] text-white shadow-lg"
-              : "bg-[#152238] text-[#e8f0ff]/60 hover:text-[#e8f0ff]"
+              ? "bg-[#284372] text-white shadow-lg"
+              : "bg-white text-[#284372] hover:bg-[#f0f7ff]"
           )}
         >
           {opt.label}
@@ -120,9 +126,9 @@ function StatsCards({ period, source }: { period: string; source: string }) {
   ]
 
   const totalCards = [
-    { label: "Total Wraps", value: data?.wrap_volume_sats, color: "text-white" },
-    { label: "Total Unwraps", value: data?.unwrap_volume_sats, color: "text-white" },
-    { label: "Total Volume", value: totalVolumeSats, color: "text-white" },
+    { label: "Total Wraps", value: data?.wrap_volume_sats, color: "text-[#284372]" },
+    { label: "Total Unwraps", value: data?.unwrap_volume_sats, color: "text-[#284372]" },
+    { label: "Total Volume", value: totalVolumeSats, color: "text-[#284372]" },
   ]
 
   const allCards = [...periodCards, ...totalCards]
@@ -134,19 +140,19 @@ function StatsCards({ period, source }: { period: string; source: string }) {
         <div
           key={card.label}
           className={cn(
-            cardClass,
+            statCardClass,
             "p-4 sm:p-5",
             i === allCards.length - 1 && "hidden sm:block"
           )}
         >
-          <p className="text-xs sm:text-sm text-gray-400 mb-1">{card.label}</p>
+          <p className="text-xs sm:text-sm text-[#6b7280] mb-1">{card.label}</p>
           <p className={cn("text-lg sm:text-xl font-semibold tabular-nums", card.color)}>
             {loading ? (
-              <span className="text-gray-500">--</span>
+              <span className="text-[#6b7280]/50">--</span>
             ) : (
               <>
                 {satsToBtc(card.value || "0")}{" "}
-                <span className="text-xs text-gray-500">BTC</span>
+                <span className="text-xs text-[#6b7280]">BTC</span>
               </>
             )}
           </p>
@@ -161,7 +167,7 @@ function StatsCards({ period, source }: { period: string; source: string }) {
 /* ------------------------------------------------------------------ */
 
 const CHART_BG = "transparent"
-const GRID_COLOR = "rgba(255,255,255,0.04)"
+const GRID_COLOR = "rgba(40, 67, 114, 0.06)"
 const CHART_START = "2025-10-01" as Time
 const CHART_HEIGHT_MOBILE = 250
 
@@ -189,7 +195,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: CHART_BG },
-        textColor: "#71717a",
+        textColor: "#6b7280",
       },
       grid: {
         vertLines: { color: GRID_COLOR },
@@ -248,9 +254,9 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
 
       tooltip.innerHTML =
         `<div style="font-size:12px;line-height:1.6;white-space:nowrap">` +
-        `<div style="color:#94a3b8;margin-bottom:2px">${dateStr}</div>` +
-        `<div><span style="color:#e2e8f0">Alkanes:</span> <span style="color:#22c55e">+${fmtBtc(aw)}</span> / <span style="color:#ef4444">-${fmtBtc(au)}</span> BTC</div>` +
-        `<div><span style="color:#e2e8f0">BRC20:</span> <span style="color:#22c55e">+${fmtBtc(bw)}</span> / <span style="color:#ef4444">-${fmtBtc(bu)}</span> BTC</div>` +
+        `<div style="color:#6b7280;margin-bottom:2px">${dateStr}</div>` +
+        `<div><span style="color:#284372">Alkanes:</span> <span style="color:#16a34a">+${fmtBtc(aw)}</span> / <span style="color:#dc2626">-${fmtBtc(au)}</span> BTC</div>` +
+        `<div><span style="color:#284372">BRC20:</span> <span style="color:#16a34a">+${fmtBtc(bw)}</span> / <span style="color:#dc2626">-${fmtBtc(bu)}</span> BTC</div>` +
         `</div>`
 
       tooltip.style.display = "block"
@@ -326,15 +332,15 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
   }, [candles])
 
   return (
-    <div className={cn(cardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
+    <div className={cn(chartCardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-gray-400">Wrap volume</span>
+          <span className="text-[#6b7280]">Wrap volume</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-gray-400">Unwrap volume</span>
+          <span className="text-[#6b7280]">Unwrap volume</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -348,8 +354,9 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
             left: 0,
             zIndex: 10,
             pointerEvents: "none",
-            background: "rgba(15, 23, 42, 0.95)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255, 255, 255, 0.96)",
+            border: "1px solid #d5def0",
+            boxShadow: "0 4px 12px rgba(40, 67, 114, 0.1)",
             borderRadius: "8px",
             padding: "8px 12px",
           }}
@@ -387,7 +394,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: CHART_BG },
-        textColor: "#71717a",
+        textColor: "#6b7280",
       },
       grid: {
         vertLines: { color: GRID_COLOR },
@@ -402,7 +409,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
 
     const wrapSeries = chart.addAreaSeries({
       lineColor: "#22c55e",
-      topColor: "rgba(34, 197, 94, 0.4)",
+      topColor: "rgba(34, 197, 94, 0.25)",
       bottomColor: "rgba(34, 197, 94, 0.0)",
       lineWidth: 2,
       priceFormat: {
@@ -415,7 +422,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
 
     const unwrapSeries = chart.addAreaSeries({
       lineColor: "#ef4444",
-      topColor: "rgba(239, 68, 68, 0.4)",
+      topColor: "rgba(239, 68, 68, 0.25)",
       bottomColor: "rgba(239, 68, 68, 0.0)",
       lineWidth: 2,
       priceFormat: {
@@ -450,9 +457,9 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
 
       tooltip.innerHTML =
         `<div style="font-size:12px;line-height:1.6;white-space:nowrap">` +
-        `<div style="color:#94a3b8;margin-bottom:2px">${dateStr}</div>` +
-        `<div><span style="color:#e2e8f0">Alkanes:</span> <span style="color:#22c55e">+${fmtBtc(aw)}</span> / <span style="color:#ef4444">-${fmtBtc(au)}</span> BTC</div>` +
-        `<div><span style="color:#e2e8f0">BRC20:</span> <span style="color:#22c55e">+${fmtBtc(bw)}</span> / <span style="color:#ef4444">-${fmtBtc(bu)}</span> BTC</div>` +
+        `<div style="color:#6b7280;margin-bottom:2px">${dateStr}</div>` +
+        `<div><span style="color:#284372">Alkanes:</span> <span style="color:#16a34a">+${fmtBtc(aw)}</span> / <span style="color:#dc2626">-${fmtBtc(au)}</span> BTC</div>` +
+        `<div><span style="color:#284372">BRC20:</span> <span style="color:#16a34a">+${fmtBtc(bw)}</span> / <span style="color:#dc2626">-${fmtBtc(bu)}</span> BTC</div>` +
         `</div>`
 
       tooltip.style.display = "block"
@@ -526,15 +533,15 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
   }, [candles])
 
   return (
-    <div className={cn(cardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
+    <div className={cn(chartCardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-gray-400">Cumulative wrap</span>
+          <span className="text-[#6b7280]">Cumulative wrap</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-gray-400">Cumulative unwrap</span>
+          <span className="text-[#6b7280]">Cumulative unwrap</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -548,8 +555,9 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
             left: 0,
             zIndex: 10,
             pointerEvents: "none",
-            background: "rgba(15, 23, 42, 0.95)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255, 255, 255, 0.96)",
+            border: "1px solid #d5def0",
+            boxShadow: "0 4px 12px rgba(40, 67, 114, 0.1)",
             borderRadius: "8px",
             padding: "8px 12px",
           }}
@@ -596,7 +604,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/[.15] backdrop-blur-[2px]"
+        className="fixed inset-0 z-40 bg-[#284372]/20 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
@@ -604,19 +612,19 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={modalRef}
-          className="bg-[#121A2C] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto sm:h-[90vh] sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6 relative pointer-events-auto"
+          className="bg-[#f0f7ff] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto sm:h-[90vh] sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6 relative pointer-events-auto shadow-xl shadow-[#284372]/10"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+            className="absolute top-4 right-4 text-[#6b7280] hover:text-[#284372] transition-colors p-1 rounded-full hover:bg-[#284372]/10"
           >
             <X size={20} />
           </button>
 
           {/* Subtitle */}
-          <p className="mt-1 text-xl text-gray-300 mb-6 sm:shrink-0">
+          <p className="mt-1 text-xl text-[#284372] mb-6 sm:shrink-0">
             BTC volume flowing through the SUBFROST protocol
           </p>
 

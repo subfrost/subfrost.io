@@ -23,7 +23,7 @@ const SocialButtons: React.FC = () => {
       <Popover>
         <PopoverTrigger asChild>
           <button
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             aria-label="Contact Us"
           >
             <Mail className="w-4 h-4" />
@@ -52,7 +52,7 @@ const SocialButtons: React.FC = () => {
         href="https://x.com/SUBFROSTio"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
         aria-label="X.com"
       >
         <XIcon className="w-4 h-4" />
@@ -61,7 +61,7 @@ const SocialButtons: React.FC = () => {
         href="https://github.com/subfrost"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-[#284372] hover:bg-blue-100 transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
         aria-label="GitHub"
       >
         <Github className="w-4 h-4" />
