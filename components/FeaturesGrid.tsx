@@ -329,31 +329,6 @@ export default function FeaturesGrid() {
                   sizes="(max-width: 768px) 100vw, 66vw"
                   priority
                 />
-                {/* Play button overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg 
-                    viewBox="0 0 200 200" 
-                    className="w-20 h-20 drop-shadow-2xl"
-                  >
-                    <defs>
-                      <linearGradient id="videoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} />
-                        <stop offset="100%" style={{ stopColor: "#8b5cf6", stopOpacity: 1 }} />
-                      </linearGradient>
-                    </defs>
-                    
-                    {/* Play button icon */}
-                    <circle cx="100" cy="100" r="80" fill="rgba(0,0,0,0.6)" stroke="url(#videoGradient)" strokeWidth="4">
-                      <animate attributeName="r" values="80;85;80" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                    <polygon 
-                      points="80,70 80,130 140,100" 
-                      fill="url(#videoGradient)"
-                    >
-                      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-                    </polygon>
-                  </svg>
-                </div>
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">

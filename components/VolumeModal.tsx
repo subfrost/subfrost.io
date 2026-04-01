@@ -16,11 +16,11 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-function satsToBtc(sats: string): string {
+function satsToBtc(sats: string, decimals: number = 4): string {
   const btc = Number(sats) / 1e8
   return btc.toLocaleString(undefined, {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })
 }
 
@@ -58,21 +58,26 @@ function ButtonGroup({
   options,
   value,
   onChange,
+  small,
 }: {
   options: { value: string; label: string }[]
   value: string
   onChange: (v: string) => void
+  small?: boolean
 }) {
   return (
-    <div className="inline-flex items-center gap-2 p-1 rounded-lg">
+    <div className={cn("inline-flex items-center p-0.5 rounded-lg", small ? "gap-0.5" : "gap-2 p-1")}>
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "px-5 py-2 text-sm font-bold uppercase tracking-wide rounded-md",
+            "font-bold uppercase tracking-wide",
             "shadow-[0_2px_12px_rgba(0,0,0,0.08)]",
             "transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none",
+            small
+              ? "px-2.5 py-1 text-[10px] rounded"
+              : "px-5 py-2 text-sm rounded-md",
             value === opt.value
               ? "bg-[#284372] text-white shadow-lg"
               : "bg-white text-[#284372] hover:bg-[#f0f7ff]"
@@ -93,71 +98,53 @@ function StatsCards({ period, source }: { period: string; source: string }) {
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 300_000,
   })
-  const { data: alkCirc } = useSWR(
-    source !== "brc20" ? "/api/alkanes-circulating" : null,
-    fetcher,
-    { refreshInterval: 300_000 }
-  )
-  const { data: brcCirc } = useSWR(
-    source !== "alkanes" ? "/api/brc20-circulating" : null,
-    fetcher,
-    { refreshInterval: 300_000 }
-  )
-
-  // Total Volume = unwraps + circulating frBTC (matches Lifetime Tx Value)
-  const circLoaded =
-    (source === "brc20" || alkCirc) && (source === "alkanes" || brcCirc)
-  const totalVolumeSats =
-    data && circLoaded
-      ? String(
-          Number(data.unwrap_volume_sats) +
-          (source !== "brc20" ? (alkCirc?.circulatingSatoshis || 0) : 0) +
-          (source !== "alkanes" ? Number(brcCirc?.circulatingSatoshis || 0) : 0)
-        )
-      : undefined
-
   const periodLabel = period === "24h" ? "24H" : "7D"
   const wrapKey = period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
   const unwrapKey = period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
 
-  const periodCards = [
-    { label: `${periodLabel} Wraps`, value: data?.[wrapKey], color: "text-[#22c55e]" },
-    { label: `${periodLabel} Unwraps`, value: data?.[unwrapKey], color: "text-[#ef4444]" },
-  ]
+  const loading = isLoading
 
-  const totalCards = [
-    { label: "Total Wraps", value: data?.wrap_volume_sats, color: "text-[#284372]" },
-    { label: "Total Unwraps", value: data?.unwrap_volume_sats, color: "text-[#284372]" },
-    { label: "Total Volume", value: totalVolumeSats, color: "text-[#284372]" },
-  ]
-
-  const allCards = [...periodCards, ...totalCards]
-  const loading = isLoading || !circLoaded
+  const renderValue = (value: string | undefined, colorClass: string, decimals: number = 4) => (
+    <p className={cn("text-lg sm:text-xl font-semibold tabular-nums", colorClass)}>
+      {loading ? (
+        <span className="text-[#6b7280]/50">--</span>
+      ) : (
+        <>
+          {satsToBtc(value || "0", decimals)}{" "}
+          <span className="text-xs text-[#6b7280]">BTC</span>
+        </>
+      )}
+    </p>
+  )
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-      {allCards.map((card, i) => (
-        <div
-          key={card.label}
-          className={cn(
-            statCardClass,
-            "p-4 sm:p-5",
-            i === allCards.length - 1 && "hidden sm:block"
-          )}
-        >
-          <p className="text-xs sm:text-sm text-[#6b7280] mb-1">{card.label}</p>
-          <p className={cn("text-lg sm:text-xl font-semibold tabular-nums", card.color)}>
-            {loading ? (
-              <span className="text-[#6b7280]/50">--</span>
-            ) : (
-              <>
-                {satsToBtc(card.value || "0")}{" "}
-                <span className="text-xs text-[#6b7280]">BTC</span>
-              </>
-            )}
-          </p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      {/* Wraps: 24H + Total */}
+      <div className={cn(statCardClass, "p-4 sm:p-5")}>
+        <div className="flex items-baseline justify-between gap-2">
+          <div>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">{periodLabel} Wraps</p>
+            {renderValue(data?.[wrapKey], "text-[#22c55e]")}
+          </div>
+          <div>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total</p>
+            {renderValue(data?.wrap_volume_sats, "text-[#284372]", 2)}
+          </div>
         </div>
-      ))}
+      </div>
+      {/* Unwraps: 24H + Total */}
+      <div className={cn(statCardClass, "p-4 sm:p-5")}>
+        <div className="flex items-baseline justify-between gap-2">
+          <div>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">{periodLabel} Unwraps</p>
+            {renderValue(data?.[unwrapKey], "text-[#ef4444]")}
+          </div>
+          <div>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total</p>
+            {renderValue(data?.unwrap_volume_sats, "text-[#284372]", 2)}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -336,11 +323,11 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-[#6b7280]">Wrap volume</span>
+          <span className="text-[#6b7280]">Wraps</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-[#6b7280]">Unwrap volume</span>
+          <span className="text-[#6b7280]">Unwraps</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -537,11 +524,11 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-[#6b7280]">Cumulative wrap</span>
+          <span className="text-[#6b7280]">Wraps</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-[#6b7280]">Cumulative unwrap</span>
+          <span className="text-[#6b7280]">Unwraps</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -629,23 +616,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
           </p>
 
           {/* Tab selectors */}
-          <div className="flex items-center gap-4 flex-wrap mb-6 sm:shrink-0">
-            <ButtonGroup
-              options={[
-                { value: "24h", label: "24H" },
-                { value: "7d", label: "7D" },
-              ]}
-              value={period}
-              onChange={setPeriod}
-            />
-            <ButtonGroup
-              options={[
-                { value: "volume", label: "Volume" },
-                { value: "cumulative", label: "Cumulative" },
-              ]}
-              value={chartType}
-              onChange={setChartType}
-            />
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6 sm:shrink-0">
             <ButtonGroup
               options={[
                 { value: "both", label: "Both" },
@@ -655,6 +626,14 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
               value={source}
               onChange={setSource}
             />
+<ButtonGroup
+              options={[
+                { value: "24h", label: "24H" },
+                { value: "7d", label: "7D" },
+              ]}
+              value={period}
+              onChange={setPeriod}
+            />
           </div>
 
           {/* Stats cards */}
@@ -663,11 +642,24 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
           </div>
 
           {/* Chart — key forces remount when interval changes */}
-          {chartType === "volume" ? (
-            <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-          ) : (
-            <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-          )}
+          <div className="relative sm:flex-1 sm:min-h-0 sm:flex sm:flex-col">
+            <div className="absolute top-4 right-4 z-10">
+              <ButtonGroup
+                small
+                options={[
+                  { value: "volume", label: "Volume" },
+                  { value: "cumulative", label: "Cumulative" },
+                ]}
+                value={chartType}
+                onChange={setChartType}
+              />
+            </div>
+            {chartType === "volume" ? (
+              <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
+            ) : (
+              <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
+            )}
+          </div>
         </div>
       </div>
     </>

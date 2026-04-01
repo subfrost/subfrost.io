@@ -233,12 +233,12 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         {metrics.map((metric, index) => (
           <div 
             key={index} 
-            className={`border border-white p-2 text-center bg-transparent aspect-[3/2] flex flex-col justify-between items-center ${isModal ? 'w-[10rem]' : 'w-[7.5rem] md:w-[9rem]'}`}
+            className={`p-2 text-center aspect-[3/2] flex flex-col justify-between items-center ${isModal ? 'w-[10rem] bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)]' : 'w-[7.5rem] md:w-[9rem] border border-white bg-transparent'}`}
           >
             <div>
               {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
               <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className="font-bold responsive-shadow" style={{ fontSize: '1.8rem', ...(isModal && { textShadow: '0 0 3px hsl(var(--brand-blue))' }) }}>{metric.value}</p>
+              <p className={`font-bold ${isModal ? 'text-[#284372]' : 'responsive-shadow'}`} style={{ fontSize: '1.8rem' }}>{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}

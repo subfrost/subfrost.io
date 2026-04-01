@@ -74,7 +74,7 @@ export default function AssetsOverview() {
               "shadow-lg shadow-black/20",
               "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
               "backdrop-blur-sm",
-              "hover:scale-105 hover:shadow-2xl"
+              "hover:shadow-2xl"
             )}
           >
             {/* Badge */}

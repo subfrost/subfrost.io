@@ -84,21 +84,21 @@ const CustomModal: React.FC<CustomModalProps> = ({
   return (
     <>
       {/* Background Overlay */}
-      <div className="fixed inset-0 z-40 bg-black/[.15] backdrop-blur-2px" />
+      <div className="fixed inset-0 z-40 bg-[#284372]/20 backdrop-blur-[2px]" />
 
       {/* Modal Container */}
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 pointer-events-none">
         <div
           ref={modalRef}
-          className={`bg-white/20 backdrop-blur-lg border-transparent rounded-lg max-w-md max-h-[80vh] overflow-hidden ${modalClassName}`}
+          className={`bg-[#f0f7ff] rounded-2xl max-w-md max-h-[80vh] overflow-hidden shadow-xl shadow-[#284372]/10 pointer-events-auto ${modalClassName}`}
         >
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-lg font-bold text-white" style={{ textShadow: "0 0 2px rgba(255, 255, 255, 0.5)" }}>{title}</h2>
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">
+          <div className="flex justify-between items-center p-4">
+            <h2 className="text-lg font-bold text-[#284372]">{title}</h2>
+            <button onClick={onClose} className="text-[#6b7280] hover:text-[#284372] transition-colors p-1 rounded-full hover:bg-[#284372]/10">
               <X size={20} />
             </button>
           </div>
-          <div ref={activeContentRef} className={`p-4 overflow-auto max-h-[calc(80vh-4rem)] text-[#284372] ${bodyClassName}`}>
+          <div ref={activeContentRef} className={`p-4 pt-0 overflow-auto max-h-[calc(80vh-4rem)] text-[#284372] ${bodyClassName}`}>
             {children}
           </div>
         </div>
