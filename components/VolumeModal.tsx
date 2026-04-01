@@ -625,7 +625,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
 
           {/* Subtitle */}
           <p className="mt-1 text-xl text-[#284372] mb-6 sm:shrink-0">
-            BTC volume flowing through the SUBFROST protocol
+            SUBFROST Protocol Volumes
           </p>
 
           {/* Tab selectors */}
