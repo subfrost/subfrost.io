@@ -130,11 +130,11 @@ const partners = [
 ]
 
 const teamMembers = [
-  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", link: "https://x.com/GabeLee0", description: "Strategy Consultant with an obsession for lowering the friction in finance." },
+  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", link: "https://x.com/gabe_subfrost", description: "Strategy Consultant with an obsession for lowering the friction in finance." },
   { name: "Flex", title: "Founder/CTO", image: "flex.png", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX." },
-  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", link: "", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes." },
+  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", link: "https://x.com/brooks_subfrost", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes." },
   { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
-  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/LH_exe", description: "Founder/CEO of Saturn DEX." },
+  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/hexbtc", description: "Founder/CEO of Saturn DEX." },
   { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
   { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
   { name: "Eran", title: "Advisor", image: "eran.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Founder/CEO of Eran Sinai Ventures. Several startup exits." },
