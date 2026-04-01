@@ -63,7 +63,7 @@ if (style) {
 interface Feature {
   buttonTitle: string
   title: string
-  description: string
+  description: string | string[]
   videoTitle: string
   glowColor: string
   isRainbow?: boolean
@@ -72,51 +72,69 @@ interface Feature {
 
 const features: Feature[] = [
   {
-    buttonTitle: "AMM SWAPS",
-    title: "AMM SWAPS",
-    description: "For the first time ever, execute AMM swaps of major assets directly on Bitcoin L1. Execute single-transaction swaps between BTC, Stablecoins, SOL, ZEC, and others! Seamless wrapping and unwrapping is completely abstracted away for the user.",
-    videoTitle: "SWAP DEMO COMING SOON",
-    glowColor: "from-amber-500 to-orange-600",
-    image: "/screenshots/swap.png"
-  },
-  {
-    buttonTitle: "LIQUIDITY POOLS",
-    title: "LIQUIDITY POOLS",
-    description: "Earn LP fees by supplying assets like BTC and USDT/USDC into deep liquidity pools without leaving Bitcoin.",
-    videoTitle: "LP DEMO COMING SOON",
-    glowColor: "from-blue-500 to-blue-700",
-    image: "/screenshots/lp.png"
-  },
-  {
-    buttonTitle: "YIELD VAULTS",
-    title: "YIELD VAULTS",
-    description: "Lock up your LP tokens in vaults and earn rewards. The best part? No need to provide both tokens first. Just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
-    videoTitle: "YIELD VAULT DEMO COMING SOON",
-    glowColor: "from-emerald-500 to-emerald-700",
-    image: "/screenshots/vaults.png"
-  },
-  {
-    buttonTitle: "GAUGE REWARDS",
-    title: "GAUGE REWARDS",
-    description: "Vault rewards not enough? Don't worry, you can provide tokens into single-sided gauges to juice those yields! Gauges reward users with non-BTC token incentives.",
-    videoTitle: "GAUGE DEMO COMING SOON",
+    buttonTitle: "AMM SWAPS & LIMIT ORDERS",
+    title: "AMM SWAPS & LIMIT ORDERS",
+    description: [
+      "For the first time ever, execute AMM swaps of major assets directly on Bitcoin L1. Single-transaction swaps between BTC, USDT, USDC, ADA, and ZEC... as well as Bitcoin-native assets like Alkanes and BRC20s.",
+      "Want more control over execution price? Set your price targets and let SUBFROST execute swaps automatically when the market hits your limit order.",
+      "Seamless wrapping and unwrapping is completely abstracted away for the user."
+    ],
+    videoTitle: "",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
-    image: "/screenshots/gauge.png"
+    image: "/app screenshots/swap.png"
   },
   {
-    buttonTitle: "BITCOIN FUTURES",
+    buttonTitle: "CROSS-CHAIN ON BITCOIN",
+    title: "CROSS-CHAIN BRIDGE ON BITCOIN",
+    description: "Combined in the same UX as AMM Swaps, users can seamlessly bridge and swap in a single flow. Send assets from another chain and receive the desired asset directly on Bitcoin L1. No requirement of wrapping your BTC or sending it to other chains.",
+    videoTitle: "",
+    glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
+    isRainbow: true,
+    image: "/app screenshots/bridge.png"
+  },
+  {
+    buttonTitle: "DEFI YIELD VAULTS",
+    title: "DEFI YIELD VAULTS",
+    description: "Lock up your LP tokens in Olympus-style vaults and earn rewards without ever leaving Bitcoin L1. The best part? No need to manually LP first, just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
+    videoTitle: "",
+    glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
+    isRainbow: true,
+    image: "/app screenshots/vaults.png"
+  },
+
+  {
+    buttonTitle: "BITCOIN FUTURES MARKET",
     title: "BITCOIN FUTURES MARKET",
-    description: "Participate in the first permissionless futures market on Bitcoin. Miners hedge against their 100-block lock-up period, and users can bet on the price of BTC 100-blocks from now.",
-    videoTitle: "FUTURES DEMO COMING SOON",
-    glowColor: "from-purple-500 to-purple-700",
-    image: "/screenshots/futures.png"
+    description: "Participate in the first permissionless futures market on Bitcoin. Miners hedge against their 100-block lock-up period and users are provided a new way to speculate on the price movement of BTC without giving up custody of their funds.",
+    videoTitle: "",
+    glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
+    isRainbow: true,
+    image: "/app screenshots/futures.png"
   }
 ]
 
 export default function FeaturesGrid() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [buttonHeight, setButtonHeight] = useState<number | undefined>(undefined)
+  const buttonRefs = React.useRef<(HTMLDivElement | null)[]>([])
+
+  // Measure tallest button and sync heights
+  React.useEffect(() => {
+    const measure = () => {
+      const heights = buttonRefs.current.map(el => {
+        if (!el) return 0
+        el.style.minHeight = ''
+        return el.scrollHeight
+      })
+      const max = Math.max(...heights)
+      if (max > 0) setButtonHeight(max)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
 
   // Auto-rotate through features every 6 seconds
   React.useEffect(() => {
@@ -142,9 +160,9 @@ export default function FeaturesGrid() {
   const displayIndex = hoveredIndex !== null ? hoveredIndex : activeIndex
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-      {/* Left Side - Feature Buttons (1/3) */}
-      <div className="flex flex-col md:col-span-1">
+    <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-8 mt-16">
+      {/* Left Side - Feature Buttons (40%) */}
+      <div className="flex flex-col">
         {/* Title */}
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-6">
           Key Features
@@ -155,10 +173,9 @@ export default function FeaturesGrid() {
           {features.map((feature, index) => {
             const isActive = hoveredIndex === index || (hoveredIndex === null && activeIndex === index)
             // Use brighter colors to match the timer effect
-            const borderColor = feature.glowColor.includes('amber') ? '#fbbf24' :
-                               feature.glowColor.includes('blue') ? '#60a5fa' :
-                               feature.glowColor.includes('emerald') ? '#34d399' :
-                               feature.glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
+            const borderColor = feature.glowColor.includes('blue') ? '#60a5fa' :
+                               feature.glowColor.includes('purple') ? '#c084fc' :
+                               feature.glowColor.includes('emerald') ? '#34d399' : '#60a5fa'
 
             return (
             <div key={index} className="relative" onMouseEnter={() => setHoveredIndex(index)}>
@@ -232,7 +249,9 @@ export default function FeaturesGrid() {
                     ? "border-slate-600/50"
                     : "border-slate-600/50"
                 )}
+                ref={(el) => { buttonRefs.current[index] = el }}
                 style={{
+                  ...(buttonHeight ? { minHeight: buttonHeight } : {}),
                   ...(hoveredIndex === index && !feature.isRainbow ? {
                     borderColor: borderColor
                   } : {})
@@ -250,7 +269,7 @@ export default function FeaturesGrid() {
       {/* Right Box - Demo Video Placeholder (2/3) */}
       <div
         className={cn(
-          "relative rounded-2xl p-8 transition-all duration-500 md:col-span-2",
+          "relative rounded-2xl p-8 transition-all duration-500",
           "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
           "backdrop-blur-sm",
           "flex flex-col items-center justify-center",
@@ -266,10 +285,8 @@ export default function FeaturesGrid() {
         )}
         style={(() => {
           const getColor = (glowColor: string) =>
-            glowColor.includes('amber') ? '#fbbf24' :
             glowColor.includes('blue') ? '#60a5fa' :
-            glowColor.includes('emerald') ? '#34d399' :
-            glowColor.includes('purple') ? '#c084fc' : '#60a5fa'
+            glowColor.includes('emerald') ? '#34d399' : '#60a5fa'
 
           if (hoveredIndex !== null && !features[hoveredIndex].isRainbow) {
             return { borderColor: getColor(features[hoveredIndex].glowColor) }
@@ -303,10 +320,14 @@ export default function FeaturesGrid() {
             {displayIndex !== null ? features[displayIndex].title : "SUBFROST APP OVERVIEW"}
           </h3>
           
-          {/* Feature description - fixed height to fit 3 lines */}
-          <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300 min-h-[4rem]">
-            {displayIndex !== null 
-              ? features[displayIndex].description 
+          {/* Feature description */}
+          <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300 min-h-[4.5rem]">
+            {displayIndex !== null
+              ? (Array.isArray(features[displayIndex].description)
+                  ? (features[displayIndex].description as string[]).map((p, i) => (
+                      <p key={i} className={i > 0 ? "mt-2" : ""}>{p}</p>
+                    ))
+                  : features[displayIndex].description)
               : "Click through the key features to learn about what the SUBFROST app delivers."}
           </div>
           
