@@ -75,9 +75,8 @@ const features: Feature[] = [
     buttonTitle: "AMM SWAPS & LIMIT ORDERS",
     title: "AMM SWAPS & LIMIT ORDERS",
     description: [
-      "For the first time ever, execute AMM swaps of major assets directly on Bitcoin L1. Single-transaction swaps between BTC, USDT, USDC, ADA, and ZEC... as well as Bitcoin-native assets like Alkanes and BRC20s.",
-      "Want more control over execution price? Set your price targets and let SUBFROST execute swaps automatically when the market hits your limit order.",
-      "Seamless wrapping and unwrapping is completely abstracted away for the user."
+      "For the first time, execute AMM swaps of major assets directly on Bitcoin L1. Single-transaction swaps between BTC, USDT, USDC, ADA, and ZEC... as well as Bitcoin-native assets like Alkanes and BRC20s.",
+      "Want more control over execution price? Set your price targets and let SUBFROST execute swaps automatically when the market hits your limit order."
     ],
     videoTitle: "",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
@@ -87,7 +86,10 @@ const features: Feature[] = [
   {
     buttonTitle: "CROSS-CHAIN ON BITCOIN",
     title: "CROSS-CHAIN BRIDGE ON BITCOIN",
-    description: "Combined in the same UX as AMM Swaps, users can seamlessly bridge and swap in a single flow. Send assets from another chain and receive the desired asset directly on Bitcoin L1. No requirement of wrapping your BTC or sending it to other chains.",
+    description: [
+      "Combined in the same UX as AMM Swaps, users seamlessly bridge and swap in a single flow. Send assets from another chain and receive the desired asset directly on Bitcoin L1.",
+      "No requirement of wrapping your BTC, trusting a centralized custodian, or sending it to other chains to make it useful."
+    ],
     videoTitle: "",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
@@ -96,7 +98,10 @@ const features: Feature[] = [
   {
     buttonTitle: "DEFI YIELD VAULTS",
     title: "DEFI YIELD VAULTS",
-    description: "Lock up your LP tokens in Olympus-style vaults and earn rewards without ever leaving Bitcoin L1. The best part? No need to manually LP first, just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest.",
+    description: [
+      "Lock up your LP tokens in Olympus-style vaults and earn rewards without ever leaving Bitcoin L1.",
+      "The best part? No need to manually LP first, just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest."
+    ],
     videoTitle: "",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
@@ -106,11 +111,27 @@ const features: Feature[] = [
   {
     buttonTitle: "BITCOIN FUTURES MARKET",
     title: "BITCOIN FUTURES MARKET",
-    description: "Participate in the first permissionless futures market on Bitcoin. Miners hedge against their 100-block lock-up period and users are provided a new way to speculate on the price movement of BTC without giving up custody of their funds.",
+    description: [
+      "On-chain futures market powered by miner block rewards.",
+      "Miners hedge their 100-block lock times, SUBFROST issues futures on their locked BTC, and users speculate on BTC price movement while having the option to exercise early for a small premium."
+    ],
     videoTitle: "",
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/futures.png"
+  },
+  {
+    buttonTitle: "TOKENIZED BTC YIELD",
+    title: "TOKENIZED BTC YIELD",
+    description: [
+      "The simplest way to earn yield on your BTC: 1 transaction.",
+      "Fees and yield strategies across SUBFROST offerings aggregate into yield sources for dxBTC while users maintain full price exposure to BTC.",
+      "Unstake anytime with no lock-up period."
+    ],
+    videoTitle: "",
+    glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
+    isRainbow: true,
+    image: "/app screenshots/DXBTC.png"
   }
 ]
 
@@ -132,6 +153,8 @@ export default function FeaturesGrid() {
       if (max > 0) setButtonHeight(max)
     }
     measure()
+    // Re-measure after fonts load (initial measurement may use fallback font metrics)
+    document.fonts.ready.then(measure)
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [])
@@ -239,8 +262,8 @@ export default function FeaturesGrid() {
               <div
                 className={cn(
                   "relative w-full text-lg font-bold uppercase tracking-wider text-white snow-title-no-filter",
-                  "rounded-lg transition-all duration-500 text-left overflow-hidden group py-4 cursor-default",
-                  "bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-2",
+                  "rounded-lg transition-colors duration-500 text-left overflow-hidden group py-4 cursor-default",
+                  "bg-gradient-to-r from-slate-700/50 to-slate-800/50 border",
                   hoveredIndex === index
                     ? feature.isRainbow
                       ? "border-transparent"
@@ -272,8 +295,8 @@ export default function FeaturesGrid() {
           "relative rounded-2xl p-8 transition-all duration-500",
           "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
           "backdrop-blur-sm",
-          "flex flex-col items-center justify-center",
-          "min-h-[400px]",
+          "flex flex-col items-center justify-center overflow-hidden",
+          "h-[340px] md:h-[500px]",
           "border-2",
           hoveredIndex !== null && features[hoveredIndex].isRainbow
             ? "border-transparent"
@@ -314,14 +337,14 @@ export default function FeaturesGrid() {
         
 
         
-        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-4">
+        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-2">
           {/* Feature title - shown on hover/active, default state when not hovering */}
           <h3 className="text-2xl font-bold uppercase tracking-wider text-center transition-all duration-300 text-white">
             {displayIndex !== null ? features[displayIndex].title : "SUBFROST APP OVERVIEW"}
           </h3>
           
           {/* Feature description */}
-          <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300 min-h-[4.5rem]">
+          <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300">
             {displayIndex !== null
               ? (Array.isArray(features[displayIndex].description)
                   ? (features[displayIndex].description as string[]).map((p, i) => (

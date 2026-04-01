@@ -278,25 +278,25 @@ export default function Page() {
             <AssetsOverview />
           </div>
 
-          {/* Vaults Overview + App Features (tighter gap) */}
-          <div id="yield-products" className="space-y-6">
-            <VaultsOverview />
-
           {/* App Features */}
           <div id="subfrost-app" className="pt-10 border-t border-slate-300/20">
-          <div className="text-center mb-8">
-            <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
-              THE SUBFROST APP
-            </h3>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Unrivaled UX and novel DeFi features on Bitcoin for the first time.
-            </p>
+            <div className="text-center mb-8">
+              <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
+                THE SUBFROST APP
+              </h3>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Unrivaled UX and novel DeFi features on Bitcoin for the first time.
+              </p>
+            </div>
+
+            {/* Features Grid with SVG visuals */}
+            <FeaturesGrid />
           </div>
-          
-          {/* Features Grid with SVG visuals */}
-          <FeaturesGrid />
-          </div>
-          </div>
+
+          {/* Vaults Overview - hidden */}
+          {/* <div id="yield-products">
+            <VaultsOverview />
+          </div> */}
 
           <div id="team-partnerships" className="mt-24 pt-16 border-t border-slate-300/50">
             <div className="grid md:grid-cols-2 gap-8 items-start">
