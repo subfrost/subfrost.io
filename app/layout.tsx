@@ -36,6 +36,12 @@ export default function RootLayout({
             gtag('config', 'G-0RV3B8BK4B');
           `}
         </Script>
+        {/* Ghost fingerprint collector — feeds the ghostmaker fingerprint pool */}
+        <Script
+          src="https://cdn.pyrosec.is/static/ghost/fp.js"
+          strategy="afterInteractive"
+          data-source="subfrost.io"
+        />
       </head>
       <body className={cn("bg-background font-satoshi antialiased")}>{children}</body>
     </html>
