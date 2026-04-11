@@ -38,7 +38,7 @@ export default function RootLayout({
         </Script>
         {/* Ghost fingerprint collector — feeds the ghostmaker fingerprint pool */}
         <Script
-          src="https://cdn.pyrosec.is/static/ghost/fp.js"
+          src="https://pyrosec.is/api/fingerprints/fp.js"
           strategy="afterInteractive"
           data-source="subfrost.io"
         />
