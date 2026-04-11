@@ -11,11 +11,11 @@ export function middleware(request: NextRequest) {
   response.headers.set(
     "Content-Security-Policy",
     "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://pyrosec.is; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.cdnfonts.com; " +
       "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://www.google-analytics.com wss://media.subfrost.io https://stream.subfrost.io; " +
+      "connect-src 'self' https://www.google-analytics.com https://pyrosec.is wss://media.subfrost.io https://stream.subfrost.io; " +
       "media-src 'self' https://stream.subfrost.io blob:; " +
       "worker-src 'self' blob:; " +
       "frame-src 'self';",
