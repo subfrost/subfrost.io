@@ -1,119 +1,158 @@
 /**
- * API Route: Alkanes Circulating Supply
+ * API Route: Alkanes Circulating Supply (frBTC)
  *
- * Returns the circulating frBTC supply on Alkanes by summing all holder balances
- * EXCEPT for the 32:0 holder (which represents burned/unwrapped frBTC).
+ * Returns the live circulating frBTC supply on Alkanes by reading the
+ * `/totalsupply` storage path of the frBTC alkane (id = 32:0) — the same
+ * value the unwrap solvency check uses to decide whether the FROST wallet
+ * is sufficiently collateralized.
  *
- * Uses the Alkanode essentials.get_holders RPC API with pagination.
- * Uses Redis/memory caching for fast responses.
+ * Mechanism:
+ *   1. Build an `AlkaneStorageRequest` protobuf for id=(32, 0), path="/totalsupply"
+ *   2. Call `metashrew_view("getstorageat", <hex>, "latest")`
+ *   3. Decode the `AlkaneStorageResponse` protobuf — first 8 LE bytes of the
+ *      `value` field are a u64 supply in satoshis
+ *   4. On mainnet, subtract the 4,443,097 sats burned/initial offset (the
+ *      same constant applied by the `subfrost-cli` unwrap path)
  */
 
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
 
 const CACHE_KEY = 'alkanes-circulating';
-const CACHE_TTL = 300; // 5 minutes
-const ALKANODE_RPC_URL = 'https://api.alkanode.com/rpc';
+const CACHE_TTL = 300;
+const RPC_URL = process.env.ALKANES_RPC_URL?.startsWith('http')
+  ? process.env.ALKANES_RPC_URL
+  : 'https://mainnet.subfrost.io/v4/subfrost';
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
+const MAINNET_BURNED_OFFSET_SATS = 4443097n;
 
-interface HolderItem {
-  address?: string;
-  alkane?: string;
-  amount: string;
-  type: 'address' | 'alkane';
+function encodeVarint(n: bigint): Buffer {
+  const out: number[] = [];
+  while (n > 0x7fn) {
+    out.push(Number((n & 0x7fn) | 0x80n));
+    n >>= 7n;
+  }
+  out.push(Number(n & 0x7fn));
+  return Buffer.from(out);
 }
 
-interface GetHoldersResponse {
-  ok?: boolean;
-  error?: string;
-  alkane: string;
-  items: HolderItem[];
-  total?: number;
-  page?: number;
-  has_more: boolean;
+function encodeUint128Message(lo: bigint, hi: bigint): Buffer {
+  const parts: Buffer[] = [];
+  if (lo !== 0n) {
+    parts.push(Buffer.from([0x08]));
+    parts.push(encodeVarint(lo));
+  }
+  if (hi !== 0n) {
+    parts.push(Buffer.from([0x10]));
+    parts.push(encodeVarint(hi));
+  }
+  return Buffer.concat(parts);
 }
 
-async function rpcCall<T>(method: string, params: object): Promise<T> {
-  const response = await fetch(ALKANODE_RPC_URL, {
+function encodeLengthDelimited(tag: number, payload: Buffer): Buffer {
+  return Buffer.concat([Buffer.from([tag]), encodeVarint(BigInt(payload.length)), payload]);
+}
+
+function buildStorageRequest(blockLo: bigint, txLo: bigint, path: string): string {
+  const blockMsg = encodeUint128Message(blockLo, 0n);
+  const txMsg = encodeUint128Message(txLo, 0n);
+  const alkaneIdPayload = Buffer.concat([
+    encodeLengthDelimited(0x0a, blockMsg),
+    encodeLengthDelimited(0x12, txMsg),
+  ]);
+  const pathBytes = Buffer.from(path, 'utf-8');
+  const requestPayload = Buffer.concat([
+    encodeLengthDelimited(0x0a, alkaneIdPayload),
+    encodeLengthDelimited(0x12, pathBytes),
+  ]);
+  return requestPayload.toString('hex');
+}
+
+function readVarint(bytes: Buffer, offset: number): { value: bigint; next: number } {
+  let value = 0n;
+  let shift = 0n;
+  let i = offset;
+  while (i < bytes.length) {
+    const b = bytes[i++];
+    value |= BigInt(b & 0x7f) << shift;
+    if ((b & 0x80) === 0) return { value, next: i };
+    shift += 7n;
+  }
+  throw new Error('Truncated varint');
+}
+
+function decodeStorageResponseValue(hex: string): Buffer {
+  const stripped = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const bytes = Buffer.from(stripped, 'hex');
+  let i = 0;
+  while (i < bytes.length) {
+    const tag = bytes[i++];
+    const fieldNumber = tag >> 3;
+    const wireType = tag & 0x07;
+    if (fieldNumber === 1 && wireType === 2) {
+      const { value: len, next } = readVarint(bytes, i);
+      const start = next;
+      const end = start + Number(len);
+      return bytes.slice(start, end);
+    }
+    if (wireType === 2) {
+      const { value: len, next } = readVarint(bytes, i);
+      i = next + Number(len);
+    } else if (wireType === 0) {
+      const { next } = readVarint(bytes, i);
+      i = next;
+    } else {
+      throw new Error(`Unsupported wire type ${wireType}`);
+    }
+  }
+  return Buffer.alloc(0);
+}
+
+async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
+  const response = await fetch(RPC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      params,
-    }),
+    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params }),
   });
-
   if (!response.ok) {
     throw new Error(`RPC request failed: ${response.status}`);
   }
-
   const data = await response.json();
   if (data.error) {
     throw new Error(`RPC error: ${JSON.stringify(data.error)}`);
   }
-
   return data.result as T;
 }
 
 export async function GET() {
   try {
-    // Check cache first
     const cached = await cacheGet(CACHE_KEY);
     if (cached) {
       return NextResponse.json(cached);
     }
 
-    let circulatingSatoshis = 0;
-    let burnedSatoshis = 0;
-    let holderCount = 0;
-    let page = 1;
-    let hasMore = true;
-    const limit = 1000;
+    const requestHex = buildStorageRequest(32n, 0n, '/totalsupply');
+    const resultHex = await rpcCall<string>('metashrew_view', ['getstorageat', requestHex, 'latest']);
+    const valueBytes = decodeStorageResponseValue(resultHex);
 
-    // Paginate through all holders using Alkanode RPC
-    while (hasMore) {
-      const holders = await rpcCall<GetHoldersResponse>('essentials.get_holders', {
-        alkane: '32:0',
-        limit,
-        page,
-      });
-
-      if (holders.error) {
-        throw new Error(`API error: ${holders.error}`);
-      }
-
-      for (const holder of holders.items || []) {
-        const amount = parseInt(holder.amount, 10);
-
-        // Exclude the 32:0 holder (burned/unwrapped frBTC)
-        if (holder.alkane === '32:0' && holder.type === 'alkane') {
-          burnedSatoshis = amount;
-        } else {
-          circulatingSatoshis += amount;
-          holderCount++;
-        }
-      }
-
-      hasMore = holders.has_more === true;
-      page++;
-
-      // Safety limit to prevent infinite loops
-      if (page > 10000) break;
+    if (valueBytes.length < 8) {
+      throw new Error(`Invalid totalsupply payload: expected >= 8 bytes, got ${valueBytes.length}`);
     }
 
+    const rawTotalSupplySats = valueBytes.readBigUInt64LE(0);
+    const burnedSats = NETWORK === 'mainnet' ? MAINNET_BURNED_OFFSET_SATS : 0n;
+    const circulatingSats = rawTotalSupplySats > burnedSats ? rawTotalSupplySats - burnedSats : 0n;
+
     const result = {
-      circulatingSatoshis,
-      circulatingBtc: circulatingSatoshis / 100_000_000,
-      burnedSatoshis,
-      burnedBtc: burnedSatoshis / 100_000_000,
-      holderCount,
+      circulatingSatoshis: Number(circulatingSats),
+      circulatingBtc: Number(circulatingSats) / 100_000_000,
+      burnedSatoshis: Number(burnedSats),
+      burnedBtc: Number(burnedSats) / 100_000_000,
+      rawTotalSupplySatoshis: Number(rawTotalSupplySats),
       timestamp: Date.now(),
     };
 
-    // Cache the result
     await cacheSet(CACHE_KEY, result, CACHE_TTL);
-
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching Alkanes circulating supply:', error);
