@@ -1,0 +1,63 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/subfrost-meet-proto",
+    "crates/subfrost-meet-wallet-verify",
+    "crates/subfrost-meet-session",
+    "services/meet-api",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+repository = "https://github.com/subfrostdev/subfrost.io"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time", "sync", "net", "io-util"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# HTTP / web
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors", "limit"] }
+hyper = "1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+prost = "0.13"
+bytes = "1"
+
+# Crypto
+hmac = "0.12"
+sha2 = "0.10"
+rand = "0.8"
+secp256k1 = { version = "0.29", features = ["recovery", "global-context"] }
+bitcoin = { version = "0.32", features = ["secp-recovery", "rand"] }
+constant_time_eq = "0.3"
+base64 = "0.22"
+hex = "0.4"
+
+# Storage
+redis = { version = "0.27", features = ["tokio-comp", "aio", "connection-manager"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Errors
+thiserror = "1"
+anyhow = "1"
+
+# Time
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

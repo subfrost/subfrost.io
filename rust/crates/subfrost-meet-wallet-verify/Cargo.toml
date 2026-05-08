@@ -1,0 +1,16 @@
+[package]
+name = "subfrost-meet-wallet-verify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bitcoin = { workspace = true }
+secp256k1 = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+bitcoin = { workspace = true, features = ["rand-std"] }

@@ -1,0 +1,39 @@
+[package]
+name = "meet-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "meet-api"
+path = "src/main.rs"
+
+[dependencies]
+subfrost-meet-proto = { path = "../../crates/subfrost-meet-proto" }
+subfrost-meet-wallet-verify = { path = "../../crates/subfrost-meet-wallet-verify" }
+subfrost-meet-session = { path = "../../crates/subfrost-meet-session" }
+
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+hmac = { workspace = true }
+sha2 = { workspace = true }
+sha1 = "0.10"
+rand = { workspace = true }
+hex = { workspace = true }
+base64 = { workspace = true }
+
+redis = { workspace = true }
+
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }

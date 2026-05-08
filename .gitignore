@@ -3,6 +3,9 @@
 # dependencies
 /node_modules
 
+# rust workspace build output
+/rust/target
+
 # next.js
 /.next/
 /out/

@@ -1,0 +1,57 @@
+# Local-dev compose for the meet stack.
+# Brings up: meet-api + redis + coturn (with shared use-auth-secret).
+#
+# Run from the repo root:
+#   docker compose -f rust/deploy/local/docker-compose.yaml up --build
+#
+# Test:
+#   curl http://localhost:8080/healthz
+#   curl -X POST http://localhost:8080/v1/auth/challenge \
+#     -H content-type:application/json \
+#     -d '{"address":"bc1q...","action":"join test-room"}'
+
+services:
+  meet-api:
+    build:
+      context: ../../..
+      dockerfile: rust/services/meet-api/Dockerfile
+    environment:
+      MEET_API_BIND: "0.0.0.0:8080"
+      MEET_API_SESSION_SECRET: "dev-session-secret-please-replace-in-prod-32b"
+      MEET_API_TURN_SECRET: "dev-turn-secret-shared-with-coturn-below"
+      MEET_API_TURN_URLS: "turn:localhost:3478,turns:localhost:5349?transport=tcp"
+      MEET_API_TURN_TTL_SECS: "3600"
+      MEET_API_BEARER_TTL_MS: "86400000"
+      MEET_API_REDIS_URL: "redis://redis:6379"
+      MEET_API_CHALLENGE_TTL_SECS: "300"
+      RUST_LOG: "meet_api=debug,tower_http=info"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - coturn
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "6379:6379"
+
+  coturn:
+    image: coturn/coturn:4.6
+    network_mode: "host"
+    # use-auth-secret: same secret meet-api signs username/credential with.
+    command:
+      - -n
+      - --no-tls
+      - --no-dtls
+      - --listening-port=3478
+      - --tls-listening-port=5349
+      - --realm=subfrost.local
+      - --use-auth-secret
+      - --static-auth-secret=dev-turn-secret-shared-with-coturn-below
+      - --no-multicast-peers
+      - --no-cli
+      - --log-file=stdout
+      - --min-port=49152
+      - --max-port=49200
