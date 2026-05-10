@@ -1,0 +1,11 @@
+[build]
+  command = "pnpm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "9.0.0"
+  NPM_FLAGS = "--version" # prevent Netlify from installing via npm
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
