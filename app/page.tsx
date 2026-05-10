@@ -98,6 +98,7 @@ import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
 import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
+import { trackEvent } from "@/lib/analytics"
 import MetricsBoxes from "@/components/MetricsBoxes"
 import CustomModal from "@/components/CustomModal"
 import InfoSection from "@/components/InfoSection"
@@ -197,22 +198,33 @@ export default function Page() {
         <SocialButtons />
         
         {/* Top Right Buttons */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
           <a
-            href="https://api.subfrost.io"
+            href="https://app.subfrost.io/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md"
           >
-            API LOGIN
+            LAUNCH APP
           </a>
           <a
             href="https://api.subfrost.io/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="hidden sm:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
           >
             API DOCS
+          </a>
+          <a
+            href="https://api.subfrost.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="hidden md:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+          >
+            API LOGIN
           </a>
         </div>
 
@@ -256,8 +268,6 @@ export default function Page() {
             label="Learn More"
           />
         </div>
-
-        <Footer />
       </section>
 
       <InfoSection
@@ -400,6 +410,8 @@ export default function Page() {
           </div>
         </div>
       </InfoSection>
+
+      <Footer />
     </main>
   )
 }

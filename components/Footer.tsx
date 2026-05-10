@@ -1,17 +1,10 @@
-/**
- * @file components/Footer.tsx
- * @description This component renders the footer with responsive positioning and includes modals for Terms of Service and Privacy Policy.
- *
- * The footer is styled to be `fixed` at the bottom on all screen sizes, ensuring it is always visible. This change was made to keep the footer consistently in view across all devices, improving user access to the links within.
- *
- * The component also manages the state for the "Terms of Service" and "Privacy Policy" modals, which are displayed when the corresponding buttons are clicked. The modals are implemented using the `CustomModal` component and contain static legal text.
- */
 "use client"
 
 import type React from "react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import CustomModal from "./CustomModal"
+import { trackEvent } from "@/lib/analytics"
 
 const Footer: React.FC = () => {
   const [tosOpen, setTosOpen] = useState(false)
@@ -19,22 +12,138 @@ const Footer: React.FC = () => {
 
   return (
     <>
-      <footer
-        className={cn(
-          "fixed bottom-0 left-0 right-0 w-full py-0.75 px-4 text-[0.3rem] sm:text-[0.4rem] md:text-[0.5rem] text-slate-800 flex justify-end items-center space-x-2 bg-transparent z-30 uppercase font-bold",
-        )}
-      >
-        <div className="flex items-center space-x-2 md:pr-8">
-          <p>&copy; 2025 SUBZERO RESEARCH INC.</p>
-          <button onClick={() => setTosOpen(true)} className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent">
-            TERMS OF SERVICE
-          </button>
-          <button
-            onClick={() => setPrivacyOpen(true)}
-            className="underline hover:text-slate-600 transition-colors font-bold focus:outline-none bg-transparent"
-          >
-            PRIVACY POLICY
-          </button>
+      <footer className="w-full bg-[#060d1a] border-t border-white/10 text-gray-400">
+        {/* Main footer content */}
+        <div className="max-w-7xl mx-auto px-6 md:px-8 py-12 md:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
+            {/* Brand column */}
+            <div className="md:col-span-1">
+              <p className="text-white font-bold text-lg tracking-widest snow-title-no-filter mb-3">SU₿FROST</p>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                The Bitcoin-native Layer 0. Interoperable BTC synthetics for seamless DeFi on Bitcoin L1.
+              </p>
+              <p className="text-xs text-gray-600 mt-4">By Subzero Research Inc.</p>
+            </div>
+
+            {/* Product column */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Product</h4>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="https://app.subfrost.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Launch App
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://docs.subfrost.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://api.subfrost.io/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    API Reference
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://api.subfrost.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    API Login
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Community column */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Community</h4>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="https://x.com/SUBFROSTio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("social_x_click", { event_category: "social", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    X (Twitter)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/subfrost"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("social_github_click", { event_category: "social", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:inquiries@subfrost.io"
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Contact Us
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal column */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Legal</h4>
+              <ul className="space-y-3">
+                <li>
+                  <button
+                    onClick={() => { trackEvent("tos_open", { event_category: "legal", event_label: "footer" }); setTosOpen(true); }}
+                    className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
+                  >
+                    Terms of Service
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => { trackEvent("privacy_open", { event_category: "legal", event_label: "footer" }); setPrivacyOpen(true); }}
+                    className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-white/5 px-6 md:px-8 py-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
+            <p>&copy; 2025 Subzero Research Inc. All rights reserved.</p>
+            <p className="text-gray-700 text-[0.65rem] tracking-wide uppercase">Not financial advice. Use at your own risk.</p>
+          </div>
         </div>
       </footer>
 

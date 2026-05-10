@@ -1,18 +1,7 @@
-/**
- * @file components/ActionButtons.tsx
- * @description This component renders the primary user actions, including buttons for documentation, partnerships, and metrics.
- *
- * The buttons are designed to be fully responsive. On mobile devices, they stack vertically (`flex-col`) to ensure they fit within the viewport, while on medium screens and larger (`md:`), they align horizontally (`md:flex-row`). The width of the buttons is also responsive, using `w-36` on the smallest screens, `sm:w-40` on small screens, and `md:w-48` on medium screens and up.
- *
- * The "METRICS" button is conditionally rendered and hidden on medium screens and larger (`md:hidden`), as it is expected to be part of a different layout on desktop. The component also manages the state for the "Partnerships" modal, which is triggered by the corresponding button.
- * 2025-09-20: Removed `showMetrics` prop and simplified the "METRICS" button to only trigger the modal.
- * 2025-10-16: Added "frBTC ACTIVITY" button to link to the activity page.
- * 2025-10-16: Changed "frBTC ACTIVITY" button to open a modal.
- * 2025-10-17: Swapped the positions of "frBTC ACTIVITY" and "OFFICIAL DOCS" buttons.
- */
 "use client"
 
 import type React from "react"
+import { trackEvent } from "@/lib/analytics"
 
 interface ActionButtonsProps {
   onMetricsClick: () => void;
@@ -21,25 +10,35 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onMetricsClick, onVolumeChartsClick }) => {
   return (
-    <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
+    <div className="flex flex-col md:flex-row items-center justify-center gap-3 mt-6">
+      <a
+        href="https://app.subfrost.io/"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "hero_action_buttons" })}
+        className="flex justify-center items-center px-6 py-2.5 w-44 sm:w-48 md:w-52 rounded-md bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-900/40 transition-all font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm"
+      >
+        LAUNCH APP
+      </a>
       <a
         href="https://docs.subfrost.io/"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex justify-center px-6 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm"
+        onClick={() => trackEvent("official_docs_click", { event_category: "cta", event_label: "hero_action_buttons" })}
+        className="flex justify-center px-6 py-2.5 w-44 sm:w-48 md:w-52 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm"
       >
         OFFICIAL DOCS
       </a>
       <button
-        onClick={onVolumeChartsClick}
-        className="flex justify-center px-2 py-2 w-36 sm:w-40 md:w-48 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm whitespace-nowrap"
+        onClick={() => { trackEvent("volume_charts_click", { event_category: "cta", event_label: "hero_action_buttons" }); onVolumeChartsClick(); }}
+        className="flex justify-center px-2 py-2.5 w-44 sm:w-48 md:w-52 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none font-bold uppercase tracking-wide text-2xs sm:text-xs md:text-sm whitespace-nowrap"
       >
         VOLUME CHARTS
       </button>
-      
+
       <button
-        onClick={onMetricsClick}
-        className="flex md:hidden justify-center px-6 py-2 w-36 sm:w-40 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs"
+        onClick={() => { trackEvent("metrics_modal_open", { event_category: "cta", event_label: "hero_action_buttons" }); onMetricsClick(); }}
+        className="flex md:hidden justify-center px-6 py-2.5 w-44 sm:w-48 rounded-md bg-white text-[#284372] hover:bg-blue-100 transition-colors font-bold text-2xs sm:text-xs"
       >
         METRICS
       </button>
