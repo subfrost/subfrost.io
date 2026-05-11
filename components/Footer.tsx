@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import CustomModal from "./CustomModal"
 import { trackEvent } from "@/lib/analytics"
@@ -18,9 +19,17 @@ const Footer: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
             {/* Brand column */}
             <div className="md:col-span-1">
-              <p className="text-white font-bold text-lg tracking-widest snow-title-no-filter mb-3">SU₿FROST</p>
+              <div className="mb-3">
+                <Image
+                  src="/brand/subfrost-wordmark.svg"
+                  alt="SUBFROST wordmark"
+                  width={180}
+                  height={24}
+                  className="h-8 w-auto sf-wordmark"
+                />
+              </div>
               <p className="text-sm text-gray-500 leading-relaxed">
-                The Bitcoin-native Layer 0. Interoperable BTC synthetics for seamless DeFi on Bitcoin L1.
+                The Bitcoin-native Layer 0, bringing next-gen DeFi to Bitcoin
               </p>
               <p className="text-xs text-gray-600 mt-4">By Subzero Research Inc.</p>
             </div>
@@ -89,6 +98,17 @@ const Footer: React.FC = () => {
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
                     X (Twitter)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://discord.gg/WNWUPtjRNS"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent("social_discord_click", { event_category: "social", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Discord
                   </a>
                 </li>
                 <li>

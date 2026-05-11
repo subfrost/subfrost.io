@@ -69,6 +69,22 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Subfrost brand tokens (dark theme values from subfrost-app) */
+    --sf-bg-start: #0a1628;
+    --sf-bg-end: #0d1f35;
+    --sf-surface: #152238;
+    --sf-text: #e8f0ff;
+    --sf-muted: #7a8ba8;
+    --sf-primary: #5b9cff;
+    --sf-primary-pressed: #4080e6;
+    --sf-glass-bg: rgba(15, 28, 48, 0.85);
+    --sf-glass-border: rgba(91, 156, 255, 0.15);
+    --sf-panel-bg: rgba(255, 255, 255, 0.03);
+  }
+
+  .sf-wordmark {
+    filter: brightness(0) invert(1);
   }
   .dark {
     --background: 0 0% 3.9%;

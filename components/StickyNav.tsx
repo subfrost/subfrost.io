@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 
 const sections = [
   { id: "native-assets", label: "Assets" },
   { id: "subfrost-app", label: "App" },
-  { id: "yield-flow", label: "Yield Flow" },
   { id: "team-partnerships", label: "Team & Partners" },
 ]
 
@@ -38,23 +38,31 @@ export default function StickyNav() {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
       }`}
     >
-      <div className="bg-[#0a1020]/95 backdrop-blur-md border-b border-white/10 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between gap-4">
+      <div className="bg-[color:var(--sf-glass-bg)] backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.05)]">
+        <div className="max-w-7xl mx-auto px-5 h-[58px] flex items-center justify-between gap-4">
           {/* Brand */}
           <button
             onClick={() => { trackEvent("nav_logo_click", { event_category: "navigation", event_label: "sticky_nav" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className="text-white font-bold text-sm md:text-base tracking-widest snow-title-no-filter flex-shrink-0 hover:opacity-80 transition-opacity"
+            aria-label="Subfrost Home"
+            className="flex items-center select-none flex-shrink-0"
           >
-            SU₿FROST
+            <Image
+              src="/brand/subfrost-wordmark.svg"
+              alt="SUBFROST wordmark"
+              width={180}
+              height={24}
+              priority
+              className="hover:opacity-80 h-8 w-auto sf-wordmark"
+            />
           </button>
 
           {/* Center Nav Links */}
-          <div className="hidden md:flex items-center gap-6 lg:gap-8">
+          <div className="hidden md:flex items-center gap-4 ml-4">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => { trackEvent("nav_section_click", { event_category: "navigation", event_label: section.id }); scrollToSection(section.id); }}
-                className="text-xs text-gray-400 font-semibold hover:text-white transition-colors uppercase tracking-wider whitespace-nowrap"
+                className="text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
               >
                 {section.label}
               </button>
@@ -62,13 +70,13 @@ export default function StickyNav() {
           </div>
 
           {/* Right CTA Buttons */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="ml-auto flex items-center gap-4 flex-shrink-0">
             <a
               href="https://api.subfrost.io/docs"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "sticky_nav" })}
-              className="hidden sm:flex items-center px-4 py-1.5 text-xs font-semibold text-gray-300 hover:text-white border border-white/20 hover:border-white/40 rounded-md transition-all uppercase tracking-wider whitespace-nowrap"
+              className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             >
               API Docs
             </a>
@@ -77,7 +85,7 @@ export default function StickyNav() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "sticky_nav" })}
-              className="hidden sm:flex items-center px-4 py-1.5 text-xs font-semibold text-gray-300 hover:text-white border border-white/20 hover:border-white/40 rounded-md transition-all uppercase tracking-wider whitespace-nowrap"
+              className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             >
               API Login
             </a>
@@ -86,9 +94,9 @@ export default function StickyNav() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "sticky_nav" })}
-              className="flex items-center px-5 py-2 text-xs font-bold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-md transition-all uppercase tracking-wider shadow-lg shadow-blue-900/30 whitespace-nowrap"
+              className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap"
             >
-              Launch App
+              LAUNCH APP
             </a>
           </div>
         </div>

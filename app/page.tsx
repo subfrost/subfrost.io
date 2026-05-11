@@ -108,6 +108,9 @@ import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
 import VolumeModal from "@/components/VolumeModal"
+import XIcon from "@/components/XIcon"
+import LinkedinIcon from "@/components/LinkedinIcon"
+import { Github } from "lucide-react"
 
 const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes (now open-source)", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
@@ -130,17 +133,37 @@ const partners = [
   { name: "Pashov Group", logo: "pashov.png", description: "Initial Technical Audits (TBD) of SUBFROST", link: "https://www.pashov.net/", tag: "Audits (TBD)" },
 ]
 
-const teamMembers = [
-  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", link: "https://x.com/gabe_subfrost", description: "Strategy Consultant with an obsession for lowering the friction in finance." },
-  { name: "Flex", title: "Founder/CTO", image: "flex.png", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX." },
-  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", link: "https://x.com/brooks_subfrost", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes." },
-  { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
-  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/hexbtc", description: "Founder/CEO of Saturn DEX." },
-  { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
-  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
-  { name: "Eran", title: "Advisor", image: "eran.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Serial Founder/CEO with several Cyber exits." },
-  { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
+type SocialLink = { type: "x" | "linkedin" | "github"; url: string }
+
+const teamMembers: {
+  name: string
+  title: string
+  image: string
+  description: string
+  socials: SocialLink[]
+}[] = [
+  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", description: "Strategy Consultant with an obsession for lowering the friction in finance.", socials: [{ type: "x", url: "https://x.com/gabe_subfrost" }, { type: "linkedin", url: "https://www.linkedin.com/in/gabelee0" }] },
+  { name: "Flex", title: "Founder/CTO", image: "flex.png", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX.", socials: [{ type: "x", url: "https://x.com/judoflexchop" }, { type: "github", url: "https://github.com/kungfuflex" }] },
+  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes.", socials: [{ type: "x", url: "https://x.com/brooks_subfrost" }] },
+  { name: "Domo", title: "Advisor", image: "domo.jpg", description: "Creator of BRC20, the first token standard on Bitcoin.", socials: [{ type: "x", url: "https://x.com/domodata" }] },
+  { name: "Hex", title: "Advisor", image: "hex.jpg", description: "Founder/CEO of Saturn DEX.", socials: [{ type: "x", url: "https://x.com/hexbtc" }] },
+  { name: "Allen", title: "Advisor", image: "allen.jpg", description: "Founder of Google web3. Venture Partner at Primitive Ventures.", socials: [{ type: "x", url: "https://x.com/allenday" }] },
+  { name: "Binari", title: "Advisor", image: "binari.png", description: "Founder/CEO of Best In Slot (creator of BRC2.0).", socials: [{ type: "x", url: "https://x.com/0xBinari" }] },
+  { name: "Eran", title: "Advisor", image: "eran.jpeg", description: "Serial Founder/CEO with several Cyber exits.", socials: [{ type: "linkedin", url: "https://www.linkedin.com/in/eransinai/" }] },
+  { name: "Hathbanger", title: "Advisor", image: "hath.jpg", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist.", socials: [{ type: "x", url: "https://x.com/hathbanger" }] },
 ]
+
+const socialIconMap = {
+  x: XIcon,
+  linkedin: LinkedinIcon,
+  github: Github,
+} as const
+
+const socialLabelMap = {
+  x: "X (Twitter)",
+  linkedin: "LinkedIn",
+  github: "GitHub",
+} as const
 
 export default function Page() {
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false)
@@ -196,17 +219,17 @@ export default function Page() {
       <section className="relative flex h-dvh flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
-        
-        {/* Top Right Buttons */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+
+        {/* Top Left Buttons */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
           <a
-            href="https://app.subfrost.io/"
+            href="https://docs.subfrost.io/"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "hero_header" })}
-            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md"
+            onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
           >
-            LAUNCH APP
+            OFFICIAL DOCS
           </a>
           <a
             href="https://api.subfrost.io/docs"
@@ -225,6 +248,19 @@ export default function Page() {
             className="hidden md:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
           >
             API LOGIN
+          </a>
+        </div>
+
+        {/* Top Right Button */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <a
+            href="https://app.subfrost.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md"
+          >
+            LAUNCH APP
           </a>
         </div>
 
@@ -338,21 +374,34 @@ export default function Page() {
                       const hoverContent = (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                           <p className="text-lg font-bold text-white text-center">{member.name}</p>
-                          {/* @ts-ignore */}
                           <p className="text-xs text-gray-300 text-center px-2 mt-1">{member.description}</p>
+                          {member.socials.length > 0 && (
+                            <div className="flex items-center justify-center gap-3 mt-3">
+                              {member.socials.map((social) => {
+                                const Icon = socialIconMap[social.type]
+                                return (
+                                  <a
+                                    key={social.type}
+                                    href={social.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={`${member.name} on ${socialLabelMap[social.type]}`}
+                                    className="text-white hover:text-gray-300 transition-colors"
+                                  >
+                                    <Icon className="w-7 h-7" />
+                                  </a>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       )
 
                       const cardClassName = isFounderOrBrooks
-                        ? "group relative min-h-40 pt-2 px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
-                        : "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
+                        ? "group relative min-h-40 pt-2 px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
+                        : "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
 
-                      return member.link ? (
-                        <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
-                          {cardContent}
-                          {hoverContent}
-                        </a>
-                      ) : (
+                      return (
                         <div key={index} className={cardClassName}>
                           {cardContent}
                           {hoverContent}
