@@ -221,7 +221,7 @@ export default function Page() {
         <SocialButtons />
 
         {/* Top Left Buttons */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        <div className="absolute top-4 left-4 z-20 flex flex-col md:flex-row items-start md:items-center gap-2">
           <a
             href="https://docs.subfrost.io/"
             target="_blank"
@@ -236,7 +236,7 @@ export default function Page() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "hero_header" })}
-            className="hidden sm:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
           >
             API DOCS
           </a>
@@ -245,7 +245,7 @@ export default function Page() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
-            className="hidden md:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
           >
             API LOGIN
           </a>

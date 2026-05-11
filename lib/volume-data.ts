@@ -8,7 +8,11 @@
 
 import { getAddressTxs, getAddressTxsChain, getBrc20SignerAddress, type AddressTx } from "./rpc-client";
 
-const DATA_API = "https://mainnet.subfrost.io/v4/subfrost";
+// Alkanes wrap/unwrap history lives on canon Espo at alkanode. The subfrost.io
+// REST sub-paths return empty data — per flex (alkanes-rs maintainer): all
+// /v4/subfrost/* REST routes other than BTC pricing are espo routes that
+// should be bypassed and go directly to alkanode.
+const DATA_API = process.env.ALKANODE_DATA_API || "https://oyl.alkanode.com";
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const PAGE_SIZE = 200; // Data API max per request
 const MIN_DATE = new Date("2025-10-01T00:00:00Z");

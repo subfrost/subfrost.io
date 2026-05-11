@@ -186,12 +186,6 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
         </div>
       )
     },
-    {
-      title: <>Ecosystem<br />Partnerships</>,
-      value: '20+',
-      linkText: 'Visit Them',
-      linkType: 'modal'
-    },
   ];
 
   const renderLink = (metric: any) => {
@@ -229,7 +223,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   return (
     <div className="flex flex-col items-center my-8">
-      <div className={`inline-grid ${isModal ? 'gap-6 grid-cols-2' : 'gap-4 grid-cols-2 md:grid-cols-4'}`}>
+      <div className={`inline-grid ${isModal ? 'gap-6 grid-cols-2' : 'gap-4 grid-cols-2 md:grid-cols-3'}`}>
         {metrics.map((metric, index) => (
           <div 
             key={index} 
