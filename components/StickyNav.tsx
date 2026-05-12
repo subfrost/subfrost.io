@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 
 const sections = [
   { id: "native-assets", label: "Assets" },
@@ -89,15 +90,27 @@ export default function StickyNav() {
             >
               API Login
             </a>
-            <a
-              href="https://app.subfrost.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "sticky_nav" })}
-              className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap"
-            >
-              LAUNCH APP
-            </a>
+            {/* TODO: remove disabled wrapper when app is ready to launch */}
+            <HoverCard openDelay={100} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="cursor-not-allowed">
+                  <a
+                    href="https://app.subfrost.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-disabled="true"
+                    tabIndex={-1}
+                    onClick={(e) => e.preventDefault()}
+                    className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap pointer-events-none select-none"
+                  >
+                    LAUNCH APP
+                  </a>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-auto px-3 py-1.5" align="end">
+                <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
+              </HoverCardContent>
+            </HoverCard>
           </div>
         </div>
       </div>

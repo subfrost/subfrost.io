@@ -92,6 +92,7 @@ import { useState, useRef } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import FrostBackdrop from "@/components/FrostBackdrop"
 import BottomAnimatedSubtitle from "@/components/BottomAnimatedSubtitle"
 import Footer from "@/components/Footer"
@@ -253,15 +254,27 @@ export default function Page() {
 
         {/* Top Right Button */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-          <a
-            href="https://app.subfrost.io/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "hero_header" })}
-            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md"
-          >
-            LAUNCH APP
-          </a>
+          {/* TODO: remove disabled wrapper when app is ready to launch */}
+          <HoverCard openDelay={100} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <div className="cursor-not-allowed">
+                <a
+                  href="https://app.subfrost.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-disabled="true"
+                  tabIndex={-1}
+                  onClick={(e) => e.preventDefault()}
+                  className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md pointer-events-none select-none"
+                >
+                  LAUNCH APP
+                </a>
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-auto px-3 py-1.5" align="end">
+              <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
+            </HoverCardContent>
+          </HoverCard>
         </div>
 
         {/* Main content - centered using flex, takes available space */}
