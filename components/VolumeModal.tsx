@@ -39,15 +39,9 @@ interface CandleData {
 }
 
 const statCardClass = cn(
-  "relative rounded-2xl overflow-hidden",
-  "bg-white",
-  "shadow-[0_4px_20px_rgba(0,0,0,0.12)]",
-)
-
-const chartCardClass = cn(
-  "relative rounded-2xl overflow-hidden",
-  "bg-white",
-  "shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
+  "relative rounded-2xl",
+  "bg-[rgba(255,255,255,0.7)] backdrop-blur-md",
+  "shadow-[0_2px_10px_rgba(0,0,0,0.1)]",
 )
 
 /* ------------------------------------------------------------------ */
@@ -66,7 +60,7 @@ function ButtonGroup({
   small?: boolean
 }) {
   return (
-    <div className={cn("inline-flex items-center p-0.5 rounded-lg", small ? "gap-0.5" : "gap-2 p-1")}>
+    <div className={cn("inline-flex items-center p-0.5 rounded-lg gap-2", small ? null : "p-1")}>
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -94,11 +88,56 @@ function ButtonGroup({
 /*  Stats Cards                                                        */
 /* ------------------------------------------------------------------ */
 
-function StatsCards({ period, source }: { period: string; source: string }) {
+function PeriodToggleLabel({
+  period,
+  onChange,
+  suffix,
+}: {
+  period: string
+  onChange: (v: string) => void
+  suffix: string
+}) {
+  const btnClass = (active: boolean) =>
+    cn(
+      "transition-colors duration-150 focus:outline-none",
+      active ? "text-[#284372] font-semibold" : "text-[#6b7280]/60 hover:text-[#284372]"
+    )
+  return (
+    <p className="text-[10px] sm:text-xs text-[#6b7280]">
+      <button
+        type="button"
+        onClick={() => onChange("24h")}
+        className={btnClass(period === "24h")}
+        aria-pressed={period === "24h"}
+      >
+        24H
+      </button>
+      <span className="mx-1 text-[#6b7280]/40">/</span>
+      <button
+        type="button"
+        onClick={() => onChange("7d")}
+        className={btnClass(period === "7d")}
+        aria-pressed={period === "7d"}
+      >
+        7D
+      </button>
+      <span> {suffix}</span>
+    </p>
+  )
+}
+
+function StatsCards({
+  period,
+  source,
+  onPeriodChange,
+}: {
+  period: string
+  source: string
+  onPeriodChange: (v: string) => void
+}) {
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 300_000,
   })
-  const periodLabel = period === "24h" ? "24H" : "7D"
   const wrapKey = period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
   const unwrapKey = period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
 
@@ -119,28 +158,28 @@ function StatsCards({ period, source }: { period: string; source: string }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-      {/* Wraps: 24H + Total */}
+      {/* Wraps: 24H/7D + Total */}
       <div className={cn(statCardClass, "p-4 sm:p-5")}>
         <div className="flex items-baseline justify-between gap-2">
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">{periodLabel} Wraps</p>
+            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix="Wraps" />
             {renderValue(data?.[wrapKey], "text-[#22c55e]")}
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total</p>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total Wraps</p>
             {renderValue(data?.wrap_volume_sats, "text-[#284372]", 2)}
           </div>
         </div>
       </div>
-      {/* Unwraps: 24H + Total */}
+      {/* Unwraps: 24H/7D + Total */}
       <div className={cn(statCardClass, "p-4 sm:p-5")}>
         <div className="flex items-baseline justify-between gap-2">
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">{periodLabel} Unwraps</p>
+            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix="Unwraps" />
             {renderValue(data?.[unwrapKey], "text-[#ef4444]")}
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total</p>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total Unwraps</p>
             {renderValue(data?.unwrap_volume_sats, "text-[#284372]", 2)}
           </div>
         </div>
@@ -158,6 +197,77 @@ const GRID_COLOR = "rgba(40, 67, 114, 0.06)"
 const CHART_START = "2025-10-01" as Time
 const CHART_HEIGHT_MOBILE = 250
 
+/* ------------------------------------------------------------------ */
+/*  Chart Skeleton Loader                                              */
+/* ------------------------------------------------------------------ */
+
+function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
+  // Deterministic pseudo-random heights so the skeleton doesn't reshuffle on re-render
+  const bars = Array.from({ length: 32 }, (_, i) => 25 + ((i * 53) % 65))
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        backgroundImage: `linear-gradient(${GRID_COLOR} 1px, transparent 1px), linear-gradient(90deg, ${GRID_COLOR} 1px, transparent 1px)`,
+        backgroundSize: "40px 40px",
+      }}
+    >
+      {variant === "bars" ? (
+        <div className="absolute inset-x-4 bottom-6 top-2 flex items-end justify-between gap-[3px]">
+          {bars.map((h, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-sm bg-[#284372]/10 animate-pulse"
+              style={{ height: `${h}%`, animationDelay: `${i * 40}ms` }}
+            />
+          ))}
+        </div>
+      ) : (
+        <svg
+          className="absolute inset-0 w-full h-full animate-pulse"
+          preserveAspectRatio="none"
+          viewBox="0 0 100 100"
+        >
+          <defs>
+            <linearGradient id="sk-grad-up" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(34, 197, 94, 0.25)" />
+              <stop offset="100%" stopColor="rgba(34, 197, 94, 0)" />
+            </linearGradient>
+            <linearGradient id="sk-grad-down" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(239, 68, 68, 0.2)" />
+              <stop offset="100%" stopColor="rgba(239, 68, 68, 0)" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M 0 75 Q 15 70, 25 60 T 50 45 T 75 30 T 100 18 L 100 100 L 0 100 Z"
+            fill="url(#sk-grad-up)"
+          />
+          <path
+            d="M 0 75 Q 15 70, 25 60 T 50 45 T 75 30 T 100 18"
+            fill="none"
+            stroke="rgba(34, 197, 94, 0.4)"
+            strokeWidth="0.6"
+          />
+          <path
+            d="M 0 85 Q 20 82, 35 75 T 65 62 T 100 50 L 100 100 L 0 100 Z"
+            fill="url(#sk-grad-down)"
+          />
+          <path
+            d="M 0 85 Q 20 82, 35 75 T 65 62 T 100 50"
+            fill="none"
+            stroke="rgba(239, 68, 68, 0.35)"
+            strokeWidth="0.6"
+          />
+        </svg>
+      )}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-wider text-[#284372]/50 font-semibold">
+        Loading chart…
+      </div>
+    </div>
+  )
+}
+
 function VolumeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -172,6 +282,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
     fetcher,
     { refreshInterval: 300_000 }
   )
+  const isLoading = !Array.isArray(candles)
 
   useEffect(() => {
     if (!containerRef.current || !wrapperRef.current) return
@@ -319,7 +430,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
   }, [candles])
 
   return (
-    <div className={cn(chartCardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
+    <div className="sm:flex-1 sm:min-h-0 sm:flex sm:flex-col" style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -332,6 +443,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
         <div ref={containerRef} />
+        {isLoading && <ChartSkeleton variant="bars" />}
         <div
           ref={tooltipRef}
           style={{
@@ -371,6 +483,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
     fetcher,
     { refreshInterval: 300_000 }
   )
+  const isLoading = !Array.isArray(candles)
 
   useEffect(() => {
     if (!containerRef.current || !wrapperRef.current) return
@@ -520,7 +633,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
   }, [candles])
 
   return (
-    <div className={cn(chartCardClass, "p-4 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col")} style={{ position: "relative" }}>
+    <div className="sm:flex-1 sm:min-h-0 sm:flex sm:flex-col" style={{ position: "relative" }}>
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -533,6 +646,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
         <div ref={containerRef} />
+        {isLoading && <ChartSkeleton variant="area" />}
         <div
           ref={tooltipRef}
           style={{
@@ -599,21 +713,27 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={modalRef}
-          className="bg-[#f0f7ff] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto sm:h-[90vh] sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6 relative pointer-events-auto shadow-xl shadow-[#284372]/10"
+          className="bg-[#f0f7ff] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden sm:h-[90vh] flex flex-col relative pointer-events-auto shadow-xl shadow-[#284372]/10"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-[#6b7280] hover:text-[#284372] transition-colors p-1 rounded-full hover:bg-[#284372]/10"
-          >
-            <X size={20} />
-          </button>
+          {/* Header */}
+          <div className="flex-shrink-0 bg-white/50 shadow-[0_2px_8px_rgba(40,67,114,0.15)] px-6 py-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-extrabold tracking-wider uppercase text-[#284372]">
+                SUBFROST Protocol Volumes
+              </h2>
+              <button
+                onClick={onClose}
+                className="flex items-center justify-center h-8 w-8 rounded-xl bg-white shadow-[0_2px_8px_rgba(40,67,114,0.15)] text-[#284372]/70 transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none outline-none"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
 
-          {/* Subtitle */}
-          <p className="mt-1 text-xl text-[#284372] mb-6 sm:shrink-0">
-            SUBFROST Protocol Volumes
-          </p>
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6">
 
           {/* Tab selectors */}
           <div className="flex items-center justify-between flex-wrap gap-4 mb-6 sm:shrink-0">
@@ -626,24 +746,16 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
               value={source}
               onChange={setSource}
             />
-<ButtonGroup
-              options={[
-                { value: "24h", label: "24H" },
-                { value: "7d", label: "7D" },
-              ]}
-              value={period}
-              onChange={setPeriod}
-            />
           </div>
 
           {/* Stats cards */}
           <div className="mb-6 sm:shrink-0">
-            <StatsCards period={period} source={source} />
+            <StatsCards period={period} source={source} onPeriodChange={setPeriod} />
           </div>
 
           {/* Chart — key forces remount when interval changes */}
           <div className="relative sm:flex-1 sm:min-h-0 sm:flex sm:flex-col">
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-0 right-0 z-10">
               <ButtonGroup
                 small
                 options={[
@@ -659,6 +771,7 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
             ) : (
               <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
             )}
+          </div>
           </div>
         </div>
       </div>

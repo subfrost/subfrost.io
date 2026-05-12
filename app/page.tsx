@@ -101,7 +101,6 @@ import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
 import { trackEvent } from "@/lib/analytics"
 import MetricsBoxes from "@/components/MetricsBoxes"
-import CustomModal from "@/components/CustomModal"
 import InfoSection from "@/components/InfoSection"
 import ScrollArrow from "@/components/ScrollArrow"
 import FeaturesGrid from "@/components/FeaturesGrid"
@@ -167,7 +166,6 @@ const socialLabelMap = {
 } as const
 
 export default function Page() {
-  const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false)
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
   const partnersSectionRef = useRef<HTMLDivElement | null>(null)
@@ -180,36 +178,10 @@ export default function Page() {
     partnersSectionRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const handleScrollToPartnersAndCloseMetrics = () => {
-    handleCloseMetricsModal()
-    // A small delay ensures the modal closes before scrolling, preventing layout jank.
-    setTimeout(() => {
-      partnersSectionRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, 300)
-  }
-
-  const handleOpenMetricsModal = () => {
-    setIsMetricsModalOpen(true)
-  }
-
-  const handleCloseMetricsModal = () => {
-    setIsMetricsModalOpen(false)
-  }
-
   return (
     <main className="relative">
       <GlobalStyles />
       <StickyNav />
-      <div className="md:hidden">
-        <CustomModal
-          isOpen={isMetricsModalOpen}
-          onClose={handleCloseMetricsModal}
-          title="Metrics"
-          modalClassName="md:max-w-4xl w-[90vw]"
-        >
-          <MetricsBoxes onPartnershipsClick={handleScrollToPartnersAndCloseMetrics} isModal={true} />
-        </CustomModal>
-      </div>
 
       <VolumeModal
         isOpen={isVolumeModalOpen}
@@ -222,70 +194,73 @@ export default function Page() {
         <SocialButtons />
 
         {/* Top Left Buttons */}
-        <div className="absolute top-4 left-4 z-20 flex flex-col md:flex-row items-start md:items-center gap-2">
+        <div className="absolute top-4 left-4 z-20 flex flex-row items-center gap-2">
           <a
-            href="https://docs.subfrost.io/"
+            href="https://api.subfrost.io"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "hero_header" })}
-            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
-            OFFICIAL DOCS
+            API LOGIN
           </a>
           <a
             href="https://api.subfrost.io/docs"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "hero_header" })}
-            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            className="hidden sm:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
             API DOCS
-          </a>
-          <a
-            href="https://api.subfrost.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
-            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
-          >
-            API LOGIN
           </a>
         </div>
 
         {/* Top Right Button */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-          {/* TODO: remove disabled wrapper when app is ready to launch */}
-          <HoverCard openDelay={100} closeDelay={100}>
-            <HoverCardTrigger asChild>
-              <div className="cursor-not-allowed">
-                <a
-                  href="https://app.subfrost.io/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-disabled="true"
-                  tabIndex={-1}
-                  onClick={(e) => e.preventDefault()}
-                  className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md pointer-events-none select-none"
-                >
-                  LAUNCH APP
-                </a>
-              </div>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-auto px-3 py-1.5" align="end">
-              <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
-            </HoverCardContent>
-          </HoverCard>
+        <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
+          <div className="flex flex-row items-center gap-2">
+            <a
+              href="https://docs.subfrost.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "hero_header" })}
+              className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
+            >
+              <span className="sm:hidden">DOCS</span>
+              <span className="hidden sm:inline">OFFICIAL DOCS</span>
+            </a>
+            {/* TODO: remove disabled wrapper when app is ready to launch */}
+            <HoverCard openDelay={100} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="cursor-not-allowed">
+                  <a
+                    href="https://app.subfrost.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-disabled="true"
+                    tabIndex={-1}
+                    onClick={(e) => e.preventDefault()}
+                    className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md pointer-events-none select-none"
+                  >
+                    LAUNCH APP
+                  </a>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-auto px-3 py-1.5" align="end">
+                <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
+              </HoverCardContent>
+            </HoverCard>
+          </div>
         </div>
 
         {/* Main content - centered using flex, takes available space */}
-        <div className="relative z-10 flex flex-1 flex-col items-center justify-center w-full max-w-4xl px-4 pt-16">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-start w-full max-w-4xl px-4 pt-[calc(50vh-14.5rem)] sm:pt-[calc(50vh-15.5rem)] md:pt-[calc(50vh-15.8rem)] lg:pt-[calc(50vh-16.2rem)]">
           {/* Content container */}
           <div className="flex flex-col items-center w-full">
             {/* SUBFROST title - changed B to ₿ */}
             <div className="w-full px-2 sm:px-0">
               <h1
                 className={cn(
-                  "text-[4rem] sm:text-[6rem] md:text-[7rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
+                  "text-[5rem] sm:text-[6.5rem] md:text-[8rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
                 )}
               >
                 SU₿FROST
@@ -298,12 +273,9 @@ export default function Page() {
                 <BottomAnimatedSubtitle />
               </div>
               <ActionButtons
-                onMetricsClick={handleOpenMetricsModal}
                 onVolumeChartsClick={() => setIsVolumeModalOpen(true)}
               />
-              <div className="hidden md:block">
-                <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />
-              </div>
+              <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />
             </div>
           </div>
         </div>

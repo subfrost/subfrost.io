@@ -41,7 +41,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Popover,
   PopoverContent,
@@ -53,7 +53,6 @@ import { useMetric } from '@/hooks/use-metric';
 
 interface MetricsBoxesProps {
   onPartnershipsClick: () => void;
-  isModal?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -66,8 +65,29 @@ const LoadingDots = () => (
   </span>
 );
 
-const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModal }) => {
+const METRIC_ENDPOINTS = [
+  '/api/alkanes-btc-locked',
+  '/api/brc20-btc-locked',
+  '/api/alkanes-circulating',
+  '/api/brc20-circulating',
+  '/api/alkanes-total-unwraps',
+  '/api/brc20-total-unwraps',
+  '/api/btc-price',
+];
+
+const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   const [currency, setCurrency] = useState('BTC');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { mutate } = useSWRConfig();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all(METRIC_ENDPOINTS.map((endpoint) => mutate(endpoint)));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const alkanesBtcLocked = useMetric('/api/alkanes-btc-locked', 'btcLocked');
   const brc20BtcLockedValue = useMetric('/api/brc20-btc-locked', 'btcLocked');
@@ -189,11 +209,10 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
   ];
 
   const renderLink = (metric: any) => {
-    const linkClasses = "text-[hsl(var(--brand-blue))] underline";
-    const linkStyle = { fontSize: isModal ? '0.7rem' : '0.6rem' };
+    const linkClasses = "text-[hsl(var(--brand-blue))] underline text-[0.6rem]";
 
     const linkElement = (
-      <button className={linkClasses} style={linkStyle}>
+      <button className={linkClasses}>
         {metric.linkText || ''}
       </button>
     );
@@ -212,7 +231,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
     }
     if (metric.linkType === 'modal') {
         return (
-            <button onClick={onPartnershipsClick} className="text-[hsl(var(--brand-blue))] glowing-button" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+            <button onClick={onPartnershipsClick} className="text-[hsl(var(--brand-blue))] glowing-button text-[0.6rem]">
                 {metric.linkText}
             </button>
         )
@@ -223,16 +242,16 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
 
   return (
     <div className="flex flex-col items-center my-8">
-      <div className={`inline-grid ${isModal ? 'gap-6 grid-cols-2' : 'gap-4 grid-cols-2 md:grid-cols-3'}`}>
+      <div className="inline-grid grid-cols-3 gap-4">
         {metrics.map((metric, index) => (
-          <div 
-            key={index} 
-            className={`p-2 text-center aspect-[3/2] flex flex-col justify-between items-center ${isModal ? 'w-[10rem] bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)]' : 'w-[7.5rem] md:w-[9rem] border border-white bg-transparent'}`}
+          <div
+            key={index}
+            className="p-2 text-center md:aspect-[3/2] flex flex-col justify-between items-center w-[7rem] sm:w-32 md:w-[9rem] border border-white bg-transparent"
           >
             <div>
-              {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.superTitle}</p>}
-              <p className="text-[hsl(var(--brand-blue))] font-bold" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>{metric.title}</p>
-              <p className={`font-bold ${isModal ? 'text-[#284372]' : 'responsive-shadow'}`} style={{ fontSize: '1.8rem' }}>{metric.value}</p>
+              {metric.superTitle && <p className="text-[hsl(var(--brand-blue))] font-bold text-[0.6rem]">{metric.superTitle}</p>}
+              <p className="text-[hsl(var(--brand-blue))] font-bold text-[0.6rem]">{metric.title}</p>
+              <p className="font-bold responsive-shadow text-[1.5rem] md:text-[1.8rem]">{metric.value}</p>
             </div>
             <div className="mt-auto">
               {renderLink(metric)}
@@ -240,7 +259,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
           </div>
         ))}
       </div>
-      <div className={`w-full flex items-center mt-4 px-2 gap-2 ${isModal ? 'flex-col justify-center' : 'flex-col md:flex-row justify-center md:justify-between'}`} style={{ maxWidth: isModal ? 'calc(15rem + 1rem)' : 'calc(39rem + 1rem)' }}>
+      <div className="w-full flex flex-row items-start mt-4 px-2 gap-2 justify-between" style={{ maxWidth: 'calc(39rem + 1rem)' }}>
         <div className="relative flex flex-col items-center">
           <div className="flex items-center space-x-2">
             <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">BTC</Label>
@@ -252,14 +271,35 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick, isModa
             <Label htmlFor="currency-toggle" className="text-[hsl(var(--brand-blue))]">USD</Label>
           </div>
           {currency === 'USD' && (
-            <div className="absolute top-full mt-1 text-center text-[hsl(var(--brand-blue))]" style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
+            <div className="absolute top-full mt-1 text-center text-[hsl(var(--brand-blue))] text-[0.6rem]">
               BTC Price: {btcPriceData?.btcPrice ? `$${Math.round(btcPriceData.btcPrice).toLocaleString('en-US')}` : '...'}
             </div>
           )}
         </div>
-        <div className={`text-center text-[hsl(var(--brand-blue))] ${isModal ? 'mt-4' : ''}`} style={{ fontSize: isModal ? '0.7rem' : '0.6rem' }}>
-          Metrics refresh every 15 minutes.
-        </div>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="flex items-center justify-center text-[hsl(var(--brand-blue))] disabled:opacity-60"
+          aria-label="Refresh metrics"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`}
+            aria-hidden="true"
+          >
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
+          </svg>
+        </button>
       </div>
     </div>
   );

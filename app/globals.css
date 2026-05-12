@@ -163,15 +163,8 @@
   font-family: "Satoshi", sans-serif;
 }
 .responsive-shadow {
-  color: white;
-  text-shadow: 0 0 3px hsl(var(--brand-blue));
-}
-
-@media (min-width: 768px) {
-  .responsive-shadow {
-    color: hsl(var(--brand-blue));
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
-  }
+  color: hsl(var(--brand-blue));
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
 .glowing-button {
