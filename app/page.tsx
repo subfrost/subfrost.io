@@ -260,7 +260,7 @@ export default function Page() {
             <div className="w-full px-2 sm:px-0">
               <h1
                 className={cn(
-                  "text-[5rem] sm:text-[6.5rem] md:text-[8rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
+                  "text-[4.5rem] sm:text-[6.5rem] md:text-[8rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
                 )}
               >
                 SU₿FROST
