@@ -246,7 +246,7 @@ export default function Page() {
                 </div>
               </HoverCardTrigger>
               <HoverCardContent className="w-auto px-3 py-1.5" align="end">
-                <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
+                <p className="text-sm text-[#284372]">Coming Soon!</p>
               </HoverCardContent>
             </HoverCard>
           </div>
