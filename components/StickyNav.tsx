@@ -5,10 +5,12 @@ import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 
+const NAV_HEIGHT = 58
+
 const sections = [
-  { id: "native-assets", label: "Assets" },
-  { id: "subfrost-app", label: "App" },
-  { id: "team-partnerships", label: "Team & Partners" },
+  { id: "native-assets", label: "Assets", offset: NAV_HEIGHT + 16 },
+  { id: "subfrost-app", label: "App", offset: NAV_HEIGHT + 16 },
+  { id: "team-partnerships", label: "Team & Partners", offset: 0 },
 ]
 
 export default function StickyNav() {
@@ -26,10 +28,15 @@ export default function StickyNav() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = (sectionId: string, offset: number) => {
     const element = document.getElementById(sectionId)
     if (element) {
-      element.scrollIntoView({ behavior: "smooth" })
+      if (offset > 0) {
+        const top = element.getBoundingClientRect().top + window.scrollY - offset
+        window.scrollTo({ top, behavior: "smooth" })
+      } else {
+        element.scrollIntoView({ behavior: "smooth" })
+      }
     }
   }
 
@@ -62,7 +69,7 @@ export default function StickyNav() {
             {sections.map((section) => (
               <button
                 key={section.id}
-                onClick={() => { trackEvent("nav_section_click", { event_category: "navigation", event_label: section.id }); scrollToSection(section.id); }}
+                onClick={() => { trackEvent("nav_section_click", { event_category: "navigation", event_label: section.id }); scrollToSection(section.id, section.offset); }}
                 className="text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
               >
                 {section.label}

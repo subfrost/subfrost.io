@@ -1,7 +1,5 @@
 /**
  * @file components/CustomModal.tsx
- * @description A customizable modal using a two-layer overlay for a clean, hierarchical effect.
- * @summary Implements a two-layer modal system. A background overlay (`z-40`) provides a light (`bg-black/[.15]`) and blurred (`backdrop-blur-2px`) effect. The modal itself sits on a separate container (`z-50`) above this layer. The modal panel uses a stronger `backdrop-blur-lg` and `bg-white/20`, creating a distinct frosted-glass look without applying any filters to the modal's content, ensuring it remains crisp and clear.
  */
 "use client"
 
@@ -90,15 +88,21 @@ const CustomModal: React.FC<CustomModalProps> = ({
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 pointer-events-none">
         <div
           ref={modalRef}
-          className={`bg-[#f0f7ff] rounded-2xl max-w-md max-h-[80vh] overflow-hidden shadow-xl shadow-[#284372]/10 pointer-events-auto ${modalClassName}`}
+          className={`bg-[#f0f7ff] rounded-2xl max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-xl shadow-[#284372]/10 pointer-events-auto ${modalClassName}`}
         >
-          <div className="flex justify-between items-center p-4">
-            <h2 className="text-lg font-bold text-[#284372]">{title}</h2>
-            <button onClick={onClose} className="text-[#6b7280] hover:text-[#284372] transition-colors p-1 rounded-full hover:bg-[#284372]/10">
-              <X size={20} />
-            </button>
+          <div className="flex-shrink-0 bg-white/50 shadow-[0_2px_8px_rgba(40,67,114,0.15)] px-6 py-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-extrabold tracking-wider uppercase text-[#284372]">{title}</h2>
+              <button
+                onClick={onClose}
+                className="flex items-center justify-center h-8 w-8 rounded-xl bg-white shadow-[0_2px_8px_rgba(40,67,114,0.15)] text-[#284372]/70 transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none outline-none"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
-          <div ref={activeContentRef} className={`p-4 pt-0 overflow-auto max-h-[calc(80vh-4rem)] text-[#284372] ${bodyClassName}`}>
+          <div ref={activeContentRef} className={`p-6 overflow-auto text-[#284372] ${bodyClassName}`}>
             {children}
           </div>
         </div>

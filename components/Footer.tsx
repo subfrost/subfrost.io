@@ -6,6 +6,11 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import CustomModal from "./CustomModal"
 import { trackEvent } from "@/lib/analytics"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const Footer: React.FC = () => {
   const [tosOpen, setTosOpen] = useState(false)
@@ -123,12 +128,34 @@ const Footer: React.FC = () => {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="mailto:inquiries@subfrost.io"
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
-                  >
-                    Contact Us
-                  </a>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
+                      >
+                        Contact Us
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto">
+                      <div className="flex flex-col gap-2 text-sm">
+                        <a
+                          href="mailto:inquiries@subfrost.io"
+                          className="text-[#284372] hover:underline"
+                        >
+                          Email Us
+                        </a>
+                        <a
+                          href="https://x.com/SUBFROSTio/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#284372] hover:underline"
+                        >
+                          Message us on X
+                        </a>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </li>
               </ul>
             </div>
@@ -174,7 +201,7 @@ const Footer: React.FC = () => {
         modalClassName="mb-32"
       >
         <div className={cn("text-xs space-y-6 uppercase font-bold")}>
-          <p className="text-sm font-bold">LAST UPDATED: JANUARY 7, 2025</p>
+          <p className="text-sm font-bold">LAST UPDATED: JANUARY 7, 2026</p>
 
           <section>
             <h2 className="text-sm font-bold mb-2">1. ACCEPTANCE OF TERMS</h2>
@@ -237,7 +264,7 @@ const Footer: React.FC = () => {
         modalClassName="mb-32"
       >
         <div className={cn("text-xs space-y-6 uppercase font-bold")}>
-          <p className="text-sm font-bold">LAST UPDATED: JANUARY 7, 2025</p>
+          <p className="text-sm font-bold">LAST UPDATED: JANUARY 7, 2026</p>
 
           <section>
             <h2 className="text-sm font-bold mb-2">1. INTRODUCTION</h2>
