@@ -330,7 +330,7 @@ export default function Page() {
               </p>
             </div>
             {(() => {
-              const renderCard = (member: (typeof teamMembers)[number], key: number, isFounder: boolean) => {
+              const renderCard = (member: (typeof teamMembers)[number], key: number, isFounder: boolean, smallImage: boolean = !isFounder) => {
                 const cardClassName = isFounder
                   ? "group relative min-h-40 pt-2 px-1 md:px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
                   : "group relative min-h-40 pt-3 px-1 md:px-3 pb-4 md:pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
@@ -340,16 +340,16 @@ export default function Page() {
                       <Image
                         src={`/Team/${member.image}`}
                         alt={member.name}
-                        width={isFounder ? 160 : 64}
-                        height={isFounder ? 160 : 64}
-                        className={`${isFounder ? "w-36" : "w-16"} aspect-square max-w-full h-auto rounded-full mx-auto mb-2 object-cover`}
+                        width={smallImage ? 64 : 160}
+                        height={smallImage ? 64 : 160}
+                        className={`${smallImage ? "w-16" : "w-36"} aspect-square max-w-full h-auto rounded-full mx-auto mb-2 object-cover`}
                       />
                       <h4 className="text-lg font-bold text-white">{member.name}</h4>
                       <p className="text-gray-400 text-sm">{t(member.titleKey)}</p>
                     </div>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-1 md:p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-1 md:p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                       <p className="text-lg font-bold text-white text-center">{member.name}</p>
-                      <p className="text-xs text-gray-300 text-center px-0 md:px-2 mt-1">{t(member.descKey)}</p>
+                      <p className="text-xs text-gray-300 text-center px-2 sm:px-0 md:px-2 mt-1">{t(member.descKey)}</p>
                       {member.socials.length > 0 && (
                         <div className="flex items-center justify-center gap-3 mt-3">
                           {member.socials.map((social) => {
@@ -375,9 +375,10 @@ export default function Page() {
               }
               return (
                 <>
-                  {/* XS: founders + first advisor (Domo) as large cards */}
+                  {/* XS: founders + first advisor (Domo) as large cards; Domo keeps the advisor-sized photo */}
                   <div className="grid grid-cols-2 gap-4 p-2 sm:hidden">
-                    {[...founders, advisors[0]].map((member, index) => renderCard(member, index, true))}
+                    {founders.map((member, index) => renderCard(member, index, true))}
+                    {renderCard(advisors[0], founders.length, true, true)}
                   </div>
                   <div className="grid grid-cols-2 gap-4 p-2 mt-2 sm:hidden">
                     {advisors.slice(1).map((member, index) => renderCard(member, index, false))}
