@@ -6,6 +6,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import CustomModal from "./CustomModal"
 import { trackEvent } from "@/lib/analytics"
+import { useTranslation } from "@/hooks/useTranslation"
 import {
   Popover,
   PopoverContent,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/popover"
 
 const Footer: React.FC = () => {
+  const { t } = useTranslation()
   const [tosOpen, setTosOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
 
@@ -20,7 +22,7 @@ const Footer: React.FC = () => {
     <>
       <footer className="w-full bg-[#060d1a] border-t border-white/10 text-gray-400">
         {/* Main footer content */}
-        <div className="max-w-7xl mx-auto px-6 md:px-8 py-12 md:py-16">
+        <div className="max-w-7xl mx-auto px-12 md:px-8 py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
             {/* Brand column */}
             <div className="md:col-span-1">
@@ -34,14 +36,16 @@ const Footer: React.FC = () => {
                 />
               </div>
               <p className="text-sm text-gray-500 leading-relaxed">
-                The Bitcoin-native Layer 0, bringing next-gen DeFi to Bitcoin
+                {t("footer.tagline")}
               </p>
-              <p className="text-xs text-gray-600 mt-4">By Subzero Research Inc.</p>
+              <p className="text-xs text-gray-600 mt-4">{t("footer.bySubzero")}</p>
             </div>
 
+            {/* Link columns wrapper: 3-col grid on all sizes, contents on md+ so they flow into the outer 4-col grid */}
+            <div className="grid grid-cols-3 gap-6 md:contents">
             {/* Product column */}
             <div>
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Product</h4>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">{t("footer.product")}</h4>
               <ul className="space-y-3">
                 <li>
                   <a
@@ -51,7 +55,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("launch_app_click", { event_category: "cta", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    Launch App
+                    {t("footer.launchApp")}
                   </a>
                 </li>
                 <li>
@@ -62,7 +66,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    Documentation
+                    {t("footer.documentation")}
                   </a>
                 </li>
                 <li>
@@ -73,7 +77,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    API Reference
+                    {t("footer.apiReference")}
                   </a>
                 </li>
                 <li>
@@ -84,7 +88,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    API Login
+                    {t("footer.apiLogin")}
                   </a>
                 </li>
               </ul>
@@ -92,7 +96,7 @@ const Footer: React.FC = () => {
 
             {/* Community column */}
             <div>
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Community</h4>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">{t("footer.community")}</h4>
               <ul className="space-y-3">
                 <li>
                   <a
@@ -102,7 +106,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("social_x_click", { event_category: "social", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    X (Twitter)
+                    {t("footer.xTwitter")}
                   </a>
                 </li>
                 <li>
@@ -113,7 +117,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("social_discord_click", { event_category: "social", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    Discord
+                    {t("footer.discord")}
                   </a>
                 </li>
                 <li>
@@ -124,7 +128,7 @@ const Footer: React.FC = () => {
                     onClick={() => trackEvent("social_github_click", { event_category: "social", event_label: "footer" })}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
-                    GitHub
+                    {t("footer.github")}
                   </a>
                 </li>
                 <li>
@@ -134,7 +138,7 @@ const Footer: React.FC = () => {
                         type="button"
                         className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
                       >
-                        Contact Us
+                        {t("footer.contactUs")}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto">
@@ -143,7 +147,7 @@ const Footer: React.FC = () => {
                           href="mailto:inquiries@subfrost.io"
                           className="text-[#284372] hover:underline"
                         >
-                          Email Us
+                          {t("footer.emailUs")}
                         </a>
                         <a
                           href="https://x.com/SUBFROSTio/"
@@ -151,7 +155,7 @@ const Footer: React.FC = () => {
                           rel="noopener noreferrer"
                           className="text-[#284372] hover:underline"
                         >
-                          Message us on X
+                          {t("footer.messageOnX")}
                         </a>
                       </div>
                     </PopoverContent>
@@ -162,14 +166,14 @@ const Footer: React.FC = () => {
 
             {/* Legal column */}
             <div>
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Legal</h4>
+              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">{t("footer.legal")}</h4>
               <ul className="space-y-3">
                 <li>
                   <button
                     onClick={() => { trackEvent("tos_open", { event_category: "legal", event_label: "footer" }); setTosOpen(true); }}
                     className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
                   >
-                    Terms of Service
+                    {t("footer.terms")}
                   </button>
                 </li>
                 <li>
@@ -177,19 +181,20 @@ const Footer: React.FC = () => {
                     onClick={() => { trackEvent("privacy_open", { event_category: "legal", event_label: "footer" }); setPrivacyOpen(true); }}
                     className="text-sm text-gray-400 hover:text-white transition-colors focus:outline-none text-left"
                   >
-                    Privacy Policy
+                    {t("footer.privacy")}
                   </button>
                 </li>
               </ul>
+            </div>
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/5 px-6 md:px-8 py-4">
+        <div className="border-t border-white/5 px-12 md:px-8 py-4">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-            <p>&copy; 2025 Subzero Research Inc. All rights reserved.</p>
-            <p className="text-gray-700 text-[0.65rem] tracking-wide uppercase">Not financial advice. Use at your own risk.</p>
+            <p>{t("footer.copyright")}</p>
+            <p className="text-gray-700 text-[0.65rem] tracking-wide uppercase">{t("footer.disclaimer")}</p>
           </div>
         </div>
       </footer>
@@ -197,7 +202,7 @@ const Footer: React.FC = () => {
       <CustomModal
         isOpen={tosOpen}
         onClose={() => setTosOpen(false)}
-        title="TERMS OF SERVICE"
+        title={t("footer.terms")}
         modalClassName="mb-32"
       >
         <div className={cn("text-xs space-y-6 uppercase font-bold")}>
@@ -260,7 +265,7 @@ const Footer: React.FC = () => {
       <CustomModal
         isOpen={privacyOpen}
         onClose={() => setPrivacyOpen(false)}
-        title="PRIVACY POLICY"
+        title={t("footer.privacy")}
         modalClassName="mb-32"
       >
         <div className={cn("text-xs space-y-6 uppercase font-bold")}>

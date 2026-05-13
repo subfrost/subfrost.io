@@ -50,6 +50,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMetric } from '@/hooks/use-metric';
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MetricsBoxesProps {
   onPartnershipsClick: () => void;
@@ -76,6 +77,7 @@ const METRIC_ENDPOINTS = [
 ];
 
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
+  const { t } = useTranslation();
   const [currency, setCurrency] = useState('BTC');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { mutate } = useSWRConfig();
@@ -162,6 +164,21 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       : alkanesBtcLocked + brc20BtcLocked
   );
 
+  const renderMultilineTitle = (key: string) => {
+    const value = t(key);
+    const parts = value.split('\n');
+    return (
+      <>
+        {parts.map((part, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <br />}
+            {part}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  };
+
   const metrics: {
     title: React.ReactNode;
     value: React.ReactNode;
@@ -171,9 +188,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
     popoverContent?: React.ReactNode;
   }[] = [
     {
-      title: <>Current<br />frBTC Supply</>,
+      title: renderMultilineTitle('metrics.currentFrbtcSupply'),
       value: getDisplayValue(combinedFrbtcSupply),
-      linkText: 'Breakdown',
+      linkText: t('metrics.breakdown'),
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
@@ -183,9 +200,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       )
     },
     {
-      title: <>Total<br />BTC Locked</>,
+      title: renderMultilineTitle('metrics.totalBtcLocked'),
       value: getDisplayValue(combinedBtcLocked),
-      linkText: 'Verify',
+      linkText: t('metrics.verify'),
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
@@ -195,9 +212,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       )
     },
     {
-      title: <>Lifetime<br />Tx Value</>,
+      title: renderMultilineTitle('metrics.lifetimeTxValue'),
       value: getDisplayValue(lifetimeBtcTxValue),
-      linkText: 'Breakdown',
+      linkText: t('metrics.breakdown'),
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
@@ -272,7 +289,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
           </div>
           {currency === 'USD' && (
             <div className="absolute top-full mt-1 text-center text-[hsl(var(--brand-blue))] text-[0.6rem]">
-              BTC Price: {btcPriceData?.btcPrice ? `$${Math.round(btcPriceData.btcPrice).toLocaleString('en-US')}` : '...'}
+              {t('metrics.btcPrice')}: {btcPriceData?.btcPrice ? `$${Math.round(btcPriceData.btcPrice).toLocaleString('en-US')}` : '...'}
             </div>
           )}
         </div>
@@ -281,7 +298,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
           onClick={handleRefresh}
           disabled={isRefreshing}
           className="flex items-center justify-center text-[hsl(var(--brand-blue))] disabled:opacity-60"
-          aria-label="Refresh metrics"
+          aria-label={t('metrics.refresh')}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

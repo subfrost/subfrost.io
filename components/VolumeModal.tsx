@@ -13,6 +13,7 @@ import {
   type Time,
   ColorType,
 } from "lightweight-charts"
+import { useTranslation } from "@/hooks/useTranslation"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -135,6 +136,7 @@ function StatsCards({
   source: string
   onPeriodChange: (v: string) => void
 }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 300_000,
   })
@@ -162,11 +164,11 @@ function StatsCards({
       <div className={cn(statCardClass, "p-4 sm:p-5")}>
         <div className="flex items-baseline justify-between gap-2">
           <div>
-            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix="Wraps" />
+            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix={t("volume.wraps")} />
             {renderValue(data?.[wrapKey], "text-[#22c55e]")}
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total Wraps</p>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">{t("volume.totalWraps")}</p>
             {renderValue(data?.wrap_volume_sats, "text-[#284372]", 2)}
           </div>
         </div>
@@ -175,11 +177,11 @@ function StatsCards({
       <div className={cn(statCardClass, "p-4 sm:p-5")}>
         <div className="flex items-baseline justify-between gap-2">
           <div>
-            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix="Unwraps" />
+            <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix={t("volume.unwraps")} />
             {renderValue(data?.[unwrapKey], "text-[#ef4444]")}
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-[#6b7280]">Total Unwraps</p>
+            <p className="text-[10px] sm:text-xs text-[#6b7280]">{t("volume.totalUnwraps")}</p>
             {renderValue(data?.unwrap_volume_sats, "text-[#284372]", 2)}
           </div>
         </div>
@@ -202,6 +204,8 @@ const CHART_HEIGHT_MOBILE = 250
 /* ------------------------------------------------------------------ */
 
 function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
+  const { t } = useTranslation()
+  const loadingChartText = t("volume.loadingChart")
   // Deterministic pseudo-random heights so the skeleton doesn't reshuffle on re-render
   const bars = Array.from({ length: 32 }, (_, i) => 25 + ((i * 53) % 65))
 
@@ -262,13 +266,14 @@ function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
         </svg>
       )}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-wider text-[#284372]/50 font-semibold">
-        Loading chart…
+        {loadingChartText}
       </div>
     </div>
   )
 }
 
 function VolumeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+  const { t } = useTranslation()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -434,11 +439,11 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-[#6b7280]">Wraps</span>
+          <span className="text-[#6b7280]">{t("volume.wraps")}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-[#6b7280]">Unwraps</span>
+          <span className="text-[#6b7280]">{t("volume.unwraps")}</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -470,6 +475,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
 /* ------------------------------------------------------------------ */
 
 function CumulativeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+  const { t } = useTranslation()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -637,11 +643,11 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-[#6b7280]">Wraps</span>
+          <span className="text-[#6b7280]">{t("volume.wraps")}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-[#6b7280]">Unwraps</span>
+          <span className="text-[#6b7280]">{t("volume.unwraps")}</span>
         </div>
       </div>
       <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
@@ -678,6 +684,7 @@ interface VolumeModalProps {
 }
 
 export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
+  const { t } = useTranslation()
   const [period, setPeriod] = useState("24h")
   const [chartType, setChartType] = useState("volume")
   const [source, setSource] = useState("both")
@@ -720,12 +727,12 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
           <div className="flex-shrink-0 bg-white/50 shadow-[0_2px_8px_rgba(40,67,114,0.15)] px-6 py-5">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-extrabold tracking-wider uppercase text-[#284372]">
-                SUBFROST Protocol Volumes
+                {t("volume.title")}
               </h2>
               <button
                 onClick={onClose}
                 className="flex items-center justify-center h-8 w-8 rounded-xl bg-white shadow-[0_2px_8px_rgba(40,67,114,0.15)] text-[#284372]/70 transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none outline-none"
-                aria-label="Close"
+                aria-label={t("volume.close")}
               >
                 <X size={18} />
               </button>
@@ -739,9 +746,9 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
           <div className="flex items-center justify-between flex-wrap gap-4 mb-6 sm:shrink-0">
             <ButtonGroup
               options={[
-                { value: "both", label: "Both" },
-                { value: "alkanes", label: "Alkanes" },
-                { value: "brc20", label: "BRC20" },
+                { value: "both", label: t("volume.both") },
+                { value: "alkanes", label: t("volume.alkanes") },
+                { value: "brc20", label: t("volume.brc20") },
               ]}
               value={source}
               onChange={setSource}
@@ -759,8 +766,8 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
               <ButtonGroup
                 small
                 options={[
-                  { value: "volume", label: "Volume" },
-                  { value: "cumulative", label: "Cumulative" },
+                  { value: "volume", label: t("volume.volume") },
+                  { value: "cumulative", label: t("volume.cumulative") },
                 ]}
                 value={chartType}
                 onChange={setChartType}

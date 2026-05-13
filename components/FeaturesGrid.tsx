@@ -7,6 +7,7 @@
 import React, { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/hooks/useTranslation"
 
 // Add keyframes for the rainbow border animation and pulse effect
 const style = typeof document !== 'undefined' ? document.createElement('style') : null
@@ -61,10 +62,9 @@ if (style) {
 
 
 interface Feature {
-  buttonTitle: string
-  title: string
-  description: string | string[]
-  videoTitle: string
+  buttonTitleKey: string
+  titleKey: string
+  descriptionKeys: string[]
   glowColor: string
   isRainbow?: boolean
   image: string
@@ -72,63 +72,41 @@ interface Feature {
 
 const features: Feature[] = [
   {
-    buttonTitle: "AMM SWAPS & LIMIT ORDERS",
-    title: "AMM SWAPS & LIMIT ORDERS",
-    description: [
-      "For the first time, execute AMM swaps of major assets directly on Bitcoin L1. Single-transaction swaps between BTC, USDT, USDC, ADA, and ZEC... as well as Bitcoin-native assets like Alkanes and BRC20s.",
-      "Want more control over execution price? Set your price targets and let SUBFROST execute swaps automatically when the market hits your limit order."
-    ],
-    videoTitle: "",
+    buttonTitleKey: "features.amm.buttonTitle",
+    titleKey: "features.amm.title",
+    descriptionKeys: ["features.amm.desc1", "features.amm.desc2"],
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/swap.png"
   },
   {
-    buttonTitle: "CROSS-CHAIN ON BITCOIN",
-    title: "CROSS-CHAIN BRIDGE ON BITCOIN",
-    description: [
-      "Combined in the same UX as AMM Swaps, users seamlessly bridge and swap in a single flow. Send assets from another chain and receive the desired asset directly on Bitcoin L1.",
-      "No requirement of wrapping your BTC, trusting a centralized custodian, or sending it to other chains to make it useful."
-    ],
-    videoTitle: "",
+    buttonTitleKey: "features.bridge.buttonTitle",
+    titleKey: "features.bridge.title",
+    descriptionKeys: ["features.bridge.desc1", "features.bridge.desc2"],
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/bridge.png"
   },
   {
-    buttonTitle: "DEFI YIELD VAULTS",
-    title: "DEFI YIELD VAULTS",
-    description: [
-      "Lock up your LP tokens in Olympus-style vaults and earn rewards without ever leaving Bitcoin L1.",
-      "The best part? No need to manually LP first, just select your desired LP and lock-up period, then send your native BTC to the vault and SUBFROST will handle the rest."
-    ],
-    videoTitle: "",
+    buttonTitleKey: "features.vaults.buttonTitle",
+    titleKey: "features.vaults.title",
+    descriptionKeys: ["features.vaults.desc1", "features.vaults.desc2"],
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/vaults.png"
   },
-
   {
-    buttonTitle: "BITCOIN FUTURES MARKET",
-    title: "BITCOIN FUTURES MARKET",
-    description: [
-      "On-chain futures market powered by miner block rewards.",
-      "Miners hedge their 100-block lock times, SUBFROST issues futures on their locked BTC, and users speculate on BTC price movement while having the option to exercise early for a small premium."
-    ],
-    videoTitle: "",
+    buttonTitleKey: "features.futures.buttonTitle",
+    titleKey: "features.futures.title",
+    descriptionKeys: ["features.futures.desc1", "features.futures.desc2"],
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/futures.png"
   },
   {
-    buttonTitle: "TOKENIZED BTC YIELD",
-    title: "TOKENIZED BTC YIELD",
-    description: [
-      "The simplest way to earn yield on your BTC: 1 transaction.",
-      "Fees and yield strategies across SUBFROST offerings aggregate into yield sources for dxBTC while users maintain full price exposure to BTC.",
-      "Unstake anytime with no lock-up period."
-    ],
-    videoTitle: "",
+    buttonTitleKey: "features.dxbtc.buttonTitle",
+    titleKey: "features.dxbtc.title",
+    descriptionKeys: ["features.dxbtc.desc1", "features.dxbtc.desc2", "features.dxbtc.desc3"],
     glowColor: "from-cyan-400 via-sky-500 via-blue-500 via-indigo-600 to-blue-800",
     isRainbow: true,
     image: "/app screenshots/DXBTC.png"
@@ -136,6 +114,7 @@ const features: Feature[] = [
 ]
 
 export default function FeaturesGrid() {
+  const { t } = useTranslation()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [buttonHeight, setButtonHeight] = useState<number | undefined>(undefined)
@@ -188,7 +167,7 @@ export default function FeaturesGrid() {
       <div className="flex flex-col">
         {/* Title */}
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-6">
-          Key Features
+          {t("features.keyFeatures")}
         </h3>
         
         {/* Buttons */}
@@ -281,7 +260,7 @@ export default function FeaturesGrid() {
                 }}
               >
                 <div className="px-8">
-                  {feature.buttonTitle}
+                  {t(feature.buttonTitleKey)}
                 </div>
               </div>
             </div>
@@ -340,23 +319,21 @@ export default function FeaturesGrid() {
         <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-2">
           {/* Feature title - shown on hover/active, default state when not hovering */}
           <h3 className="text-2xl font-bold uppercase tracking-wider text-center transition-all duration-300 text-white">
-            {displayIndex !== null ? features[displayIndex].title : "SUBFROST APP OVERVIEW"}
+            {displayIndex !== null ? t(features[displayIndex].titleKey) : t("features.overviewTitle")}
           </h3>
-          
+
           {/* Feature description */}
           <div className="text-sm text-gray-300 text-center max-w-2xl px-4 transition-all duration-300">
             {displayIndex !== null
-              ? (Array.isArray(features[displayIndex].description)
-                  ? (features[displayIndex].description as string[]).map((p, i) => (
-                      <p key={i} className={i > 0 ? "mt-2" : ""}>{p}</p>
-                    ))
-                  : features[displayIndex].description)
-              : "Click through the key features to learn about what the SUBFROST app delivers."}
+              ? features[displayIndex].descriptionKeys.map((key, i) => (
+                  <p key={i} className={i > 0 ? "mt-2" : ""}>{t(key)}</p>
+                ))
+              : t("features.overviewDescription")}
           </div>
-          
+
           {/* Demo Coming Soon text */}
           <h4 className="text-sm font-semibold uppercase tracking-wider text-center transition-all duration-300 text-gray-400">
-            {displayIndex !== null ? features[displayIndex].videoTitle : "Demo Coming Soon"}
+            {displayIndex !== null ? "" : t("features.demoComingSoon")}
           </h4>
           
           {/* Video placeholder with screenshot */}
@@ -367,7 +344,7 @@ export default function FeaturesGrid() {
                 <Image
                   key={displayIndex}
                   src={features[displayIndex].image}
-                  alt={features[displayIndex].title}
+                  alt={t(features[displayIndex].titleKey)}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 66vw"

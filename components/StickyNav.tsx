@@ -4,17 +4,21 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { useTranslation } from "@/hooks/useTranslation"
+import LanguageToggle from "@/components/LanguageToggle"
+import StableText from "@/components/StableText"
 
 const NAV_HEIGHT = 58
 
-const sections = [
-  { id: "native-assets", label: "Assets", offset: NAV_HEIGHT + 16 },
-  { id: "subfrost-app", label: "App", offset: NAV_HEIGHT + 16 },
-  { id: "team-partnerships", label: "Team & Partners", offset: 0 },
-]
-
 export default function StickyNav() {
+  const { t } = useTranslation()
   const [isVisible, setIsVisible] = useState(false)
+
+  const sections = [
+    { id: "native-assets", labelKey: "nav.assets", offset: NAV_HEIGHT + 16 },
+    { id: "subfrost-app", labelKey: "nav.app", offset: NAV_HEIGHT + 16 },
+    { id: "team-partnerships", labelKey: "nav.teamPartners", offset: 0 },
+  ]
 
   useEffect(() => {
     const hero = document.querySelector("main > section") as HTMLElement | null
@@ -73,7 +77,7 @@ export default function StickyNav() {
                 onClick={() => { trackEvent("nav_section_click", { event_category: "navigation", event_label: section.id }); scrollToSection(section.id, section.offset); }}
                 className="text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
               >
-                {section.label}
+                <StableText textKey={section.labelKey} />
               </button>
             ))}
           </div>
@@ -81,13 +85,13 @@ export default function StickyNav() {
           {/* Right CTA Buttons */}
           <div className="ml-auto flex items-center gap-4 flex-shrink-0">
             <a
-              href="https://api.subfrost.io/docs"
+              href="https://docs.subfrost.io/"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "sticky_nav" })}
+              onClick={() => trackEvent("docs_click", { event_category: "navigation", event_label: "sticky_nav" })}
               className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             >
-              API Docs
+              <StableText textKey="nav.docs" />
             </a>
             <a
               href="https://api.subfrost.io"
@@ -96,8 +100,9 @@ export default function StickyNav() {
               onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "sticky_nav" })}
               className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             >
-              API Login
+              <StableText textKey="nav.apiLogin" />
             </a>
+            <LanguageToggle variant="dark" />
             {/* TODO: remove disabled wrapper when app is ready to launch */}
             <HoverCard openDelay={100} closeDelay={100}>
               <HoverCardTrigger asChild>
@@ -111,12 +116,12 @@ export default function StickyNav() {
                     onClick={(e) => e.preventDefault()}
                     className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap pointer-events-none select-none"
                   >
-                    LAUNCH APP
+                    <StableText textKey="hero.launchApp" />
                   </a>
                 </div>
               </HoverCardTrigger>
               <HoverCardContent className="w-auto px-3 py-1.5" align="end">
-                <p className="text-sm font-bold text-[#284372]">Coming Soon!</p>
+                <p className="text-sm font-bold text-[#284372]">{t("hero.comingSoon")}</p>
               </HoverCardContent>
             </HoverCard>
           </div>

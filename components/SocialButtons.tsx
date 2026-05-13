@@ -11,6 +11,7 @@
 import type React from "react"
 import { Github, Mail } from "lucide-react"
 import XIcon from "./XIcon"
+import { useTranslation } from "@/hooks/useTranslation"
 import {
   Popover,
   PopoverContent,
@@ -18,13 +19,14 @@ import {
 } from "@/components/ui/popover"
 
 const SocialButtons: React.FC = () => {
+  const { t } = useTranslation()
   return (
     <div className="absolute bottom-10 right-4 md:right-8 z-30 flex flex-col gap-3">
       <Popover>
         <PopoverTrigger asChild>
           <button
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
-            aria-label="Contact Us"
+            className="hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
+            aria-label={t("footer.contactUs")}
           >
             <Mail className="w-4 h-4" />
           </button>
@@ -35,7 +37,7 @@ const SocialButtons: React.FC = () => {
               href="mailto:inquiries@subfrost.io"
               className="text-[#284372] hover:underline"
             >
-              Email Us
+              {t("footer.emailUs")}
             </a>
             <a
               href="https://x.com/SUBFROSTio/"
@@ -43,7 +45,7 @@ const SocialButtons: React.FC = () => {
               rel="noopener noreferrer"
               className="text-[#284372] hover:underline"
             >
-              Message us on X
+              {t("footer.messageOnX")}
             </a>
           </div>
         </PopoverContent>

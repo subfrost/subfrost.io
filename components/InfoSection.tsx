@@ -25,7 +25,7 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
     <section
       ref={ref}
       className={cn(
-        "relative px-4",
+        "relative px-8 md:px-4",
         "bg-gradient-to-b from-[color:var(--sf-bg-start)] to-[color:var(--sf-bg-end)]",
         "text-gray-300",
         "py-20 md:py-28",

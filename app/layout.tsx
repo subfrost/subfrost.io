@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import Script from "next/script"
 import { cn } from "@/lib/utils"
 import "@/app/globals.css"
+import { LanguageProvider } from "@/context/LanguageContext"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
@@ -37,7 +38,9 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={cn("bg-background font-satoshi antialiased")}>{children}</body>
+      <body className={cn("bg-background font-satoshi antialiased")}>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   )
 }
