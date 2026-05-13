@@ -215,12 +215,14 @@ export default function Page() {
         </div>
 
         {/* Top Right Button */}
-        <div className="absolute top-4 right-4 z-20 flex flex-row items-center gap-4">
-          <LanguageToggle variant="light" />
+        <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <div className="order-2 sm:order-1">
+            <LanguageToggle variant="light" />
+          </div>
           {/* TODO: remove disabled wrapper when app is ready to launch */}
           <HoverCard openDelay={100} closeDelay={100}>
             <HoverCardTrigger asChild>
-              <div className="cursor-not-allowed">
+              <div className="cursor-not-allowed order-1 sm:order-2">
                 <a
                   href="https://app.subfrost.io/"
                   target="_blank"
@@ -373,10 +375,18 @@ export default function Page() {
               }
               return (
                 <>
-                  <div className="grid grid-cols-3 gap-4 p-2">
+                  {/* XS: founders + first advisor (Domo) as large cards */}
+                  <div className="grid grid-cols-2 gap-4 p-2 sm:hidden">
+                    {[...founders, advisors[0]].map((member, index) => renderCard(member, index, true))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 p-2 mt-2 sm:hidden">
+                    {advisors.slice(1).map((member, index) => renderCard(member, index, false))}
+                  </div>
+                  {/* sm and up: original 3 founders + 5 advisors layout */}
+                  <div className="hidden sm:grid sm:grid-cols-3 gap-4 p-2">
                     {founders.map((member, index) => renderCard(member, index, true))}
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 p-2 mt-2">
+                  <div className="hidden sm:grid sm:grid-cols-5 gap-4 p-2 mt-2">
                     {advisors.map((member, index) => renderCard(member, index, false))}
                   </div>
                 </>
