@@ -296,7 +296,7 @@ export default function FeaturesGrid() {
           "bg-gradient-to-br from-slate-800/50 to-slate-900/50",
           "backdrop-blur-sm",
           "flex flex-col items-center justify-center overflow-hidden",
-          "h-[340px] md:h-[500px]",
+          "md:h-[500px]",
           "border-2",
           hoveredIndex !== null && features[hoveredIndex].isRainbow
             ? "border-transparent"

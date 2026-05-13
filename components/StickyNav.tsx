@@ -17,15 +17,16 @@ export default function StickyNav() {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      const heroHeight = window.innerHeight
-      setIsVisible(window.scrollY > heroHeight)
-    }
+    const hero = document.querySelector("main > section") as HTMLElement | null
+    if (!hero) return
 
-    window.addEventListener("scroll", handleScroll)
-    handleScroll()
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(!entry.isIntersecting),
+      { threshold: 0 },
+    )
 
-    return () => window.removeEventListener("scroll", handleScroll)
+    observer.observe(hero)
+    return () => observer.disconnect()
   }, [])
 
   const scrollToSection = (sectionId: string, offset: number) => {
