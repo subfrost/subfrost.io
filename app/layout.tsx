@@ -15,13 +15,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://app.subfrost.io",
     siteName: "SUBFROST",
-    images: [{ url: '/Logo.png', width: 1200, height: 630, alt: 'SUBFROST' }],
+    images: [{ url: '/og-image.png', width: 1424, height: 752, alt: 'SUBFROST - Bitcoin\'s Next-Gen DeFi Experience' }],
   },
   twitter: {
     card: "summary_large_image",
     title: "SUBFROST App | Next-gen DeFi on Bitcoin",
     description: "The app built for seamless Bitcoin DeFi.",
-    images: ['/Logo.png'],
+    images: ['/og-image.png'],
   },
   icons: {
     icon: '/Logo.png',
