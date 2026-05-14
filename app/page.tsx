@@ -92,7 +92,6 @@ import { useState, useRef } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import FrostBackdrop from "@/components/FrostBackdrop"
 import BottomAnimatedSubtitle from "@/components/BottomAnimatedSubtitle"
 import Footer from "@/components/Footer"
@@ -219,27 +218,14 @@ export default function Page() {
           <div className="order-2 sm:order-1">
             <LanguageToggle variant="light" />
           </div>
-          {/* TODO: remove disabled wrapper when app is ready to launch */}
-          <HoverCard openDelay={100} closeDelay={100}>
-            <HoverCardTrigger asChild>
-              <div className="cursor-not-allowed order-1 sm:order-2">
-                <a
-                  href="https://app.subfrost.io/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-disabled="true"
-                  tabIndex={-1}
-                  onClick={(e) => e.preventDefault()}
-                  className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md pointer-events-none select-none"
-                >
-                  <StableText textKey="hero.launchApp" />
-                </a>
-              </div>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-auto px-3 py-1.5" align="end">
-              <p className="text-sm text-[#284372]">{t("hero.comingSoon")}</p>
-            </HoverCardContent>
-          </HoverCard>
+          <a
+            href="https://app.subfrost.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="order-1 sm:order-2 flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md"
+          >
+            <StableText textKey="hero.launchApp" />
+          </a>
         </div>
 
         {/* Main content - centered using flex, takes available space */}
