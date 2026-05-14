@@ -332,8 +332,8 @@ export default function Page() {
             {(() => {
               const renderCard = (member: (typeof teamMembers)[number], key: number, isFounder: boolean, smallImage: boolean = !isFounder) => {
                 const cardClassName = isFounder
-                  ? "group relative min-h-40 pt-2 px-1 md:px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
-                  : "group relative min-h-40 pt-3 px-1 md:px-3 pb-4 md:pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
+                  ? "group relative min-h-40 pt-2 px-1 md:px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-[background-color,transform] duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
+                  : "group relative min-h-40 pt-3 px-1 md:px-3 pb-4 md:pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-[background-color,transform] duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
                 return (
                   <div key={key} className={cardClassName}>
                     <div className={`flex flex-col items-center justify-center ${isFounder ? "space-y-1" : "space-y-2"} transition-opacity duration-300 group-hover:opacity-0`}>
