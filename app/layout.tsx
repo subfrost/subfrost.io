@@ -6,17 +6,27 @@ import "@/app/globals.css"
 import { LanguageProvider } from "@/context/LanguageContext"
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://subfrost.io'),
-  title: "SUBFROST",
-  description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
-
-    generator: 'v0.dev',
-    openGraph: {
-        images: ['/Logo.png'],
-    },
-    icons: {
-        icon: '/Logo.png',
-    },
+  metadataBase: new URL('https://app.subfrost.io'),
+  title: "SUBFROST App | Next-gen DeFi on Bitcoin",
+  description: "The app built for seamless Bitcoin DeFi.",
+  openGraph: {
+    title: "SUBFROST App | Next-gen DeFi on Bitcoin",
+    description: "The app built for seamless Bitcoin DeFi.",
+    type: "website",
+    url: "https://app.subfrost.io",
+    siteName: "SUBFROST",
+    images: [{ url: '/og-image.png', width: 1424, height: 752, alt: 'SUBFROST - Bitcoin\'s Next-Gen DeFi Experience' }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SUBFROST App | Next-gen DeFi on Bitcoin",
+    description: "The app built for seamless Bitcoin DeFi.",
+    images: ['/og-image.png'],
+  },
+  icons: {
+    icon: '/Logo.png',
+    apple: '/Logo.png',
+  },
 }
 
 export default function RootLayout({
