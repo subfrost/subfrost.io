@@ -7,16 +7,26 @@ import { LanguageProvider } from "@/context/LanguageContext"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
-  title: "SUBFROST",
-  description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
-
-    generator: 'v0.dev',
-    openGraph: {
-        images: ['/Logo.png'],
-    },
-    icons: {
-        icon: '/Logo.png',
-    },
+  title: "SUBFROST | Bitcoin-native Layer 0",
+  description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+  openGraph: {
+    title: "SUBFROST | Bitcoin-native Layer 0",
+    description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+    type: "website",
+    url: "https://subfrost.io",
+    siteName: "SUBFROST",
+    images: [{ url: '/Logo.png', alt: "SUBFROST - Bitcoin's Next-Gen DeFi Experience" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SUBFROST | Bitcoin-native Layer 0",
+    description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+    images: ['/Logo.png'],
+  },
+  icons: {
+    icon: '/Logo.png',
+    apple: '/Logo.png',
+  },
 }
 
 export default function RootLayout({
