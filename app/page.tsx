@@ -214,7 +214,7 @@ export default function Page() {
         </div>
 
         {/* Top Right Button */}
-        <div className="absolute top-4 right-4 z-20 flex flex-row items-center gap-4">
+        <div className="absolute top-4 right-4 z-20 flex flex-col-reverse md:flex-row items-end md:items-center gap-2 md:gap-4">
           <LanguageToggle variant="light" />
           <a
             href="https://app.subfrost.io/"
