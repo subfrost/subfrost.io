@@ -214,15 +214,13 @@ export default function Page() {
         </div>
 
         {/* Top Right Button */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <div className="order-2 sm:order-1">
-            <LanguageToggle variant="light" />
-          </div>
+        <div className="absolute top-4 right-4 z-20 flex flex-row items-center gap-4">
+          <LanguageToggle variant="light" />
           <a
             href="https://app.subfrost.io/"
             target="_blank"
             rel="noopener noreferrer"
-            className="order-1 sm:order-2 flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md"
+            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md"
           >
             <StableText textKey="hero.launchApp" />
           </a>

@@ -101,9 +101,9 @@ const en: Record<string, string> = {
   'team.title.advisor': 'Advisor',
 
   // Team descriptions
-  'team.gabe.description': 'Strategy Consultant with an obsession for lowering the friction in finance.',
-  'team.flex.description': 'Reknowned Crypto Dev since 2016. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX.',
-  'team.brooks.description': 'Decade in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes.',
+  'team.gabe.description': 'Former strategy consultant with an obsession for lowering the friction in finance.',
+  'team.flex.description': 'Reknowned crypto engineer since 2016. Creator of Protorunes & Alkanes. Former CTO of Polymarket and IDEX.',
+  'team.brooks.description': 'Decade in chinese network building & blockchain marketing. Now the leading voice in China for SUBFROST & Alkanes.',
   'team.domo.description': 'Creator of BRC20, the first token standard on Bitcoin.',
   'team.hex.description': 'Founder/CEO of Saturn DEX.',
   'team.allen.description': 'Founder of Google web3. Partner at Primitive Ventures.',

@@ -3,15 +3,12 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { useTranslation } from "@/hooks/useTranslation"
 import LanguageToggle from "@/components/LanguageToggle"
 import StableText from "@/components/StableText"
 
 const NAV_HEIGHT = 58
 
 export default function StickyNav() {
-  const { t } = useTranslation()
   const [isVisible, setIsVisible] = useState(false)
 
   const sections = [
@@ -52,7 +49,7 @@ export default function StickyNav() {
       }`}
     >
       <div className="bg-[color:var(--sf-glass-bg)] backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.05)]">
-        <div className="max-w-7xl mx-auto px-5 h-[58px] flex items-center justify-between gap-4">
+        <div className="px-4 h-[58px] flex items-center justify-between gap-4">
           {/* Brand */}
           <button
             onClick={() => { trackEvent("nav_logo_click", { event_category: "navigation", event_label: "sticky_nav" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}
@@ -103,27 +100,14 @@ export default function StickyNav() {
               <StableText textKey="nav.apiLogin" />
             </a>
             <LanguageToggle variant="dark" />
-            {/* TODO: remove disabled wrapper when app is ready to launch */}
-            <HoverCard openDelay={100} closeDelay={100}>
-              <HoverCardTrigger asChild>
-                <div className="cursor-not-allowed">
-                  <a
-                    href="https://app.subfrost.io/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-disabled="true"
-                    tabIndex={-1}
-                    onClick={(e) => e.preventDefault()}
-                    className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap pointer-events-none select-none"
-                  >
-                    <StableText textKey="hero.launchApp" />
-                  </a>
-                </div>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-auto px-3 py-1.5" align="end">
-                <p className="text-sm font-bold text-[#284372]">{t("hero.comingSoon")}</p>
-              </HoverCardContent>
-            </HoverCard>
+            <a
+              href="https://app.subfrost.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-xs md:text-sm shadow-md whitespace-nowrap"
+            >
+              <StableText textKey="hero.launchApp" />
+            </a>
           </div>
         </div>
       </div>

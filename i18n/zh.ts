@@ -101,8 +101,8 @@ const zh: Record<string, string> = {
   'team.title.advisor': '顾问',
 
   // Team descriptions
-  'team.gabe.description': '战略顾问，致力于降低金融领域中的摩擦。',
-  'team.flex.description': '自 2016 年以来的知名加密开发者。Protorunes/Alkanes 的创建者。Polymarket 和 IDEX 的前 CTO。',
+  'team.gabe.description': '前战略顾问，致力于降低金融领域中的摩擦。',
+  'team.flex.description': '自 2016 年以来的知名加密工程师。Protorunes 与 Alkanes 的创建者。Polymarket 和 IDEX 的前 CTO。',
   'team.brooks.description': '在中国网络建设和区块链营销领域拥有十年经验。现为中国地区 SUBFROST 与 Alkanes 的主要代言人。',
   'team.domo.description': 'BRC20 的创建者，比特币上的首个代币标准。',
   'team.hex.description': 'Saturn DEX 创始人 / CEO。',
