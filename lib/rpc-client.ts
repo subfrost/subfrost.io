@@ -141,17 +141,23 @@ export async function getAddressUtxos(address: string): Promise<UTXO[]> {
 
 /**
  * Get transactions for an address
+ * Uses mempool.space Esplora directly — more reliable than the Subfrost RPC proxy.
  */
 export async function getAddressTxs(address: string): Promise<AddressTx[]> {
-  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs', [address]);
+  const response = await fetch(`https://mempool.space/api/address/${address}/txs`);
+  if (!response.ok) throw new Error(`Esplora /txs failed: ${response.status}`);
+  const result = await response.json();
   return Array.isArray(result) ? result : [];
 }
 
 /**
  * Get transactions for an address with pagination (after a specific txid)
+ * Uses mempool.space Esplora directly.
  */
 export async function getAddressTxsChain(address: string, lastSeenTxid: string): Promise<AddressTx[]> {
-  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs:chain', [address, lastSeenTxid]);
+  const response = await fetch(`https://mempool.space/api/address/${address}/txs/chain/${lastSeenTxid}`);
+  if (!response.ok) throw new Error(`Esplora /txs/chain failed: ${response.status}`);
+  const result = await response.json();
   return Array.isArray(result) ? result : [];
 }
 
@@ -275,7 +281,9 @@ export async function calculateTotalUnwraps(signerAddress: string): Promise<{
   let allTxs: AddressTx[] = [];
   let lastSeenTxid: string | undefined = undefined;
   let pageCount = 0;
-  const maxPages = 1000;
+  // Cap at 100 pages (2500 txs) to stay within Netlify's 26s function timeout.
+  // The prefetch job keeps this warm; live fallback only runs on cold cache.
+  const maxPages = 100;
 
   while (pageCount < maxPages) {
     pageCount++;

@@ -40,10 +40,16 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error fetching BRC2.0 total unwraps:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch BRC2.0 total unwraps.', details: errorMessage },
-      { status: 500 }
-    );
+    console.error('Error fetching BRC2.0 total unwraps:', errorMessage);
+    // Return empty data rather than 500 so the UI degrades gracefully.
+    // The prefetch job will warm the cache on the next cycle.
+    return NextResponse.json({
+      totalUnwrapsSatoshis: null,
+      totalUnwrapsBtc: null,
+      unwrapCount: null,
+      signerAddress: null,
+      timestamp: Date.now(),
+      error: errorMessage,
+    });
   }
 }
