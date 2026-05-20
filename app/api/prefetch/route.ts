@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       await cacheSet('btc-price', { btcPrice: data.USD }, CACHE_TTL);
     }),
 
-    // Volume stats — all 3 sources
+    // Volume stats — all 3 sources (warms the in-memory tx cache for subsequent calls)
     run('volume-stats-both', async () => {
       const stats = await getVolumeStats('both');
       await cacheSet('volume-stats-both', stats, CACHE_TTL);
