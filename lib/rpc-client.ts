@@ -89,6 +89,7 @@ async function subfrostRpc<T>(method: string, params: unknown[]): Promise<T> {
       method,
       params,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -113,6 +114,7 @@ async function brc20Rpc<T>(method: string, params: unknown[]): Promise<T> {
       method,
       params,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -144,7 +146,9 @@ export async function getAddressUtxos(address: string): Promise<UTXO[]> {
  * Uses mempool.space Esplora directly — more reliable than the Subfrost RPC proxy.
  */
 export async function getAddressTxs(address: string): Promise<AddressTx[]> {
-  const response = await fetch(`https://mempool.space/api/address/${address}/txs`);
+  const response = await fetch(`https://mempool.space/api/address/${address}/txs`, {
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!response.ok) throw new Error(`Esplora /txs failed: ${response.status}`);
   const result = await response.json();
   return Array.isArray(result) ? result : [];
@@ -155,7 +159,9 @@ export async function getAddressTxs(address: string): Promise<AddressTx[]> {
  * Uses mempool.space Esplora directly.
  */
 export async function getAddressTxsChain(address: string, lastSeenTxid: string): Promise<AddressTx[]> {
-  const response = await fetch(`https://mempool.space/api/address/${address}/txs/chain/${lastSeenTxid}`);
+  const response = await fetch(`https://mempool.space/api/address/${address}/txs/chain/${lastSeenTxid}`, {
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!response.ok) throw new Error(`Esplora /txs/chain failed: ${response.status}`);
   const result = await response.json();
   return Array.isArray(result) ? result : [];
@@ -166,7 +172,9 @@ export async function getAddressTxsChain(address: string, lastSeenTxid: string):
  * This is useful for addresses with many UTXOs that exceed RPC limits
  */
 export async function getAddressStats(address: string): Promise<AddressStats> {
-  const response = await fetch(`https://mempool.space/api/address/${address}`);
+  const response = await fetch(`https://mempool.space/api/address/${address}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch address stats: ${response.status}`);
   }
