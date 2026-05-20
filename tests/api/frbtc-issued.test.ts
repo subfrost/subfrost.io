@@ -9,6 +9,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock data - simulates the hex returned from storage
 const mockStorageHex = '0xc7c38002000000'; // Little-endian for 43276231 satoshis
 
+vi.mock('@/lib/redis', () => ({
+  cacheGet: vi.fn().mockResolvedValue(null),
+  cacheSet: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock alkanes-client
 vi.mock('@/lib/alkanes-client', () => ({
   alkanesClient: {
@@ -19,10 +24,13 @@ vi.mock('@/lib/alkanes-client', () => ({
 // Import after mocking
 import { GET } from '@/app/api/frbtc-issued/route';
 import { alkanesClient } from '@/lib/alkanes-client';
+import { cacheGet, cacheSet } from '@/lib/redis';
 
 describe('GET /api/frbtc-issued', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (cacheGet as any).mockResolvedValue(null);
+    (cacheSet as any).mockResolvedValue(undefined);
   });
 
   it('returns frBTC issued data with correct structure', async () => {

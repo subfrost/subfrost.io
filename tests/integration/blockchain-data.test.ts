@@ -16,7 +16,7 @@ import {
 
 describe('Blockchain Data Integration Tests', () => {
   describe('getBtcLockedData', () => {
-    it('should fetch BTC locked data from SDK', async () => {
+    it.skipIf(process.env.CI)('should fetch BTC locked data from SDK', async () => {
       const data = await getBtcLockedData();
 
       expect(data).toBeDefined();
@@ -29,7 +29,7 @@ describe('Blockchain Data Integration Tests', () => {
   });
 
   describe('getFrbtcIssuedData', () => {
-    it('should fetch frBTC supply data from SDK', async () => {
+    it.skipIf(process.env.CI)('should fetch frBTC supply data from SDK', async () => {
       const data = await getFrbtcIssuedData();
 
       console.log('\n=== frBTC Total Supply ===');
