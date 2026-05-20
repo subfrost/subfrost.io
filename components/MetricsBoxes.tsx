@@ -143,13 +143,15 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   const brc20Circulating = typeof brc20CirculatingFrbtc === 'number' ? brc20CirculatingFrbtc : 0;
 
   // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued (alkanes) + frbtc issued (brc20)
+  // Use '...' to detect "still loading". null means data arrived but computation failed — treat as 0.
+  const toNum = (v: unknown) => typeof v === 'number' ? v : 0;
   const lifetimeBtcTxValue: number | React.ReactNode = (
-    typeof alkanesTotalUnwraps !== 'number' ||
-    typeof brc20TotalUnwraps !== 'number' ||
-    typeof alkanesCirculatingFrbtc !== 'number' ||
-    typeof brc20CirculatingFrbtc !== 'number'
+    alkanesTotalUnwraps === '...' ||
+    brc20TotalUnwraps === '...' ||
+    alkanesCirculatingFrbtc === '...' ||
+    brc20CirculatingFrbtc === '...'
       ? <LoadingDots />
-      : alkanesTotalUnwraps + brc20TotalUnwraps + alkanesCirculatingFrbtc + brc20Circulating
+      : toNum(alkanesTotalUnwraps) + toNum(brc20TotalUnwraps) + toNum(alkanesCirculatingFrbtc) + toNum(brc20CirculatingFrbtc)
   );
 
   // Combined totals (Alkanes + BRC2.0)
