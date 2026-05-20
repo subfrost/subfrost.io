@@ -123,22 +123,34 @@ export async function GET(request: NextRequest) {
       await cacheSet('btc-price', { btcPrice: data.USD }, CACHE_TTL);
     }),
 
-    // Volume stats — prefetch default source (warms in-memory tx cache for subsequent calls)
+    // Volume stats — all 3 sources
     run('volume-stats-both', async () => {
       const stats = await getVolumeStats('both');
       await cacheSet('volume-stats-both', stats, CACHE_TTL);
     }),
 
-    // Volume candles — prefetch the two most common views
-    run('volume-candles-1d-false-both', async () => {
-      const candles = await getVolumeCandles('1d', false, 'both');
-      await cacheSet('volume-candles-1d-false-both', candles, CACHE_TTL);
+    run('volume-stats-alkanes', async () => {
+      const stats = await getVolumeStats('alkanes');
+      await cacheSet('volume-stats-alkanes', stats, CACHE_TTL);
     }),
 
-    run('volume-candles-1w-false-both', async () => {
-      const candles = await getVolumeCandles('1w', false, 'both');
-      await cacheSet('volume-candles-1w-false-both', candles, CACHE_TTL);
+    run('volume-stats-brc20', async () => {
+      const stats = await getVolumeStats('brc20');
+      await cacheSet('volume-stats-brc20', stats, CACHE_TTL);
     }),
+
+    // Volume candles — all interval × cumulative × source combinations
+    // (getAllTxs() is cached in-memory so these reuse the same underlying fetch)
+    ...(['1d', '1w'] as const).flatMap(interval =>
+      [false, true].flatMap(cumulative =>
+        (['both', 'alkanes', 'brc20'] as const).map(source =>
+          run(`volume-candles-${interval}-${cumulative}-${source}`, async () => {
+            const candles = await getVolumeCandles(interval, cumulative, source);
+            await cacheSet(`volume-candles-${interval}-${cumulative}-${source}`, candles, CACHE_TTL);
+          })
+        )
+      )
+    ),
   ]);
 
   const refreshed = Object.values(results).filter(v => v === 'ok').length;

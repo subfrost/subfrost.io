@@ -138,7 +138,7 @@ function StatsCards({
 }) {
   const { t } = useTranslation()
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
-    refreshInterval: 300_000,
+    refreshInterval: 1_800_000,
   })
   const wrapKey = period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
   const unwrapKey = period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
@@ -285,7 +285,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
   const { data: candles } = useSWR(
     `/api/volume/candles?interval=${interval}&source=${source}`,
     fetcher,
-    { refreshInterval: 300_000 }
+    { refreshInterval: 1_800_000 }
   )
   const isLoading = !Array.isArray(candles)
 
@@ -487,7 +487,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
   const { data: candles } = useSWR(
     `/api/volume/candles?interval=${interval}&cumulative=true&source=${source}`,
     fetcher,
-    { refreshInterval: 300_000 }
+    { refreshInterval: 1_800_000 }
   )
   const isLoading = !Array.isArray(candles)
 

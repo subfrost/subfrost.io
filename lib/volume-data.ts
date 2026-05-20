@@ -76,6 +76,7 @@ async function fetchDataApiPage(endpoint: string, offset: number): Promise<DataA
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ count: PAGE_SIZE, offset }),
+    signal: AbortSignal.timeout(20_000),
   });
   if (!res.ok) throw new Error(`${endpoint} returned ${res.status}`);
   return res.json();

@@ -99,17 +99,19 @@ const GlobalStyles: React.FC = () => (
     
     .snow-title {
       text-shadow:
-        0 0 5px rgba(255, 255, 255, 0.8),
-        0 0 10px rgba(255, 255, 255, 0.5),
-        0 0 15px rgba(255, 255, 255, 0.4),
-        0 0 20px rgba(219, 234, 254, 0.3),
-        0 0 25px rgba(219, 234, 254, 0.2),
-        0 0 30px rgba(219, 234, 254, 0.1),
-        1px 1px 2px rgba(219, 234, 254, 0.8),
-        -1px -1px 2px rgba(219, 234, 254, 0.8),
-        1px -1px 2px rgba(219, 234, 254, 0.8),
-        -1px 1px 2px rgba(219, 234, 254, 0.8);
-      filter: drop-shadow(0 0 2px rgba(219, 234, 254, 0.5));
+        0 0 4px rgba(255, 255, 255, 1),
+        0 0 10px rgba(255, 255, 255, 0.9),
+        0 0 20px rgba(255, 255, 255, 0.7),
+        0 0 40px rgba(219, 234, 254, 0.6),
+        0 0 70px rgba(219, 234, 254, 0.4),
+        0 0 100px rgba(147, 197, 253, 0.25),
+        1px 1px 2px rgba(255, 255, 255, 1),
+        -1px -1px 2px rgba(255, 255, 255, 1),
+        1px -1px 2px rgba(255, 255, 255, 1),
+        -1px 1px 2px rgba(255, 255, 255, 1);
+      filter:
+        drop-shadow(0 0 6px rgba(219, 234, 254, 0.9))
+        drop-shadow(0 0 20px rgba(147, 197, 253, 0.5));
     }
 
     .snow-title-no-filter {
