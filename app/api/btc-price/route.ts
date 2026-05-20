@@ -9,19 +9,35 @@
 // 2026-03-02: Migrated from Subfrost API to mempool.space API (Subfrost endpoint returns "ammdata index empty" error).
 
 import { NextResponse } from 'next/server';
+import { cacheGet, cacheSet } from '@/lib/redis';
 
 const MEMPOOL_PRICES_URL = 'https://mempool.space/api/v1/prices';
+const CACHE_KEY = 'btc-price';
+const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
+
+const isTest = process.env.NODE_ENV === 'test';
 
 export async function GET() {
   try {
+    if (!isTest) {
+      const cached = await cacheGet<{ btcPrice: number }>(CACHE_KEY);
+      if (cached) {
+        return NextResponse.json(cached);
+      }
+    }
+
     const response = await fetch(MEMPOOL_PRICES_URL);
     if (!response.ok) {
       throw new Error(`mempool.space API responded with status: ${response.status}`);
     }
     const data = await response.json();
-    const btcPrice = data.USD;
+    const result = { btcPrice: data.USD };
 
-    return NextResponse.json({ btcPrice });
+    if (!isTest) {
+      await cacheSet(CACHE_KEY, result, CACHE_TTL);
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching BTC price:', error);
     return NextResponse.json(
