@@ -12,7 +12,7 @@ import { cacheGet, cacheSet } from '@/lib/redis';
 import { getBrc20TotalSupply } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'brc20-circulating';
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
 // fr-BTC contract address on BRC2.0
 const FRBTC_CONTRACT_ADDRESS = '0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337';

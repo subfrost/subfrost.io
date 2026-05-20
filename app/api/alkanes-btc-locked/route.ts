@@ -10,7 +10,7 @@ import { cacheGet, cacheSet } from '@/lib/redis';
 import { getAlkanesBtcLocked } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'alkanes-btc-locked';
-const CACHE_TTL = 60; // 60 seconds
+const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
 export async function GET() {
   try {

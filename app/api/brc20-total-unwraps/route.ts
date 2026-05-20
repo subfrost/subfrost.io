@@ -10,7 +10,7 @@ import { cacheGet, cacheSet } from '@/lib/redis';
 import { calculateTotalUnwraps, getBrc20SignerAddress } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'brc20-total-unwraps';
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
 export async function GET() {
   try {
