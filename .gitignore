@@ -40,3 +40,4 @@ next-env.d.ts
 # reference material
 /reference/
 .DS_Store
+.nvmrc
