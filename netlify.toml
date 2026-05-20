@@ -7,5 +7,13 @@
   PNPM_VERSION = "9.0.0"
   NPM_FLAGS = "--version" # prevent Netlify from installing via npm
 
+[functions]
+  node_bundler = "esbuild"
+
+  # Volume and unwrap endpoints paginate through hundreds of transactions.
+  # Set max timeout (26s) to avoid 502s on cold cache hits.
+  [functions."___netlify-server-handler"]
+    timeout = 26
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
