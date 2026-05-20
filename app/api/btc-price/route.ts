@@ -15,11 +15,15 @@ const MEMPOOL_PRICES_URL = 'https://mempool.space/api/v1/prices';
 const CACHE_KEY = 'btc-price';
 const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
+const isTest = process.env.NODE_ENV === 'test';
+
 export async function GET() {
   try {
-    const cached = await cacheGet<{ btcPrice: number }>(CACHE_KEY);
-    if (cached) {
-      return NextResponse.json(cached);
+    if (!isTest) {
+      const cached = await cacheGet<{ btcPrice: number }>(CACHE_KEY);
+      if (cached) {
+        return NextResponse.json(cached);
+      }
     }
 
     const response = await fetch(MEMPOOL_PRICES_URL);
@@ -29,7 +33,10 @@ export async function GET() {
     const data = await response.json();
     const result = { btcPrice: data.USD };
 
-    await cacheSet(CACHE_KEY, result, CACHE_TTL);
+    if (!isTest) {
+      await cacheSet(CACHE_KEY, result, CACHE_TTL);
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching BTC price:', error);
