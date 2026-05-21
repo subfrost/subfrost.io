@@ -40,7 +40,7 @@ const SocialButtons: React.FC = () => {
               {t("footer.emailUs")}
             </a>
             <a
-              href="https://x.com/SUBFROSTio/"
+              href="https://x.com/gabe_subfrost/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#284372] hover:underline"
@@ -51,7 +51,7 @@ const SocialButtons: React.FC = () => {
         </PopoverContent>
       </Popover>
       <a
-        href="https://x.com/SUBFROSTio"
+        href="https://x.com/gabe_subfrost"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#284372] hover:bg-[#f0f7ff] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"

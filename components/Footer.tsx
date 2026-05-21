@@ -100,7 +100,7 @@ const Footer: React.FC = () => {
               <ul className="space-y-3">
                 <li>
                   <a
-                    href="https://x.com/SUBFROSTio"
+                    href="https://x.com/gabe_subfrost"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent("social_x_click", { event_category: "social", event_label: "footer" })}
@@ -150,7 +150,7 @@ const Footer: React.FC = () => {
                           {t("footer.emailUs")}
                         </a>
                         <a
-                          href="https://x.com/SUBFROSTio/"
+                          href="https://x.com/gabe_subfrost/"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#284372] hover:underline"
