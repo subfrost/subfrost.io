@@ -99,11 +99,15 @@ const en: Record<string, string> = {
   'team.title.founderCto': 'Founder/CTO',
   'team.title.apacMarketing': 'APAC Marketing Director',
   'team.title.advisor': 'Advisor',
+  'team.title.swe': 'SWE',
 
   // Team descriptions
   'team.gabe.description': 'Former strategy consultant with an obsession for lowering the friction in finance.',
   'team.flex.description': 'Reknowned crypto engineer since 2016. Creator of Protorunes & Alkanes. Former CTO of Polymarket and IDEX.',
   'team.brooks.description': 'Decade in chinese network building & blockchain marketing. Now the leading voice in China for SUBFROST & Alkanes.',
+  'team.casuwu.description': 'Built the first staking contract on Bitcoin (UnitVault). Previous SWE at Olympus Protocol and Fjord Foundry.',
+  'team.tangata.description': 'Possibly the earliest adopter of Metashrew. Won the Rebar Labs Bitcoin Hackathon for his Acai Contract.',
+  'team.mork1e.description': 'Founder of Mezcal, Espo, and Pizza.Fun. Building crypto infra since 2017.',
   'team.domo.description': 'Creator of BRC20, the first token standard on Bitcoin.',
   'team.hex.description': 'Founder/CEO of Saturn DEX.',
   'team.allen.description': 'Founder of Google web3. Partner at Primitive Ventures.',

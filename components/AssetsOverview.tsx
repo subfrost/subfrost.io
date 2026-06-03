@@ -75,12 +75,11 @@ export default function AssetsOverview() {
           <div
             key={index}
             className={cn(
-              "group relative rounded-2xl p-6 transition-all duration-500",
+              "group relative rounded-2xl p-6",
               "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
               "shadow-lg shadow-black/20",
               "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
-              "backdrop-blur-sm",
-              "hover:shadow-2xl"
+              "backdrop-blur-sm"
             )}
           >
             {/* Badge */}
@@ -89,14 +88,6 @@ export default function AssetsOverview() {
                 {t(asset.badgeKey)}
               </div>
             )}
-
-            {/* Animated glow background */}
-            <div className={cn(
-              "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
-              "bg-gradient-to-br",
-              asset.color,
-              "blur-md"
-            )} />
 
             {/* Icon */}
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center relative">
@@ -109,45 +100,17 @@ export default function AssetsOverview() {
                         alt={`${asset.symbolFallback} Icon ${i + 1}`}
                         width={48}
                         height={48}
-                        className={cn(
-                          "transition-opacity duration-300",
-                          iconSet.hoverIcon && "group-hover:opacity-0"
-                        )}
                       />
-                      {iconSet.hoverIcon && (
-                        <Image
-                          src={iconSet.hoverIcon}
-                          alt={`${asset.symbolFallback} Icon ${i + 1} Hover`}
-                          width={48}
-                          height={48}
-                          className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        />
-                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <>
-                  <Image
-                    src={asset.icon}
-                    alt={`${asset.symbolFallback} Icon`}
-                    width={100}
-                    height={100}
-                    className={cn(
-                      "transition-opacity duration-300",
-                      asset.hoverIcon && "group-hover:opacity-0"
-                    )}
-                  />
-                  {asset.hoverIcon && (
-                    <Image
-                      src={asset.hoverIcon}
-                      alt={`${asset.symbolFallback} Icon Hover`}
-                      width={100}
-                      height={100}
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    />
-                  )}
-                </>
+                <Image
+                  src={asset.icon}
+                  alt={`${asset.symbolFallback} Icon`}
+                  width={100}
+                  height={100}
+                />
               )}
             </div>
 

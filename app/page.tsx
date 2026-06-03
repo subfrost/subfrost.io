@@ -126,15 +126,20 @@ const teamMembers: {
   { name: "Gabe", titleKey: "team.title.founderCeo", image: "gabe.png", descKey: "team.gabe.description", socials: [{ type: "x", url: "https://x.com/gabe_subfrost" }, { type: "linkedin", url: "https://www.linkedin.com/in/gabelee0" }] },
   { name: "Flex", titleKey: "team.title.founderCto", image: "flex.png", descKey: "team.flex.description", socials: [{ type: "x", url: "https://x.com/judoflexchop" }, { type: "github", url: "https://github.com/kungfuflex" }] },
   { name: "Brooks", titleKey: "team.title.apacMarketing", image: "brooks.png", descKey: "team.brooks.description", socials: [{ type: "x", url: "https://x.com/brooks_subfrost" }] },
+  { name: "Casuwu", titleKey: "team.title.swe", image: "Cas.jpg", descKey: "team.casuwu.description", socials: [{ type: "x", url: "https://x.com/0xcasuwu" }] },
+  { name: "Tangata", titleKey: "team.title.swe", image: "tangata.jpg", descKey: "team.tangata.description", socials: [{ type: "x", url: "https://x.com/TangataNui" }] },
   { name: "Domo", titleKey: "team.title.advisor", image: "domo.jpg", descKey: "team.domo.description", socials: [{ type: "x", url: "https://x.com/domodata" }] },
   { name: "Hex", titleKey: "team.title.advisor", image: "hex.jpg", descKey: "team.hex.description", socials: [{ type: "x", url: "https://x.com/hexbtc" }] },
   { name: "Allen", titleKey: "team.title.advisor", image: "allen.jpg", descKey: "team.allen.description", socials: [{ type: "x", url: "https://x.com/allenday" }] },
   { name: "Binari", titleKey: "team.title.advisor", image: "binari.png", descKey: "team.binari.description", socials: [{ type: "x", url: "https://x.com/0xBinari" }] },
   { name: "Eran", titleKey: "team.title.advisor", image: "eran.jpeg", descKey: "team.eran.description", socials: [{ type: "linkedin", url: "https://www.linkedin.com/in/eransinai/" }] },
+  { name: "Mork1e", titleKey: "team.title.advisor", image: "mork.jpg", descKey: "team.mork1e.description", socials: [{ type: "x", url: "https://x.com/mork1e" }] },
 ]
 
-const founders = teamMembers.slice(0, 3)
-const advisors = teamMembers.slice(3)
+// Founders (large cards) vs other team members (advisor-sized) vs advisors (right column)
+const founders = teamMembers.slice(0, 2)
+const teamMembersSmall = teamMembers.slice(2, 5)
+const advisors = teamMembers.slice(5)
 
 const socialIconMap = {
   x: XIcon,
@@ -303,7 +308,7 @@ export default function Page() {
             <VaultsOverview />
           </div> */}
 
-          <div id="team-partnerships" ref={partnersSectionRef} className="mt-24 pt-16 md:px-4 border-t border-slate-300/50">
+          <div id="team-partnerships" ref={partnersSectionRef} className="mt-24 pt-16 border-t border-slate-300/50">
             {/* Section: The Team */}
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
@@ -332,8 +337,7 @@ export default function Page() {
                       <p className="text-gray-400 text-sm">{t(member.titleKey)}</p>
                     </div>
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-1 md:p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                      <p className="text-lg font-bold text-white text-center">{member.name}</p>
-                      <p className="text-xs text-gray-300 text-center px-2 sm:px-0 md:px-2 mt-1">{t(member.descKey)}</p>
+                      <p className="text-xs text-gray-300 text-center px-2 sm:px-0 md:px-2">{t(member.descKey)}</p>
                       {member.socials.length > 0 && (
                         <div className="flex items-center justify-center gap-3 mt-3">
                           {member.socials.map((social) => {
@@ -357,22 +361,40 @@ export default function Page() {
                   </div>
                 )
               }
+              // Founders render as large cards; remaining team members match advisor card size
+              const foundersGrid = (
+                <div className="grid grid-cols-2 gap-4">
+                  {founders.map((member, index) => renderCard(member, index, true, false))}
+                </div>
+              )
+              // md and up: founders + small team stack in the left column
+              const nonAdvisorColumn = (
+                <div className="space-y-4">
+                  {foundersGrid}
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {teamMembersSmall.map((member, index) => renderCard(member, index, false))}
+                  </div>
+                </div>
+              )
+              const advisorColumn = (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {advisors.map((member, index) => renderCard(member, index, false))}
+                </div>
+              )
               return (
                 <>
-                  {/* XS: founders + first advisor (Domo) as large cards; Domo keeps the advisor-sized photo */}
-                  <div className="grid grid-cols-2 gap-4 p-2 sm:hidden">
-                    {founders.map((member, index) => renderCard(member, index, true))}
-                    {renderCard(advisors[0], founders.length, true, true)}
+                  {/* Below md: stacked — founders, then team + advisors flow together so an odd
+                      number of team cards doesn't leave a gap before the advisors */}
+                  <div className="md:hidden p-2 space-y-3">
+                    {foundersGrid}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {[...teamMembersSmall, ...advisors].map((member, index) => renderCard(member, index, false))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 p-2 mt-2 sm:hidden">
-                    {advisors.slice(1).map((member, index) => renderCard(member, index, false))}
-                  </div>
-                  {/* sm and up: original 3 founders + 5 advisors layout */}
-                  <div className="hidden sm:grid sm:grid-cols-3 gap-4 p-2">
-                    {founders.map((member, index) => renderCard(member, index, true))}
-                  </div>
-                  <div className="hidden sm:grid sm:grid-cols-5 gap-4 p-2 mt-2">
-                    {advisors.map((member, index) => renderCard(member, index, false))}
+                  {/* md and up: two columns — non-advisors left, advisors right */}
+                  <div className="hidden md:grid md:grid-cols-2 gap-4 p-2 items-start">
+                    {nonAdvisorColumn}
+                    {advisorColumn}
                   </div>
                 </>
               )
