@@ -122,6 +122,10 @@ jobs:
 
       - name: Setup Prefetch Scheduler
         if: ${{ env.PREFETCH_SECRET != '' }}
+        # Non-fatal: the deploy SA currently lacks serviceusage permission to
+        # enable cloudscheduler.googleapis.com. The scheduler only warms a cache,
+        # so a failure here must not fail the deploy or skip downstream jobs.
+        continue-on-error: true
         run: |
           gcloud services enable cloudscheduler.googleapis.com --quiet
 
