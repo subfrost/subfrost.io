@@ -26,6 +26,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'production' }}
 
+    # Surface PREFETCH_SECRET as an env var so step-level `if:` can read it.
+    # The `secrets` context is NOT available in `if:` conditions, which silently
+    # invalidates the whole workflow file; `env` is allowed.
+    env:
+      PREFETCH_SECRET: ${{ secrets.PREFETCH_SECRET }}
+
     permissions:
       contents: read
       id-token: write  # Required for Workload Identity Federation
@@ -115,7 +121,7 @@ jobs:
           echo "**Image:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Setup Prefetch Scheduler
-        if: ${{ secrets.PREFETCH_SECRET != '' }}
+        if: ${{ env.PREFETCH_SECRET != '' }}
         run: |
           gcloud services enable cloudscheduler.googleapis.com --quiet
 
