@@ -128,18 +128,19 @@ const teamMembers: {
   { name: "Brooks", titleKey: "team.title.apacMarketing", image: "brooks.png", descKey: "team.brooks.description", socials: [{ type: "x", url: "https://x.com/brooks_subfrost" }] },
   { name: "Casuwu", titleKey: "team.title.swe", image: "Cas.jpg", descKey: "team.casuwu.description", socials: [{ type: "x", url: "https://x.com/0xcasuwu" }] },
   { name: "Tangata", titleKey: "team.title.swe", image: "tangata.jpg", descKey: "team.tangata.description", socials: [{ type: "x", url: "https://x.com/TangataNui" }] },
+  { name: "Shang", titleKey: "team.title.devopsEngineer", image: "shang.png", descKey: "team.shang.description", socials: [{ type: "x", url: "https://x.com/ssh_Shang" }] },
   { name: "Domo", titleKey: "team.title.advisor", image: "domo.jpg", descKey: "team.domo.description", socials: [{ type: "x", url: "https://x.com/domodata" }] },
   { name: "Hex", titleKey: "team.title.advisor", image: "hex.jpg", descKey: "team.hex.description", socials: [{ type: "x", url: "https://x.com/hexbtc" }] },
   { name: "Allen", titleKey: "team.title.advisor", image: "allen.jpg", descKey: "team.allen.description", socials: [{ type: "x", url: "https://x.com/allenday" }] },
   { name: "Binari", titleKey: "team.title.advisor", image: "binari.png", descKey: "team.binari.description", socials: [{ type: "x", url: "https://x.com/0xBinari" }] },
-  { name: "Eran", titleKey: "team.title.advisor", image: "eran.jpeg", descKey: "team.eran.description", socials: [{ type: "linkedin", url: "https://www.linkedin.com/in/eransinai/" }] },
   { name: "Mork1e", titleKey: "team.title.advisor", image: "mork.jpg", descKey: "team.mork1e.description", socials: [{ type: "x", url: "https://x.com/mork1e" }] },
+  { name: "Eran", titleKey: "team.title.advisor", image: "eran.jpeg", descKey: "team.eran.description", socials: [{ type: "linkedin", url: "https://www.linkedin.com/in/eransinai/" }] },
 ]
 
 // Founders (large cards) vs other team members (advisor-sized) vs advisors (right column)
 const founders = teamMembers.slice(0, 2)
-const teamMembersSmall = teamMembers.slice(2, 5)
-const advisors = teamMembers.slice(5)
+const teamMembersSmall = teamMembers.slice(2, 6)
+const advisors = teamMembers.slice(6)
 
 const socialIconMap = {
   x: XIcon,
@@ -371,13 +372,13 @@ export default function Page() {
               const nonAdvisorColumn = (
                 <div className="space-y-4">
                   {foundersGrid}
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {teamMembersSmall.map((member, index) => renderCard(member, index, false))}
                   </div>
                 </div>
               )
               const advisorColumn = (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="h-full grid grid-cols-2 gap-4 auto-rows-fr">
                   {advisors.map((member, index) => renderCard(member, index, false))}
                 </div>
               )
@@ -392,7 +393,7 @@ export default function Page() {
                     </div>
                   </div>
                   {/* md and up: two columns — non-advisors left, advisors right */}
-                  <div className="hidden md:grid md:grid-cols-2 gap-4 p-2 items-start">
+                  <div className="hidden md:grid md:grid-cols-2 gap-4 p-2 items-stretch">
                     {nonAdvisorColumn}
                     {advisorColumn}
                   </div>

@@ -100,6 +100,7 @@ const en: Record<string, string> = {
   'team.title.apacMarketing': 'APAC Marketing Director',
   'team.title.advisor': 'Advisor',
   'team.title.swe': 'SWE',
+  'team.title.devopsEngineer': 'DevOps Engineer',
 
   // Team descriptions
   'team.gabe.description': 'Former strategy consultant with an obsession for lowering the friction in finance.',
@@ -107,6 +108,7 @@ const en: Record<string, string> = {
   'team.brooks.description': 'Decade in chinese network building & blockchain marketing. Now the leading voice in China for SUBFROST & Alkanes.',
   'team.casuwu.description': 'Built the first staking contract on Bitcoin (UnitVault). Previous SWE at Olympus Protocol and Fjord Foundry.',
   'team.tangata.description': 'Possibly the earliest adopter of Metashrew. Won the Rebar Labs Bitcoin Hackathon for his Acai Contract.',
+  'team.shang.description': 'One of the first builders of Ordinals on Bitcoin and previously held a DevOps role at Fjord Foundry.',
   'team.mork1e.description': 'Founder of Mezcal, Espo, and Pizza.Fun. Building crypto infra since 2017.',
   'team.domo.description': 'Creator of BRC20, the first token standard on Bitcoin.',
   'team.hex.description': 'Founder/CEO of Saturn DEX.',

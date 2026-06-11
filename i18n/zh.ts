@@ -100,6 +100,7 @@ const zh: Record<string, string> = {
   'team.title.apacMarketing': '亚太市场总监',
   'team.title.advisor': '顾问',
   'team.title.swe': '软件工程师',
+  'team.title.devopsEngineer': 'DevOps 工程师',
 
   // Team descriptions
   'team.gabe.description': '前战略顾问，致力于降低金融领域中的摩擦。',
@@ -107,6 +108,7 @@ const zh: Record<string, string> = {
   'team.brooks.description': '在中国网络建设和区块链营销领域拥有十年经验。现为中国地区 SUBFROST 与 Alkanes 的主要代言人。',
   'team.casuwu.description': '在比特币上构建了首个质押合约（UnitVault）。曾任 Olympus Protocol 和 Fjord Foundry 的软件工程师。',
   'team.tangata.description': '可能是 Metashrew 最早的采用者。凭借其 Acai 合约赢得了 Rebar Labs 比特币黑客松。',
+  'team.shang.description': '比特币 Ordinals 的早期建设者之一，曾在 Fjord Foundry 担任 DevOps 职位。',
   'team.mork1e.description': 'Mezcal、Espo 和 Pizza.Fun 的创始人。自 2017 年以来一直在构建加密基础设施。',
   'team.domo.description': 'BRC20 的创建者，比特币上的首个代币标准。',
   'team.hex.description': 'Saturn DEX 创始人 / CEO。',
