@@ -23,6 +23,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local secrets stash (news DB creds, auth secret, admin password) — never commit
+.secrets/
+
 # vercel (removed - now using GCP)
 .vercel
 

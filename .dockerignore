@@ -2,6 +2,9 @@
 node_modules
 .pnpm-store
 
+# local secrets stash — never in the image
+.secrets
+
 # Build outputs
 .next
 out

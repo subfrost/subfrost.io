@@ -107,6 +107,7 @@ import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
 import VolumeModal from "@/components/VolumeModal"
+import LatestArticles from "@/components/articles/LatestArticles"
 import XIcon from "@/components/XIcon"
 import LinkedinIcon from "@/components/LinkedinIcon"
 import { Github } from "lucide-react"
@@ -401,6 +402,9 @@ export default function Page() {
               )
             })()}
           </div>
+
+          {/* Latest articles from the SUBFROST blog (same-origin /api/articles) */}
+          <LatestArticles />
         </div>
       </InfoSection>
 
