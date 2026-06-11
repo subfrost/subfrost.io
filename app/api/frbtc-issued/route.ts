@@ -12,6 +12,10 @@
 
 import { NextResponse } from 'next/server';
 import { alkanesClient } from '@/lib/alkanes-client';
+import { cacheGet, cacheSet } from '@/lib/redis';
+
+const CACHE_KEY = 'frbtc-issued';
+const CACHE_TTL = 2100;
 
 // The returned hex value is little-endian and needs to be byte-reversed
 // for correct interpretation.
@@ -28,6 +32,9 @@ function reverseHex(hex: string): string {
 
 export async function GET() {
   try {
+    const cached = await cacheGet<{ frBtcIssued: number }>(CACHE_KEY);
+    if (cached) return NextResponse.json(cached);
+
     const provider = await alkanesClient.getProvider();
     const path = new TextEncoder().encode('/totalsupply');
     const storageHex = await provider.getStorageAt(32, 0, path);
@@ -41,7 +48,10 @@ export async function GET() {
     const adjustedTotalSupply = totalSupply - 4443097n;
     const totalSupplyBtc = Number(adjustedTotalSupply) / 1e8;
 
-    return NextResponse.json({ frBtcIssued: totalSupplyBtc });
+    const data = { frBtcIssued: totalSupplyBtc };
+    await cacheSet(CACHE_KEY, data, CACHE_TTL);
+
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching frBTC supply:', error);
     return NextResponse.json(

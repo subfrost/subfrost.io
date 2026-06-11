@@ -25,12 +25,12 @@ const InfoSection = forwardRef<HTMLElement, InfoSectionProps>(({ children, isFli
     <section
       ref={ref}
       className={cn(
-        "relative px-4",
-        "bg-[#121A2C]", // Solid dark background - always visible
+        "relative px-8 md:px-4",
+        "bg-gradient-to-b from-[color:var(--sf-bg-start)] to-[color:var(--sf-bg-end)]",
         "text-gray-300",
         "py-20 md:py-28",
         "overflow-hidden",
-        "min-h-screen", // Ensure minimum height
+        "min-h-screen",
       )}
     >
       {/* Snowflakes backdrop - falling animation throughout the section */}

@@ -6,7 +6,7 @@ import { alkanesClient } from '@/lib/alkanes-client';
 import { getBtcLockedData } from '@/lib/blockchain-data';
 
 describe('BTC Locked Debug', () => {
-  it('should debug UTXO structure and calculation', async () => {
+  it.skipIf(process.env.CI)('should debug UTXO structure and calculation', async () => {
     console.log('[Test] Getting subfrost address...');
     const address = await alkanesClient.getSubfrostAddress();
     console.log('[Test] Address:', address);

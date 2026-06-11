@@ -10,7 +10,7 @@ import { cacheGet, cacheSet } from '@/lib/redis';
 import { calculateTotalUnwraps, getAlkanesSubfrostAddress } from '@/lib/rpc-client';
 
 const CACHE_KEY = 'alkanes-total-unwraps';
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
 export async function GET() {
   try {
@@ -40,10 +40,16 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error fetching Alkanes total unwraps:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch Alkanes total unwraps.', details: errorMessage },
-      { status: 500 }
-    );
+    console.error('Error fetching Alkanes total unwraps:', errorMessage);
+    // Return empty data rather than 500 so the UI degrades gracefully.
+    // The prefetch job will warm the cache on the next cycle.
+    return NextResponse.json({
+      totalUnwrapsSatoshis: null,
+      totalUnwrapsBtc: null,
+      unwrapCount: null,
+      signerAddress: null,
+      timestamp: Date.now(),
+      error: errorMessage,
+    });
   }
 }

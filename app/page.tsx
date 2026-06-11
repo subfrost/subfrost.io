@@ -98,8 +98,8 @@ import Footer from "@/components/Footer"
 import GlobalStyles from "@/components/GlobalStyles"
 import SocialButtons from "@/components/SocialButtons"
 import ActionButtons from "@/components/ActionButtons"
+import { trackEvent } from "@/lib/analytics"
 import MetricsBoxes from "@/components/MetricsBoxes"
-import CustomModal from "@/components/CustomModal"
 import InfoSection from "@/components/InfoSection"
 import ScrollArrow from "@/components/ScrollArrow"
 import FeaturesGrid from "@/components/FeaturesGrid"
@@ -108,42 +108,55 @@ import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
 import VolumeModal from "@/components/VolumeModal"
 import LatestArticles from "@/components/articles/LatestArticles"
+import XIcon from "@/components/XIcon"
+import LinkedinIcon from "@/components/LinkedinIcon"
+import { Github } from "lucide-react"
+import LanguageToggle from "@/components/LanguageToggle"
+import StableText from "@/components/StableText"
+import { useTranslation } from "@/hooks/useTranslation"
 
-const partners = [
-  { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes (now open-source)", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
-  { name: "Saturn BTC", logo: "Saturn.svg", description: "Premier AMM/DEX on Arch Network", link: "https://www.saturnbtc.io/app/swap", tag: "DeFi" },
-  { name: "[Best in Slot]", logo: "bestinslot.png", description: "Premier AMM on BRC2.0 (instant swaps on Bitcoin)", link: "https://bestinslot.xyz/", tag: "DeFi" },
-  { name: "Sats Terminal", logo: "satsterminal.jpg", description: "Swap for Alkanes, Runes, and Spark Tokens", link: "https://www.satsterminal.com/", tag: "DeFi" },
-  { name: "Yuzo", logo: "Yuzo.png", description: "₿apps on Bitcoin Layer-1 via BRC2.0", link: "https://yuzo.xyz/", tag: "DeFi" },
-  { name: "CatSwap", logo: "catswap.jpg", description: "Premier AMM/DEX on BRC2.0", link: "https://catswap.fun/", tag: "DeFi" },
-  { name: "Satonomy", logo: "satonomylogo.png", description: "UTXO Management Platform", link: "https://app.satonomy.io/", tag: "Tools" },
-  { name: "Ordiscan", logo: "ordiscan.jpg", description: "Bitcoin Metaprotocol Explorer & Tools", link: "https://ordiscan.com/", tag: "Explorer" },
-  { name: "radFi", logo: "radfilogo.jpeg", description: "Runes Marketplace & Mint Platform", link: "https://www.radfi.co/", tag: "DeFi" },
-  { name: "Bound Money", logo: "bound money.png", description: "USD Stablecoin (bUSD) on Bitcoin Layer-1", link: "https://bound.money/", tag: "Stable Coin" },
-  { name: "Alkamon (TBA)", logo: "alkamon.png", description: "First Advanced Game on Bitcoin Layer-1", link: "https://mint.lasereyes.build/alkamon", tag: "DeFi" },
-  { name: "Fairmints (TBA)", logo: "fairmints.svg", description: "Alkanes and Orbitals Marketplace & Tools", link: "https://fairmints.io/", tag: "DeFi" },
-  { name: "pizza.fun (TBA)", logo: "pizzadotfun.png", description: "Alkanes Token Launchpad with Gasless Mints", link: "https://x.com/pizzadotfunbtc", tag: "DeFi" },
-  { name: "ADOR Orbitals", logo: "adorspng.png", description: "Alkanes ArtFi Platform", link: "https://orbital.adors.org/alkane/wrap-btc", tag: "DeFi" },
-  { name: "Layer 1 Foundation", logo: "layer1foundation.jpg", description: "BRC20 and Metaprotocol Development & Support", link: "https://layer1.foundation/", tag: "Group" },
-  { name: "LaserEyes", logo: "red_lasereyes.png", description: "Bitcoin Wallet Infrastructure", link: "https://www.lasereyes.build/", tag: "Infra" },
-  { name: "Rebar Labs", logo: "rebar.jpeg", description: "MEV-aware Bitcoin Infrastructure", link: "https://rebarlabs.io/", tag: "Infra" },
-  { name: "Pashov Group", logo: "pashov.png", description: "Initial Technical Audits (TBD) of SUBFROST", link: "https://www.pashov.net/", tag: "Audits (TBD)" },
+type SocialLink = { type: "x" | "linkedin" | "github"; url: string }
+
+const teamMembers: {
+  name: string
+  titleKey: string
+  image: string
+  descKey: string
+  socials: SocialLink[]
+}[] = [
+  { name: "Gabe", titleKey: "team.title.founderCeo", image: "gabe.png", descKey: "team.gabe.description", socials: [{ type: "x", url: "https://x.com/gabe_subfrost" }, { type: "linkedin", url: "https://www.linkedin.com/in/gabelee0" }] },
+  { name: "Flex", titleKey: "team.title.founderCto", image: "flex.png", descKey: "team.flex.description", socials: [{ type: "x", url: "https://x.com/judoflexchop" }, { type: "github", url: "https://github.com/kungfuflex" }] },
+  { name: "Brooks", titleKey: "team.title.apacMarketing", image: "brooks.png", descKey: "team.brooks.description", socials: [{ type: "x", url: "https://x.com/brooks_subfrost" }] },
+  { name: "Casuwu", titleKey: "team.title.swe", image: "Cas.jpg", descKey: "team.casuwu.description", socials: [{ type: "x", url: "https://x.com/0xcasuwu" }] },
+  { name: "Tangata", titleKey: "team.title.swe", image: "tangata.jpg", descKey: "team.tangata.description", socials: [{ type: "x", url: "https://x.com/TangataNui" }] },
+  { name: "Shang", titleKey: "team.title.devopsEngineer", image: "shang.png", descKey: "team.shang.description", socials: [{ type: "x", url: "https://x.com/ssh_Shang" }] },
+  { name: "Domo", titleKey: "team.title.advisor", image: "domo.jpg", descKey: "team.domo.description", socials: [{ type: "x", url: "https://x.com/domodata" }] },
+  { name: "Hex", titleKey: "team.title.advisor", image: "hex.jpg", descKey: "team.hex.description", socials: [{ type: "x", url: "https://x.com/hexbtc" }] },
+  { name: "Allen", titleKey: "team.title.advisor", image: "allen.jpg", descKey: "team.allen.description", socials: [{ type: "x", url: "https://x.com/allenday" }] },
+  { name: "Binari", titleKey: "team.title.advisor", image: "binari.png", descKey: "team.binari.description", socials: [{ type: "x", url: "https://x.com/0xBinari" }] },
+  { name: "Mork1e", titleKey: "team.title.advisor", image: "mork.jpg", descKey: "team.mork1e.description", socials: [{ type: "x", url: "https://x.com/mork1e" }] },
+  { name: "Eran", titleKey: "team.title.advisor", image: "eran.jpeg", descKey: "team.eran.description", socials: [{ type: "linkedin", url: "https://www.linkedin.com/in/eransinai/" }] },
 ]
 
-const teamMembers = [
-  { name: "Gabe", title: "Founder/CEO", image: "gabe.png", link: "https://x.com/gabe_subfrost", description: "Strategy Consultant with an obsession for lowering the friction in finance." },
-  { name: "Flex", title: "Founder/CTO", image: "flex.png", link: "https://x.com/judoflexchop", description: "Reknowned Crypto Dev for 10+ yrs. Creator of Protorunes/Alkanes. Former CTO of Polymarket and IDEX." },
-  { name: "Brooks", title: "APAC Marketing Director", image: "brooks.png", link: "https://x.com/brooks_subfrost", description: "10+ years in Chinese Network Building & Blockchain Marketing. Now the leading voice in China for SUBFROST & Alkanes." },
-  { name: "Domo", title: "Advisor", image: "domo.jpg", link: "https://x.com/domodata", description: "Creator of BRC20, the first token standard on Bitcoin." },
-  { name: "Hex", title: "Advisor", image: "hex.jpg", link: "https://x.com/hexbtc", description: "Founder/CEO of Saturn DEX." },
-  { name: "Allen", title: "Advisor", image: "allen.jpg", link: "https://x.com/allenday", description: "Founder of Google web3. Venture Partner at Primitive Ventures." },
-  { name: "Binari", title: "Advisor", image: "binari.png", link: "https://x.com/0xBinari", description: "Founder/CEO of Best In Slot (creator of BRC2.0)." },
-  { name: "Eran", title: "Advisor", image: "eran.jpeg", link: "https://www.linkedin.com/in/eransinai/", description: "Serial Founder/CEO with several Cyber exits." },
-  { name: "Hathbanger", title: "Advisor", image: "hath.jpg", link: "https://x.com/hathbanger", description: "Founder of Omnisat, LaserEyes, BeatBlocks and Alkamist." },
-]
+// Founders (large cards) vs other team members (advisor-sized) vs advisors (right column)
+const founders = teamMembers.slice(0, 2)
+const teamMembersSmall = teamMembers.slice(2, 6)
+const advisors = teamMembers.slice(6)
+
+const socialIconMap = {
+  x: XIcon,
+  linkedin: LinkedinIcon,
+  github: Github,
+} as const
+
+const socialLabelMap = {
+  x: "X (Twitter)",
+  linkedin: "LinkedIn",
+  github: "GitHub",
+} as const
 
 export default function Page() {
-  const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false)
+  const { t } = useTranslation()
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
   const partnersSectionRef = useRef<HTMLDivElement | null>(null)
@@ -156,36 +169,10 @@ export default function Page() {
     partnersSectionRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const handleScrollToPartnersAndCloseMetrics = () => {
-    handleCloseMetricsModal()
-    // A small delay ensures the modal closes before scrolling, preventing layout jank.
-    setTimeout(() => {
-      partnersSectionRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, 300)
-  }
-
-  const handleOpenMetricsModal = () => {
-    setIsMetricsModalOpen(true)
-  }
-
-  const handleCloseMetricsModal = () => {
-    setIsMetricsModalOpen(false)
-  }
-
   return (
     <main className="relative">
       <GlobalStyles />
       <StickyNav />
-      <div className="md:hidden">
-        <CustomModal
-          isOpen={isMetricsModalOpen}
-          onClose={handleCloseMetricsModal}
-          title="Metrics"
-          modalClassName="md:max-w-4xl w-[90vw]"
-        >
-          <MetricsBoxes onPartnershipsClick={handleScrollToPartnersAndCloseMetrics} isModal={true} />
-        </CustomModal>
-      </div>
 
       <VolumeModal
         isOpen={isVolumeModalOpen}
@@ -196,36 +183,65 @@ export default function Page() {
       <section className="relative flex h-dvh flex-col items-center overflow-hidden bg-gradient-to-b from-blue-200 to-blue-50">
         <FrostBackdrop />
         <SocialButtons />
-        
-        {/* Top Right Buttons */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+
+        {/* Top Left Buttons */}
+        <div className="absolute top-4 left-4 z-20 flex flex-row items-center gap-2">
           <a
             href="https://api.subfrost.io"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
-            API LOGIN
+            <StableText textKey="hero.apiLogin" />
           </a>
           <a
             href="https://api.subfrost.io/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex justify-center px-6 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors font-bold text-xs md:text-sm"
+            onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="hidden sm:flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
-            API DOCS
+            <StableText textKey="hero.apiDocs" />
+          </a>
+          <a
+            href="https://docs.subfrost.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
+          >
+            <span className="sm:hidden">
+              <StableText textKey="hero.docsMobile" />
+            </span>
+            <span className="hidden sm:inline">
+              <StableText textKey="hero.officialDocs" />
+            </span>
+          </a>
+        </div>
+
+        {/* Top Right Button */}
+        <div className="absolute top-4 right-4 z-20 flex flex-col-reverse md:flex-row items-end md:items-center gap-2 md:gap-4">
+          <LanguageToggle variant="light" />
+          <a
+            href="https://app.subfrost.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md"
+          >
+            <StableText textKey="hero.launchApp" />
           </a>
         </div>
 
         {/* Main content - centered using flex, takes available space */}
-        <div className="relative z-10 flex flex-1 flex-col items-center justify-center w-full max-w-4xl px-4 pt-16">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-start w-full max-w-4xl px-4 pt-[calc(50vh-14.5rem)] sm:pt-[calc(50vh-15.5rem)] md:pt-[calc(50vh-15.8rem)] lg:pt-[calc(50vh-16.2rem)]">
           {/* Content container */}
           <div className="flex flex-col items-center w-full">
             {/* SUBFROST title - changed B to ₿ */}
             <div className="w-full px-2 sm:px-0">
               <h1
                 className={cn(
-                  "text-[4rem] sm:text-[6rem] md:text-[7rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
+                  "text-[4rem] sm:text-[6.5rem] md:text-[8rem] lg:text-[9.11rem] text-white tracking-normal font-bold uppercase text-center snow-title",
                 )}
               >
                 SU₿FROST
@@ -238,12 +254,9 @@ export default function Page() {
                 <BottomAnimatedSubtitle />
               </div>
               <ActionButtons
-                onMetricsClick={handleOpenMetricsModal}
                 onVolumeChartsClick={() => setIsVolumeModalOpen(true)}
               />
-              <div className="hidden md:block">
-                <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />
-              </div>
+              <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />
             </div>
           </div>
         </div>
@@ -254,11 +267,9 @@ export default function Page() {
             direction="down"
             onClick={handleScrollDown}
             color="hsl(var(--brand-blue))"
-            label="Learn More"
+            label={t("hero.learnMore")}
           />
         </div>
-
-        <Footer />
       </section>
 
       <InfoSection
@@ -268,9 +279,9 @@ export default function Page() {
       >
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-            THE BITCOIN-NATIVE<span className="block">LAYER 0</span>
+            {t("about.title1")}<span className="block">{t("about.title2")}</span>
           </h2>
-          <p className="mt-4 text-xl text-gray-300">Unlocking seamless DeFi experiences <i>across</i> Bitcoin.</p>
+          <p className="mt-4 text-xl text-gray-300">{t("about.subtitle")}</p>
         </div>
 
         <div className="space-y-20">
@@ -283,10 +294,10 @@ export default function Page() {
           <div id="subfrost-app" className="pt-10 border-t border-slate-300/20">
             <div className="text-center mb-8">
               <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
-                THE SUBFROST APP
+                {t("subfrostApp.heading")}
               </h3>
               <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                Unrivaled UX and novel DeFi features on Bitcoin for the first time.
+                {t("subfrostApp.subheading")}
               </p>
             </div>
 
@@ -299,111 +310,105 @@ export default function Page() {
             <VaultsOverview />
           </div> */}
 
-          <div id="team-partnerships" className="mt-24 pt-16 border-t border-slate-300/50">
-            <div className="grid md:grid-cols-2 gap-8 items-start">
-              {/* Left Column */}
-              <div>
-                  {/* Section: The Team */}
-                  <div className="text-center mb-8">
-                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                      SUBFROST TEAM
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
-                    {teamMembers.map((member, index) => {
-                      const isFounderOrBrooks = index < 3
-                      const cardContent = (
-                        <div className={`flex flex-col items-center justify-center ${isFounderOrBrooks ? "space-y-1" : "space-y-2"} transition-opacity duration-300 group-hover:opacity-0`}>
-                          <Image
-                            src={`/Team/${member.image}`}
-                            alt={member.name}
-                            width={isFounderOrBrooks ? 160 : 64}
-                            height={isFounderOrBrooks ? 160 : 64}
-                            className={`${isFounderOrBrooks ? "w-36 h-36" : "w-16 h-16"} rounded-full mx-auto mb-2 object-cover`}
-                          />
-                          <h4 className="text-lg font-bold text-white">{member.name}</h4>
-                          <p className="text-gray-400 text-sm">{member.title}</p>
-                        </div>
-                      )
-
-                      const hoverContent = (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                          <p className="text-lg font-bold text-white text-center">{member.name}</p>
-                          {/* @ts-ignore */}
-                          <p className="text-xs text-gray-300 text-center px-2 mt-1">{member.description}</p>
-                        </div>
-                      )
-
-                      const cardClassName = isFounderOrBrooks
-                        ? "group relative min-h-40 pt-2 px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
-                        : "group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-all duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center block overflow-hidden hover:scale-105"
-
-                      return member.link ? (
-                        <a key={index} href={member.link} target="_blank" rel="noopener noreferrer" className={cardClassName}>
-                          {cardContent}
-                          {hoverContent}
-                        </a>
-                      ) : (
-                        <div key={index} className={cardClassName}>
-                          {cardContent}
-                          {hoverContent}
-                        </div>
-                      )
-                    })}
-                  </div>
-              </div>
-
-              {/* Right Column */}
-              <div ref={partnersSectionRef}>
-                  {/* Section: Partners */}
-                  <div className="text-center mb-8">
-                    <h2 className="text-4xl md:text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
-                      Featured Partners
-                    </h2>
-                  </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-2">
-                      {partners.filter(p => ["OYL Corp", "Saturn BTC", "[Best in Slot]", "Sats Terminal", "Bound Money", "Layer 1 Foundation"].includes(p.name)).map((partner, index) => (
-                        <a
-                          key={index}
-                          href={partner.link || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group relative min-h-40 pt-3 px-3 pb-8 rounded-lg border border-gray-200 flex flex-col items-center justify-center transition-colors duration-300 bg-white hover:bg-white/10 hover:border-gray-700 shadow-[0_0_10px_rgba(255,255,255,0.8)] overflow-hidden"
-                        >
-                          {/* Default view */}
-                          <div className="flex flex-col items-center justify-center space-y-2 transition-opacity duration-300 group-hover:opacity-0">
-                            <Image
-                              src={`/Partner Logos/${partner.logo}`}
-                              alt={partner.name}
-                              width={64}
-                              height={64}
-                              className="object-contain w-16 h-16"
-                            />
-                            <p className="text-xs font-bold text-gray-800 text-center">{partner.name}</p>
-                          </div>
-
-                          {/* Hover view */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                            <p className="text-xs font-bold text-white text-center">{partner.name}</p>
-                            <p className="text-xs text-gray-300 text-center px-2 mt-1">{partner.description}</p>
-                          </div>
-
-                          {/* DeFi Tag: Fades out */}
-                          <div className="absolute bottom-1 left-1 bg-slate-200 text-slate-800 rounded-full px-2 text-xs transition-opacity duration-300 group-hover:opacity-0">
-                            {partner.tag}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                    <p className="text-center text-gray-400 mt-6 text-sm">10+ other partners. Please inquire and we will confirm authenticity of relationships.</p>
-              </div>
+          <div id="team-partnerships" ref={partnersSectionRef} className="mt-24 pt-16 border-t border-slate-300/50">
+            {/* Section: The Team */}
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter">
+                {t("team.heading")}
+              </h2>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto mt-4">
+                {t("team.subheading")}
+              </p>
             </div>
+            {(() => {
+              const renderCard = (member: (typeof teamMembers)[number], key: number, isFounder: boolean, smallImage: boolean = !isFounder) => {
+                const cardClassName = isFounder
+                  ? "group relative min-h-40 pt-2 px-1 md:px-2 pb-4 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-[background-color,transform] duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
+                  : "group relative min-h-40 pt-3 px-1 md:px-3 pb-4 md:pb-8 rounded-lg border border-gray-700 flex flex-col items-center justify-center transition-[background-color,transform] duration-300 bg-white/10 hover:bg-white/5 backdrop-blur-sm text-center overflow-hidden hover:scale-105"
+                return (
+                  <div key={key} className={cardClassName}>
+                    <div className={`flex flex-col items-center justify-center ${isFounder ? "space-y-1" : "space-y-2"} transition-opacity duration-300 group-hover:opacity-0`}>
+                      <Image
+                        src={`/Team/${member.image}`}
+                        alt={member.name}
+                        width={smallImage ? 64 : 160}
+                        height={smallImage ? 64 : 160}
+                        className={`${smallImage ? "w-16" : "w-36"} aspect-square max-w-full h-auto rounded-full mx-auto mb-2 object-cover`}
+                      />
+                      <h4 className="text-lg font-bold text-white">{member.name}</h4>
+                      <p className="text-gray-400 text-sm">{t(member.titleKey)}</p>
+                    </div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-1 md:p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <p className="text-xs text-gray-300 text-center px-2 sm:px-0 md:px-2">{t(member.descKey)}</p>
+                      {member.socials.length > 0 && (
+                        <div className="flex items-center justify-center gap-3 mt-3">
+                          {member.socials.map((social) => {
+                            const Icon = socialIconMap[social.type]
+                            return (
+                              <a
+                                key={social.type}
+                                href={social.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`${member.name} on ${socialLabelMap[social.type]}`}
+                                className="text-white hover:text-gray-300 transition-colors"
+                              >
+                                <Icon className="w-7 h-7" />
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+              // Founders render as large cards; remaining team members match advisor card size
+              const foundersGrid = (
+                <div className="grid grid-cols-2 gap-4">
+                  {founders.map((member, index) => renderCard(member, index, true, false))}
+                </div>
+              )
+              // md and up: founders + small team stack in the left column
+              const nonAdvisorColumn = (
+                <div className="space-y-4">
+                  {foundersGrid}
+                  <div className="grid grid-cols-2 gap-4">
+                    {teamMembersSmall.map((member, index) => renderCard(member, index, false))}
+                  </div>
+                </div>
+              )
+              const advisorColumn = (
+                <div className="h-full grid grid-cols-2 gap-4 auto-rows-fr">
+                  {advisors.map((member, index) => renderCard(member, index, false))}
+                </div>
+              )
+              return (
+                <>
+                  {/* Below md: stacked — founders, then team + advisors flow together so an odd
+                      number of team cards doesn't leave a gap before the advisors */}
+                  <div className="md:hidden p-2 space-y-3">
+                    {foundersGrid}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {[...teamMembersSmall, ...advisors].map((member, index) => renderCard(member, index, false))}
+                    </div>
+                  </div>
+                  {/* md and up: two columns — non-advisors left, advisors right */}
+                  <div className="hidden md:grid md:grid-cols-2 gap-4 p-2 items-stretch">
+                    {nonAdvisorColumn}
+                    {advisorColumn}
+                  </div>
+                </>
+              )
+            })()}
           </div>
 
           {/* Latest articles from the SUBFROST blog (same-origin /api/articles) */}
           <LatestArticles />
         </div>
       </InfoSection>
+
+      <Footer />
     </main>
   )
 }

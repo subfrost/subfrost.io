@@ -199,7 +199,7 @@ const PartnershipsModal: React.FC<PartnershipsModalProps> = ({ isOpen, onClose }
                 Email Us
               </a>
               <a
-                href="https://x.com/SUBFROSTio/"
+                href="https://x.com/gabe_subfrost/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#284372] hover:underline"

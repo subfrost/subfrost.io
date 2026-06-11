@@ -7,40 +7,45 @@
 import React from "react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useTranslation } from "@/hooks/useTranslation"
 
 interface Asset {
-  symbol: string
-  name: string
-  description: string
+  symbolKey: string
+  symbolFallback: string
+  nameKey: string
+  descKey: string
   icon: string
   hoverIcon?: string
   icons?: { icon: string; hoverIcon?: string }[]
   color: string
-  badge?: string
+  badgeKey?: string
 }
 
 const assets: Asset[] = [
   {
-    symbol: "frBTC",
-    name: "The BTC Synthetic",
-    description: "Enabling the seamless use of native BTC in dApps, completely abstracting away the wrap process.",
+    symbolKey: "assets.frbtc.symbol",
+    symbolFallback: "frBTC",
+    nameKey: "assets.frbtc.name",
+    descKey: "assets.frbtc.description",
     icon: "/btc_empty.svg",
     hoverIcon: "/btc_snowflake.svg",
     color: "from-amber-500 to-orange-600",
-    badge: "Live!"
+    badgeKey: "assets.live"
   },
   {
-    symbol: "frUSD",
-    name: "Stablecoin Utilization on Bitcoin",
-    description: "The most capital-efficient bridge from USDT and USDC to Bitcoin L1.",
+    symbolKey: "assets.frusd.symbol",
+    symbolFallback: "frUSD",
+    nameKey: "assets.frusd.name",
+    descKey: "assets.frusd.description",
     icon: "/usdt_empty.svg",
     hoverIcon: "/usdt_snowflake.svg",
     color: "from-green-500 to-green-700"
   },
   {
-    symbol: "Other Majors",
-    name: "Bridge High Volume Assets to Bitcoin",
-    description: "SUBFROST can bridge any EVM- or UTXO-based asset to Bitcoin L1.",
+    symbolKey: "assets.others.symbol",
+    symbolFallback: "Other Majors",
+    nameKey: "assets.others.name",
+    descKey: "assets.others.description",
     icon: "",
     icons: [
       { icon: "/eth_empty.svg", hoverIcon: "/eth_snowflake.svg" },
@@ -51,15 +56,16 @@ const assets: Asset[] = [
 ]
 
 export default function AssetsOverview() {
+  const { t } = useTranslation()
   return (
     <div className="space-y-12">
       {/* Header */}
       <div className="text-center">
         <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-white snow-title-no-filter mb-4">
-          NATIVE ASSETS
+          {t("assets.heading")}
         </h3>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          A new class of assets moving seamlessly in, out, and across all Bitcoin metaprotocols and L2s.
+          {t("assets.description")}
         </p>
       </div>
 
@@ -69,28 +75,19 @@ export default function AssetsOverview() {
           <div
             key={index}
             className={cn(
-              "group relative rounded-2xl p-6 transition-all duration-500",
+              "group relative rounded-2xl p-6",
               "bg-gradient-to-br from-slate-800/60 to-slate-900/60",
               "shadow-lg shadow-black/20",
               "before:absolute before:inset-x-0 before:top-0 before:h-4 before:rounded-t-2xl before:border-t before:border-l before:border-r before:border-white/10 before:pointer-events-none before:[mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]",
-              "backdrop-blur-sm",
-              "hover:shadow-2xl"
+              "backdrop-blur-sm"
             )}
           >
             {/* Badge */}
-            {asset.badge && (
+            {asset.badgeKey && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-bold text-white shadow-lg">
-                {asset.badge}
+                {t(asset.badgeKey)}
               </div>
             )}
-
-            {/* Animated glow background */}
-            <div className={cn(
-              "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
-              "bg-gradient-to-br",
-              asset.color,
-              "blur-md"
-            )} />
 
             {/* Icon */}
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center relative">
@@ -100,48 +97,20 @@ export default function AssetsOverview() {
                     <div key={i} className="relative w-12 h-12">
                       <Image
                         src={iconSet.icon}
-                        alt={`${asset.symbol} Icon ${i + 1}`}
+                        alt={`${asset.symbolFallback} Icon ${i + 1}`}
                         width={48}
                         height={48}
-                        className={cn(
-                          "transition-opacity duration-300",
-                          iconSet.hoverIcon && "group-hover:opacity-0"
-                        )}
                       />
-                      {iconSet.hoverIcon && (
-                        <Image
-                          src={iconSet.hoverIcon}
-                          alt={`${asset.symbol} Icon ${i + 1} Hover`}
-                          width={48}
-                          height={48}
-                          className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        />
-                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <>
-                  <Image
-                    src={asset.icon}
-                    alt={`${asset.symbol} Icon`}
-                    width={100}
-                    height={100}
-                    className={cn(
-                      "transition-opacity duration-300",
-                      asset.hoverIcon && "group-hover:opacity-0"
-                    )}
-                  />
-                  {asset.hoverIcon && (
-                    <Image
-                      src={asset.hoverIcon}
-                      alt={`${asset.symbol} Icon Hover`}
-                      width={100}
-                      height={100}
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    />
-                  )}
-                </>
+                <Image
+                  src={asset.icon}
+                  alt={`${asset.symbolFallback} Icon`}
+                  width={100}
+                  height={100}
+                />
               )}
             </div>
 
@@ -150,17 +119,17 @@ export default function AssetsOverview() {
               <span className={cn(
                 "bg-gradient-to-r bg-clip-text text-transparent",
                 asset.color
-              )}>{asset.symbol}</span>
+              )}>{t(asset.symbolKey)}</span>
             </h4>
 
             {/* Name */}
             <p className="text-sm text-gray-400 text-center font-semibold mb-3">
-              {asset.name}
+              {t(asset.nameKey)}
             </p>
 
             {/* Description */}
             <p className="text-sm text-gray-300 text-center leading-relaxed">
-              {asset.description}
+              {t(asset.descKey)}
             </p>
           </div>
         ))}

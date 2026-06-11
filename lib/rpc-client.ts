@@ -12,6 +12,31 @@
 const SUBFROST_RPC_URL = 'https://mainnet.subfrost.io/v4/subfrost';
 const BRC20_RPC_URL = 'https://rpc.brc20.build';
 
+// ============================================================================
+// Utilities
+// ============================================================================
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch with automatic retry on 429 (rate limit).
+ * Waits for Retry-After header if present, otherwise uses exponential backoff.
+ */
+async function fetchWithRetry(url: string, options: RequestInit & { signal?: AbortSignal }, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.status !== 429 || attempt === maxRetries) return response;
+
+    const retryAfter = response.headers.get('Retry-After');
+    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (2 ** attempt) * 1000;
+    await sleep(waitMs);
+  }
+  // Unreachable but satisfies TypeScript
+  return fetch(url, options);
+}
+
 // Known addresses
 const ALKANES_SUBFROST_ADDRESS = 'bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7';
 const BRC20_SIGNER_ADDRESS = 'bc1pxn3gr0hy70exhdqjzawtuygppzdrk3mer3wlaa2gzkmruk3rrt4qga2qaj';
@@ -89,6 +114,7 @@ async function subfrostRpc<T>(method: string, params: unknown[]): Promise<T> {
       method,
       params,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -113,6 +139,7 @@ async function brc20Rpc<T>(method: string, params: unknown[]): Promise<T> {
       method,
       params,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -141,17 +168,27 @@ export async function getAddressUtxos(address: string): Promise<UTXO[]> {
 
 /**
  * Get transactions for an address
+ * Uses mempool.space Esplora directly — more reliable than the Subfrost RPC proxy.
  */
 export async function getAddressTxs(address: string): Promise<AddressTx[]> {
-  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs', [address]);
+  const response = await fetchWithRetry(`https://mempool.space/api/address/${address}/txs`, {
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok) throw new Error(`Esplora /txs failed: ${response.status}`);
+  const result = await response.json();
   return Array.isArray(result) ? result : [];
 }
 
 /**
  * Get transactions for an address with pagination (after a specific txid)
+ * Uses mempool.space Esplora directly.
  */
 export async function getAddressTxsChain(address: string, lastSeenTxid: string): Promise<AddressTx[]> {
-  const result = await subfrostRpc<AddressTx[]>('esplora_address::txs:chain', [address, lastSeenTxid]);
+  const response = await fetchWithRetry(`https://mempool.space/api/address/${address}/txs/chain/${lastSeenTxid}`, {
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok) throw new Error(`Esplora /txs/chain failed: ${response.status}`);
+  const result = await response.json();
   return Array.isArray(result) ? result : [];
 }
 
@@ -160,7 +197,9 @@ export async function getAddressTxsChain(address: string, lastSeenTxid: string):
  * This is useful for addresses with many UTXOs that exceed RPC limits
  */
 export async function getAddressStats(address: string): Promise<AddressStats> {
-  const response = await fetch(`https://mempool.space/api/address/${address}`);
+  const response = await fetch(`https://mempool.space/api/address/${address}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch address stats: ${response.status}`);
   }
@@ -275,7 +314,9 @@ export async function calculateTotalUnwraps(signerAddress: string): Promise<{
   let allTxs: AddressTx[] = [];
   let lastSeenTxid: string | undefined = undefined;
   let pageCount = 0;
-  const maxPages = 1000;
+  // Cap at 100 pages (2500 txs) to stay within Netlify's 26s function timeout.
+  // The prefetch job keeps this warm; live fallback only runs on cold cache.
+  const maxPages = 100;
 
   while (pageCount < maxPages) {
     pageCount++;
@@ -293,6 +334,9 @@ export async function calculateTotalUnwraps(signerAddress: string): Promise<{
     lastSeenTxid = page[page.length - 1].txid;
 
     if (page.length < 25) break;
+
+    // Brief pause between pages to avoid mempool.space rate limits
+    await sleep(300);
   }
 
   // Calculate unwraps

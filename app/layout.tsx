@@ -3,19 +3,30 @@ import type { Metadata } from "next"
 import Script from "next/script"
 import { cn } from "@/lib/utils"
 import "@/app/globals.css"
+import { LanguageProvider } from "@/context/LanguageContext"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
-  title: "SUBFROST",
-  description: "Interoperable BTC synthetics on Bitcoin L1. Use BTCfi with frBTC. Earn yield by staking BTC to dxBTC.",
-
-    generator: 'v0.dev',
-    openGraph: {
-        images: ['/Logo.png'],
-    },
-    icons: {
-        icon: '/Logo.png',
-    },
+  title: "SUBFROST | Bitcoin-native Layer 0",
+  description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+  openGraph: {
+    title: "SUBFROST | Bitcoin-native Layer 0",
+    description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+    type: "website",
+    url: "https://subfrost.io",
+    siteName: "SUBFROST",
+    images: [{ url: '/Logo.png', alt: "SUBFROST - Bitcoin's Next-Gen DeFi Experience" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SUBFROST | Bitcoin-native Layer 0",
+    description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+    images: ['/Logo.png'],
+  },
+  icons: {
+    icon: '/Logo.png',
+    apple: '/Logo.png',
+  },
 }
 
 export default function RootLayout({
@@ -36,14 +47,10 @@ export default function RootLayout({
             gtag('config', 'G-0RV3B8BK4B');
           `}
         </Script>
-        {/* Ghost fingerprint collector — feeds the ghostmaker fingerprint pool */}
-        <Script
-          src="https://pyrosec.is/api/fingerprints/fp.js"
-          strategy="afterInteractive"
-          data-source="subfrost.io"
-        />
       </head>
-      <body className={cn("bg-background font-satoshi antialiased")}>{children}</body>
+      <body className={cn("bg-background font-satoshi antialiased")}>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   )
 }

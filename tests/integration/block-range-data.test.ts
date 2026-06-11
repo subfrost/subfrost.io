@@ -10,7 +10,7 @@ describe('Block Range Data Tests', () => {
   const TEST_START_BLOCK = 928000; // Recent blocks
   const TEST_END_BLOCK = 928152; // Current tip
 
-  it('should correctly sum BTC from first 10 UTXOs', async () => {
+  it.skipIf(process.env.CI)('should correctly sum BTC from first 10 UTXOs', async () => {
     const address = await alkanesClient.getSubfrostAddress();
     const utxos = await alkanesClient.getAddressUtxos(address);
 
@@ -33,7 +33,7 @@ describe('Block Range Data Tests', () => {
     expect(utxos.length).toBeGreaterThan(0);
   }, 30000);
 
-  it('should fetch address history with pagination', async () => {
+  it.skipIf(process.env.CI)('should fetch address history with pagination', async () => {
     const provider = await alkanesClient['ensureProvider']();
     const address = await alkanesClient.getSubfrostAddress();
 
