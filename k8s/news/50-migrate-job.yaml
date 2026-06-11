@@ -1,0 +1,54 @@
+# Runs `prisma db push` against the news database through the Cloud SQL Auth
+# Proxy. Re-apply after schema changes (delete the old Job first, or let CI
+# recreate it). Uses the app image, which bundles the Prisma CLI + schema.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: news-migrate
+  namespace: news
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: news-migrate
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      initContainers:
+        - name: cloud-sql-proxy
+          restartPolicy: Always
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+          args:
+            - "--credentials-file=/secrets/cloudsql/key.json"
+            - "--port=5432"
+            - "--health-check"
+            - "--http-address=0.0.0.0"
+            - "--http-port=9090"
+            - "night-wolves-jogging:us-central1:subfrost-postgres"
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 9090
+            periodSeconds: 2
+            failureThreshold: 30
+          volumeMounts:
+            - name: cloudsql-sa
+              mountPath: /secrets/cloudsql
+              readOnly: true
+      containers:
+        - name: migrate
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-news:latest
+          command: ["prisma", "db", "push", "--schema=./prisma/schema.prisma", "--skip-generate"]
+          envFrom:
+            - secretRef:
+                name: news-secrets
+      volumes:
+        - name: cloudsql-sa
+          secret:
+            secretName: cloudsql-sa

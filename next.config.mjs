@@ -32,6 +32,23 @@ const nextConfig = {
       },
     ];
   },
+
+  // news.subfrost.io is the canonical home for articles. Keep a friendly
+  // apex path that sends readers there.
+  async redirects() {
+    return [
+      {
+        source: '/articles',
+        destination: 'https://news.subfrost.io',
+        permanent: true,
+      },
+      {
+        source: '/articles/:slug',
+        destination: 'https://news.subfrost.io/article/:slug',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,0 +1,109 @@
+@font-face {
+  font-family: "Satoshi";
+  src: url("https://fonts.cdnfonts.com/css/satoshi") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 0 0% 98%;
+    --card: 222 40% 9%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --brand-blue: 215 49% 31%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-satoshi;
+    min-height: 100%;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+}
+
+/* Frost snowfall — falling animation used by FrostBackdrop */
+@keyframes fall {
+  0% {
+    transform: translateY(-10vh) translateX(0);
+  }
+  100% {
+    transform: translateY(110vh) translateX(40px);
+  }
+}
+
+.responsive-shadow {
+  color: white;
+  text-shadow: 0 0 6px hsl(var(--brand-blue));
+}
+
+.glowing-button {
+  @apply font-bold rounded-full;
+  box-shadow: 0 0 5px #fff, 0 0 10px rgba(255, 255, 255, 0.6);
+  transition: box-shadow 0.3s ease-in-out;
+}
+.glowing-button:hover {
+  box-shadow: 0 0 10px #fff, 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+/* Dark scrollbars for internal containers */
+*:not(html):not(body) {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a #11151f;
+}
+*:not(html):not(body)::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*:not(html):not(body)::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+/* highlight.js theme (github-dark-ish) for code blocks */
+.hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #8b949e;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #ff7b72;
+}
+.hljs-string,
+.hljs-attr {
+  color: #a5d6ff;
+}
+.hljs-number,
+.hljs-literal {
+  color: #79c0ff;
+}
+.hljs-title,
+.hljs-section,
+.hljs-function .hljs-title {
+  color: #d2a8ff;
+}

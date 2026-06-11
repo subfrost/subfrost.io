@@ -107,6 +107,7 @@ import AssetsOverview from "@/components/AssetsOverview"
 import VaultsOverview from "@/components/VaultsOverview"
 import StickyNav from "@/components/StickyNav"
 import VolumeModal from "@/components/VolumeModal"
+import LatestNews from "@/components/LatestNews"
 
 const partners = [
   { name: "OYL Corp", logo: "oylcorp.jpeg", description: "Premier AMM on Alkanes (now open-source)", link: "https://app.oyl.io/portfolio/", tag: "DeFi" },
@@ -398,6 +399,9 @@ export default function Page() {
               </div>
             </div>
           </div>
+
+          {/* Latest from SUBFROST News (fetched from news.subfrost.io) */}
+          <LatestNews />
         </div>
       </InfoSection>
     </main>

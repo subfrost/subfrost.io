@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: news
+  namespace: news
+  labels:
+    app: news
+spec:
+  type: ClusterIP
+  selector:
+    app: news
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3002

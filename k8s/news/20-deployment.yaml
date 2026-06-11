@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news
+  namespace: news
+  labels:
+    app: news
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: news
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: news
+    spec:
+      # The cluster's only node pool is GKE Spot; tolerate its taint like the
+      # other subfrost.io services on this cluster.
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      # Cloud SQL Auth Proxy as a native sidecar (k8s 1.28+). Runs alongside the
+      # app and is terminated automatically when the pod stops.
+      initContainers:
+        - name: cloud-sql-proxy
+          restartPolicy: Always
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+          args:
+            - "--credentials-file=/secrets/cloudsql/key.json"
+            - "--port=5432"
+            - "--health-check"
+            - "--http-address=0.0.0.0"
+            - "--http-port=9090"
+            - "night-wolves-jogging:us-central1:subfrost-postgres"
+          securityContext:
+            runAsNonRoot: true
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 9090
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9090
+            periodSeconds: 10
+          volumeMounts:
+            - name: cloudsql-sa
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: news
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-news:latest
+          ports:
+            - containerPort: 3002
+          envFrom:
+            - secretRef:
+                name: news-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3002
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: cloudsql-sa
+          secret:
+            secretName: cloudsql-sa

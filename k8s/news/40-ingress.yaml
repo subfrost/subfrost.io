@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: news
+  namespace: news
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Article bodies are small; keep a modest body size for cover-image proxying etc.
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: news.subfrost.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: news
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - news.subfrost.io
+      secretName: news-subfrost-io-tls

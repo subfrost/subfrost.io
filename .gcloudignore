@@ -10,6 +10,13 @@
 node_modules/
 .pnpm-store/
 
+# Large build/IaC artifacts — never needed in a Cloud Build source upload
+rust/target/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.secrets/
+
 # Build outputs
 .next/
 out/
