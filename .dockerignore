@@ -2,11 +2,7 @@
 node_modules
 .pnpm-store
 
-# news.subfrost.io is a separate service with its own image/deploy — not part
-# of the main subfrost.io build context.
-news
-k8s
-cloudbuild
+# local secrets stash — never in the image
 .secrets
 
 # Build outputs

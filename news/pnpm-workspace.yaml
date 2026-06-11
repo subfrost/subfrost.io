@@ -1,4 +1,0 @@
-# Marks news/ as its own pnpm workspace root so `pnpm install` here does NOT
-# get absorbed by the parent subfrost.io workspace. news/ is built and deployed
-# independently (its own Docker image + GKE deployment).
-packages: []

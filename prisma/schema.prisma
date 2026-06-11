@@ -213,3 +213,122 @@ model ChatMessage {
 
   @@index([sessionId, createdAt])
 }
+
+// ============================================
+// CMS / NEWS PLATFORM (subfrost.io/admin + /articles)
+// ============================================
+
+enum Role {
+  ADMIN // full control: manage users + all articles + API keys
+  EDITOR // publish/unpublish + edit any article
+  AUTHOR // create + edit own drafts, submit for review
+}
+
+enum ArticleStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Locale {
+  en
+  zh
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  passwordHash String
+  role         Role       @default(AUTHOR)
+  active       Boolean    @default(true)
+  // Public author profile
+  avatarUrl    String? // GCS URL
+  bio          String?
+  twitter      String?
+  articles     Article[]  @relation("AuthoredArticles")
+  revisions    Revision[]
+  apiKeys      ApiKey[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([email])
+}
+
+model Article {
+  id          String               @id @default(cuid())
+  slug        String               @unique
+  coverImage  String? // GCS URL
+  status      ArticleStatus        @default(DRAFT)
+  featured    Boolean              @default(false) // surfaced on homepage
+  // Default/source locale for the article
+  primaryLocale Locale             @default(en)
+
+  author      User                 @relation("AuthoredArticles", fields: [authorId], references: [id])
+  authorId    String
+  tags        Tag[]                @relation("ArticleTags")
+  translations ArticleTranslation[]
+  revisions   Revision[]
+
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([featured])
+  @@index([authorId])
+}
+
+// Per-locale content for an article (EN / ZH). An article may have one or both.
+model ArticleTranslation {
+  id        String   @id @default(cuid())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  locale    Locale
+  title     String
+  excerpt   String   @default("")
+  body      String   @default("") // Markdown
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([articleId, locale])
+  @@index([locale])
+}
+
+model Tag {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  name     String
+  articles Article[] @relation("ArticleTags")
+}
+
+// Immutable snapshot per save, for history/audit.
+model Revision {
+  id        String   @id @default(cuid())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  locale    Locale
+  title     String
+  body      String
+  editor    User?    @relation(fields: [editorId], references: [id])
+  editorId  String?
+  createdAt DateTime @default(now())
+
+  @@index([articleId, createdAt])
+}
+
+// Bearer keys for the admin upload API (POST /api/admin/articles).
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  hashedKey  String    @unique // sha-256 of the token
+  prefix     String // first 8 chars, shown in UI for identification
+  createdBy  User      @relation(fields: [userId], references: [id])
+  userId     String
+  lastUsedAt DateTime?
+  revoked    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([hashedKey])
+}

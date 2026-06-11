@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
 
-export function middleware(request: NextRequest) {
-  // Get response
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Gate the /admin CMS (login page is exempt). Edge-only signature check;
+  // full role/active enforcement happens in the server components via authz.
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
+    if (!session) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/admin/login"
+      url.searchParams.set("from", pathname)
+      return NextResponse.redirect(url)
+    }
+  }
+
   const response = NextResponse.next()
 
-  const isBroadcastPath = request.nextUrl.pathname.startsWith("/broadcast")
+  const isBroadcastPath = pathname.startsWith("/broadcast")
 
-  // Add security headers
+  // Add security headers. img-src already allows https: (covers GCS avatars).
   response.headers.set(
     "Content-Security-Policy",
     "default-src 'self'; " +
@@ -15,7 +29,7 @@ export function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.cdnfonts.com; " +
       "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://www.google-analytics.com https://pyrosec.is wss://media.subfrost.io https://stream.subfrost.io https://news.subfrost.io; " +
+      "connect-src 'self' https://www.google-analytics.com https://pyrosec.is wss://media.subfrost.io https://stream.subfrost.io https://storage.googleapis.com; " +
       "media-src 'self' https://stream.subfrost.io blob:; " +
       "worker-src 'self' blob:; " +
       "frame-src 'self';",

@@ -98,7 +98,8 @@ jobs:
             --set-env-vars "NEXT_PUBLIC_NETWORK=mainnet" \
             --set-env-vars "REDIS_URL=redis://${{ steps.redis.outputs.ip }}:6379" \
             --set-env-vars "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
-            --set-secrets "DATABASE_URL=db-connection-string:latest"
+            --set-env-vars "CMS_BUCKET=subfrost-cms" \
+            --set-secrets "DATABASE_URL=db-connection-string:latest,AUTH_SECRET=cms-auth-secret:latest"
 
       - name: Get Service URL
         id: service
