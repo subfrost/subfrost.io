@@ -174,7 +174,7 @@ export async function getAddressUtxos(address: string): Promise<UTXO[]> {
  */
 export async function getAddressTxs(address: string): Promise<AddressTx[]> {
   const response = await fetchWithRetry(`https://mempool.space/api/address/${address}/txs`, {
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!response.ok) throw new Error(`Esplora /txs failed: ${response.status}`);
   const result = await response.json();
@@ -187,7 +187,7 @@ export async function getAddressTxs(address: string): Promise<AddressTx[]> {
  */
 export async function getAddressTxsChain(address: string, lastSeenTxid: string): Promise<AddressTx[]> {
   const response = await fetchWithRetry(`https://mempool.space/api/address/${address}/txs/chain/${lastSeenTxid}`, {
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!response.ok) throw new Error(`Esplora /txs/chain failed: ${response.status}`);
   const result = await response.json();
