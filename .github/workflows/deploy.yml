@@ -97,7 +97,7 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --concurrency 80 \
-            --timeout 60 \
+            --timeout 120 \
             --vpc-connector subfrost-connector \
             --add-cloudsql-instances "${{ steps.sql.outputs.connection }}" \
             --set-env-vars "NODE_ENV=production" \
