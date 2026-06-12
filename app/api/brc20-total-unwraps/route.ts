@@ -1,53 +1,45 @@
 /**
  * API Route: BRC2.0 Total Unwraps
  *
- * Calculates the total BTC unwrapped from the BRC2.0 frBTC signer address.
- * Uses direct RPC calls for reliability in serverless environments.
+ * Total BTC unwrapped on the BRC2.0 side. Derived from the volume-stats data
+ * (canon Espo / alkanode via the Subfrost RPC) — the same source as /api/volume/*,
+ * which is fast and reliably cache-warmed. The previous implementation paginated
+ * the signer address's full tx history over mempool.space, which is throttled
+ * from Cloud Run and routinely timed out.
  */
 
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
-import { calculateTotalUnwraps, getBrc20SignerAddress } from '@/lib/rpc-client';
+import { getVolumeStats, type VolumeStats } from '@/lib/volume-data';
 
 const CACHE_KEY = 'brc20-total-unwraps';
+const VOLUME_CACHE_KEY = 'volume-stats-brc20';
 const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
 
 export async function GET() {
   try {
-    // Check cache first
     const cached = await cacheGet(CACHE_KEY);
-    if (cached) {
-      return NextResponse.json(cached);
-    }
+    if (cached) return NextResponse.json(cached);
 
-    // Get the BRC2.0 signer address
-    const signerAddress = getBrc20SignerAddress();
-
-    // Calculate total unwraps using direct RPC
-    const unwrapData = await calculateTotalUnwraps(signerAddress);
+    const stats = (await cacheGet<VolumeStats>(VOLUME_CACHE_KEY)) ?? (await getVolumeStats('brc20'));
+    const sats = Number(stats.unwrap_volume_sats || '0');
 
     const result = {
-      totalUnwrapsSatoshis: unwrapData.totalUnwrapsSatoshis,
-      totalUnwrapsBtc: unwrapData.totalUnwrapsBtc,
-      unwrapCount: unwrapData.unwrapCount,
-      signerAddress,
+      totalUnwrapsSatoshis: sats,
+      totalUnwrapsBtc: sats / 1e8,
+      unwrapCount: null,
       timestamp: Date.now(),
     };
 
-    // Cache the result
     await cacheSet(CACHE_KEY, result, CACHE_TTL);
-
     return NextResponse.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching BRC2.0 total unwraps:', errorMessage);
-    // Return empty data rather than 500 so the UI degrades gracefully.
-    // The prefetch job will warm the cache on the next cycle.
     return NextResponse.json({
       totalUnwrapsSatoshis: null,
       totalUnwrapsBtc: null,
       unwrapCount: null,
-      signerAddress: null,
       timestamp: Date.now(),
       error: errorMessage,
     });
