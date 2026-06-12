@@ -104,7 +104,7 @@ export interface AddressStats {
 // RPC Helpers
 // ============================================================================
 
-async function subfrostRpc<T>(method: string, params: unknown[]): Promise<T> {
+async function subfrostRpc<T>(method: string, params: unknown[], timeoutMs = 10_000): Promise<T> {
   const response = await fetch(SUBFROST_RPC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -114,7 +114,7 @@ async function subfrostRpc<T>(method: string, params: unknown[]): Promise<T> {
       method,
       params,
     }),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!response.ok) {
@@ -162,7 +162,9 @@ async function brc20Rpc<T>(method: string, params: unknown[]): Promise<T> {
  * Get UTXOs for an address
  */
 export async function getAddressUtxos(address: string): Promise<UTXO[]> {
-  const result = await subfrostRpc<UTXO[]>('esplora_address::utxo', [address]);
+  // The SUBFROST address holds thousands of UTXOs, so this call routinely takes
+  // ~10-12s — give it a generous timeout (cache keeps it off the hot path).
+  const result = await subfrostRpc<UTXO[]>('esplora_address::utxo', [address], 25_000);
   return Array.isArray(result) ? result : [];
 }
 

@@ -117,10 +117,17 @@ export async function GET(request: NextRequest) {
     }),
 
     run('btc-price', async () => {
-      const response = await fetch('https://mempool.space/api/v1/prices');
-      if (!response.ok) throw new Error(`mempool.space responded ${response.status}`);
+      // Subfrost subpricer (Uniswap V3 WBTC/USDC) — see app/api/btc-price/route.ts
+      const base = (process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost').replace(/\/$/, '');
+      const response = await fetch(`${base}/api/v1/bitcoin-price`, {
+        signal: AbortSignal.timeout(8000),
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`subpricer responded ${response.status}`);
       const data = await response.json();
-      await cacheSet('btc-price', { btcPrice: data.USD }, CACHE_TTL);
+      const usd = typeof data.usd === 'number' ? data.usd : Number(data?.bitcoin?.usd);
+      if (!usd || !Number.isFinite(usd)) throw new Error('subpricer returned no usd price');
+      await cacheSet('btc-price', { btcPrice: usd }, CACHE_TTL);
     }),
 
     // Volume stats — all 3 sources
