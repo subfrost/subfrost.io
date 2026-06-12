@@ -92,29 +92,34 @@ export async function GET(request: NextRequest) {
       }, CACHE_TTL);
     }),
 
-    run('alkanes-total-unwraps', async () => {
-      const signerAddress = getAlkanesSubfrostAddress();
-      const data = await calculateTotalUnwraps(signerAddress);
-      await cacheSet('alkanes-total-unwraps', {
-        totalUnwrapsSatoshis: data.totalUnwrapsSatoshis,
-        totalUnwrapsBtc: data.totalUnwrapsBtc,
-        unwrapCount: data.unwrapCount,
-        signerAddress,
-        timestamp: Date.now(),
-      }, CACHE_TTL);
-    }),
-
-    run('brc20-total-unwraps', async () => {
-      const signerAddress = getBrc20SignerAddress();
-      const data = await calculateTotalUnwraps(signerAddress);
-      await cacheSet('brc20-total-unwraps', {
-        totalUnwrapsSatoshis: data.totalUnwrapsSatoshis,
-        totalUnwrapsBtc: data.totalUnwrapsBtc,
-        unwrapCount: data.unwrapCount,
-        signerAddress,
-        timestamp: Date.now(),
-      }, CACHE_TTL);
-    }),
+    // The two total-unwraps tasks each paginate the FULL tx history of their
+    // signer address over mempool.space (~thousands of txs). Run them
+    // sequentially — firing both at once throttles each other on mempool.space
+    // and both abort. Serialized, each gets clean access and completes (~25-30s).
+    (async () => {
+      await run('alkanes-total-unwraps', async () => {
+        const signerAddress = getAlkanesSubfrostAddress();
+        const data = await calculateTotalUnwraps(signerAddress);
+        await cacheSet('alkanes-total-unwraps', {
+          totalUnwrapsSatoshis: data.totalUnwrapsSatoshis,
+          totalUnwrapsBtc: data.totalUnwrapsBtc,
+          unwrapCount: data.unwrapCount,
+          signerAddress,
+          timestamp: Date.now(),
+        }, CACHE_TTL);
+      });
+      await run('brc20-total-unwraps', async () => {
+        const signerAddress = getBrc20SignerAddress();
+        const data = await calculateTotalUnwraps(signerAddress);
+        await cacheSet('brc20-total-unwraps', {
+          totalUnwrapsSatoshis: data.totalUnwrapsSatoshis,
+          totalUnwrapsBtc: data.totalUnwrapsBtc,
+          unwrapCount: data.unwrapCount,
+          signerAddress,
+          timestamp: Date.now(),
+        }, CACHE_TTL);
+      });
+    })(),
 
     run('btc-price', async () => {
       // Subfrost subpricer (Uniswap V3 WBTC/USDC) — see app/api/btc-price/route.ts
