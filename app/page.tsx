@@ -223,14 +223,15 @@ export default function Page() {
         {/* Top Right Button */}
         <div className="absolute top-4 right-4 z-20 flex flex-col-reverse md:flex-row items-end md:items-center gap-2 md:gap-4">
           <LanguageToggle variant="light" />
-          <a
-            href="https://app.subfrost.io/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => {
+              trackEvent("volume_charts_click", { event_category: "cta", event_label: "hero_header" })
+              setIsVolumeModalOpen(true)
+            }}
             className="flex justify-center px-5 py-2 rounded-md bg-white text-[#284372] hover:bg-[#f0f7ff] transition-colors font-bold text-sm shadow-md"
           >
-            <StableText textKey="hero.launchApp" />
-          </a>
+            <StableText textKey="hero.volumeCharts" />
+          </button>
         </div>
 
         {/* Main content - centered using flex, takes available space */}
@@ -253,9 +254,7 @@ export default function Page() {
               <div className="flex justify-center w-full">
                 <BottomAnimatedSubtitle />
               </div>
-              <ActionButtons
-                onVolumeChartsClick={() => setIsVolumeModalOpen(true)}
-              />
+              <ActionButtons />
               <MetricsBoxes onPartnershipsClick={handleScrollToPartners} />
             </div>
           </div>

@@ -17,6 +17,8 @@ const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const PAGE_SIZE = 200; // Data API max per request
 const MIN_DATE = new Date("2025-10-01T00:00:00Z");
 const DUST_THRESHOLDS = [546, 330];
+const BRC20_PAGE_DELAY_MS = 200;
+const BRC20_PAGE_MAX_RETRIES = 6;
 
 // ---------- Shared types ----------
 
@@ -26,6 +28,10 @@ interface ClassifiedTx {
   source: "alkanes" | "brc20";
   volume_sats: number;
   block_time: Date;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ---------- Public result types ----------
@@ -168,13 +174,33 @@ async function fetchAllBrc20(knownTxids?: Set<string>): Promise<ClassifiedTx[]> 
 
   while (true) {
     pageNum++;
-    let page: AddressTx[];
-    try {
-      page = lastSeenTxid
-        ? await getAddressTxsChain(address, lastSeenTxid)
-        : await getAddressTxs(address);
-    } catch {
-      console.error(`[volume-data] BRC20: RPC error on page ${pageNum}, stopping`);
+    let page: AddressTx[] | null = null;
+
+    for (let attempt = 0; attempt < BRC20_PAGE_MAX_RETRIES; attempt++) {
+      try {
+        page = lastSeenTxid
+          ? await getAddressTxsChain(address, lastSeenTxid)
+          : await getAddressTxs(address);
+        break;
+      } catch (error) {
+        const waitMs = Math.min(10_000, 400 * (2 ** attempt));
+        const isFinalAttempt = attempt === BRC20_PAGE_MAX_RETRIES - 1;
+        console.warn(
+          `[volume-data] BRC20: page ${pageNum} fetch failed (attempt ${attempt + 1}/${BRC20_PAGE_MAX_RETRIES})` +
+            `${isFinalAttempt ? '' : `, retrying in ${waitMs}ms`}`,
+          error
+        );
+
+        if (isFinalAttempt) {
+          console.error(`[volume-data] BRC20: exhausted retries on page ${pageNum}, stopping`);
+          break;
+        }
+
+        await sleep(waitMs);
+      }
+    }
+
+    if (!page) {
       break;
     }
 
@@ -208,6 +234,9 @@ async function fetchAllBrc20(knownTxids?: Set<string>): Promise<ClassifiedTx[]> 
 
     lastSeenTxid = page[page.length - 1].txid;
     if (page.length < 25) break;
+
+    // Keep pressure low on mempool.space when scanning deep history.
+    await sleep(BRC20_PAGE_DELAY_MS);
 
     if (pageNum % 20 === 0) {
       console.log(`[volume-data] BRC20: fetched ${pageNum} pages, ${results.length} txs so far...`);

@@ -15,24 +15,52 @@ import { getVolumeStats, type VolumeStats } from '@/lib/volume-data';
 const CACHE_KEY = 'brc20-total-unwraps';
 const VOLUME_CACHE_KEY = 'volume-stats-brc20';
 const CACHE_TTL = 2100; // 35 minutes — kept warm by /api/prefetch
+let warmInFlight = false;
+
+type UnwrapResponse = {
+  totalUnwrapsSatoshis: number | null;
+  totalUnwrapsBtc: number | null;
+  unwrapCount: null;
+  pending: boolean;
+  timestamp: number;
+};
+
+function toResponse(stats: VolumeStats | null, pending: boolean): UnwrapResponse {
+  const sats = stats ? Number(stats.unwrap_volume_sats || '0') : null;
+  return {
+    totalUnwrapsSatoshis: sats,
+    totalUnwrapsBtc: sats === null ? null : sats / 1e8,
+    unwrapCount: null,
+    pending,
+    timestamp: Date.now(),
+  };
+}
 
 export async function GET() {
   try {
-    const cached = await cacheGet(CACHE_KEY);
+    const cached = await cacheGet<UnwrapResponse>(CACHE_KEY);
     if (cached) return NextResponse.json(cached);
 
-    const stats = (await cacheGet<VolumeStats>(VOLUME_CACHE_KEY)) ?? (await getVolumeStats('brc20'));
-    const sats = Number(stats.unwrap_volume_sats || '0');
+    const warm = await cacheGet<VolumeStats>(VOLUME_CACHE_KEY);
+    if (warm) {
+      const result = toResponse(warm, false);
+      await cacheSet(CACHE_KEY, result, CACHE_TTL);
+      return NextResponse.json(result);
+    }
 
-    const result = {
-      totalUnwrapsSatoshis: sats,
-      totalUnwrapsBtc: sats / 1e8,
-      unwrapCount: null,
-      timestamp: Date.now(),
-    };
+    if (!warmInFlight) {
+      warmInFlight = true;
+      void getVolumeStats('brc20')
+        .then(async (resolved) => {
+          await cacheSet(CACHE_KEY, toResponse(resolved, false), CACHE_TTL);
+        })
+        .catch(() => {})
+        .finally(() => {
+          warmInFlight = false;
+        });
+    }
 
-    await cacheSet(CACHE_KEY, result, CACHE_TTL);
-    return NextResponse.json(result);
+    return NextResponse.json(toResponse(null, true));
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching BRC2.0 total unwraps:', errorMessage);
