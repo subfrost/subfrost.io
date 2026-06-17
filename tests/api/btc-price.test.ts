@@ -16,14 +16,13 @@ describe('GET /api/btc-price', () => {
     vi.clearAllMocks();
   });
 
-  it('returns BTC price from mempool.space API', async () => {
+  it('returns BTC price from subpricer API', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        time: 1772443502,
-        USD: 66524,
-        EUR: 56634,
-        GBP: 49737,
+        source: 'uniswap-v3',
+        timestamp: 1772443502,
+        usd: 66524,
       }),
     });
 
@@ -34,19 +33,23 @@ describe('GET /api/btc-price', () => {
     expect(data.btcPrice).toBe(66524);
   });
 
-  it('calls mempool.space API with correct URL', async () => {
+  it('calls subpricer API with correct URL and options', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        time: 1772443502,
-        USD: 66524,
+        source: 'uniswap-v3',
+        timestamp: 1772443502,
+        usd: 66524,
       }),
     });
 
     await GET();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://mempool.space/api/v1/prices'
+      'https://mainnet.subfrost.io/v4/subfrost/api/v1/bitcoin-price',
+      expect.objectContaining({
+        headers: { accept: 'application/json' },
+      })
     );
   });
 
