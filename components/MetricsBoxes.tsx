@@ -40,7 +40,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import {
   Popover,
@@ -65,6 +65,47 @@ const LoadingDots = () => (
     <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>.</span>
   </span>
 );
+
+const formatBtcValue = (value: number) => {
+  if (value >= 10) {
+    return value.toFixed(3);
+  }
+  return value.toFixed(4);
+};
+
+const AnimatedCountUp = ({ target, loading }: { target: number; loading: boolean }) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let animationFrame = 0;
+    let startTime: number | null = null;
+    const startingValue = value;
+    const duration = loading ? 1800 : 900;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) {
+        startTime = timestamp;
+      }
+
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      const nextValue = startingValue + (target - startingValue) * eased;
+      setValue(nextValue);
+
+      if (progress < 1) {
+        animationFrame = window.requestAnimationFrame(step);
+      }
+    };
+
+    animationFrame = window.requestAnimationFrame(step);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [target, loading]);
+
+  return <>{formatBtcValue(value)}</>;
+};
 
 const METRIC_ENDPOINTS = [
   '/api/alkanes-btc-locked',
@@ -152,16 +193,16 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   const brc20BtcLocked = typeof brc20BtcLockedValue === 'number' ? brc20BtcLockedValue : 0;
   const brc20Circulating = typeof brc20CirculatingFrbtc === 'number' ? brc20CirculatingFrbtc : 0;
 
+  const lifetimeParts = [alkanesTotalUnwraps, brc20TotalUnwraps, alkanesCirculatingFrbtc, brc20CirculatingFrbtc];
+  const lifetimeLoading = lifetimeParts.some((value) => value === '...');
+  const lifetimeTarget = lifetimeParts.reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
+
   // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued (alkanes) + frbtc issued (brc20)
-  // Use '...' to detect "still loading". null means data arrived but computation failed — treat as 0.
   const toNum = (v: unknown) => typeof v === 'number' ? v : 0;
   const lifetimeBtcTxValue: number | React.ReactNode = (
-    alkanesTotalUnwraps === '...' ||
-    brc20TotalUnwraps === '...' ||
-    alkanesCirculatingFrbtc === '...' ||
-    brc20CirculatingFrbtc === '...'
-      ? <LoadingDots />
-      : toNum(alkanesTotalUnwraps) + toNum(brc20TotalUnwraps) + toNum(alkanesCirculatingFrbtc) + toNum(brc20CirculatingFrbtc)
+    lifetimeLoading
+      ? <AnimatedCountUp target={lifetimeTarget} loading={lifetimeLoading} />
+      : formatBtcValue(toNum(alkanesTotalUnwraps) + toNum(brc20TotalUnwraps) + toNum(alkanesCirculatingFrbtc) + toNum(brc20CirculatingFrbtc))
   );
 
   // Combined totals (Alkanes + BRC2.0)
@@ -197,6 +238,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
     linkText: string;
     linkType: string;
     superTitle?: string;
+    linkDisabled?: boolean;
     popoverContent?: React.ReactNode;
   }[] = [
     {
@@ -226,8 +268,9 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
     {
       title: renderMultilineTitle('metrics.lifetimeTxValue'),
       value: getDisplayValue(lifetimeBtcTxValue),
-      linkText: t('metrics.breakdown'),
+      linkText: lifetimeLoading ? 'Calculating...' : t('metrics.breakdown'),
       linkType: 'popover',
+      linkDisabled: lifetimeLoading,
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
           <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof alkanesCirculatingFrbtc === 'number' ? (alkanesTotalUnwraps + alkanesCirculatingFrbtc).toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
@@ -238,10 +281,12 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   ];
 
   const renderLink = (metric: any) => {
-    const linkClasses = "text-[hsl(var(--brand-blue))] underline text-[0.6rem]";
+    const linkClasses = metric.linkDisabled
+      ? "text-[hsl(var(--brand-blue))] underline text-[0.6rem] opacity-80 cursor-wait"
+      : "text-[hsl(var(--brand-blue))] underline text-[0.6rem]";
 
     const linkElement = (
-      <button className={linkClasses}>
+      <button className={linkClasses} type="button" disabled={metric.linkDisabled}>
         {metric.linkText || ''}
       </button>
     );
