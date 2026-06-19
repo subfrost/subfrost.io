@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and adjust. Defaults already match the probed env
+# (project night-wolves-jogging, us-central1-a, where Cloud SQL + AR live).
+project_id   = "night-wolves-jogging"
+region       = "us-central1"
+zone         = "us-central1-a"
+cluster_name = "subfrost-io"
+
+# spot_machine_type = "e2-medium"
+# spot_min_nodes    = 1
+# spot_max_nodes    = 3
