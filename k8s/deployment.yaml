@@ -1,0 +1,143 @@
+# subfrost.io — the single Next.js app image serves the public site, /admin CMS,
+# and /api (incl. the internal-api.subfrost.io host, routed by the Ingress).
+# media-server / meet-api are intentionally NOT deployed (dropped per flex).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subfrost-io
+  namespace: subfrost
+  labels:
+    app: subfrost-io
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: subfrost-io
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: subfrost-io
+    spec:
+      serviceAccountName: subfrost-io
+      # Schedule onto the cheap spot node pool. Spot nodes carry this taint; the
+      # toleration + nodeSelector pin the workload there.
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      # Spread replicas across nodes so a single spot preemption can't take all.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: subfrost-io
+      initContainers:
+        # Cloud SQL Auth Proxy as a NATIVE sidecar (restartPolicy: Always, needs
+        # GKE >= 1.28). Comes up before the migrate init step and stays running
+        # for the app. Cloud SQL `subfrost-postgres` is private-IP only.
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.13.0
+          restartPolicy: Always
+          args:
+            - "--private-ip"
+            - "--port=5432"
+            - "REPLACE_CLOUDSQL_CONNECTION_NAME" # PROJECT:REGION:subfrost-postgres
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+        # One-shot schema sync before the app serves traffic. Uses the same app
+        # image (the runner ships the Prisma CLI + schema). Connects via proxy.
+        - name: migrate
+          image: REPLACE_IMAGE
+          command: ["prisma", "db", "push", "--skip-generate"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      containers:
+        - name: app
+          image: REPLACE_IMAGE
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: NEXT_TELEMETRY_DISABLED
+              value: "1"
+            - name: CMS_BUCKET
+              value: "subfrost-cms"
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: AUTH_SECRET
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: DATABASE_URL
+            - name: ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: ADMIN_SECRET
+          # readiness uses /api/health (checks the DB) so a pod with no DB is
+          # pulled from the LB; liveness is a plain TCP check so a DB blip does
+          # NOT trigger pod restarts.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false

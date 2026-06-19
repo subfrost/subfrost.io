@@ -1,0 +1,12 @@
+# Keep at least one pod serving during voluntary disruptions (node upgrades,
+# spot preemptions handled gracefully, drains).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: subfrost-io
+  namespace: subfrost
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: subfrost-io
