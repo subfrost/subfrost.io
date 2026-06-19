@@ -3,7 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 // Switches the reading language via ?lang=, only offering locales the article
-// actually has.
+// actually has. Styled with the editorial tokens so it reads correctly in both
+// light and dark.
 export function LocaleToggle({ available, current }: { available: ("en" | "zh")[]; current: "en" | "zh" }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -17,10 +18,18 @@ export function LocaleToggle({ available, current }: { available: ("en" | "zh")[
     router.push(`${pathname}?${p.toString()}`)
   }
   return (
-    <div className="inline-flex rounded-full border border-zinc-300 p-0.5 text-sm">
+    <div className="inline-flex rounded-full border p-0.5 text-sm" style={{ borderColor: "var(--ed-hair)" }}>
       {available.map((loc) => (
-        <button key={loc} onClick={() => go(loc)}
-          className={`rounded-full px-3 py-1 ${current === loc ? "bg-zinc-900 text-white" : "text-zinc-600 hover:text-zinc-900"}`}>
+        <button
+          key={loc}
+          onClick={() => go(loc)}
+          className="rounded-full px-3 py-1 transition-colors"
+          style={
+            current === loc
+              ? { background: "var(--ed-ink)", color: "var(--ed-canvas)" }
+              : { color: "var(--ed-muted)" }
+          }
+        >
           {label[loc]}
         </button>
       ))}

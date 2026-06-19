@@ -5,6 +5,8 @@ import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
 import { Markdown } from "@/lib/cms/markdown"
 import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
 import { LocaleToggle } from "@/components/articles/LocaleToggle"
+import { CoverArt } from "@/components/articles/CoverArt"
+import { ReadingProgress } from "@/components/articles/ReadingProgress"
 
 export const dynamic = "force-dynamic"
 
@@ -38,46 +40,64 @@ export default async function ArticlePage({
   if (!a) notFound()
 
   return (
-    <main className="min-h-screen bg-white text-zinc-900">
-      <header className="border-b border-zinc-200">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
-          <Link href="/" className="text-xl font-bold tracking-tight">SUBFROST</Link>
-          <Link href="/articles" className="text-sm text-zinc-600 hover:text-zinc-900">All articles</Link>
-        </div>
-      </header>
-
-      <article className="mx-auto max-w-3xl px-5 py-12">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex gap-2 text-xs uppercase tracking-wide text-[#1a4d8f]">
-            {a.tags.map((t) => <span key={t.slug}>{t.name}</span>)}
-          </div>
+    <>
+      <ReadingProgress />
+      <article className="mx-auto max-w-[720px] px-6 pb-16 pt-14">
+        <div className="mb-3.5 flex items-center justify-between gap-4">
+          <div className="ed-eyebrow">{a.tags[0]?.name ?? "Article"}</div>
           <LocaleToggle available={a.availableLocales} current={a.locale} />
         </div>
 
-        <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">{a.title}</h1>
+        <h1
+          className="font-display text-[34px] font-semibold leading-[1.08] sm:text-[52px]"
+          style={{ color: "var(--ed-ink)" }}
+        >
+          {a.title}
+        </h1>
 
-        <div className="mb-10 border-b border-zinc-200 pb-8">
+        {a.excerpt ? (
+          <p className="font-reading mt-4 text-[20px] leading-[1.5] sm:text-[21px]" style={{ color: "var(--ed-muted)" }}>
+            {a.excerpt}
+          </p>
+        ) : null}
+
+        <div className="mt-7 border-b pb-6" style={{ borderColor: "var(--ed-hair)" }}>
           <AuthorByline author={a.author} publishedAt={a.publishedAt} readingMinutes={a.readingMinutes} size={48} />
         </div>
 
-        {a.coverImage && (
+        {a.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.coverImage} alt="" className="mb-10 w-full rounded-xl object-cover" />
+          <img src={a.coverImage} alt="" className="my-8 h-[330px] w-full rounded-[14px] object-cover" />
+        ) : (
+          <CoverArt label={a.tags[0]?.name} className="my-8 h-[330px] rounded-[14px]" />
         )}
 
         <Markdown variant="article">{a.body}</Markdown>
 
-        {a.author.bio && (
-          <div className="mt-16 flex items-start gap-4 border-t border-zinc-200 pt-8">
-            <Avatar name={a.author.name} src={a.author.avatarUrl} size={56} />
+        {a.author.bio ? (
+          <div
+            className="mt-14 flex items-start gap-4 rounded-[14px] border p-5"
+            style={{ borderColor: "var(--ed-hair)" }}
+          >
+            <Avatar name={a.author.name} src={a.author.avatarUrl} size={48} />
             <div>
-              <div className="text-xs uppercase tracking-wide text-zinc-400">Written by</div>
-              <div className="text-lg font-semibold text-zinc-900">{a.author.name}</div>
-              <p className="mt-1 text-zinc-600">{a.author.bio}</p>
+              <div className="text-[11px] uppercase tracking-[1.5px]" style={{ color: "var(--ed-muted)" }}>
+                Written by
+              </div>
+              <Link
+                href={`/authors/${a.author.id}`}
+                className="font-reading text-[18px] font-medium hover:underline"
+                style={{ color: "var(--ed-ink)" }}
+              >
+                {a.author.name}
+              </Link>
+              <p className="font-reading mt-0.5 text-[14px]" style={{ color: "var(--ed-muted)" }}>
+                {a.author.bio}
+              </p>
             </div>
           </div>
-        )}
+        ) : null}
       </article>
-    </main>
+    </>
   )
 }
