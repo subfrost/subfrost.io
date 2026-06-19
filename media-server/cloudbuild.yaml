@@ -1,0 +1,44 @@
+# Cloud Build — media-server (WebSocket/HLS ingest + ffmpeg transcode)
+#
+# Build context is this directory (media-server/), matching the Dockerfile's
+# relative COPYs. Trigger path filter: media-server/**
+#
+# Note: the Dockerfile COPYs package-lock.json — make sure it is committed so
+# `npm ci` works in the build.
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: subfrost-docker
+  _IMAGE: subfrost-media-server
+
+timeout: 1800s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+
+steps:
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - "-c"
+      - "docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest || true"
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    dir: media-server
+    args:
+      - "build"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${SHORT_SHA}"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+      - "--cache-from"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+      - "-f"
+      - "Dockerfile"
+      - "."
