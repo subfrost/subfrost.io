@@ -227,35 +227,37 @@
    ========================================================================== */
 [data-ed-theme] {
   --ed-canvas: #fbfcfe;
-  --ed-ink: #0a1628;
-  --ed-body: #37465d;
-  --ed-muted: #6b7a93;
-  --ed-hair: #e6ebf3;
-  --ed-accent: #1a4d8f;
-  --ed-ice: #5b9cff;
-  --ed-nav: #0a1628;
+  --ed-ink: #212121;
+  --ed-body: #3a3a3c;
+  --ed-muted: #6b7280;
+  --ed-hair: #e4eaf1;
+  --ed-accent: #2e5e86;
+  --ed-ice: #a7c6dc;
+  --ed-flare: #ec4521;
+  --ed-nav: #ffffff;
   --ed-surface: #ffffff;
   --ed-cover: #11294a;
   --ed-cover-2: #1a3c66;
-  --ed-band: #eef3fb;
+  --ed-band: #e9f0f7;
 }
 [data-ed-theme="dark"] {
-  --ed-canvas: #0a1628;
-  --ed-ink: #eaf2ff;
-  --ed-body: #aebdd6;
-  --ed-muted: #8194b0;
-  --ed-hair: #1d3050;
-  --ed-accent: #7fb2ff;
-  --ed-ice: #5b9cff;
-  --ed-nav: #06101f;
-  --ed-surface: #0e2138;
+  --ed-canvas: #1c1c1e;
+  --ed-ink: #f2f6fb;
+  --ed-body: #c6cdd6;
+  --ed-muted: #8a8a8e;
+  --ed-hair: #34343a;
+  --ed-accent: #a7c6dc;
+  --ed-ice: #a7c6dc;
+  --ed-flare: #ff6a4d;
+  --ed-nav: #1c1c1e;
+  --ed-surface: #242427;
   --ed-cover: #16335a;
   --ed-cover-2: #1f4a82;
-  --ed-band: #0e2138;
+  --ed-band: #242427;
 }
 
 .font-display {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
   letter-spacing: -0.4px;
 }
 .font-reading {
@@ -264,11 +266,14 @@
 
 /* Eyebrow / kicker label */
 .ed-eyebrow {
-  font-family: "Newsreader", Georgia, serif;
-  font-size: 13px;
-  letter-spacing: 2.5px;
+  font-family: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--ed-accent);
+}
+.ed-eyebrow--lead {
+  color: var(--ed-flare);
 }
 
 /* Long-form reading typography for rendered markdown. */
@@ -285,7 +290,7 @@
 .ed-article-prose h2,
 .ed-article-prose h3,
 .ed-article-prose h4 {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
   color: var(--ed-ink);
   font-weight: 600;
   letter-spacing: -0.3px;
@@ -361,7 +366,7 @@
 }
 /* Drop cap on the opening paragraph — a Frost Editorial signature. */
 .ed-article-prose > p:first-of-type::first-letter {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Newsreader", Georgia, serif;
   font-weight: 600;
   float: left;
   font-size: 76px;

@@ -4,7 +4,6 @@ import type { Metadata } from "next"
 import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
 import { Markdown } from "@/lib/cms/markdown"
 import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
-import { LocaleToggle } from "@/components/articles/LocaleToggle"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { ReadingProgress } from "@/components/articles/ReadingProgress"
 
@@ -43,9 +42,8 @@ export default async function ArticlePage({
     <>
       <ReadingProgress />
       <article className="mx-auto max-w-[720px] px-6 pb-16 pt-14">
-        <div className="mb-3.5 flex items-center justify-between gap-4">
+        <div className="mb-3.5">
           <div className="ed-eyebrow">{a.tags[0]?.name ?? "Article"}</div>
-          <LocaleToggle available={a.availableLocales} current={a.locale} />
         </div>
 
         <h1

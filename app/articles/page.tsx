@@ -53,7 +53,7 @@ export default async function ArticlesIndex({
                 <CoverArt label={lead.tags[0]?.name} className="h-[300px] rounded-[14px]" />
               )}
               <div>
-                <div className="ed-eyebrow mb-3">{lead.tags[0]?.name ?? "Featured"}</div>
+                <div className="ed-eyebrow ed-eyebrow--lead mb-3">{lead.tags[0]?.name ?? "Featured"}</div>
                 <h2
                   className="font-display text-[30px] font-semibold leading-[1.12] transition-opacity group-hover:opacity-80 sm:text-[38px]"
                   style={{ color: "var(--ed-ink)" }}

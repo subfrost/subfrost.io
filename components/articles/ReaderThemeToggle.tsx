@@ -1,39 +1,33 @@
 "use client"
 
 import { useState } from "react"
+import { Sun } from "lucide-react"
 
-// Light/dark reading toggle. Flips the `data-ed-theme` on the editorial root
-// instantly (no reload) and persists a long-lived cookie so server-rendered
-// pages pick the same theme on the next navigation — avoiding a flash.
+// Light/dark reading toggle — the same Sun button used on app.subfrost.io (where
+// it is currently hidden). Flips `data-ed-theme` on the editorial root instantly
+// (no reload) and persists a long-lived cookie so server-rendered pages pick the
+// same theme on the next navigation, avoiding a flash.
 export function ReaderThemeToggle({ initial }: { initial: "light" | "dark" }) {
   const [theme, setTheme] = useState<"light" | "dark">(initial)
 
-  function set(next: "light" | "dark") {
+  function toggle() {
+    const next = theme === "light" ? "dark" : "light"
     setTheme(next)
     document.cookie = `ed-theme=${next}; path=/; max-age=31536000; samesite=lax`
     const root = document.getElementById("ed-root")
     if (root) root.dataset.edTheme = next
   }
 
+  const isLight = theme === "light"
   return (
-    <div
-      className="inline-flex overflow-hidden rounded-full border border-white/25 text-[13px]"
-      role="group"
-      aria-label="Reading theme"
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={`Switch to ${isLight ? "dark" : "light"} mode`}
+      className="transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
+      style={{ color: isLight ? "var(--ed-accent)" : "var(--ed-muted)" }}
     >
-      {(["light", "dark"] as const).map((t) => (
-        <button
-          key={t}
-          type="button"
-          aria-pressed={theme === t}
-          onClick={() => set(t)}
-          className={`px-3.5 py-1.5 capitalize transition-colors ${
-            theme === t ? "bg-white text-[#0a1628]" : "text-[#cdd8ec] hover:text-white"
-          }`}
-        >
-          {t}
-        </button>
-      ))}
-    </div>
+      <Sun size={16} strokeWidth={2.5} />
+    </button>
   )
 }
