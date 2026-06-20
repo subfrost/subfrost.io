@@ -17,7 +17,7 @@ export interface ProfileInitial {
   avatarUrl: string
 }
 
-export function ProfileForm({ initial }: { initial: ProfileInitial }) {
+export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; canEditBio: boolean }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -46,43 +46,57 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
   function save() {
     setError(null); setMsg(null)
     startTransition(async () => {
-      const res = await updateProfile(initial.id, { name, bio, twitter, avatarUrl })
+      // Only send public-byline fields when the user has the editor privilege.
+      const res = await updateProfile(
+        initial.id,
+        canEditBio ? { name, bio, twitter, avatarUrl } : { name },
+      )
       if (res.ok) { setMsg("Saved"); router.refresh() } else setError(res.error)
     })
   }
 
   return (
     <div className="max-w-xl space-y-5">
-      <div className="flex items-center gap-4">
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
-        ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-400">
-            {(name || initial.email)[0]?.toUpperCase()}
+      {canEditBio && (
+        <div className="flex items-center gap-4">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-400">
+              {(name || initial.email)[0]?.toUpperCase()}
+            </div>
+          )}
+          <div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
+            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              {uploading ? "Uploading…" : "Change avatar"}
+            </Button>
+            <p className="mt-1 text-xs text-zinc-500">PNG/JPG/WebP, up to 8MB</p>
           </div>
-        )}
-        <div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
-          <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? "Uploading…" : "Change avatar"}
-          </Button>
-          <p className="mt-1 text-xs text-zinc-500">PNG/JPG/WebP, up to 8MB</p>
         </div>
-      </div>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-zinc-300">Display name</Label>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-zinc-300">Bio</Label>
-        <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-zinc-300">X / Twitter handle</Label>
-        <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@subfrost" className="bg-zinc-900 text-zinc-100 border-zinc-700" />
-      </div>
+      {canEditBio ? (
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-zinc-300">Bio</Label>
+            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-zinc-300">X / Twitter handle</Label>
+            <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@subfrost" className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+          </div>
+        </>
+      ) : (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 text-xs text-zinc-500">
+          A public author profile (bio, avatar, social handle) is available once you have editor privileges.
+        </p>
+      )}
 
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={pending}>Save profile</Button>

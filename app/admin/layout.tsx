@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { currentUser } from "@/lib/cms/authz"
 import { logout } from "@/actions/cms/auth"
-import { FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle } from "lucide-react"
+import { FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle, ScrollText } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -11,8 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // the login page, which renders bare on a dark background.
   if (!user) return <div className="min-h-screen bg-zinc-950">{children}</div>
 
-  const isAdmin = user.role === "ADMIN"
-  const isEditor = user.role === "ADMIN" || user.role === "EDITOR"
+  const can = (p: (typeof user.privileges)[number]) => user.privileges.includes(p)
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
@@ -25,8 +24,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavItem href="/admin" icon={<FileText size={16} />}>Articles</NavItem>
           <NavItem href="/admin/articles/new" icon={<PlusCircle size={16} />}>New article</NavItem>
           <NavItem href="/admin/profile" icon={<UserCircle size={16} />}>My profile</NavItem>
-          {isEditor && <NavItem href="/admin/api-keys" icon={<KeyRound size={16} />}>API keys</NavItem>}
-          {isAdmin && <NavItem href="/admin/users" icon={<Users size={16} />}>Users</NavItem>}
+          {can("MANAGE_API_KEYS") && <NavItem href="/admin/api-keys" icon={<KeyRound size={16} />}>API keys</NavItem>}
+          {can("MANAGE_USERS") && <NavItem href="/admin/users" icon={<Users size={16} />}>Users</NavItem>}
+          {can("VIEW_AUDIT") && <NavItem href="/admin/audit" icon={<ScrollText size={16} />}>Audit log</NavItem>}
         </nav>
         <div className="mt-4 border-t border-zinc-800 pt-4">
           <div className="px-2 text-sm text-zinc-300">{user.name ?? user.email}</div>

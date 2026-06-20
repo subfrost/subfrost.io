@@ -18,13 +18,16 @@ export interface SessionPayload {
   email: string
   name?: string | null
   role: "ADMIN" | "EDITOR" | "AUTHOR"
+  jti?: string // session id; sha-256(jti) keys the Session row (server-side revocation)
+  ver?: number // User.tokenVersion at issue; mismatch invalidates the session
+  pending2fa?: boolean // short-lived token issued between password + TOTP steps
 }
 
-export async function signSession(payload: SessionPayload): Promise<string> {
+export async function signSession(payload: SessionPayload, expiresIn = "30d"): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: ALG })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime(expiresIn)
     .sign(secret())
 }
 
@@ -37,6 +40,9 @@ export async function verifySession(token: string | undefined): Promise<SessionP
       email: String(payload.email ?? ""),
       name: (payload.name as string) ?? null,
       role: (payload.role as SessionPayload["role"]) ?? "AUTHOR",
+      jti: payload.jti ? String(payload.jti) : (payload.sid ? String(payload.sid) : undefined),
+      ver: typeof payload.ver === "number" ? payload.ver : undefined,
+      pending2fa: payload.pending2fa === true,
     }
   } catch {
     return null
