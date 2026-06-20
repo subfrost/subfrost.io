@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
-import { currentUser, hasRole } from "@/lib/cms/authz"
+import { currentUser } from "@/lib/cms/authz"
 import { AdminEditor } from "@/components/cms/AdminEditor"
 
 export const dynamic = "force-dynamic"
@@ -18,7 +18,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   })
   if (!article) notFound()
 
-  const canPublish = hasRole(user.role, "EDITOR")
+  const canPublish = user.privileges.includes("PUBLISH_ARTICLES")
   if (!canPublish && article.authorId !== user.id) redirect("/admin")
 
   const tr = (loc: "en" | "zh") => {

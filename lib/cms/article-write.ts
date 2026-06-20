@@ -1,6 +1,6 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
-import { hasRole, type Role } from "@/lib/cms/authz"
+import type { Privilege } from "@/lib/cms/privileges"
 import { toSlug } from "@/lib/cms/slug"
 
 const translationSchema = z.object({
@@ -25,7 +25,8 @@ export type WriteResult = { ok: true; slug: string; id: string } | { ok: false; 
 
 export interface Actor {
   id: string
-  role: Role
+  /** Effective privileges (a session user's, or a key's capped scopes). */
+  privileges: Privilege[]
 }
 
 async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
@@ -60,7 +61,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
   if (translations.length === 0) return { ok: false, error: "Add a title for at least one language" }
 
   let status = data.status
-  if (status === "PUBLISHED" && !hasRole(actor.role, "EDITOR")) status = "REVIEW"
+  if (status === "PUBLISHED" && !actor.privileges.includes("PUBLISH_ARTICLES")) status = "REVIEW"
 
   const primaryLocale = translations.some((t) => t.locale === data.primaryLocale)
     ? data.primaryLocale
@@ -76,7 +77,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
   if (data.id) {
     const existing = await prisma.article.findUnique({ where: { id: data.id } })
     if (!existing) return { ok: false, error: "Article not found" }
-    if (!hasRole(actor.role, "EDITOR") && existing.authorId !== actor.id) {
+    if (!actor.privileges.includes("EDIT_ANY_ARTICLE") && existing.authorId !== actor.id) {
       return { ok: false, error: "You can only edit your own articles" }
     }
     const slug = await uniqueSlug(data.slug ? toSlug(data.slug) : existing.slug, existing.id)

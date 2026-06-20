@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { format } from "date-fns"
 import prisma from "@/lib/prisma"
-import { currentUser, hasRole } from "@/lib/cms/authz"
+import { currentUser } from "@/lib/cms/authz"
 import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
@@ -15,7 +15,7 @@ const statusColor: Record<string, string> = {
 
 export default async function AdminDashboard() {
   const user = await currentUser()
-  const canSeeAll = user ? hasRole(user.role, "EDITOR") : false
+  const canSeeAll = user ? user.privileges.includes("EDIT_ANY_ARTICLE") : false
 
   const articles = await prisma.article.findMany({
     where: canSeeAll ? {} : { authorId: user!.id },

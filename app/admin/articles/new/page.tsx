@@ -1,4 +1,4 @@
-import { currentUser, hasRole } from "@/lib/cms/authz"
+import { currentUser } from "@/lib/cms/authz"
 import { AdminEditor } from "@/components/cms/AdminEditor"
 
 export const dynamic = "force-dynamic"
@@ -7,7 +7,7 @@ const empty = { title: "", excerpt: "", body: "" }
 
 export default async function NewArticlePage() {
   const user = await currentUser()
-  const canPublish = user ? hasRole(user.role, "EDITOR") : false
+  const canPublish = user ? user.privileges.includes("PUBLISH_ARTICLES") : false
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-white">New article</h1>
