@@ -12,7 +12,11 @@ import {
   revokeAllUserSessions,
   revokeSessionByJti,
 } from "@/lib/cms/session-store"
+import { validateCode, hashRecoveryCode } from "@/lib/cms/totp"
 import { audit } from "@/lib/cms/audit"
+
+// Short-lived cookie holding the pending-2FA token between login steps.
+const PENDING_2FA_COOKIE = "subfrost_admin_2fa"
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -33,7 +37,7 @@ const loginSchema = z.object({
 })
 
 export type LoginResult =
-  | { ok: true }
+  | { ok: true; twofa?: boolean }
   | { ok: false; error: string }
 
 /** Captures client IP + user-agent for the session/audit records. */
@@ -88,8 +92,57 @@ export async function login(email: string, password: string): Promise<LoginResul
     return { ok: false, error: "Invalid email or password" }
   }
 
+  // Second factor required: stash a short-lived pending token, don't issue a
+  // real session until the TOTP step succeeds.
+  if (user.totpEnabled) {
+    const pending = await signSession(
+      { sub: user.id, email: user.email, role: user.role as "ADMIN" | "EDITOR" | "AUTHOR", pending2fa: true },
+      "5m",
+    )
+    const jar = await cookies()
+    jar.set(PENDING_2FA_COOKIE, pending, { ...COOKIE_OPTS, maxAge: 300 })
+    return { ok: true, twofa: true }
+  }
+
   const ip = await issueSession(user)
   await audit("login", { actorId: user.id, target: user.email, ip })
+  return { ok: true }
+}
+
+/** Second login step: verify a TOTP code or recovery code against the pending
+ *  token, then issue the real session. */
+export async function loginVerify2fa(code: string): Promise<LoginResult> {
+  const jar = await cookies()
+  const pending = await verifySession(jar.get(PENDING_2FA_COOKIE)?.value)
+  if (!pending?.pending2fa || !pending.sub) {
+    return { ok: false, error: "Your login session expired — please sign in again" }
+  }
+  const user = await prisma.user.findUnique({ where: { id: pending.sub } })
+  if (!user || !user.active || !user.totpEnabled || !user.totpSecret) {
+    return { ok: false, error: "Two-factor is not available for this account" }
+  }
+
+  const clean = code.replace(/\s+/g, "")
+  let verified = validateCode(user.totpSecret, user.email, clean)
+  if (!verified) {
+    // Try a single-use recovery code.
+    const match = await prisma.totpRecoveryCode.findFirst({
+      where: { userId: user.id, used: false, codeHash: hashRecoveryCode(clean) },
+    })
+    if (match) {
+      await prisma.totpRecoveryCode.update({ where: { id: match.id }, data: { used: true } })
+      verified = true
+    }
+  }
+  if (!verified) {
+    const { ip } = await reqMeta()
+    await audit("login_failed", { actorId: user.id, target: user.email, details: { stage: "2fa" }, ip })
+    return { ok: false, error: "Incorrect code" }
+  }
+
+  jar.delete(PENDING_2FA_COOKIE)
+  const ip = await issueSession(user)
+  await audit("login_2fa", { actorId: user.id, target: user.email, ip })
   return { ok: true }
 }
 
