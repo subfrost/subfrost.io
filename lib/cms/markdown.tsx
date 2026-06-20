@@ -15,7 +15,7 @@ export function Markdown({
 }) {
   const cls =
     variant === "article"
-      ? "prose prose-lg prose-zinc max-w-none prose-headings:font-bold prose-a:text-[#1a4d8f] prose-img:rounded-lg prose-pre:bg-zinc-900 prose-pre:text-zinc-100"
+      ? "ed-article-prose max-w-none"
       : "prose prose-invert max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-zinc-800"
   return (
     <div className={cls}>

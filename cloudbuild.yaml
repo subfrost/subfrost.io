@@ -1,0 +1,49 @@
+# Cloud Build — subfrost.io Next.js app (frontend + /admin CMS + /api backend)
+#
+# Builds the standalone Next.js image and pushes it to Artifact Registry.
+# Wire a trigger (GCP console → Cloud Build → Triggers) to this file with a
+# path filter so it only fires on app changes:
+#   included files: app/**, components/**, lib/**, actions/**, prisma/**,
+#                   public/**, Dockerfile, next.config.mjs, package.json,
+#                   pnpm-lock.yaml, cloudbuild.yaml
+#
+# Override substitutions in the trigger if the target project/registry differ.
+# Deploy to k8s is intentionally NOT here — see CLOUDBUILD.md (flux/kubectl).
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: subfrost-docker
+  _IMAGE: subfrost-io
+
+timeout: 2400s
+
+options:
+  # No machineType => default pool (free-tier eligible / cheapest). Set
+  # E2_HIGHCPU_8 here if builds get too slow.
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+
+steps:
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - "-c"
+      - "docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest || true"
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - "build"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${SHORT_SHA}"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+      - "--cache-from"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+      - "-f"
+      - "Dockerfile"
+      - "."

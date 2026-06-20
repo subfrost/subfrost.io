@@ -219,3 +219,228 @@
     transform: translateY(-100vh);
   }
 }
+
+/* ==========================================================================
+   Frost Editorial — articles design system
+   Scoped under [data-ed-theme] so it never leaks into the rest of the site.
+   Tokens come from the approved mockup (subfrost-articles-mockup.html).
+   ========================================================================== */
+[data-ed-theme] {
+  --ed-canvas: #fbfcfe;
+  --ed-ink: #0a1628;
+  --ed-body: #37465d;
+  --ed-muted: #6b7a93;
+  --ed-hair: #e6ebf3;
+  --ed-accent: #1a4d8f;
+  --ed-ice: #5b9cff;
+  --ed-flare: #ec4521;
+  --ed-nav: #0a1628;
+  --ed-surface: #ffffff;
+  --ed-cover: #11294a;
+  --ed-cover-2: #1a3c66;
+  --ed-band: #eef3fb;
+}
+[data-ed-theme="dark"] {
+  --ed-canvas: #0a1628;
+  --ed-ink: #eaf2ff;
+  --ed-body: #aebdd6;
+  --ed-muted: #8194b0;
+  --ed-hair: #1d3050;
+  --ed-accent: #7fb2ff;
+  --ed-ice: #5b9cff;
+  --ed-flare: #ff6a4d;
+  --ed-nav: #06101f;
+  --ed-surface: #0e2138;
+  --ed-cover: #16335a;
+  --ed-cover-2: #1f4a82;
+  --ed-band: #0e2138;
+}
+
+.font-display {
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  letter-spacing: -0.4px;
+}
+.font-reading {
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+}
+
+/* Eyebrow / kicker label */
+.ed-eyebrow {
+  font-family: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+}
+.ed-eyebrow--lead {
+  color: var(--ed-flare);
+}
+
+/* Long-form reading typography for rendered markdown. */
+.ed-article-prose {
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  font-size: 20px;
+  line-height: 1.78;
+  color: var(--ed-body);
+}
+.ed-article-prose > * + * {
+  margin-top: 22px;
+}
+.ed-article-prose h1,
+.ed-article-prose h2,
+.ed-article-prose h3,
+.ed-article-prose h4 {
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  color: var(--ed-ink);
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.18;
+  margin-top: 44px;
+  margin-bottom: 4px;
+}
+.ed-article-prose h2 {
+  font-size: 30px;
+}
+.ed-article-prose h3 {
+  font-size: 24px;
+}
+.ed-article-prose a {
+  color: var(--ed-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.ed-article-prose strong {
+  color: var(--ed-ink);
+  font-weight: 600;
+}
+.ed-article-prose blockquote {
+  margin: 28px 0;
+  padding: 4px 0 4px 22px;
+  border-left: 4px solid var(--ed-accent);
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  font-style: italic;
+  font-size: 24px;
+  line-height: 1.45;
+  color: var(--ed-ink);
+}
+.ed-article-prose ul,
+.ed-article-prose ol {
+  padding-left: 1.4em;
+}
+.ed-article-prose li + li {
+  margin-top: 8px;
+}
+.ed-article-prose img {
+  border-radius: 14px;
+  width: 100%;
+}
+.ed-article-prose hr {
+  border: 0;
+  border-top: 1px solid var(--ed-hair);
+  margin: 40px 0;
+}
+.ed-article-prose code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  background: color-mix(in srgb, var(--ed-accent) 12%, transparent);
+  color: var(--ed-accent);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.ed-article-prose pre {
+  background: #0a1628;
+  color: #e6ecf7;
+  border: 1px solid var(--ed-hair);
+  border-radius: 14px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.ed-article-prose pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+/* Drop cap on the opening paragraph — a Frost Editorial signature. */
+.ed-article-prose > p:first-of-type::first-letter {
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  font-weight: 600;
+  float: left;
+  font-size: 76px;
+  line-height: 58px;
+  padding: 6px 12px 0 0;
+  color: var(--ed-accent);
+}
+
+/* Geometric "frost" cover placeholder for articles without an image. */
+.ed-cover {
+  position: relative;
+  overflow: hidden;
+  background: var(--ed-cover);
+}
+.ed-cover .a {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 52%;
+  height: 80%;
+  background: var(--ed-cover-2);
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
+}
+.ed-cover .b {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 30%;
+  height: 46%;
+  background: var(--ed-accent);
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
+}
+.ed-cover .mk {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  color: var(--ed-ice);
+  letter-spacing: 2px;
+}
+
+/* Feed / author card */
+.ed-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ed-hair);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--ed-surface);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ed-card:hover {
+  border-color: color-mix(in srgb, var(--ed-ice) 55%, var(--ed-hair));
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px -24px rgba(10, 22, 40, 0.5);
+}
+
+/* Avatar */
+.ed-avatar {
+  border-radius: 50%;
+  background: var(--ed-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+/* Reading progress bar (under the sticky header) */
+.ed-progress {
+  height: 4px;
+  background: var(--ed-ice);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  transition: transform 0.08s linear;
+}

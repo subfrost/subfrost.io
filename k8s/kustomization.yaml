@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: subfrost
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - external-secrets.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - pdb.yaml
+
+# Pin the image to an immutable SHORT_SHA tag (the Cloud Build trigger produces
+# one per commit). Bump this per release — Flux rolls out when the tag changes.
+# Do NOT use `:latest`: Flux can't detect a moving tag, so the deployment never
+# updates (and `kubectl rollout restart` gets reverted on the next reconcile).
+images:
+  - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
+    newTag: c93f94d

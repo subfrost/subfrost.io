@@ -1,0 +1,43 @@
+# Cloud Build — meet-api (Rust WebRTC/TURN signaling service)
+#
+# The Dockerfile does `COPY rust /build/rust`, so the build CONTEXT must be the
+# repo root (not this dir). It also uses BuildKit features (# syntax + cache
+# mounts), so DOCKER_BUILDKIT=1 is required.
+#
+# Wire a trigger to this file (set "Dockerfile directory" / config to this path)
+# with path filter: rust/**
+#
+# Bash vars are written $$VAR so Cloud Build does not treat them as substitutions.
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: subfrost-docker
+  _IMAGE: meet-api
+
+timeout: 3000s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest"
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    env:
+      - "DOCKER_BUILDKIT=1"
+    args:
+      - "-c"
+      - |
+        IMG="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}"
+        docker pull "$$IMG:latest" || true
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from "$$IMG:latest" \
+          -t "$$IMG:${SHORT_SHA}" \
+          -t "$$IMG:latest" \
+          -f rust/services/meet-api/Dockerfile \
+          .
