@@ -3,11 +3,11 @@ import { SnowflakeMark } from "./SnowflakeMark"
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24" style={{ borderTop: "1px solid var(--ed-hair)", background: "var(--ed-nav)" }}>
+    <footer data-ed-theme="dark" className="mt-24" style={{ borderTop: "1px solid var(--ed-hair)", background: "var(--ed-nav)" }}>
       <div className="mx-auto flex max-w-[1120px] flex-col gap-4 px-6 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-10">
         <div className="flex items-center gap-2.5" style={{ color: "var(--ed-ink)" }}>
           <SnowflakeMark size={22} className="text-[color:var(--ed-accent)]" />
-          <span className="font-display text-[17px] font-semibold tracking-[3px]">SUBFROST</span>
+          <span className="font-display text-[18px] font-semibold tracking-[-0.3px]">subfrost</span>
         </div>
         <p className="font-reading text-[14px]" style={{ color: "var(--ed-muted)" }}>
           Research, releases, and field notes on Bitcoin-native settlement.

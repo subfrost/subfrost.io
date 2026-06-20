@@ -10,13 +10,14 @@ import { SnowflakeMark } from "./SnowflakeMark"
 export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
   return (
     <header
+      data-ed-theme="dark"
       className="sticky top-0 z-50"
       style={{ background: "var(--ed-nav)", borderBottom: "1px solid var(--ed-hair)" }}
     >
       <div className="mx-auto flex h-[60px] max-w-[1120px] items-center justify-between px-6 sm:px-10">
         <Link href="/" className="flex items-center gap-2.5" style={{ color: "var(--ed-ink)" }}>
           <SnowflakeMark size={24} className="text-[color:var(--ed-accent)]" />
-          <span className="font-display text-[19px] font-semibold tracking-[4px]">SUBFROST</span>
+          <span className="font-display text-[20px] font-semibold tracking-[-0.5px]">subfrost</span>
         </Link>
         <nav className="flex items-center gap-5 text-[15px]">
           <Link href="/articles" className="font-display hidden sm:inline" style={{ color: "var(--ed-ink)" }}>
