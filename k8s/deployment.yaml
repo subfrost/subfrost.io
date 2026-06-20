@@ -112,6 +112,16 @@ spec:
                 secretKeyRef:
                   name: subfrost-io-secrets
                   key: ADMIN_SECRET
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: RESEND_API_KEY
+                  optional: true
+            - name: CMS_BASE_URL
+              value: "https://subfrost.io"
+            - name: EMAIL_FROM
+              value: "SUBFROST <noreply@mail.subfrost.io>"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

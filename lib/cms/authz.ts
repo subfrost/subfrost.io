@@ -1,10 +1,13 @@
 import { cookies } from "next/headers"
 import prisma from "@/lib/prisma"
 import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
+import {
+  effectivePrivileges,
+  type Privilege,
+  type Role,
+} from "@/lib/cms/privileges"
 
-export type Role = "ADMIN" | "EDITOR" | "AUTHOR"
-
-const RANK: Record<Role, number> = { AUTHOR: 1, EDITOR: 2, ADMIN: 3 }
+export type { Role, Privilege }
 
 export interface CmsUser {
   id: string
@@ -12,10 +15,14 @@ export interface CmsUser {
   name: string | null
   role: Role
   avatarUrl: string | null
+  /** Effective privileges = role bundle ∪ extra grants. */
+  privileges: Privilege[]
 }
 
 /** Reads the session cookie (Next 16: cookies() is async), re-validates the
- *  user against the DB so a deactivated/role-changed account is enforced. */
+ *  user against the DB so a deactivated/role-changed account is enforced, and
+ *  resolves effective privileges. Session-row revocation is enforced in
+ *  Phase 1 (lib/cms/session-store). */
 export async function currentUser(): Promise<CmsUser | null> {
   const jar = await cookies()
   const session = await verifySession(jar.get(SESSION_COOKIE)?.value)
@@ -28,8 +35,26 @@ export async function currentUser(): Promise<CmsUser | null> {
     name: user.name,
     role: user.role as Role,
     avatarUrl: user.avatarUrl,
+    privileges: effectivePrivileges(user.role as Role, user.privileges),
   }
 }
+
+export async function requirePrivilege(required: Privilege): Promise<CmsUser> {
+  const user = await currentUser()
+  if (!user) throw new AuthzError(401, "Not authenticated")
+  if (!user.privileges.includes(required)) {
+    throw new AuthzError(403, `Missing privilege: ${required}`)
+  }
+  return user
+}
+
+export function userHasPrivilege(user: CmsUser, required: Privilege): boolean {
+  return user.privileges.includes(required)
+}
+
+// --- Role helpers (retained for back-compat with existing call sites) ---
+
+const RANK: Record<Role, number> = { AUTHOR: 1, EDITOR: 2, ADMIN: 3 }
 
 export async function requireRole(min: Role): Promise<CmsUser> {
   const user = await currentUser()

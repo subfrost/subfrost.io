@@ -13,20 +13,20 @@ datasource db {
 
 // Stores aggregated BTC locked data at specific block heights
 model BtcLockedSnapshot {
-  id           String   @id @default(cuid())
-  blockHeight  Int
-  blockHash    String?
+  id          String  @id @default(cuid())
+  blockHeight Int
+  blockHash   String?
 
   // BTC locked in the subfrost address
-  btcLocked    Float    // BTC as decimal
-  satoshis     BigInt   // Satoshis
-  utxoCount    Int      // Number of UTXOs
+  btcLocked Float // BTC as decimal
+  satoshis  BigInt // Satoshis
+  utxoCount Int // Number of UTXOs
 
   // Timestamp of the block
-  blockTime    DateTime?
+  blockTime DateTime?
 
   // When we computed this snapshot
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([blockHeight])
   @@index([createdAt])
@@ -34,20 +34,20 @@ model BtcLockedSnapshot {
 
 // Stores frBTC total supply at specific block heights
 model FrbtcSupplySnapshot {
-  id             String   @id @default(cuid())
-  blockHeight    Int
-  blockHash      String?
+  id          String  @id @default(cuid())
+  blockHeight Int
+  blockHash   String?
 
   // frBTC total supply
-  frbtcIssued    Float    // BTC as decimal
-  rawSupply      String   // Raw supply as string (bigint)
-  adjustedSupply String   // Adjusted supply as string (bigint)
+  frbtcIssued    Float // BTC as decimal
+  rawSupply      String // Raw supply as string (bigint)
+  adjustedSupply String // Adjusted supply as string (bigint)
 
   // Timestamp of the block
-  blockTime      DateTime?
+  blockTime DateTime?
 
   // When we computed this snapshot
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([blockHeight])
   @@index([createdAt])
@@ -55,24 +55,24 @@ model FrbtcSupplySnapshot {
 
 // Stores wrap transaction history
 model WrapTransaction {
-  id              String   @id @default(cuid())
-  txid            String   @unique
-  blockHeight     Int
-  blockHash       String?
+  id          String  @id @default(cuid())
+  txid        String  @unique
+  blockHeight Int
+  blockHash   String?
 
   // Transaction details
-  amount          String   // Amount in satoshis as string (bigint)
-  senderAddress   String   @default("")
+  amount           String // Amount in satoshis as string (bigint)
+  senderAddress    String  @default("")
   recipientAddress String?
 
   // Timestamp
-  timestamp       DateTime
+  timestamp DateTime
 
   // Status
-  confirmed       Boolean  @default(false)
+  confirmed Boolean @default(false)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([blockHeight])
   @@index([senderAddress])
@@ -81,24 +81,24 @@ model WrapTransaction {
 
 // Stores unwrap transaction history
 model UnwrapTransaction {
-  id               String   @id @default(cuid())
-  txid             String   @unique
-  blockHeight      Int
-  blockHash        String?
+  id          String  @id @default(cuid())
+  txid        String  @unique
+  blockHeight Int
+  blockHash   String?
 
   // Transaction details
-  amount           String   // Amount in satoshis as string (bigint)
+  amount           String // Amount in satoshis as string (bigint)
   senderAddress    String?
-  recipientAddress String   @default("")
+  recipientAddress String  @default("")
 
   // Timestamp
-  timestamp        DateTime
+  timestamp DateTime
 
   // Status
-  confirmed        Boolean  @default(false)
+  confirmed Boolean @default(false)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([blockHeight])
   @@index([recipientAddress])
@@ -107,21 +107,21 @@ model UnwrapTransaction {
 
 // Stores the last processed block height for each data type
 model SyncState {
-  dataType        String   @id
+  dataType String @id
 
   // Last processed block height
-  lastBlockHeight Int      @default(0)
+  lastBlockHeight Int @default(0)
 
   // Last processed transaction ID (for pagination)
-  lastTxid        String?
+  lastTxid String?
 
   // Aggregated totals (stored as strings for bigint support)
-  totalWrapped    String   @default("0")
-  totalUnwrapped  String   @default("0")
-  wrapCount       Int      @default(0)
-  unwrapCount     Int      @default(0)
+  totalWrapped   String @default("0")
+  totalUnwrapped String @default("0")
+  wrapCount      Int    @default(0)
+  unwrapCount    Int    @default(0)
 
-  updatedAt       DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================
@@ -130,14 +130,14 @@ model SyncState {
 
 // Daily aggregated metrics for charts
 model DailyMetrics {
-  id           String   @id @default(cuid())
-  date         DateTime @unique @db.Date
+  id   String   @id @default(cuid())
+  date DateTime @unique @db.Date
 
   // BTC locked metrics
-  btcLockedOpen  BigInt   // Opening BTC locked for the day
-  btcLockedHigh  BigInt   // Highest BTC locked
-  btcLockedLow   BigInt   // Lowest BTC locked
-  btcLockedClose BigInt   // Closing BTC locked
+  btcLockedOpen  BigInt // Opening BTC locked for the day
+  btcLockedHigh  BigInt // Highest BTC locked
+  btcLockedLow   BigInt // Lowest BTC locked
+  btcLockedClose BigInt // Closing BTC locked
 
   // frBTC supply metrics
   frbtcSupplyOpen  BigInt
@@ -146,23 +146,23 @@ model DailyMetrics {
   frbtcSupplyClose BigInt
 
   // Transaction counts
-  wrapCount    Int      @default(0)
-  unwrapCount  Int      @default(0)
-  wrapVolume   BigInt   @default(0)  // Total BTC wrapped
-  unwrapVolume BigInt   @default(0)  // Total BTC unwrapped
+  wrapCount    Int    @default(0)
+  unwrapCount  Int    @default(0)
+  wrapVolume   BigInt @default(0) // Total BTC wrapped
+  unwrapVolume BigInt @default(0) // Total BTC unwrapped
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([date])
 }
 
 // Cache for computed API responses
 model ApiCache {
-  key          String   @id
-  value        String   @db.Text  // JSON-encoded value
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  key       String   @id
+  value     String   @db.Text // JSON-encoded value
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([expiresAt])
 }
@@ -172,18 +172,18 @@ model ApiCache {
 // ============================================
 
 model StreamSession {
-  id            String    @id @default(cuid())
-  streamKey     String    @unique
-  title         String    @default("Live Stream")
-  status        String    @default("created")  // created | live | ended
-  screenHlsUrl  String?
-  cameraHlsUrl  String?
-  startedAt     DateTime?
-  endedAt       DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  captions      StreamCaption[]
-  chatMessages  ChatMessage[]
+  id           String          @id @default(cuid())
+  streamKey    String          @unique
+  title        String          @default("Live Stream")
+  status       String          @default("created") // created | live | ended
+  screenHlsUrl String?
+  cameraHlsUrl String?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  captions     StreamCaption[]
+  chatMessages ChatMessage[]
 
   @@index([status])
 }
@@ -224,6 +224,27 @@ enum Role {
   AUTHOR // create + edit own drafts, submit for review
 }
 
+// Fine-grained capabilities. A user's effective privileges are the union of the
+// default bundle for their Role (see lib/cms/privileges.ts) plus any extra
+// grants stored in User.privileges. API-key scopes are a subset of these.
+enum Privilege {
+  WRITE_ARTICLES // create + edit own drafts
+  EDIT_ANY_ARTICLE // edit/delete any article regardless of author
+  PUBLISH_ARTICLES // publish/unpublish + feature on homepage
+  EDIT_BIO // maintain public author profile (bio/avatar/twitter) — "editor privilege"
+  MANAGE_API_KEYS // mint/revoke own API keys
+  MANAGE_USERS // IAM: create/modify/disable/delete users — "IAM privilege"
+  MANAGE_ROLES // assign roles and privilege grants to others
+  VIEW_AUDIT // read the audit log
+}
+
+// Token kinds for emailed, single-use links (Resend-delivered).
+enum TokenPurpose {
+  INVITE // new user sets their own password
+  PASSWORD_RESET // self-service forgot-password
+  EMAIL_VERIFY // confirm email ownership
+}
+
 enum ArticleStatus {
   DRAFT
   REVIEW
@@ -237,43 +258,120 @@ enum Locale {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String?
-  passwordHash String
-  role         Role       @default(AUTHOR)
-  active       Boolean    @default(true)
+  id             String      @id @default(cuid())
+  email          String      @unique
+  emailVerified  DateTime? // set when ownership confirmed (invite/verify flow)
+  name           String?
+  passwordHash   String
+  role           Role        @default(AUTHOR)
+  active         Boolean     @default(true)
+  // Extra capability grants beyond the role's default bundle.
+  privileges     Privilege[] @default([])
   // Public author profile
-  avatarUrl    String? // GCS URL
-  bio          String?
-  twitter      String?
-  articles     Article[]  @relation("AuthoredArticles")
-  revisions    Revision[]
-  apiKeys      ApiKey[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  avatarUrl      String? // GCS URL
+  bio            String?
+  twitter        String?
+  status         String? // optional self-set status line
+  lastSeenAt     DateTime? // presence: last authenticated activity
+  // Two-factor (TOTP)
+  totpSecret     String? // base32 secret, present once enrollment starts
+  totpEnabled    Boolean     @default(false)
+  totpVerifiedAt DateTime?
+  // Bumped on password change / forced logout to invalidate all live sessions.
+  tokenVersion   Int         @default(0)
+
+  articles      Article[]          @relation("AuthoredArticles")
+  revisions     Revision[]
+  apiKeys       ApiKey[]
+  sessions      Session[]
+  recoveryCodes TotpRecoveryCode[]
+  auditLogs     AuditLog[]         @relation("AuditActor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
 }
 
-model Article {
-  id          String               @id @default(cuid())
-  slug        String               @unique
-  coverImage  String? // GCS URL
-  status      ArticleStatus        @default(DRAFT)
-  featured    Boolean              @default(false) // surfaced on homepage
-  // Default/source locale for the article
-  primaryLocale Locale             @default(en)
+// Server-side session records backing the signed cookie. The cookie JWT carries
+// a `jti` matching tokenHash; currentUser() rejects revoked/expired sessions so
+// "sign out everywhere" and password-change invalidation take effect immediately.
+model Session {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  tokenHash  String   @unique // sha-256 of the session jti
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
 
-  author      User                 @relation("AuthoredArticles", fields: [authorId], references: [id])
-  authorId    String
-  tags        Tag[]                @relation("ArticleTags")
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+// Single-use TOTP recovery codes (sha-256 hashed), generated when 2FA is enabled.
+model TotpRecoveryCode {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  codeHash  String // sha-256 of the code
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Append-only audit trail for IAM, auth, and key events.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorId   String?
+  action    String // login, logout, login_2fa, create_user, update_user, delete_user, change_password, key_mint, key_revoke, totp_enabled, totp_disabled
+  target    String? // affected resource id/email
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action])
+}
+
+// Emailed single-use tokens for invite / password-reset / email-verify flows.
+model VerificationToken {
+  id        String       @id @default(cuid())
+  email     String
+  userId    String? // null for invites of not-yet-created users
+  tokenHash String       @unique // sha-256 of the raw token
+  purpose   TokenPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  @@index([email])
+  @@index([tokenHash])
+}
+
+model Article {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  coverImage    String? // GCS URL
+  status        ArticleStatus @default(DRAFT)
+  featured      Boolean       @default(false) // surfaced on homepage
+  // Default/source locale for the article
+  primaryLocale Locale        @default(en)
+
+  author       User                 @relation("AuthoredArticles", fields: [authorId], references: [id])
+  authorId     String
+  tags         Tag[]                @relation("ArticleTags")
   translations ArticleTranslation[]
-  revisions   Revision[]
+  revisions    Revision[]
 
   publishedAt DateTime?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([status, publishedAt])
   @@index([featured])
@@ -320,15 +418,19 @@ model Revision {
 
 // Bearer keys for the admin upload API (POST /api/admin/articles).
 model ApiKey {
-  id         String    @id @default(cuid())
+  id         String      @id @default(cuid())
   name       String
-  hashedKey  String    @unique // sha-256 of the token
+  hashedKey  String      @unique // sha-256 of the token
   prefix     String // first 8 chars, shown in UI for identification
-  createdBy  User      @relation(fields: [userId], references: [id])
+  // Capability scopes for this key — always a subset of the owner's effective
+  // privileges at mint time. The verifier caps the key's authority to this set.
+  scopes     Privilege[] @default([])
+  createdBy  User        @relation(fields: [userId], references: [id])
   userId     String
   lastUsedAt DateTime?
-  revoked    Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  expiresAt  DateTime? // optional expiry
+  revoked    Boolean     @default(false)
+  createdAt  DateTime    @default(now())
 
   @@index([hashedKey])
 }
