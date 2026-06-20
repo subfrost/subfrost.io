@@ -11,10 +11,8 @@ resources:
   - ingress.yaml
   - pdb.yaml
 
-# Rewrites every `REPLACE_IMAGE` (app + migrate initContainer) to the real
-# Artifact Registry image. Override newTag per release (or use the SHORT_SHA the
-# Cloud Build trigger produces).
+# Pins the image tag (override per release, or use the SHORT_SHA the Cloud Build
+# trigger produces).
 images:
-  - name: REPLACE_IMAGE
-    newName: us-central1-docker.pkg.dev/REPLACE_PROJECT_ID/subfrost-docker/subfrost-io
+  - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
     newTag: latest
