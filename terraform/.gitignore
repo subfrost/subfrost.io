@@ -1,0 +1,12 @@
+# Local Terraform state + cache — never commit (state can contain secrets).
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Local var files (keep the example committed).
+*.tfvars
+!*.tfvars.example
+
+# Keep .terraform.lock.hcl committed (pins provider versions).
