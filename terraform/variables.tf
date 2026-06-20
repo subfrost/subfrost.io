@@ -31,8 +31,12 @@ variable "spot_min_nodes" {
 }
 
 variable "spot_max_nodes" {
+  # e2-medium is small (~940m allocatable, ~half eaten by GKE system pods), so
+  # one app pod ≈ one node. 2 replicas + ESO + rollout surge need headroom; 5
+  # gives the autoscaler room. (Future: fewer, bigger nodes — e.g. e2-standard-2
+  # — would be more efficient, but that recreates the pool.)
   type    = number
-  default = 3
+  default = 5
 }
 
 variable "cms_bucket" {
