@@ -15,6 +15,7 @@ export interface ProfileInitial {
   bio: string
   twitter: string
   avatarUrl: string
+  status: string
 }
 
 export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; canEditBio: boolean }) {
@@ -29,6 +30,7 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
   const [bio, setBio] = useState(initial.bio)
   const [twitter, setTwitter] = useState(initial.twitter)
   const [avatarUrl, setAvatarUrl] = useState(initial.avatarUrl)
+  const [status, setStatus] = useState(initial.status)
 
   async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -46,10 +48,10 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
   function save() {
     setError(null); setMsg(null)
     startTransition(async () => {
-      // Only send public-byline fields when the user has the editor privilege.
+      // Status is self-service for everyone; public-byline fields require EDIT_BIO.
       const res = await updateProfile(
         initial.id,
-        canEditBio ? { name, bio, twitter, avatarUrl } : { name },
+        canEditBio ? { name, status, bio, twitter, avatarUrl } : { name, status },
       )
       if (res.ok) { setMsg("Saved"); router.refresh() } else setError(res.error)
     })
@@ -80,6 +82,10 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
       <div className="space-y-1.5">
         <Label className="text-zinc-300">Display name</Label>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-zinc-300">Status</Label>
+        <Input value={status} onChange={(e) => setStatus(e.target.value)} maxLength={140} placeholder="What you're working on…" className="bg-zinc-900 text-zinc-100 border-zinc-700" />
       </div>
       {canEditBio ? (
         <>

@@ -23,6 +23,7 @@ export default async function UsersPage() {
     role: u.role,
     active: u.active,
     avatarUrl: u.avatarUrl,
+    status: u.status,
     privileges: u.privileges,
     lastSeenAt: u.lastSeenAt ? u.lastSeenAt.toISOString() : null,
     totpEnabled: u.totpEnabled,
