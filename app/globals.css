@@ -261,7 +261,7 @@
   letter-spacing: -0.4px;
 }
 .font-reading {
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
 }
 
 /* Eyebrow / kicker label */
@@ -278,7 +278,7 @@
 
 /* Long-form reading typography for rendered markdown. */
 .ed-article-prose {
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
   font-size: 20px;
   line-height: 1.78;
   color: var(--ed-body);
@@ -318,7 +318,7 @@
   margin: 28px 0;
   padding: 4px 0 4px 22px;
   border-left: 4px solid var(--ed-accent);
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
   font-style: italic;
   font-size: 24px;
   line-height: 1.45;
@@ -366,7 +366,7 @@
 }
 /* Drop cap on the opening paragraph — a Frost Editorial signature. */
 .ed-article-prose > p:first-of-type::first-letter {
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
   font-weight: 600;
   float: left;
   font-size: 76px;

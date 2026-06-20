@@ -15,7 +15,7 @@ export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
     >
       <div className="mx-auto flex h-[60px] max-w-[1120px] items-center justify-between px-6 sm:px-10">
         <Link href="/" className="flex items-center gap-2.5" style={{ color: "var(--ed-ink)" }}>
-          <SnowflakeMark size={22} />
+          <SnowflakeMark size={24} className="text-[color:var(--ed-accent)]" />
           <span className="font-display text-[19px] font-semibold tracking-[4px]">SUBFROST</span>
         </Link>
         <nav className="flex items-center gap-5 text-[15px]">
