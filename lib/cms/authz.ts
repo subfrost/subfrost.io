@@ -1,6 +1,7 @@
 import { cookies } from "next/headers"
 import prisma from "@/lib/prisma"
 import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
+import { validateAndTouchSession } from "@/lib/cms/session-store"
 import {
   effectivePrivileges,
   type Privilege,
@@ -17,18 +18,34 @@ export interface CmsUser {
   avatarUrl: string | null
   /** Effective privileges = role bundle ∪ extra grants. */
   privileges: Privilege[]
+  status: string | null
+  lastSeenAt: Date | null
+  totpEnabled: boolean
+  /** Current session id (for self-service session management). */
+  jti: string | null
 }
 
 /** Reads the session cookie (Next 16: cookies() is async), re-validates the
- *  user against the DB so a deactivated/role-changed account is enforced, and
- *  resolves effective privileges. Session-row revocation is enforced in
- *  Phase 1 (lib/cms/session-store). */
+ *  user against the DB so a deactivated/role-changed account is enforced,
+ *  enforces server-side session revocation + tokenVersion, and resolves
+ *  effective privileges. */
 export async function currentUser(): Promise<CmsUser | null> {
   const jar = await cookies()
   const session = await verifySession(jar.get(SESSION_COOKIE)?.value)
   if (!session) return null
+  // A 2FA-pending token is not a real session — reject everywhere but the
+  // second login step (which verifies it explicitly).
+  if (session.pending2fa) return null
+  // Legacy tokens (no jti) predate server-side sessions — force a re-login.
+  if (!session.jti) return null
+
   const user = await prisma.user.findUnique({ where: { id: session.sub } })
   if (!user || !user.active) return null
+  // Password change / forced logout bumps tokenVersion, invalidating old JWTs.
+  if (typeof session.ver === "number" && session.ver !== user.tokenVersion) return null
+  // Server-side revocation + expiry (and presence touch).
+  if (!(await validateAndTouchSession(session.jti))) return null
+
   return {
     id: user.id,
     email: user.email,
@@ -36,6 +53,10 @@ export async function currentUser(): Promise<CmsUser | null> {
     role: user.role as Role,
     avatarUrl: user.avatarUrl,
     privileges: effectivePrivileges(user.role as Role, user.privileges),
+    status: user.status,
+    lastSeenAt: user.lastSeenAt,
+    totpEnabled: user.totpEnabled,
+    jti: session.jti,
   }
 }
 
