@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Bad request body" }, { status: 400 })
   }
 
-  const res = await upsertArticle({ id: actor.id, role: actor.role }, input)
+  const res = await upsertArticle({ id: actor.id, privileges: actor.privileges }, input)
   if (!res.ok) return NextResponse.json(res, { status: 400 })
 
   revalidatePath("/")
