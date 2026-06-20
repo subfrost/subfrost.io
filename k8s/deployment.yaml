@@ -44,14 +44,14 @@ spec:
       initContainers:
         # Cloud SQL Auth Proxy as a NATIVE sidecar (restartPolicy: Always, needs
         # GKE >= 1.28). Comes up before the migrate init step and stays running
-        # for the app. Cloud SQL `subfrost-postgres` is private-IP only.
+        # for the app. subfrost-postgres has a public IP; the proxy tunnels over
+        # IAM (cloudsql.client), so no authorized-networks / VPC peering needed.
         - name: cloud-sql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.13.0
           restartPolicy: Always
           args:
-            - "--private-ip"
             - "--port=5432"
-            - "night-wolves-jogging:us-central1:subfrost-postgres" # PROJECT:REGION:subfrost-postgres
+            - "night-wolves-jogging:us-central1:subfrost-postgres"
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false

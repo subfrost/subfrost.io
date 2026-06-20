@@ -3,10 +3,9 @@
 # explicitly. NOT subkube — this is the dedicated subfrost.io cluster.
 #
 # NOTE on networking: omitting network/subnetwork uses the project's default
-# VPC. The Cloud SQL Auth Proxy runs with --private-ip, so the cluster MUST have
-# VPC connectivity to subfrost-postgres' private IP (same VPC / private services
-# access). Confirm that, or set network/subnetwork to the VPC peered with
-# Cloud SQL.
+# VPC. subfrost-postgres has a public IP and the app reaches it via the Cloud SQL
+# Auth Proxy over IAM (cloudsql.client) — no VPC peering / private services
+# access needed, so the default VPC is fine.
 resource "google_container_cluster" "subfrost_io" {
   name     = var.cluster_name
   location = var.zone
