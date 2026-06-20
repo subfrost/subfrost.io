@@ -28,6 +28,7 @@ export interface UserRow {
   role: Role
   active: boolean
   avatarUrl: string | null
+  status: string | null
   privileges: Privilege[]
   lastSeenAt: string | null
   totpEnabled: boolean
@@ -141,6 +142,7 @@ export function UsersManager({
                             {u.totpEnabled && <span title="2FA enabled" className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">2FA</span>}
                           </div>
                           <div className="text-xs text-zinc-500">{u.email}</div>
+                          {u.status && <div className="text-xs italic text-zinc-600">“{u.status}”</div>}
                         </div>
                       </div>
                     </td>

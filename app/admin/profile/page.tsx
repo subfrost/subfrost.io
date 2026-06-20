@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
 import { ProfileForm } from "@/components/cms/ProfileForm"
+import { ChangePasswordForm } from "@/components/cms/ChangePasswordForm"
 import { SessionsManager } from "@/components/cms/SessionsManager"
 import { listMySessions } from "@/actions/cms/sessions"
 
@@ -36,11 +37,13 @@ export default async function ProfilePage() {
             bio: user.bio ?? "",
             twitter: user.twitter ?? "",
             avatarUrl: user.avatarUrl ?? "",
+            status: user.status ?? "",
           }}
         />
       </div>
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-white">Security</h2>
+      <div className="space-y-5">
+        <h2 className="text-lg font-semibold text-white">Security</h2>
+        <ChangePasswordForm />
         <SessionsManager sessions={sessions} />
       </div>
     </div>
