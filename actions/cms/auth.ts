@@ -40,6 +40,22 @@ export type LoginResult =
   | { ok: true; twofa?: boolean }
   | { ok: false; error: string }
 
+// Brute-force throttle: DB-backed (works across pods, reuses the audit trail).
+const RL_WINDOW_MS = 15 * 60_000
+const RL_MAX_PER_EMAIL = 5
+const RL_MAX_PER_IP = 20
+
+async function tooManyAttempts(email: string, ip: string | null): Promise<boolean> {
+  const since = new Date(Date.now() - RL_WINDOW_MS)
+  const [byEmail, byIp] = await Promise.all([
+    prisma.auditLog.count({ where: { action: "login_failed", target: email, createdAt: { gt: since } } }),
+    ip
+      ? prisma.auditLog.count({ where: { action: "login_failed", ip, createdAt: { gt: since } } })
+      : Promise.resolve(0),
+  ])
+  return byEmail >= RL_MAX_PER_EMAIL || byIp >= RL_MAX_PER_IP
+}
+
 /** Captures client IP + user-agent for the session/audit records. */
 async function reqMeta(): Promise<{ ip: string | null; ua: string | null }> {
   const h = await headers()
@@ -75,20 +91,22 @@ async function issueSession(user: {
 export async function login(email: string, password: string): Promise<LoginResult> {
   const parsed = loginSchema.safeParse({ email, password })
   if (!parsed.success) return { ok: false, error: "Enter a valid email and password" }
+  const lowerEmail = parsed.data.email.toLowerCase()
 
-  const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
-  })
+  const { ip: clientIp } = await reqMeta()
+  if (await tooManyAttempts(lowerEmail, clientIp)) {
+    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: lowerEmail } })
   if (!user || !user.active) {
-    const { ip } = await reqMeta()
-    await audit("login_failed", { target: parsed.data.email.toLowerCase(), ip })
+    await audit("login_failed", { target: lowerEmail, ip: clientIp })
     return { ok: false, error: "Invalid email or password" }
   }
 
   const ok = await bcrypt.compare(parsed.data.password, user.passwordHash)
   if (!ok) {
-    const { ip } = await reqMeta()
-    await audit("login_failed", { actorId: user.id, target: user.email, ip })
+    await audit("login_failed", { actorId: user.id, target: user.email, ip: clientIp })
     return { ok: false, error: "Invalid email or password" }
   }
 
@@ -122,6 +140,11 @@ export async function loginVerify2fa(code: string): Promise<LoginResult> {
     return { ok: false, error: "Two-factor is not available for this account" }
   }
 
+  const { ip: clientIp } = await reqMeta()
+  if (await tooManyAttempts(user.email, clientIp)) {
+    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
+  }
+
   const clean = code.replace(/\s+/g, "")
   let verified = validateCode(user.totpSecret, user.email, clean)
   if (!verified) {
@@ -135,8 +158,7 @@ export async function loginVerify2fa(code: string): Promise<LoginResult> {
     }
   }
   if (!verified) {
-    const { ip } = await reqMeta()
-    await audit("login_failed", { actorId: user.id, target: user.email, details: { stage: "2fa" }, ip })
+    await audit("login_failed", { actorId: user.id, target: user.email, details: { stage: "2fa" }, ip: clientIp })
     return { ok: false, error: "Incorrect code" }
   }
 

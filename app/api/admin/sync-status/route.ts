@@ -14,10 +14,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
-    // Simple auth check - require a secret header
+    // Require a configured secret; never fall back to a default.
+    const expectedSecret = process.env.ADMIN_SECRET;
+    if (!expectedSecret) {
+      return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 });
+    }
     const authHeader = request.headers.get('x-admin-secret');
-    const expectedSecret = process.env.ADMIN_SECRET || 'change-me-in-production';
-
     if (authHeader !== expectedSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
