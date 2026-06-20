@@ -66,6 +66,9 @@ export default function AdminLoginPage() {
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Signing in…" : "Sign in"}
             </Button>
+            <a href="/admin/forgot-password" className="block text-center text-xs text-zinc-500 hover:text-zinc-300">
+              Forgot password?
+            </a>
           </form>
         ) : (
           <form onSubmit={onVerify} className="space-y-4">

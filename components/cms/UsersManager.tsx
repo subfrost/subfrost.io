@@ -20,6 +20,7 @@ import {
   resetPassword,
   deleteUser,
 } from "@/actions/cms/users"
+import { inviteUser } from "@/actions/cms/account"
 
 export interface UserRow {
   id: string
@@ -68,6 +69,7 @@ export function UsersManager({
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState<Role>(assignableRoles[0] ?? "AUTHOR")
+  const [invite, setInvite] = useState(true)
   const [newGrants, setNewGrants] = useState<Privilege[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
   const [resetFor, setResetFor] = useState<UserRow | null>(null)
@@ -79,7 +81,9 @@ export function UsersManager({
   function onCreate(e: React.FormEvent) {
     e.preventDefault(); setError(null)
     startTransition(async () => {
-      const res = await createUser({ email, name, password, role, privileges: newGrants })
+      const res = invite
+        ? await inviteUser({ email, name, role, privileges: newGrants })
+        : await createUser({ email, name, password, role, privileges: newGrants })
       if (res.ok) { setEmail(""); setName(""); setPassword(""); setNewGrants([]); refresh() }
       else setError(res.error)
     })
@@ -94,7 +98,12 @@ export function UsersManager({
         <div className="sm:col-span-2 text-sm font-medium text-zinc-300">Add user</div>
         <div className="space-y-1.5"><Label className="text-zinc-300">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} /></div>
         <div className="space-y-1.5"><Label className="text-zinc-300">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
-        <div className="space-y-1.5"><Label className="text-zinc-300">Temporary password</Label><Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} /></div>
+        <div className="space-y-1.5">
+          <Label className="text-zinc-300">{invite ? "Password" : "Temporary password"}</Label>
+          {invite
+            ? <div className="flex h-10 items-center text-xs text-zinc-500">Set via emailed invite link</div>
+            : <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} />}
+        </div>
         <div className="space-y-1.5"><Label className="text-zinc-300">Role</Label>
           <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={selectCls}>
             {assignableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -111,8 +120,12 @@ export function UsersManager({
             />
           </div>
         )}
+        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-zinc-400">
+          <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+          Email an invite link (user sets their own password)
+        </label>
         <div className="sm:col-span-2 flex items-center gap-3">
-          <Button type="submit" disabled={pending}>Create user</Button>
+          <Button type="submit" disabled={pending}>{invite ? "Send invite" : "Create user"}</Button>
           {error && <span className="text-sm text-red-400">{error}</span>}
         </div>
       </form>

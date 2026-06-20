@@ -5,9 +5,11 @@ import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Gate the /admin CMS (login page is exempt). Edge-only signature check;
-  // full role/active enforcement happens in the server components via authz.
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+  // Gate the /admin CMS. Public auth pages (login + the emailed
+  // set-password / forgot-password flows) are exempt. Edge-only signature
+  // check; full role/active enforcement happens in server components via authz.
+  const PUBLIC_ADMIN = ["/admin/login", "/admin/set-password", "/admin/forgot-password"]
+  if (pathname.startsWith("/admin") && !PUBLIC_ADMIN.some((p) => pathname.startsWith(p))) {
     const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
     if (!session) {
       const url = request.nextUrl.clone()
