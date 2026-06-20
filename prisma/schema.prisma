@@ -434,3 +434,45 @@ model ApiKey {
 
   @@index([hashedKey])
 }
+
+// ============================================
+// REFERRAL / INVITE CODES
+// Consolidated from subfrost-app (graph only: codes + redemptions keyed by
+// taproot address; wallet-users stay in subfrost-app).
+// ============================================
+
+model InviteCode {
+  id                  String   @id @default(cuid())
+  code                String   @unique // stored uppercase
+  description         String?
+  isActive            Boolean  @default(true)
+  ownerTaprootAddress String?
+  createdAt           DateTime @default(now())
+
+  // Hierarchy: leader → sub-leader (null for top-level leader codes)
+  parentCodeId String?
+  parentCode   InviteCode?  @relation("CodeHierarchy", fields: [parentCodeId], references: [id])
+  childCodes   InviteCode[] @relation("CodeHierarchy")
+
+  redemptions InviteCodeRedemption[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([parentCodeId])
+  @@index([ownerTaprootAddress])
+}
+
+model InviteCodeRedemption {
+  id             String     @id @default(cuid())
+  code           InviteCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  codeId         String
+  taprootAddress String
+  segwitAddress  String?
+  taprootPubkey  String?
+  redeemedAt     DateTime   @default(now())
+  updatedAt      DateTime?  @updatedAt
+
+  @@unique([codeId, taprootAddress])
+  @@index([taprootAddress])
+  @@index([redeemedAt])
+}
