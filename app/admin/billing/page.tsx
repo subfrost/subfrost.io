@@ -10,7 +10,7 @@ const SURFACES: { key: string; label: string; href: string; desc: string; ready:
   { key: "subscriptions", label: "Subscriptions", href: "/admin/billing/subscriptions", desc: "Tiers & subscribers", ready: true },
   { key: "promo", label: "Promo codes", href: "/admin/billing/promo", desc: "Coupons & promotion codes", ready: true },
   { key: "treasury", label: "Treasury", href: "/admin/billing/treasury", desc: "Balances, transactions, ACH", ready: true },
-  { key: "issuing", label: "Issuing", href: "/admin/billing/issuing", desc: "Cards, controls, disputes", ready: false },
+  { key: "issuing", label: "Issuing", href: "/admin/billing/issuing", desc: "Cards, controls, disputes", ready: true },
   { key: "offramp", label: "Offramp", href: "/admin/billing/offramp", desc: "Crypto→fiat settlements", ready: false },
   { key: "customers", label: "Customers", href: "/admin/billing/customers", desc: "Subscriptions, invoices, charges", ready: false },
   { key: "applications", label: "Applications", href: "/admin/billing/applications", desc: "Stripe product onboarding", ready: true },
