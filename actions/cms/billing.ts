@@ -9,11 +9,12 @@ import { BillingError, StripeNotWiredError } from "@/lib/stripe/config"
 import { listApplications, upsertApplication, type ApplicationRow } from "@/lib/stripe/applications"
 import { changeSubscription, listSubscribers, listTiers } from "@/lib/stripe/subscriptions"
 import { createPromoCode, listPromoCodes } from "@/lib/stripe/promo"
-import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, type MoneyIntentRow } from "@/lib/stripe/money"
+import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, queueRefund, type MoneyIntentRow } from "@/lib/stripe/money"
 import { listBalances, listTransactions } from "@/lib/stripe/treasury"
 import { listSettlements } from "@/lib/stripe/offramp"
 import { listCards, listDisputes, setCardControl, submitDisputeEvidence } from "@/lib/stripe/issuing"
-import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement } from "@/lib/stripe/shapes"
+import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement, CustomerSummary, CustomerDetail } from "@/lib/stripe/shapes"
+import { listCustomers, getCustomer } from "@/lib/stripe/customers"
 
 const REQUIRED: Privilege = "MANAGE_BILLING"
 
@@ -243,4 +244,46 @@ export async function listSettlementsAction(): Promise<
   if (!a.ok) return a
   const { settlements, live } = await listSettlements()
   return { ok: true, settlements, live }
+}
+
+export async function listCustomersAction(): Promise<
+  { ok: true; customers: CustomerSummary[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { customers, live } = await listCustomers()
+  return { ok: true, customers, live }
+}
+
+export async function getCustomerAction(id: string): Promise<
+  { ok: true; customer: CustomerDetail | null; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { customer, live } = await getCustomer(id)
+  return { ok: true, customer, live }
+}
+
+export async function listRefundIntentsAction(): Promise<
+  { ok: true; intents: MoneyIntentRow[] } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  return { ok: true, intents: await listIntents("REFUND") }
+}
+
+export async function requestRefundAction(
+  input: { reference: string; amount: number; reason?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await queueRefund(input, a.me.email)
+    await audit("stripe_refund_request", { actorId: a.me.id, target: input.reference, ip: await ip() })
+    revalidatePath("/admin/billing/customers")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
 }

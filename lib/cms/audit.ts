@@ -41,6 +41,7 @@ export type AuditAction =
   | "stripe_money_cancel"
   | "stripe_card_control"
   | "stripe_dispute_evidence"
+  | "stripe_refund_request"
 
 export async function audit(
   action: AuditAction,
