@@ -85,6 +85,7 @@ export function TreasuryManager() {
   const handleQueue = () =>
     startTransition(async () => {
       setFormError(null)
+      setQueueError(null)
       if (!counterparty.trim()) {
         setFormError("Counterparty is required.")
         return
