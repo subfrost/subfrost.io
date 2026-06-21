@@ -30,6 +30,8 @@ export type AuditAction =
   | "create_fincen_draft"
   | "update_fincen_draft"
   | "queue_fincen_submission"
+  | "seed_mtl"
+  | "update_mtl"
 
 export async function audit(
   action: AuditAction,
