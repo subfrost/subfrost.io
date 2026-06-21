@@ -36,6 +36,11 @@ export type AuditAction =
   | "stripe_application_update"
   | "stripe_subscription_action"
   | "stripe_promo_create"
+  | "stripe_money_queue"
+  | "stripe_money_confirm"
+  | "stripe_money_cancel"
+  | "stripe_card_control"
+  | "stripe_dispute_evidence"
 
 export async function audit(
   action: AuditAction,

@@ -9,7 +9,11 @@ import { BillingError, StripeNotWiredError } from "@/lib/stripe/config"
 import { listApplications, upsertApplication, type ApplicationRow } from "@/lib/stripe/applications"
 import { changeSubscription, listSubscribers, listTiers } from "@/lib/stripe/subscriptions"
 import { createPromoCode, listPromoCodes } from "@/lib/stripe/promo"
-import type { SubscriptionTier, Subscriber, PromoCode } from "@/lib/stripe/shapes"
+import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, type MoneyIntentRow } from "@/lib/stripe/money"
+import { listBalances, listTransactions } from "@/lib/stripe/treasury"
+import { listSettlements } from "@/lib/stripe/offramp"
+import { listCards, listDisputes, setCardControl, submitDisputeEvidence } from "@/lib/stripe/issuing"
+import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement } from "@/lib/stripe/shapes"
 
 const REQUIRED: Privilege = "MANAGE_BILLING"
 
@@ -108,4 +112,135 @@ export async function createPromoCodeAction(
     if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
     throw e
   }
+}
+
+export async function listBalancesAction(): Promise<
+  { ok: true; balances: TreasuryBalance[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { balances, live } = await listBalances()
+  return { ok: true, balances, live }
+}
+
+export async function listTransactionsAction(): Promise<
+  { ok: true; transactions: TreasuryTransaction[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { transactions, live } = await listTransactions()
+  return { ok: true, transactions, live }
+}
+
+export async function listMoneyIntentsAction(): Promise<
+  { ok: true; intents: MoneyIntentRow[] } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  return { ok: true, intents: await listIntents("ACH_TRANSFER") }
+}
+
+export async function queueAchTransferAction(
+  input: { direction: string; amount: number; counterparty: string; memo?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await queueAchTransfer(input, a.me.email)
+    await audit("stripe_money_queue", { actorId: a.me.id, target: `${input.direction} ${input.amount}`, ip: await ip() })
+    revalidatePath("/admin/billing/treasury")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function confirmIntentAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await confirmIntent(id, a.me.email)
+    await audit("stripe_money_confirm", { actorId: a.me.id, target: id, ip: await ip() })
+    revalidatePath("/admin/billing/treasury")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function cancelIntentAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await cancelIntent(id, a.me.email)
+    await audit("stripe_money_cancel", { actorId: a.me.id, target: id, ip: await ip() })
+    revalidatePath("/admin/billing/treasury")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function listCardsAction(): Promise<
+  { ok: true; cards: IssuingCard[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { cards, live } = await listCards()
+  return { ok: true, cards, live }
+}
+
+export async function listDisputesAction(): Promise<
+  { ok: true; disputes: IssuingDispute[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { disputes, live } = await listDisputes()
+  return { ok: true, disputes, live }
+}
+
+export async function setCardControlAction(
+  cardId: string,
+  input: { state: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await setCardControl(cardId, input, a.me.email)
+    await audit("stripe_card_control", { actorId: a.me.id, target: cardId, ip: await ip() })
+    revalidatePath("/admin/billing/issuing")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function submitDisputeEvidenceAction(
+  disputeId: string,
+  input: { evidence: string; evidenceFiles?: string[] },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await submitDisputeEvidence(disputeId, input, a.me.email)
+    await audit("stripe_dispute_evidence", { actorId: a.me.id, target: disputeId, ip: await ip() })
+    revalidatePath("/admin/billing/issuing")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function listSettlementsAction(): Promise<
+  { ok: true; settlements: OfframpSettlement[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { settlements, live } = await listSettlements()
+  return { ok: true, settlements, live }
 }
