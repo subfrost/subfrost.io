@@ -158,7 +158,7 @@ export function SubscriptionsManager() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleAction(sub.id, SUBSCRIPTION_ACTIONS[0])}
+                        onClick={() => handleAction(sub.id, "cancel")}
                       >
                         {SUBSCRIPTION_ACTION_LABELS.cancel}
                       </Button>
@@ -166,7 +166,7 @@ export function SubscriptionsManager() {
                     {sub.status === "canceled" && (
                       <Button
                         size="sm"
-                        onClick={() => handleAction(sub.id, SUBSCRIPTION_ACTIONS[1])}
+                        onClick={() => handleAction(sub.id, "resume")}
                       >
                         {SUBSCRIPTION_ACTION_LABELS.resume}
                       </Button>
