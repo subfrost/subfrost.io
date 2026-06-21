@@ -35,6 +35,16 @@ review-links de revisor AML externo, tracker/subzero/audit internos.
    fronteira da lib**, decidível quando a credencial chegar (o caminho live está gateado, então não
    trava agora). Quando o flex quiser ligar, ele seta `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`)
    no subfrost.io — mesmo modelo da `REFERRAL_API_KEY` pendente da F1.
+   **Atualização do flex (2026-06-20):** o client de Stripe no `subkube` "is not really that advanced —
+   mostly just deals with the subscription tiers we have and promo codes". A implementação do
+   subfrost.io será **"a lot more immersive" e NÃO precisa de nada específico no subkube.** Releitura
+   do "same APIs": significa os **mesmos produtos Stripe** (Treasury/Issuing/Identity/Billing), não
+   consumir a API do subkube — o subfrost.io é dono direto e **independente**. Implicações pro Plano D:
+   (a) o escopo do Stripe é **greenfield abrangente**, não "espelhar o contrato mínimo do subkube"; as
+   formas do `subkube-mock` (treasury/issuing/offramp) seguem como referência de UI mas não são o teto;
+   (b) incluir a superfície **viva** que o subkube já cobre — **subscription tiers + promo codes** —
+   além de treasury/issuing/offramp; (c) o Plano D merece um **refresh de design/brainstorm** com esse
+   escopo ampliado antes de codar.
 2. **Filings FinCEN em coluna `Json`.** O `data` do draft (Form 107/SAR/CTR) é `Json` no Postgres +
    validação **zod** no domain lib (espelha `DraftRecord<T>`). Dados aninhados (officers/owners/
    addresses) sem explodir em tabelas — YAGNI evitado; rascunho é revisado por humano antes do envio.
