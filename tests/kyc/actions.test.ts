@@ -6,10 +6,10 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Map()) }));
 vi.mock('@/lib/kyc/admin', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/kyc/admin')>();
-  return { ...actual, listIntakes: vi.fn(), recordDisposition: vi.fn() };
+  return { ...actual, listIntakes: vi.fn(), recordDisposition: vi.fn(), rescreenOfac: vi.fn() };
 });
 
-import { listIntakesAction, recordDispositionAction } from '@/actions/cms/kyc';
+import { listIntakesAction, recordDispositionAction, rescreenOfacAction } from '@/actions/cms/kyc';
 import { currentUser } from '@/lib/cms/authz';
 import { audit } from '@/lib/cms/audit';
 import { revalidatePath } from 'next/cache';
@@ -70,5 +70,24 @@ describe('listIntakesAction', () => {
     vi.mocked(kyc.listIntakes).mockResolvedValueOnce([]);
     const res = await listIntakesAction();
     expect(res).toEqual({ ok: true, intakes: [] });
+  });
+});
+
+describe('rescreenOfacAction', () => {
+  it('rejects without MANAGE_AML', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    const res = await rescreenOfacAction();
+    expect(res.ok).toBe(false);
+    expect(kyc.rescreenOfac).not.toHaveBeenCalled();
+  });
+
+  it('returns {ok:true, screened}, audits ofac_rescreen, and revalidates /admin/kyc', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_AML']));
+    vi.mocked(kyc.rescreenOfac).mockResolvedValueOnce({ screened: 12 });
+    const res = await rescreenOfacAction();
+    expect(res).toEqual({ ok: true, screened: 12 });
+    expect(kyc.rescreenOfac).toHaveBeenCalledTimes(1);
+    expect(audit).toHaveBeenCalledWith('ofac_rescreen', expect.objectContaining({ actorId: 'u1', target: '12 intakes' }));
+    expect(revalidatePath).toHaveBeenCalledWith('/admin/kyc');
   });
 });

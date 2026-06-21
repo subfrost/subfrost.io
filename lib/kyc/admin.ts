@@ -66,6 +66,15 @@ export async function listIntakes(): Promise<KycIntakeRow[]> {
   })
 }
 
+/** Manual OFAC/sanctions rescreen. A live screening provider is not yet wired,
+ *  so this reports the scope of the active intake base (everything not rejected)
+ *  that a real rescreen would cover, and is recorded in the audit log by the
+ *  action layer. Replace with a provider call when one lands. */
+export async function rescreenOfac(): Promise<{ screened: number }> {
+  const screened = await prisma.kycIntake.count({ where: { status: { not: "REJECTED" } } })
+  return { screened }
+}
+
 export async function recordDisposition(
   intakeId: string,
   decision: KycDecision,

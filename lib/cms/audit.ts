@@ -32,6 +32,7 @@ export type AuditAction =
   | "queue_fincen_submission"
   | "seed_mtl"
   | "update_mtl"
+  | "ofac_rescreen"
 
 export async function audit(
   action: AuditAction,

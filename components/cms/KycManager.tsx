@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { listIntakesAction, recordDispositionAction } from "@/actions/cms/kyc"
+import { listIntakesAction, recordDispositionAction, rescreenOfacAction } from "@/actions/cms/kyc"
 import type { KycIntakeRow, KycDecision } from "@/lib/kyc/admin"
 
 const RISK_CLS: Record<string, string> = {
@@ -28,6 +28,7 @@ export function KycManager() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [notesById, setNotesById] = useState<Record<string, string>>({})
+  const [notice, setNotice] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   const fetchRows = useCallback(async () => {
@@ -75,7 +76,32 @@ export function KycManager() {
           className="max-w-md flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
         />
         <span className="text-xs text-zinc-500">{visible.length} intake(s)</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              setNotice(null)
+              const res = await rescreenOfacAction()
+              if (res.ok) {
+                setNotice(`Rescreened ${res.screened} intakes — no live provider yet`)
+              } else {
+                setError(res.error)
+              }
+            })
+          }
+        >
+          Run OFAC rescreen
+        </Button>
       </div>
+
+      {notice && (
+        <div className="rounded-lg bg-zinc-800/60 p-3 text-sm text-zinc-300">
+          {notice}
+          <button type="button" onClick={() => setNotice(null)} className="ml-2 underline">dismiss</button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">

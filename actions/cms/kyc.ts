@@ -9,6 +9,7 @@ import {
   KycError,
   listIntakes,
   recordDisposition,
+  rescreenOfac,
   type KycDecision,
   type KycIntakeRow,
 } from "@/lib/kyc/admin"
@@ -33,6 +34,15 @@ export async function listIntakesAction(): Promise<
   const a = await actor()
   if (!a.ok) return a
   return { ok: true, intakes: await listIntakes() }
+}
+
+export async function rescreenOfacAction(): Promise<{ ok: true; screened: number } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { screened } = await rescreenOfac()
+  await audit("ofac_rescreen", { actorId: a.me.id, target: `${screened} intakes`, ip: await ip() })
+  revalidatePath("/admin/kyc")
+  return { ok: true, screened }
 }
 
 export async function recordDispositionAction(

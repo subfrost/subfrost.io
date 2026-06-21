@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/prisma', () => {
-  const kycIntake = { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() };
+  const kycIntake = { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn(), count: vi.fn() };
   const kycDisposition = { create: vi.fn() };
   const client = {
     kycIntake,
@@ -11,13 +11,14 @@ vi.mock('@/lib/prisma', () => {
   return { prisma: client, default: client };
 });
 
-import { listIntakes, recordDisposition, KycError } from '@/lib/kyc/admin';
+import { listIntakes, recordDisposition, rescreenOfac, KycError } from '@/lib/kyc/admin';
 import { prisma } from '@/lib/prisma';
 
 const ki = prisma.kycIntake as unknown as {
   findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  count: ReturnType<typeof vi.fn>;
 };
 const kd = prisma.kycDisposition as unknown as { create: ReturnType<typeof vi.fn> };
 const tx = (prisma as unknown as { $transaction: ReturnType<typeof vi.fn> }).$transaction;
@@ -92,5 +93,14 @@ describe('recordDisposition', () => {
     await recordDisposition('k1', 'REVIEW', null, 'op@x.io');
     expect(ki.update).toHaveBeenLastCalledWith({ where: { id: 'k1' }, data: { status: 'IN_REVIEW' } });
     expect(kd.create).toHaveBeenLastCalledWith({ data: { intakeId: 'k1', decision: 'REVIEW', notes: null, by: 'op@x.io' } });
+  });
+});
+
+describe('rescreenOfac', () => {
+  it('counts the non-rejected intake base', async () => {
+    ki.count.mockResolvedValueOnce(7);
+    const r = await rescreenOfac();
+    expect(ki.count).toHaveBeenCalledWith({ where: { status: { not: 'REJECTED' } } });
+    expect(r).toEqual({ screened: 7 });
   });
 });
