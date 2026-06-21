@@ -20,6 +20,10 @@ export const ALL_PRIVILEGES: Privilege[] = [
   "VIEW_AUDIT",
   "MANAGE_USERS",
   "MANAGE_ROLES",
+  "MANAGE_REFERRAL_CODES",
+  "MANAGE_FUEL",
+  "MANAGE_AML",
+  "MANAGE_BILLING",
 ]
 
 // Human labels for the admin UI.
@@ -32,6 +36,10 @@ export const PRIVILEGE_LABELS: Record<Privilege, string> = {
   VIEW_AUDIT: "View audit log",
   MANAGE_USERS: "Manage users (IAM)",
   MANAGE_ROLES: "Assign roles & privileges",
+  MANAGE_REFERRAL_CODES: "Manage referral codes",
+  MANAGE_FUEL: "Manage FUEL allocations",
+  MANAGE_AML: "Manage AML / compliance",
+  MANAGE_BILLING: "Manage billing (Stripe)",
 }
 
 // Default privilege bundle per role.

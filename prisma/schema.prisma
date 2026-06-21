@@ -236,6 +236,10 @@ enum Privilege {
   MANAGE_USERS // IAM: create/modify/disable/delete users — "IAM privilege"
   MANAGE_ROLES // assign roles and privilege grants to others
   VIEW_AUDIT // read the audit log
+  MANAGE_REFERRAL_CODES // growth: manage invite/referral codes + view redemptions
+  MANAGE_FUEL // growth: manage FUEL allocations per address
+  MANAGE_AML // compliance: KYC review, FinCEN/BSA filings, MTL, OFAC rescreen
+  MANAGE_BILLING // compliance: Stripe treasury/issuing/offramp + applications tracker
 }
 
 // Token kinds for emailed, single-use links (Resend-delivered).
@@ -433,4 +437,272 @@ model ApiKey {
   createdAt  DateTime    @default(now())
 
   @@index([hashedKey])
+}
+
+// ============================================
+// REFERRAL / INVITE CODES
+// Consolidated from subfrost-app (graph only: codes + redemptions keyed by
+// taproot address; wallet-users stay in subfrost-app).
+// ============================================
+
+model InviteCode {
+  id                  String   @id @default(cuid())
+  code                String   @unique // stored uppercase
+  description         String?
+  isActive            Boolean  @default(true)
+  ownerTaprootAddress String?
+  createdAt           DateTime @default(now())
+
+  // Hierarchy: leader → sub-leader (null for top-level leader codes)
+  parentCodeId String?
+  parentCode   InviteCode?  @relation("CodeHierarchy", fields: [parentCodeId], references: [id])
+  childCodes   InviteCode[] @relation("CodeHierarchy")
+
+  redemptions InviteCodeRedemption[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([parentCodeId])
+  @@index([ownerTaprootAddress])
+}
+
+model InviteCodeRedemption {
+  id             String     @id @default(cuid())
+  code           InviteCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  codeId         String
+  taprootAddress String
+  segwitAddress  String?
+  taprootPubkey  String?
+  redeemedAt     DateTime   @default(now())
+  updatedAt      DateTime?  @updatedAt
+
+  @@unique([codeId, taprootAddress])
+  @@index([taprootAddress])
+  @@index([redeemedAt])
+}
+
+// FUEL allocations per address (growth rewards). One row per address.
+model FuelAllocation {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  amount    Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([amount])
+}
+
+// ============================================
+// COMPLIANCE — KYC (F2-A)
+// ============================================
+
+enum KycProvider {
+  PERSONA
+  STRIPE_IDENTITY
+  SUMSUB
+}
+
+enum RiskScore {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum KycStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum KycDecision {
+  APPROVE
+  REJECT
+  REVIEW
+}
+
+model KycIntake {
+  id            String           @id @default(cuid())
+  externalId    String? // id at the provider, once a live source is wired
+  customerEmail String
+  customerName  String
+  provider      KycProvider
+  riskScore     RiskScore
+  status        KycStatus        @default(PENDING)
+  submittedAt   DateTime
+  createdAt     DateTime         @default(now())
+  dispositions  KycDisposition[]
+
+  @@index([status])
+}
+
+model KycDisposition {
+  id       String      @id @default(cuid())
+  intakeId String
+  intake   KycIntake   @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  decision KycDecision
+  notes    String?
+  by       String // operator email
+  at       DateTime    @default(now())
+
+  @@index([intakeId])
+}
+
+// ============================================
+// COMPLIANCE — FinCEN / BSA (F2-B)
+// ============================================
+
+enum FincenFormType {
+  FORM107
+  SAR
+  CTR
+}
+
+enum FincenSubmissionStatus {
+  QUEUED
+  ACCEPTED
+  REJECTED
+}
+
+model FincenDraft {
+  id          String             @id @default(cuid())
+  type        FincenFormType
+  data        Json // validated by zod in lib/fincen/schemas.ts
+  updatedBy   String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  submissions FincenSubmission[]
+
+  @@index([type])
+}
+
+model FincenSubmission {
+  id          String                 @id @default(cuid())
+  draftId     String
+  draft       FincenDraft            @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  type        FincenFormType
+  trackingId  String // LOCAL-<...> until real BSA transport
+  status      FincenSubmissionStatus @default(QUEUED)
+  message     String?
+  submittedBy String
+  submittedAt DateTime               @default(now())
+
+  @@index([draftId])
+}
+
+// ============================================
+// COMPLIANCE — MTL licensing (F2-C)
+// ============================================
+
+enum MtlStatus {
+  AGENT_OF_STRIPE
+  REGISTERED
+  FILED_PENDING
+  EXEMPT
+  NOT_YET_NEEDED
+  NEEDS_FILING
+}
+
+model MtlEntry {
+  state         String    @id // 2-letter jurisdiction code (incl. DC)
+  name          String
+  status        MtlStatus  @default(NOT_YET_NEEDED)
+  nextFilingDue String?
+  portalUrl     String?
+  notes         String?
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+}
+
+// ============================================
+// BILLING — Stripe console (F2-D)
+// ============================================
+
+// Money guardrail (ACH + refund) — used in BOTH seed and live modes.
+enum StripeMoneyKind {
+  ACH_TRANSFER
+  REFUND
+}
+
+enum StripeMoneyStatus {
+  QUEUED
+  CONFIRMED
+  CANCELED
+}
+
+model StripeMoneyIntent {
+  id           String            @id @default(cuid())
+  kind         StripeMoneyKind
+  direction    String?           // "in" | "out" (ACH)
+  amount       Int               // cents
+  counterparty String?           // ACH
+  reference    String?           // chargeId/invoiceId (refund)
+  memo         String?
+  status       StripeMoneyStatus @default(QUEUED)
+  requestedBy  String
+  requestedAt  DateTime          @default(now())
+  decidedBy    String?
+  decidedAt    DateTime?
+}
+
+// Low-risk overlays — layered onto reads only in seed mode (interactive demo).
+model StripeCardControl {
+  cardId String   @id
+  state  String   // "active" | "paused" | "canceled"
+  by     String
+  at     DateTime @default(now())
+}
+
+model StripeDisputeEvidence {
+  id            String   @id @default(cuid())
+  disputeId     String
+  evidence      String?
+  evidenceFiles String[]
+  by            String
+  at            DateTime @default(now())
+}
+
+enum StripePromoType {
+  PERCENT
+  AMOUNT
+}
+
+model StripePromoCode {
+  id             String          @id @default(cuid())
+  code           String          @unique
+  type           StripePromoType
+  value          Int             // percent or cents
+  maxRedemptions Int?
+  expiresAt      DateTime?
+  active         Boolean         @default(true)
+  by             String
+  createdAt      DateTime        @default(now())
+}
+
+model StripeSubscriptionAction {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  action         String   // "cancel" | "pause" | "resume" | "change_tier"
+  note           String?
+  by             String
+  at             DateTime @default(now())
+}
+
+// Application/onboarding tracker — pure Postgres, no Stripe.
+enum StripeApplicationStatus {
+  NOT_STARTED
+  SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model StripeApplication {
+  id        String                  @id @default(cuid())
+  product   String                  @unique  // "treasury" | "issuing" | "offramp"
+  status    StripeApplicationStatus @default(NOT_STARTED)
+  notes     String?
+  updatedBy String
+  updatedAt DateTime                @updatedAt
 }
