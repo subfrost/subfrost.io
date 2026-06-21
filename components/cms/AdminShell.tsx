@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { logout } from "@/actions/cms/auth"
 import {
-  FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle, ScrollText, Ticket, Fuel, ShieldCheck, Menu, X, MapPin,
+  FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle, ScrollText, Ticket, Fuel, ShieldCheck, Menu, X, MapPin, CreditCard,
 } from "lucide-react"
 
 export interface ShellUser {
@@ -30,6 +30,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
       {can("MANAGE_AML") && <NavItem href="/admin/kyc" icon={<ShieldCheck size={16} />}>KYC review</NavItem>}
       {can("MANAGE_AML") && <NavItem href="/admin/fincen" icon={<FileText size={16} />}>FinCEN filings</NavItem>}
       {can("MANAGE_AML") && <NavItem href="/admin/mtl" icon={<MapPin size={16} />}>MTL licensing</NavItem>}
+      {can("MANAGE_BILLING") && <NavItem href="/admin/billing" icon={<CreditCard size={16} />}>Billing</NavItem>}
       {can("VIEW_AUDIT") && <NavItem href="/admin/audit" icon={<ScrollText size={16} />}>Audit log</NavItem>}
     </nav>
   )
