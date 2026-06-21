@@ -20,6 +20,11 @@ export type AuditAction =
   | "key_revoke"
   | "totp_enabled"
   | "totp_disabled"
+  | "create_code"
+  | "update_code"
+  | "delete_code"
+  | "upsert_fuel"
+  | "delete_fuel"
 
 export async function audit(
   action: AuditAction,

@@ -15,6 +15,14 @@ export function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase()
 }
 
+/** Drop the 60s validation cache for a code. Call after the admin surface
+ *  deactivates or deletes a code so the public validate/redeem path can't keep
+ *  serving a stale `valid:true`. Owns the cache-key format so callers don't. */
+export async function invalidateCodeValidation(rawCode: string): Promise<void> {
+  const code = normalizeCode(rawCode)
+  if (code) await cacheDel(validKey(code))
+}
+
 export interface ValidateResult {
   valid: boolean
   error?: string

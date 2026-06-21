@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { currentUser } from "@/lib/cms/authz"
 import { logout } from "@/actions/cms/auth"
-import { FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle, ScrollText } from "lucide-react"
+import { FileText, Users, PlusCircle, LogOut, KeyRound, UserCircle, ScrollText, Ticket, Fuel } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +26,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavItem href="/admin/profile" icon={<UserCircle size={16} />}>My profile</NavItem>
           {can("MANAGE_API_KEYS") && <NavItem href="/admin/api-keys" icon={<KeyRound size={16} />}>API keys</NavItem>}
           {can("MANAGE_USERS") && <NavItem href="/admin/users" icon={<Users size={16} />}>Users</NavItem>}
+          {can("MANAGE_REFERRAL_CODES") && <NavItem href="/admin/codes" icon={<Ticket size={16} />}>Referral codes</NavItem>}
+          {can("MANAGE_FUEL") && <NavItem href="/admin/fuel" icon={<Fuel size={16} />}>FUEL</NavItem>}
           {can("VIEW_AUDIT") && <NavItem href="/admin/audit" icon={<ScrollText size={16} />}>Audit log</NavItem>}
         </nav>
         <div className="mt-4 border-t border-zinc-800 pt-4">

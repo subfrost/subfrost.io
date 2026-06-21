@@ -236,6 +236,8 @@ enum Privilege {
   MANAGE_USERS // IAM: create/modify/disable/delete users — "IAM privilege"
   MANAGE_ROLES // assign roles and privilege grants to others
   VIEW_AUDIT // read the audit log
+  MANAGE_REFERRAL_CODES // growth: manage invite/referral codes + view redemptions
+  MANAGE_FUEL // growth: manage FUEL allocations per address
 }
 
 // Token kinds for emailed, single-use links (Resend-delivered).
@@ -475,4 +477,16 @@ model InviteCodeRedemption {
   @@unique([codeId, taprootAddress])
   @@index([taprootAddress])
   @@index([redeemedAt])
+}
+
+// FUEL allocations per address (growth rewards). One row per address.
+model FuelAllocation {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  amount    Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([amount])
 }
