@@ -34,6 +34,8 @@ export type AuditAction =
   | "update_mtl"
   | "ofac_rescreen"
   | "stripe_application_update"
+  | "stripe_subscription_action"
+  | "stripe_promo_create"
 
 export async function audit(
   action: AuditAction,

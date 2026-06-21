@@ -5,8 +5,11 @@ import { headers } from "next/headers"
 import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import type { Privilege } from "@/lib/cms/privileges"
 import { audit } from "@/lib/cms/audit"
-import { BillingError } from "@/lib/stripe/config"
+import { BillingError, StripeNotWiredError } from "@/lib/stripe/config"
 import { listApplications, upsertApplication, type ApplicationRow } from "@/lib/stripe/applications"
+import { changeSubscription, listSubscribers, listTiers } from "@/lib/stripe/subscriptions"
+import { createPromoCode, listPromoCodes } from "@/lib/stripe/promo"
+import type { SubscriptionTier, Subscriber, PromoCode } from "@/lib/stripe/shapes"
 
 const REQUIRED: Privilege = "MANAGE_BILLING"
 
@@ -43,6 +46,66 @@ export async function upsertApplicationAction(
     return { ok: true }
   } catch (e) {
     if (e instanceof BillingError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function listTiersAction(): Promise<
+  { ok: true; tiers: SubscriptionTier[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { tiers, live } = await listTiers()
+  return { ok: true, tiers, live }
+}
+
+export async function listSubscribersAction(): Promise<
+  { ok: true; subscribers: Subscriber[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { subscribers, live } = await listSubscribers()
+  return { ok: true, subscribers, live }
+}
+
+export async function changeSubscriptionAction(
+  subscriptionId: string,
+  input: { action: string; note?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    await changeSubscription(subscriptionId, input, a.me.email)
+    await audit("stripe_subscription_action", { actorId: a.me.id, target: subscriptionId, ip: await ip() })
+    revalidatePath("/admin/billing/subscriptions")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function listPromoCodesAction(): Promise<
+  { ok: true; codes: PromoCode[]; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { codes, live } = await listPromoCodes()
+  return { ok: true, codes, live }
+}
+
+export async function createPromoCodeAction(
+  input: { code: string; type: string; value: number; maxRedemptions?: number; expiresAt?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const a = await actor()
+  if (!a.ok) return a
+  try {
+    const created = await createPromoCode(input, a.me.email)
+    await audit("stripe_promo_create", { actorId: a.me.id, target: created.code, ip: await ip() })
+    revalidatePath("/admin/billing/promo")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
     throw e
   }
 }
