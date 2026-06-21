@@ -80,7 +80,7 @@ export function KycManager() {
       {error && (
         <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
+          <button type="button" onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
         </div>
       )}
 
@@ -116,7 +116,7 @@ export function KycManager() {
                   placeholder="Disposition note (optional)…"
                   className="flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" disabled={pending} onClick={() => disposition(r.id, "APPROVE")}>Approve</Button>
                   <Button size="sm" variant="ghost" disabled={pending} onClick={() => disposition(r.id, "REVIEW")}>Review</Button>
                   <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => disposition(r.id, "REJECT")}>Reject</Button>
