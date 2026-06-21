@@ -26,6 +26,10 @@ export type AuditAction =
   | "upsert_fuel"
   | "delete_fuel"
   | "kyc_disposition"
+  | "save_form107"
+  | "create_fincen_draft"
+  | "update_fincen_draft"
+  | "queue_fincen_submission"
 
 export async function audit(
   action: AuditAction,
