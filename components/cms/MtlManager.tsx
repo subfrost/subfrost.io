@@ -65,6 +65,7 @@ export function MtlManager() {
     startTransition(async () => {
       const res = await seedMtlAction()
       if (res.ok) {
+        setError(null)
         fetchRows()
       } else {
         setError(res.error)
@@ -82,6 +83,7 @@ export function MtlManager() {
         notes: draft.notes || undefined,
       })
       if (res.ok) {
+        setError(null)
         fetchRows()
       } else {
         setError(res.error)
