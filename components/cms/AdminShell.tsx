@@ -28,6 +28,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
       {can("MANAGE_REFERRAL_CODES") && <NavItem href="/admin/codes" icon={<Ticket size={16} />}>Referral codes</NavItem>}
       {can("MANAGE_FUEL") && <NavItem href="/admin/fuel" icon={<Fuel size={16} />}>FUEL</NavItem>}
       {can("MANAGE_AML") && <NavItem href="/admin/kyc" icon={<ShieldCheck size={16} />}>KYC review</NavItem>}
+      {can("MANAGE_AML") && <NavItem href="/admin/fincen" icon={<FileText size={16} />}>FinCEN filings</NavItem>}
       {can("VIEW_AUDIT") && <NavItem href="/admin/audit" icon={<ScrollText size={16} />}>Audit log</NavItem>}
     </nav>
   )
