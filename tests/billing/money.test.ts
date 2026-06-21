@@ -10,7 +10,7 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
   return { ...actual, isLive: vi.fn(() => false) };
 });
 
-import { listIntents, queueAchTransfer, confirmIntent, cancelIntent } from '@/lib/stripe/money';
+import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, queueRefund } from '@/lib/stripe/money';
 import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
 import { prisma } from '@/lib/prisma';
 
@@ -81,6 +81,23 @@ describe('cancelIntent', () => {
       const r = await cancelIntent('m1', 'op');
       expect(r.status).toBe('CANCELED');
       expect(smi.update).toHaveBeenCalledWith({ where: { id: 'm1' }, data: { status: 'CANCELED', decidedBy: 'op', decidedAt: expect.any(Date) } });
+    }
+  });
+});
+
+describe('queueRefund', () => {
+  it('rejects invalid input without writing', async () => {
+    await expect(queueRefund({ reference: '', amount: 100 }, 'op')).rejects.toBeInstanceOf(BillingError);
+    expect(smi.create).not.toHaveBeenCalled();
+  });
+  it('queues a REFUND intent (reference + reason→memo) in both modes', async () => {
+    for (const liveMode of [false, true]) {
+      vi.clearAllMocks();
+      live.mockReturnValue(liveMode);
+      smi.create.mockResolvedValueOnce({ id: 'r1', kind: 'REFUND', direction: null, amount: 2900, counterparty: null, reference: 'ch_a1', memo: 'duplicate', status: 'QUEUED', requestedBy: 'op', requestedAt: new Date('2026-06-03T00:00:00Z'), decidedBy: null, decidedAt: null });
+      const r = await queueRefund({ reference: 'ch_a1', amount: 2900, reason: 'duplicate' }, 'op');
+      expect(smi.create).toHaveBeenCalledWith({ data: { kind: 'REFUND', amount: 2900, reference: 'ch_a1', memo: 'duplicate', status: 'QUEUED', requestedBy: 'op' } });
+      expect(r.kind).toBe('REFUND');
     }
   });
 });

@@ -5,7 +5,7 @@
  *  (stubbed today) — in seed mode it just marks the intent CONFIRMED for the demo. */
 import prisma from "@/lib/prisma"
 import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
-import { QueueTransferSchema } from "@/lib/stripe/shapes"
+import { QueueTransferSchema, RefundSchema } from "@/lib/stripe/shapes"
 
 export interface MoneyIntentRow {
   id: string
@@ -72,4 +72,14 @@ export async function cancelIntent(id: string, by: string): Promise<MoneyIntentR
     where: { id }, data: { status: "CANCELED", decidedBy: by, decidedAt: new Date() },
   })) as DbIntent
   return map(updated)
+}
+
+export async function queueRefund(input: unknown, by: string): Promise<MoneyIntentRow> {
+  const res = RefundSchema.safeParse(input)
+  if (!res.success) throw new BillingError("Validation failed: " + JSON.stringify(res.error.issues))
+  const { reference, amount, reason } = res.data
+  const saved = (await prisma.stripeMoneyIntent.create({
+    data: { kind: "REFUND", amount, reference, memo: reason ?? null, status: "QUEUED", requestedBy: by },
+  })) as DbIntent
+  return map(saved)
 }
