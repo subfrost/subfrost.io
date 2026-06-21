@@ -414,7 +414,7 @@ export function CustomersManager() {
   const filtered = customers.filter((c) => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
-    return c.email.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+    return (c.email ?? "").toLowerCase().includes(q) || (c.name ?? "").toLowerCase().includes(q)
   })
 
   if (loading) return <div className="text-zinc-500">Loading…</div>
