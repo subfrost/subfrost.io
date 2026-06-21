@@ -28,6 +28,7 @@ describe('seedStates', () => {
     me.createMany.mockResolvedValueOnce({ count: STATE_SEED.length - 1 });
     const r = await seedStates();
     expect(me.createMany).toHaveBeenCalledTimes(1);
+    expect(me.findMany).toHaveBeenCalledWith({ select: { state: true } });
     const arg = me.createMany.mock.calls[0][0];
     expect(arg.data.find((d: { state: string }) => d.state === 'AL')).toBeUndefined();
     expect(arg.data).toHaveLength(STATE_SEED.length - 1);

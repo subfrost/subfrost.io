@@ -29,8 +29,8 @@ export async function seedStates(): Promise<{ created: number }> {
   const have = new Set(existing.map((e) => e.state))
   const missing = STATE_SEED.filter((s) => !have.has(s.state))
   if (missing.length === 0) return { created: 0 }
-  await prisma.mtlEntry.createMany({ data: missing.map((s) => ({ state: s.state, name: s.name })) })
-  return { created: missing.length }
+  const result = await prisma.mtlEntry.createMany({ data: missing.map((s) => ({ state: s.state, name: s.name })) })
+  return { created: result.count }
 }
 
 export async function upsertEntry(state: string, input: unknown): Promise<MtlRow> {
