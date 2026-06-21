@@ -4,6 +4,7 @@
  *  live → Stripe (stubbed today); seed → overlay row (unique code enforced). */
 import prisma from "@/lib/prisma"
 import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { getStripeClient } from "@/lib/stripe/client"
 import { getStripeSource } from "@/lib/stripe/source"
 import { CreatePromoSchema, type PromoCode } from "@/lib/stripe/shapes"
 
@@ -28,9 +29,28 @@ export async function createPromoCode(input: unknown, by: string): Promise<Promo
   const res = CreatePromoSchema.safeParse(input)
   if (!res.success) throw new BillingError("Validation failed: " + JSON.stringify(res.error.issues))
   const { code, type, value, maxRedemptions, expiresAt } = res.data
+
+  if (isLive()) {
+    const stripe = getStripeClient()
+    const coupon = type === "PERCENT"
+      ? await stripe.coupons.create({ percent_off: value, duration: "forever" })
+      : await stripe.coupons.create({ amount_off: value, currency: "usd", duration: "forever" })
+    const pc: any = await stripe.promotionCodes.create({
+      promotion: { type: "coupon", coupon: coupon.id },
+      ...(code ? { code } : {}),
+      ...(maxRedemptions ? { max_redemptions: maxRedemptions } : {}),
+      ...(expiresAt ? { expires_at: Math.floor(new Date(expiresAt).getTime() / 1000) } : {}),
+    })
+    return {
+      code: pc.code, type, value, redemptions: pc.times_redeemed ?? 0,
+      maxRedemptions: pc.max_redemptions ?? null,
+      expiresAt: pc.expires_at ? new Date(pc.expires_at * 1000).toISOString() : null,
+      active: Boolean(pc.active),
+    }
+  }
+
   const existing = await prisma.stripePromoCode.findUnique({ where: { code } })
   if (existing) throw new BillingError(`Promo code already exists: ${code}`)
-  if (isLive()) throw new StripeNotWiredError("createPromoCode")
   const saved = (await prisma.stripePromoCode.create({
     data: { code, type, value, maxRedemptions: maxRedemptions ?? null, expiresAt: expiresAt ? new Date(expiresAt) : null, by },
   })) as DbPromo

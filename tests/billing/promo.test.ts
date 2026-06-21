@@ -6,6 +6,7 @@ vi.mock('@/lib/prisma', () => {
   return { prisma: client, default: client };
 });
 vi.mock('@/lib/stripe/source', () => ({ getStripeSource: vi.fn() }));
+vi.mock('@/lib/stripe/client', () => ({ getStripeClient: vi.fn() }));
 vi.mock('@/lib/stripe/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/stripe/config')>();
   return { ...actual, isLive: vi.fn(() => false) };
@@ -14,6 +15,7 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
 import { listPromoCodes, createPromoCode } from '@/lib/stripe/promo';
 import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
 import { getStripeSource } from '@/lib/stripe/source';
+import { getStripeClient } from '@/lib/stripe/client';
 import { prisma } from '@/lib/prisma';
 
 const spc = prisma.stripePromoCode as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -59,10 +61,16 @@ describe('createPromoCode', () => {
     await expect(createPromoCode({ code: 'DUP', type: 'PERCENT', value: 10 }, 'op')).rejects.toBeInstanceOf(BillingError);
     expect(spc.create).not.toHaveBeenCalled();
   });
-  it('throws StripeNotWiredError in live mode without writing', async () => {
+  it('creates coupon + promotion code in Stripe (live), not the overlay', async () => {
     live.mockReturnValue(true);
-    await expect(createPromoCode({ code: 'X', type: 'PERCENT', value: 10 }, 'op')).rejects.toBeInstanceOf(StripeNotWiredError);
+    const promotionCodes = { create: vi.fn().mockResolvedValue({ code: 'X', coupon: { percent_off: 10 }, times_redeemed: 0, max_redemptions: null, expires_at: null, active: true }) };
+    const coupons = { create: vi.fn().mockResolvedValue({ id: 'co_1' }) };
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ coupons, promotionCodes });
+    const r = await createPromoCode({ code: 'X', type: 'PERCENT', value: 10 }, 'op');
+    expect(coupons.create).toHaveBeenCalledWith({ percent_off: 10, duration: 'forever' });
+    expect(promotionCodes.create).toHaveBeenCalled();
     expect(spc.create).not.toHaveBeenCalled();
+    expect(r).toMatchObject({ code: 'X', type: 'PERCENT', value: 10 });
   });
   it('creates the overlay in seed mode', async () => {
     spc.findUnique.mockResolvedValueOnce(null);
