@@ -590,3 +590,27 @@ model FincenSubmission {
 
   @@index([draftId])
 }
+
+// ============================================
+// COMPLIANCE — MTL licensing (F2-C)
+// ============================================
+
+enum MtlStatus {
+  AGENT_OF_STRIPE
+  REGISTERED
+  FILED_PENDING
+  EXEMPT
+  NOT_YET_NEEDED
+  NEEDS_FILING
+}
+
+model MtlEntry {
+  state         String    @id // 2-letter jurisdiction code (incl. DC)
+  name          String
+  status        MtlStatus  @default(NOT_YET_NEEDED)
+  nextFilingDue String?
+  portalUrl     String?
+  notes         String?
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+}
