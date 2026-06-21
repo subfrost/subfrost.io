@@ -37,6 +37,7 @@ export function IssuingManager() {
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState<string | null>(null)
   const [cardErrors, setCardErrors] = useState<Record<string, string>>({})
+  const [disputeErrors, setDisputeErrors] = useState<Record<string, string>>({})
 
   // Per-card state select values
   const [cardStateSelects, setCardStateSelects] = useState<Record<string, IssuingCard["state"]>>({})
@@ -109,10 +110,10 @@ export function IssuingManager() {
         evidenceFiles: files ? files.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
       })
       if (res.ok) {
-        setCardErrors((prev) => ({ ...prev, [disputeId]: "" }))
+        setDisputeErrors((prev) => ({ ...prev, [disputeId]: "" }))
         await fetchDisputes()
       } else {
-        setCardErrors((prev) => ({ ...prev, [disputeId]: res.error }))
+        setDisputeErrors((prev) => ({ ...prev, [disputeId]: res.error }))
       }
     })
 
@@ -211,7 +212,7 @@ export function IssuingManager() {
         ) : (
           <ul className="space-y-3">
             {disputes.map((dispute) => {
-              const cardError = cardErrors[dispute.id]
+              const disputeError = disputeErrors[dispute.id]
               return (
                 <li key={dispute.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -238,12 +239,12 @@ export function IssuingManager() {
                     </div>
                   )}
 
-                  {cardError && (
+                  {disputeError && (
                     <div className="mb-3 rounded-lg bg-red-950/40 p-2 text-sm text-red-300">
-                      {cardError}
+                      {disputeError}
                       <button
                         type="button"
-                        onClick={() => setCardErrors((prev) => ({ ...prev, [dispute.id]: "" }))}
+                        onClick={() => setDisputeErrors((prev) => ({ ...prev, [dispute.id]: "" }))}
                         className="ml-2 underline"
                       >
                         dismiss
