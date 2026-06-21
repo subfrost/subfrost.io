@@ -38,5 +38,8 @@ describe("KycManager", () => {
     fireEvent.click(toggle)
     expect(await screen.findByText(/verified/i)).toBeInTheDocument()
     expect(screen.getByText(/passport/i)).toBeInTheDocument()
+    // "Ada Lovelace" appears in the row header AND in the extracted field panel
+    expect(screen.getAllByText(/Ada Lovelace/).length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText(/· DOB 1815-12-10/)).toBeInTheDocument()
   })
 })

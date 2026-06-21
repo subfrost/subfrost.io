@@ -175,13 +175,13 @@ export function KycManager() {
                   </div>
                   <div className="mt-1">
                     <span className="text-zinc-500">Document: </span>
-                    {r.providerData.document.type ?? "—"}
-                    {r.providerData.document.country ? ` (${r.providerData.document.country})` : ""}
+                    {r.providerData.document?.type ?? "—"}
+                    {r.providerData.document?.country ? ` (${r.providerData.document?.country})` : ""}
                   </div>
                   <div className="mt-1">
                     <span className="text-zinc-500">Extracted: </span>
-                    {[r.providerData.extracted.firstName, r.providerData.extracted.lastName].filter(Boolean).join(" ") || "—"}
-                    {r.providerData.extracted.dob ? ` · DOB ${r.providerData.extracted.dob}` : ""}
+                    {[r.providerData.extracted?.firstName, r.providerData.extracted?.lastName].filter(Boolean).join(" ") || "—"}
+                    {r.providerData.extracted?.dob ? ` · DOB ${r.providerData.extracted?.dob}` : ""}
                   </div>
                 </div>
               )}
