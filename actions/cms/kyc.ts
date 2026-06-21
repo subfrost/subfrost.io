@@ -13,6 +13,7 @@ import {
   type KycDecision,
   type KycIntakeRow,
 } from "@/lib/kyc/admin"
+import { syncStripeIdentity } from "@/lib/kyc/sync"
 
 const REQUIRED: Privilege = "MANAGE_AML"
 
@@ -61,4 +62,15 @@ export async function recordDispositionAction(
     if (e instanceof KycError) return { ok: false, error: e.message }
     throw e
   }
+}
+
+export async function syncStripeIdentityAction(): Promise<
+  { ok: true; created: number; updated: number; skipped: number } | { ok: false; error: string }
+> {
+  const a = await actor()
+  if (!a.ok) return a
+  const { created, updated, skipped } = await syncStripeIdentity()
+  await audit("kyc_identity_sync", { actorId: a.me.id, target: `${created} new, ${updated} updated`, ip: await ip() })
+  revalidatePath("/admin/kyc")
+  return { ok: true, created, updated, skipped }
 }

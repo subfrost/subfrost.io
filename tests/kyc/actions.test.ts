@@ -8,13 +8,15 @@ vi.mock('@/lib/kyc/admin', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/kyc/admin')>();
   return { ...actual, listIntakes: vi.fn(), recordDisposition: vi.fn(), rescreenOfac: vi.fn() };
 });
+vi.mock("@/lib/kyc/sync", () => ({ syncStripeIdentity: vi.fn() }));
 
-import { listIntakesAction, recordDispositionAction, rescreenOfacAction } from '@/actions/cms/kyc';
+import { listIntakesAction, recordDispositionAction, rescreenOfacAction, syncStripeIdentityAction } from '@/actions/cms/kyc';
 import { currentUser } from '@/lib/cms/authz';
 import { audit } from '@/lib/cms/audit';
 import { revalidatePath } from 'next/cache';
 import * as kyc from '@/lib/kyc/admin';
 import { KycError } from '@/lib/kyc/admin';
+import { syncStripeIdentity } from "@/lib/kyc/sync";
 
 const asUser = (privileges: string[]) =>
   ({ id: 'u1', email: 'op@x.io', name: null, role: 'EDITOR', privileges }) as never;
@@ -91,3 +93,21 @@ describe('rescreenOfacAction', () => {
     expect(revalidatePath).toHaveBeenCalledWith('/admin/kyc');
   });
 });
+
+describe("syncStripeIdentityAction", () => {
+  it("rejects without MANAGE_AML", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["MANAGE_FUEL"]))
+    const res = await syncStripeIdentityAction()
+    expect(res.ok).toBe(false)
+    expect(syncStripeIdentity).not.toHaveBeenCalled()
+  })
+
+  it("syncs, audits and returns counts for an authorized operator", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["MANAGE_AML"]))
+    vi.mocked(syncStripeIdentity).mockResolvedValueOnce({ created: 2, updated: 1, skipped: 0 })
+    const res = await syncStripeIdentityAction()
+    expect(res).toEqual({ ok: true, created: 2, updated: 1, skipped: 0 })
+    expect(audit).toHaveBeenCalledWith("kyc_identity_sync", expect.objectContaining({ target: "2 new, 1 updated" }))
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/kyc")
+  })
+})

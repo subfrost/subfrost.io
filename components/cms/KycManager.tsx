@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { listIntakesAction, recordDispositionAction, rescreenOfacAction } from "@/actions/cms/kyc"
+import { listIntakesAction, recordDispositionAction, rescreenOfacAction, syncStripeIdentityAction } from "@/actions/cms/kyc"
 import type { KycIntakeRow, KycDecision } from "@/lib/kyc/admin"
 
 const RISK_CLS: Record<string, string> = {
@@ -30,6 +30,7 @@ export function KycManager() {
   const [notesById, setNotesById] = useState<Record<string, string>>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -76,6 +77,25 @@ export function KycManager() {
           className="max-w-md flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
         />
         <span className="text-xs text-zinc-500">{visible.length} intake(s)</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              setNotice(null)
+              const res = await syncStripeIdentityAction()
+              if (res.ok) {
+                setNotice(`Synced from Stripe Identity: ${res.created} new, ${res.updated} updated`)
+                fetchRows()
+              } else {
+                setError(res.error)
+              }
+            })
+          }
+        >
+          Sync from Stripe Identity
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -134,6 +154,37 @@ export function KycManager() {
                   </div>
                 </div>
               </div>
+
+              {r.providerData && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((p) => ({ ...p, [r.id]: !p[r.id] }))}
+                  className="mt-2 text-xs text-zinc-400 underline"
+                >
+                  {expanded[r.id] ? "Hide details" : "Details"}
+                </button>
+              )}
+              {r.providerData && expanded[r.id] && (
+                <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 text-xs text-zinc-300">
+                  <div>
+                    <span className="text-zinc-500">Stripe verdict: </span>
+                    <span className="font-medium text-white">{r.providerData.verdict}</span>
+                    {r.providerData.lastError && (
+                      <span className="text-red-300"> — {r.providerData.lastError.reason}</span>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    <span className="text-zinc-500">Document: </span>
+                    {r.providerData.document?.type ?? "—"}
+                    {r.providerData.document?.country ? ` (${r.providerData.document?.country})` : ""}
+                  </div>
+                  <div className="mt-1">
+                    <span className="text-zinc-500">Extracted: </span>
+                    {[r.providerData.extracted?.firstName, r.providerData.extracted?.lastName].filter(Boolean).join(" ") || "—"}
+                    {r.providerData.extracted?.dob ? ` · DOB ${r.providerData.extracted?.dob}` : ""}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Input

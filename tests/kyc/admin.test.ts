@@ -59,6 +59,32 @@ describe('listIntakes', () => {
     const res = await listIntakes();
     expect(res[0].latestDecision).toBeNull();
   });
+
+  it('surfaces providerData on each row', async () => {
+    ki.findMany.mockResolvedValueOnce([
+      {
+        id: 'k1', externalId: 'vs_1', customerEmail: 'ada@x.io', customerName: 'Ada',
+        provider: 'STRIPE_IDENTITY', riskScore: 'LOW', status: 'PENDING',
+        submittedAt: new Date('2026-06-21T00:00:00Z'),
+        providerData: { verdict: 'verified', lastError: null, document: { type: 'passport', country: 'US' }, extracted: { firstName: 'Ada', lastName: null, dob: null } },
+        dispositions: [],
+      },
+    ]);
+    const rows = await listIntakes();
+    expect(rows[0].providerData).toMatchObject({ verdict: 'verified' });
+  });
+
+  it('returns null providerData for legacy rows', async () => {
+    ki.findMany.mockResolvedValueOnce([
+      {
+        id: 'k2', externalId: null, customerEmail: 'x', customerName: 'x',
+        provider: 'PERSONA', riskScore: 'LOW', status: 'PENDING',
+        submittedAt: new Date(), providerData: null, dispositions: [],
+      },
+    ]);
+    const rows = await listIntakes();
+    expect(rows[0].providerData).toBeNull();
+  });
 });
 
 describe('recordDisposition', () => {

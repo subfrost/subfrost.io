@@ -173,3 +173,24 @@ export const RefundSchema = z.object({
   reason: z.string().optional(),
 })
 export type RefundInput = z.infer<typeof RefundSchema>
+
+// --- Stripe Identity (SP-2: KYC source) ---
+export const IDENTITY_VERDICTS = ["verified", "processing", "requires_input", "canceled"] as const
+export type IdentityVerdict = (typeof IDENTITY_VERDICTS)[number]
+
+export type IdentityProviderData = {
+  verdict: IdentityVerdict
+  lastError: { code: string; reason: string } | null
+  document: { type: string | null; country: string | null }
+  extracted: { firstName: string | null; lastName: string | null; dob: string | null }
+}
+
+export type StripeIdentityVerification = {
+  id: string
+  verdict: IdentityVerdict
+  lastError: { code: string; reason: string } | null
+  document: { type: string | null; country: string | null }
+  extracted: { firstName: string | null; lastName: string | null; dob: string | null }
+  email: string
+  createdAt: string // ISO
+}
