@@ -25,6 +25,7 @@ export type AuditAction =
   | "delete_code"
   | "upsert_fuel"
   | "delete_fuel"
+  | "kyc_disposition"
 
 export async function audit(
   action: AuditAction,
