@@ -56,6 +56,12 @@ describe('listDisputes (seed overlay)', () => {
     expect(d.evidence).toBe('receipt');
     expect(d.evidenceFiles).toEqual(['a.pdf']);
   });
+  it('does NOT query evidence in live mode', async () => {
+    live.mockReturnValue(true);
+    const r = await listDisputes();
+    expect(sde.findMany).not.toHaveBeenCalled();
+    expect(r.disputes[0].status).toBe('submitted');
+  });
 });
 
 describe('setCardControl', () => {
