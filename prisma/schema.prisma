@@ -614,3 +614,95 @@ model MtlEntry {
   updatedAt     DateTime  @updatedAt
   createdAt     DateTime  @default(now())
 }
+
+// ============================================
+// BILLING — Stripe console (F2-D)
+// ============================================
+
+// Money guardrail (ACH + refund) — used in BOTH seed and live modes.
+enum StripeMoneyKind {
+  ACH_TRANSFER
+  REFUND
+}
+
+enum StripeMoneyStatus {
+  QUEUED
+  CONFIRMED
+  CANCELED
+}
+
+model StripeMoneyIntent {
+  id           String            @id @default(cuid())
+  kind         StripeMoneyKind
+  direction    String?           // "in" | "out" (ACH)
+  amount       Int               // cents
+  counterparty String?           // ACH
+  reference    String?           // chargeId/invoiceId (refund)
+  memo         String?
+  status       StripeMoneyStatus @default(QUEUED)
+  requestedBy  String
+  requestedAt  DateTime          @default(now())
+  decidedBy    String?
+  decidedAt    DateTime?
+}
+
+// Low-risk overlays — layered onto reads only in seed mode (interactive demo).
+model StripeCardControl {
+  cardId String   @id
+  state  String   // "active" | "paused" | "canceled"
+  by     String
+  at     DateTime @default(now())
+}
+
+model StripeDisputeEvidence {
+  id            String   @id @default(cuid())
+  disputeId     String
+  evidence      String?
+  evidenceFiles String[]
+  by            String
+  at            DateTime @default(now())
+}
+
+enum StripePromoType {
+  PERCENT
+  AMOUNT
+}
+
+model StripePromoCode {
+  id             String          @id @default(cuid())
+  code           String          @unique
+  type           StripePromoType
+  value          Int             // percent or cents
+  maxRedemptions Int?
+  expiresAt      DateTime?
+  active         Boolean         @default(true)
+  by             String
+  createdAt      DateTime        @default(now())
+}
+
+model StripeSubscriptionAction {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  action         String   // "cancel" | "pause" | "resume" | "change_tier"
+  note           String?
+  by             String
+  at             DateTime @default(now())
+}
+
+// Application/onboarding tracker — pure Postgres, no Stripe.
+enum StripeApplicationStatus {
+  NOT_STARTED
+  SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model StripeApplication {
+  id        String                  @id @default(cuid())
+  product   String                  @unique  // "treasury" | "issuing" | "offramp"
+  status    StripeApplicationStatus @default(NOT_STARTED)
+  notes     String?
+  updatedBy String
+  updatedAt DateTime                @updatedAt
+}
