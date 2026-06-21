@@ -137,3 +137,39 @@ export const DisputeEvidenceSchema = z.object({
   evidenceFiles: z.array(z.string()).optional(),
 })
 export type DisputeEvidenceInput = z.infer<typeof DisputeEvidenceSchema>
+
+// --- Customers / billing portal (D4) ---
+export type CustomerSummary = {
+  id: string; email: string; name: string
+  activeSubscriptions: number; lifetimeValue: number // cents
+  createdAt: string
+}
+export type CustomerSubscriptionRef = {
+  id: string; tier: string; status: string; renewsAt: string | null
+}
+export type CustomerInvoice = {
+  id: string; number: string; amountDue: number // cents
+  status: "draft" | "open" | "paid" | "void" | "uncollectible"; createdAt: string
+}
+export type CustomerPaymentMethod = {
+  id: string; brand: string; last4: string; expMonth: number; expYear: number; isDefault: boolean
+}
+export type CustomerCharge = {
+  id: string; amount: number // cents
+  status: "succeeded" | "pending" | "failed" | "refunded"
+  description: string | null; createdAt: string
+}
+export type CustomerDetail = {
+  id: string; email: string; name: string
+  subscriptions: CustomerSubscriptionRef[]
+  invoices: CustomerInvoice[]
+  paymentMethods: CustomerPaymentMethod[]
+  recentCharges: CustomerCharge[]
+}
+
+export const RefundSchema = z.object({
+  reference: z.string().min(1), // chargeId or invoiceId
+  amount: z.number().int().positive(), // cents
+  reason: z.string().optional(),
+})
+export type RefundInput = z.infer<typeof RefundSchema>
