@@ -38,4 +38,26 @@ export const seedSource: StripeSource = {
       { id: "off_002", userId: "usr_c3d4", cryptoAsset: "BTC", cryptoAmount: 2_500_00, fiatAmount: 2_493_75, feeAmount: 6_25, status: "pending", at: ago(1) },
     ]
   },
+  async subscriptionTiers() {
+    return [
+      { id: "tier_basic", name: "Basic", priceMonthly: 9_00, priceYearly: 90_00, features: ["Wrap/unwrap", "Standard support"], activeSubs: 412 },
+      { id: "tier_pro", name: "Pro", priceMonthly: 29_00, priceYearly: 290_00, features: ["Priority offramp", "Higher limits", "Priority support"], activeSubs: 137 },
+      { id: "tier_institutional", name: "Institutional", priceMonthly: 499_00, priceYearly: 4990_00, features: ["Dedicated treasury", "Issuing cards", "SLA"], activeSubs: 8 },
+    ]
+  },
+  async subscribers() {
+    return [
+      { id: "sub_001", customerEmail: "ada.lovelace@example.com", tier: "Pro", status: "active", startedAt: ago(24 * 40), renewsAt: ago(-24 * 20) },
+      { id: "sub_002", customerEmail: "bg@example.com", tier: "Basic", status: "trialing", startedAt: ago(24 * 3), renewsAt: ago(-24 * 11) },
+      { id: "sub_003", customerEmail: "carl@example.com", tier: "Institutional", status: "past_due", startedAt: ago(24 * 200), renewsAt: ago(-24 * 5) },
+      { id: "sub_004", customerEmail: "grace@example.com", tier: "Pro", status: "canceled", startedAt: ago(24 * 120), renewsAt: null },
+    ]
+  },
+  async promoCodes() {
+    return [
+      { code: "LAUNCH25", type: "PERCENT", value: 25, redemptions: 312, maxRedemptions: 1000, expiresAt: ago(-24 * 60), active: true },
+      { code: "FROSTBITE", type: "AMOUNT", value: 10_00, redemptions: 47, maxRedemptions: null, expiresAt: null, active: true },
+      { code: "EXPIRED5", type: "PERCENT", value: 5, redemptions: 88, maxRedemptions: 100, expiresAt: ago(24 * 30), active: false },
+    ]
+  },
 }

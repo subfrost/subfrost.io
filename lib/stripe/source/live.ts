@@ -12,4 +12,7 @@ export const liveSource: StripeSource = {
   issuingCards: nope("issuingCards"),
   issuingDisputes: nope("issuingDisputes"),
   offrampSettlements: nope("offrampSettlements"),
+  subscriptionTiers: nope("subscriptionTiers"),
+  subscribers: nope("subscribers"),
+  promoCodes: nope("promoCodes"),
 }
