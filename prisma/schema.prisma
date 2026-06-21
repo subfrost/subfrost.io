@@ -548,3 +548,45 @@ model KycDisposition {
 
   @@index([intakeId])
 }
+
+// ============================================
+// COMPLIANCE — FinCEN / BSA (F2-B)
+// ============================================
+
+enum FincenFormType {
+  FORM107
+  SAR
+  CTR
+}
+
+enum FincenSubmissionStatus {
+  QUEUED
+  ACCEPTED
+  REJECTED
+}
+
+model FincenDraft {
+  id          String             @id @default(cuid())
+  type        FincenFormType
+  data        Json // validated by zod in lib/fincen/schemas.ts
+  updatedBy   String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  submissions FincenSubmission[]
+
+  @@index([type])
+}
+
+model FincenSubmission {
+  id          String                 @id @default(cuid())
+  draftId     String
+  draft       FincenDraft            @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  type        FincenFormType
+  trackingId  String // LOCAL-<...> until real BSA transport
+  status      FincenSubmissionStatus @default(QUEUED)
+  message     String?
+  submittedBy String
+  submittedAt DateTime               @default(now())
+
+  @@index([draftId])
+}
