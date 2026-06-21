@@ -98,3 +98,42 @@ export const SubscriptionActionSchema = z.object({
   note: z.string().optional(),
 })
 export type SubscriptionActionInput = z.infer<typeof SubscriptionActionSchema>
+
+// --- Money-ops: treasury + issuing (D3) ---
+export const TRANSFER_DIRECTIONS = ["in", "out"] as const
+export type TransferDirection = (typeof TRANSFER_DIRECTIONS)[number]
+
+export const CARD_STATES = ["active", "paused", "canceled"] as const
+export type CardStateValue = (typeof CARD_STATES)[number]
+export const CARD_STATE_LABELS: Record<CardStateValue, string> = {
+  active: "Active",
+  paused: "Paused",
+  canceled: "Canceled",
+}
+
+export const MONEY_INTENT_STATUSES = ["QUEUED", "CONFIRMED", "CANCELED"] as const
+export type MoneyIntentStatusValue = (typeof MONEY_INTENT_STATUSES)[number]
+export const MONEY_INTENT_STATUS_LABELS: Record<MoneyIntentStatusValue, string> = {
+  QUEUED: "Queued",
+  CONFIRMED: "Confirmed",
+  CANCELED: "Canceled",
+}
+
+export const QueueTransferSchema = z.object({
+  direction: z.enum(TRANSFER_DIRECTIONS),
+  amount: z.number().int().positive(), // cents
+  counterparty: z.string().min(1),
+  memo: z.string().optional(),
+})
+export type QueueTransferInput = z.infer<typeof QueueTransferSchema>
+
+export const CardControlSchema = z.object({
+  state: z.enum(CARD_STATES),
+})
+export type CardControlInput = z.infer<typeof CardControlSchema>
+
+export const DisputeEvidenceSchema = z.object({
+  evidence: z.string().min(1),
+  evidenceFiles: z.array(z.string()).optional(),
+})
+export type DisputeEvidenceInput = z.infer<typeof DisputeEvidenceSchema>
