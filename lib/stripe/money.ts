@@ -4,7 +4,8 @@
  *  confirm. Queue + cancel are local in both modes; confirm executes the live Stripe transfer
  *  (stubbed today) — in seed mode it just marks the intent CONFIRMED for the demo. */
 import prisma from "@/lib/prisma"
-import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { isLive, BillingError } from "@/lib/stripe/config"
+import { getStripeClient } from "@/lib/stripe/client"
 import { QueueTransferSchema, RefundSchema } from "@/lib/stripe/shapes"
 
 export interface MoneyIntentRow {
@@ -52,14 +53,46 @@ export async function queueAchTransfer(input: unknown, by: string): Promise<Mone
   return map(saved)
 }
 
-async function loadQueued(id: string): Promise<void> {
-  const intent = await prisma.stripeMoneyIntent.findUnique({ where: { id } })
+async function loadQueued(id: string): Promise<DbIntent> {
+  const intent = (await prisma.stripeMoneyIntent.findUnique({ where: { id } })) as DbIntent | null
   if (!intent || intent.status !== "QUEUED") throw new BillingError("Intent not found or not in QUEUED state")
+  return intent
+}
+
+async function executeIntent(intent: DbIntent): Promise<void> {
+  const stripe = getStripeClient()
+  if (intent.kind === "REFUND") {
+    if (!intent.reference) throw new BillingError("Refund intent missing charge reference")
+    await stripe.refunds.create({ charge: intent.reference, amount: intent.amount })
+    return
+  }
+  // ACH_TRANSFER via Treasury (beta — cast to any to access treasury namespace)
+  const fa = process.env.STRIPE_TREASURY_FINANCIAL_ACCOUNT
+  if (!fa) throw new BillingError("STRIPE_TREASURY_FINANCIAL_ACCOUNT not set")
+  if (!intent.counterparty) throw new BillingError("ACH intent missing counterparty payment method")
+  if (intent.direction === "out") {
+    await (stripe as any).treasury.outboundPayments.create({
+      financial_account: fa, amount: intent.amount, currency: "usd",
+      destination_payment_method: intent.counterparty, description: intent.memo ?? undefined,
+    })
+  } else {
+    await (stripe as any).treasury.inboundTransfers.create({
+      financial_account: fa, amount: intent.amount, currency: "usd",
+      origin_payment_method: intent.counterparty, description: intent.memo ?? undefined,
+    })
+  }
 }
 
 export async function confirmIntent(id: string, by: string): Promise<MoneyIntentRow> {
-  await loadQueued(id)
-  if (isLive()) throw new StripeNotWiredError("confirmIntent")
+  const intent = await loadQueued(id)
+  if (isLive()) {
+    try {
+      await executeIntent(intent)
+    } catch (e) {
+      if (e instanceof BillingError) throw e
+      throw new BillingError(`Stripe execution failed: ${(e as Error).message}`)
+    }
+  }
   const updated = (await prisma.stripeMoneyIntent.update({
     where: { id }, data: { status: "CONFIRMED", decidedBy: by, decidedAt: new Date() },
   })) as DbIntent
