@@ -16,7 +16,7 @@ import { audit } from '@/lib/cms/audit';
 import { revalidatePath } from 'next/cache';
 import { changeSubscription, listSubscribers } from '@/lib/stripe/subscriptions';
 import { createPromoCode, listPromoCodes } from '@/lib/stripe/promo';
-import { BillingError } from '@/lib/stripe/config';
+import { BillingError, StripeNotWiredError } from '@/lib/stripe/config';
 
 const cu = currentUser as unknown as ReturnType<typeof vi.fn>;
 const asUser = (privileges: string[]) => cu.mockResolvedValue({ id: 'u1', email: 'op@subfrost.io', privileges });
@@ -62,6 +62,12 @@ describe('mutations', () => {
     asUser(['MANAGE_BILLING']);
     (createPromoCode as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new BillingError('Promo code already exists: DUP'));
     expect(await createPromoCodeAction({ code: 'DUP', type: 'PERCENT', value: 5 })).toEqual({ ok: false, error: 'Promo code already exists: DUP' });
+    expect(audit).not.toHaveBeenCalled();
+  });
+  it('maps StripeNotWiredError without auditing', async () => {
+    asUser(['MANAGE_BILLING']);
+    (changeSubscription as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StripeNotWiredError('changeSubscription'));
+    expect(await changeSubscriptionAction('sub_001', { action: 'cancel' })).toEqual({ ok: false, error: expect.any(String) });
     expect(audit).not.toHaveBeenCalled();
   });
 });
