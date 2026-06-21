@@ -33,6 +33,7 @@ export type AuditAction =
   | "seed_mtl"
   | "update_mtl"
   | "ofac_rescreen"
+  | "kyc_identity_sync"
   | "stripe_application_update"
   | "stripe_subscription_action"
   | "stripe_promo_create"
