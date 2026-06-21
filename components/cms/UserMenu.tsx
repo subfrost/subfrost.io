@@ -50,7 +50,7 @@ export function UserMenu({
           <Link href="/admin/profile" onClick={() => setOpen(false)} className={itemCls}>
             <UserCircle size={16} /> My profile
           </Link>
-          <a href="/articles" className={itemCls}>
+          <a href="/articles" onClick={() => setOpen(false)} className={itemCls}>
             <ExternalLink size={16} /> View articles
           </a>
           <form action={logout}>
