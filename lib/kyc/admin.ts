@@ -6,6 +6,7 @@
  * full review history is preserved for audit.
  */
 import prisma from "@/lib/prisma"
+import type { IdentityProviderData } from "@/lib/stripe/shapes"
 
 export class KycError extends Error {}
 
@@ -35,6 +36,7 @@ export interface KycIntakeRow {
   status: string
   submittedAt: string
   latestDecision: KycDecision | null
+  providerData: IdentityProviderData | null
   dispositions: DispositionRow[]
 }
 
@@ -61,6 +63,7 @@ export async function listIntakes(): Promise<KycIntakeRow[]> {
       status: r.status,
       submittedAt: r.submittedAt.toISOString(),
       latestDecision: dispositions[0]?.decision ?? null,
+      providerData: (r.providerData as IdentityProviderData | null) ?? null,
       dispositions,
     }
   })
