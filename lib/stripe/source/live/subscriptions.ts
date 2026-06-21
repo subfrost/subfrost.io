@@ -6,7 +6,7 @@ const SUB_STATUS: Record<string, SubscriberStatus> = {
   canceled: "canceled", unpaid: "past_due", incomplete: "past_due",
   incomplete_expired: "canceled", paused: "canceled",
 }
-const iso = (sec: number | null | undefined) => (sec ? new Date(sec * 1000).toISOString() : null)
+const iso = (sec: number | null | undefined) => (sec != null ? new Date(sec * 1000).toISOString() : null)
 
 export async function liveSubscribers(): Promise<Subscriber[]> {
   const stripe = getStripeClient()
