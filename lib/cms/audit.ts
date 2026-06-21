@@ -33,6 +33,7 @@ export type AuditAction =
   | "seed_mtl"
   | "update_mtl"
   | "ofac_rescreen"
+  | "stripe_application_update"
 
 export async function audit(
   action: AuditAction,
