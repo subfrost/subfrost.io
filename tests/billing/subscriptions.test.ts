@@ -13,7 +13,7 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
 vi.mock('@/lib/stripe/client', () => ({ getStripeClient: vi.fn() }));
 
 import { listTiers, listSubscribers, changeSubscription } from '@/lib/stripe/subscriptions';
-import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
+import { BillingError, isLive } from '@/lib/stripe/config';
 import { getStripeSource } from '@/lib/stripe/source';
 import { prisma } from '@/lib/prisma';
 import { getStripeClient } from '@/lib/stripe/client';

@@ -3,7 +3,7 @@
  *  StripePromoCode overlays (admin-created) are appended. Create is low-risk:
  *  live → Stripe (stubbed today); seed → overlay row (unique code enforced). */
 import prisma from "@/lib/prisma"
-import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { isLive, BillingError } from "@/lib/stripe/config"
 import { getStripeClient } from "@/lib/stripe/client"
 import { getStripeSource } from "@/lib/stripe/source"
 import { CreatePromoSchema, type PromoCode } from "@/lib/stripe/shapes"
