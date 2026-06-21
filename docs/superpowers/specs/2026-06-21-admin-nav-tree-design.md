@@ -110,9 +110,10 @@ components/cms/AdminShell.tsx  (REFACTOR) uses <AdminNav> + <UserMenu> in BOTH
 them to `AdminNav`, which calls `visibleNav(privileges)`:
 - An item with a `privilege` is kept only if `privileges.includes(privilege)`.
 - An item with no `privilege` (All articles, New article) is always kept.
-- A group with **zero** visible items is dropped entirely. So a user with no
-  privileges sees only **Articles**; a `MANAGE_AML`-only user sees only **Compliance**
-  (3 items); an ADMIN sees all 5 groups.
+- A group with **zero** visible items is dropped entirely. **Articles is ungated**
+  (it is the `/admin` landing/list), so it is always present. A user with no
+  privileges sees only **Articles**; a `MANAGE_AML`-only user sees **Articles +
+  Compliance** (3 items); an ADMIN sees all 5 groups.
 
 ### Expand/collapse (hydration-safe)
 - `localStorage["subfrost.adminNav.open"]` = JSON `Record<groupKey, boolean>` of the
@@ -163,7 +164,8 @@ up; `@/` alias; `usePathname` mocked via `vi.mock("next/navigation")`).
 
 - **`tests/cms/admin-nav.test.ts`** (pure, no DOM):
   - `visibleNav([])` → only the Articles group (2 items).
-  - `visibleNav(["MANAGE_AML"])` → only Compliance (3 items); other groups dropped.
+  - `visibleNav(["MANAGE_AML"])` → Articles + Compliance (3 items); other gated
+    groups dropped.
   - `visibleNav(ALL_PRIVILEGES)` → all 5 groups with full item counts.
   - empty group is dropped (no group with 0 items in output).
   - `isItemActive` truth table: `/admin`, `/admin/articles/abc` (edit),
