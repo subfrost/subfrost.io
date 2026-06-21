@@ -8,7 +8,7 @@ vi.mock('@/lib/prisma', () => {
 });
 
 import {
-  getForm107, saveForm107, listSar, createSar, updateSar,
+  getForm107, saveForm107, listSar, createSar, updateSar, createCtr, updateCtr,
   listSubmissions, queueSubmission, FincenError,
 } from '@/lib/fincen/admin';
 import { FORM_107_DEFAULTS } from '@/lib/fincen/schemas';
@@ -43,6 +43,7 @@ describe('saveForm107', () => {
     await expect(saveForm107({ ...FORM_107_DEFAULTS, ein: 'bad' }, 'op@x.io')).rejects.toBeInstanceOf(FincenError);
     expect(fd.create).not.toHaveBeenCalled();
     expect(fd.update).not.toHaveBeenCalled();
+    expect(fd.findFirst).not.toHaveBeenCalled();
   });
   it('creates when none exists', async () => {
     fd.findFirst.mockResolvedValueOnce(null);
@@ -70,6 +71,44 @@ describe('createSar', () => {
     const r = await createSar(good, 'op@x.io');
     expect(fd.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: 'SAR' }) }));
     expect(r.type).toBe('SAR');
+  });
+});
+
+describe('updateSar', () => {
+  it('updates an existing SAR by id after validation', async () => {
+    const good = { subject: { name: 'X' }, activity: { startDate: '2026-01-01', totalUsd: 1, category: 'fraud' }, narrative: 'y'.repeat(40), preparerName: 'CO' };
+    fd.update.mockResolvedValueOnce(row({ id: 's9', type: 'SAR', data: good }));
+    const r = await updateSar('s9', good, 'op@x.io');
+    expect(fd.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 's9' } }));
+    expect(r.id).toBe('s9');
+  });
+  it('rejects an invalid SAR update without writing', async () => {
+    await expect(updateSar('s9', { narrative: 'short' }, 'op@x.io')).rejects.toBeInstanceOf(FincenError);
+    expect(fd.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('createCtr', () => {
+  const good = { subject: { name: 'X', accountId: 'a1', address: { line1: '1 A St', city: 'Houston', state: 'TX', zip: '77006' } }, transactionDate: '2026-01-01', cashIn: 8000, cashOut: 4000, preparerName: 'CO' };
+  it('rejects an under-$10k transaction', async () => {
+    await expect(createCtr({ ...good, cashIn: 3000, cashOut: 4000 }, 'op@x.io')).rejects.toBeInstanceOf(FincenError);
+    expect(fd.create).not.toHaveBeenCalled();
+  });
+  it('creates a CTR draft when valid', async () => {
+    fd.create.mockResolvedValueOnce(row({ id: 'c1', type: 'CTR', data: good }));
+    const r = await createCtr(good, 'op@x.io');
+    expect(fd.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: 'CTR' }) }));
+    expect(r.type).toBe('CTR');
+  });
+});
+
+describe('updateCtr', () => {
+  it('updates an existing CTR by id after validation', async () => {
+    const good = { subject: { name: 'X', accountId: 'a1', address: { line1: '1 A St', city: 'Houston', state: 'TX', zip: '77006' } }, transactionDate: '2026-01-01', cashIn: 8000, cashOut: 4000, preparerName: 'CO' };
+    fd.update.mockResolvedValueOnce(row({ id: 'c9', type: 'CTR', data: good }));
+    const r = await updateCtr('c9', good, 'op@x.io');
+    expect(fd.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'c9' } }));
+    expect(r.id).toBe('c9');
   });
 });
 
