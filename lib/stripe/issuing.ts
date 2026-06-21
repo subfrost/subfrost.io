@@ -2,7 +2,8 @@
  *  the StripeCardControl / StripeDisputeEvidence overlays are layered on so the demo is
  *  interactive. Mutations are low-risk hybrid: live → Stripe (stubbed today); seed → overlay. */
 import prisma from "@/lib/prisma"
-import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { isLive, BillingError } from "@/lib/stripe/config"
+import { getStripeClient } from "@/lib/stripe/client"
 import { getStripeSource } from "@/lib/stripe/source"
 import { CardControlSchema, DisputeEvidenceSchema, type IssuingCard, type IssuingDispute } from "@/lib/stripe/shapes"
 
@@ -35,7 +36,12 @@ export async function listDisputes(): Promise<{ disputes: IssuingDispute[]; live
 export async function setCardControl(cardId: string, input: unknown, by: string): Promise<{ cardId: string; state: string }> {
   const res = CardControlSchema.safeParse(input)
   if (!res.success) throw new BillingError("Validation failed: " + JSON.stringify(res.error.issues))
-  if (isLive()) throw new StripeNotWiredError("setCardControl")
+  if (isLive()) {
+    const stripe = getStripeClient()
+    const status = res.data.state === "active" ? "active" : res.data.state === "paused" ? "inactive" : "canceled"
+    await (stripe as any).issuing.cards.update(cardId, { status })
+    return { cardId, state: res.data.state }
+  }
   const saved = await prisma.stripeCardControl.upsert({
     where: { cardId },
     create: { cardId, state: res.data.state, by },
@@ -47,7 +53,12 @@ export async function setCardControl(cardId: string, input: unknown, by: string)
 export async function submitDisputeEvidence(disputeId: string, input: unknown, by: string): Promise<{ disputeId: string }> {
   const res = DisputeEvidenceSchema.safeParse(input)
   if (!res.success) throw new BillingError("Validation failed: " + JSON.stringify(res.error.issues))
-  if (isLive()) throw new StripeNotWiredError("submitDisputeEvidence")
+  if (isLive()) {
+    const stripe = getStripeClient()
+    await (stripe as any).issuing.disputes.update(disputeId, { evidence: { other: { explanation: res.data.evidence } } })
+    await (stripe as any).issuing.disputes.submit(disputeId)
+    return { disputeId }
+  }
   await prisma.stripeDisputeEvidence.create({
     data: { disputeId, evidence: res.data.evidence, evidenceFiles: res.data.evidenceFiles ?? [], by },
   })

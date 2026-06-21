@@ -7,14 +7,16 @@ vi.mock('@/lib/prisma', () => {
   return { prisma: client, default: client };
 });
 vi.mock('@/lib/stripe/source', () => ({ getStripeSource: vi.fn() }));
+vi.mock('@/lib/stripe/client', () => ({ getStripeClient: vi.fn() }));
 vi.mock('@/lib/stripe/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/stripe/config')>();
   return { ...actual, isLive: vi.fn(() => false) };
 });
 
 import { listCards, listDisputes, setCardControl, submitDisputeEvidence } from '@/lib/stripe/issuing';
-import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
+import { BillingError, isLive } from '@/lib/stripe/config';
 import { getStripeSource } from '@/lib/stripe/source';
+import { getStripeClient } from '@/lib/stripe/client';
 import { prisma } from '@/lib/prisma';
 
 const scc = prisma.stripeCardControl as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -69,10 +71,14 @@ describe('setCardControl', () => {
     await expect(setCardControl('ic_001', { state: 'frozen' }, 'op')).rejects.toBeInstanceOf(BillingError);
     expect(scc.upsert).not.toHaveBeenCalled();
   });
-  it('throws in live mode without writing', async () => {
+  it('updates the Issuing card status in live mode (paused -> inactive)', async () => {
     live.mockReturnValue(true);
-    await expect(setCardControl('ic_001', { state: 'paused' }, 'op')).rejects.toBeInstanceOf(StripeNotWiredError);
-    expect(scc.upsert).not.toHaveBeenCalled();
+    const update = vi.fn().mockResolvedValue({ id: 'ic_1', status: 'inactive' });
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ issuing: { cards: { update }, disputes: {} } });
+    const r = await setCardControl('ic_1', { state: 'paused' }, 'op');
+    expect(update).toHaveBeenCalledWith('ic_1', { status: 'inactive' });
+    expect(prisma.stripeCardControl.upsert).not.toHaveBeenCalled();
+    expect(r).toEqual({ cardId: 'ic_1', state: 'paused' });
   });
   it('upserts by cardId in seed mode', async () => {
     scc.upsert.mockResolvedValueOnce({ cardId: 'ic_001', state: 'paused', by: 'op', at: new Date() });
@@ -87,10 +93,16 @@ describe('submitDisputeEvidence', () => {
     await expect(submitDisputeEvidence('idp_001', { evidence: '' }, 'op')).rejects.toBeInstanceOf(BillingError);
     expect(sde.create).not.toHaveBeenCalled();
   });
-  it('throws in live mode without writing', async () => {
+  it('submits dispute evidence in live mode', async () => {
     live.mockReturnValue(true);
-    await expect(submitDisputeEvidence('idp_001', { evidence: 'x' }, 'op')).rejects.toBeInstanceOf(StripeNotWiredError);
-    expect(sde.create).not.toHaveBeenCalled();
+    const update = vi.fn().mockResolvedValue({ id: 'idp_1' });
+    const submit = vi.fn().mockResolvedValue({ id: 'idp_1' });
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ issuing: { cards: {}, disputes: { update, submit } } });
+    const r = await submitDisputeEvidence('idp_1', { evidence: 'receipt attached' }, 'op');
+    expect(update).toHaveBeenCalled();
+    expect(submit).toHaveBeenCalledWith('idp_1');
+    expect(prisma.stripeDisputeEvidence.create).not.toHaveBeenCalled();
+    expect(r).toEqual({ disputeId: 'idp_1' });
   });
   it('creates evidence in seed mode (files default to [])', async () => {
     sde.create.mockResolvedValueOnce({ id: 'e2', disputeId: 'idp_001', evidence: 'receipt', evidenceFiles: [], by: 'op', at: new Date() });
