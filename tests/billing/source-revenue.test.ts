@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { seedSource } from '@/lib/stripe/source/seed';
 import { liveSource } from '@/lib/stripe/source/live';
-import { StripeNotWiredError } from '@/lib/stripe/config';
 
 describe('seedSource revenue reads', () => {
   it('returns deterministic tiers, subscribers, promo codes', async () => {
@@ -19,9 +18,9 @@ describe('seedSource revenue reads', () => {
 });
 
 describe('liveSource revenue reads', () => {
-  it('rejects each revenue read with StripeNotWiredError', async () => {
-    await expect(liveSource.subscriptionTiers()).rejects.toBeInstanceOf(StripeNotWiredError);
-    await expect(liveSource.subscribers()).rejects.toBeInstanceOf(StripeNotWiredError);
-    await expect(liveSource.promoCodes()).rejects.toBeInstanceOf(StripeNotWiredError);
+  it('degrades gracefully when STRIPE_SECRET_KEY is unset', async () => {
+    expect(await liveSource.subscriptionTiers()).toEqual([]);
+    expect(await liveSource.subscribers()).toEqual([]);
+    expect(await liveSource.promoCodes()).toEqual([]);
   });
 });

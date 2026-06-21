@@ -1,20 +1,23 @@
 import type { StripeSource } from "@/lib/stripe/source/types"
-import { StripeNotWiredError } from "@/lib/stripe/config"
+import { seedSource } from "@/lib/stripe/source/seed"
+import { degradeIfUnavailable } from "@/lib/stripe/source/live/degrade"
+import { liveSubscriptionTiers, liveSubscribers } from "@/lib/stripe/source/live/subscriptions"
+import { livePromoCodes } from "@/lib/stripe/source/live/promo"
+import { liveCustomerSummaries, liveCustomerDetail } from "@/lib/stripe/source/live/customers"
+import { liveTreasuryBalances, liveTreasuryTransactions } from "@/lib/stripe/source/live/treasury"
+import { liveIssuingCards, liveIssuingDisputes } from "@/lib/stripe/source/live/issuing"
 
-// Type-correct stub. No `stripe` SDK dep yet: each read rejects until the real
-// calls are wired behind this boundary (when STRIPE_SECRET_KEY arrives). Because
-// isLive() is false today, getStripeSource() never returns this at runtime.
-const nope = (method: string) => () => Promise.reject(new StripeNotWiredError(method))
-
+// Reads degrade to a safe fallback if the underlying Stripe product is unavailable
+// (e.g. Issuing not enabled). Offramp delegates to seed: it is a Stripe product but not GA.
 export const liveSource: StripeSource = {
-  treasuryBalances: nope("treasuryBalances"),
-  treasuryTransactions: nope("treasuryTransactions"),
-  issuingCards: nope("issuingCards"),
-  issuingDisputes: nope("issuingDisputes"),
-  offrampSettlements: nope("offrampSettlements"),
-  subscriptionTiers: nope("subscriptionTiers"),
-  subscribers: nope("subscribers"),
-  promoCodes: nope("promoCodes"),
-  customerSummaries: nope("customerSummaries"),
-  customerDetail: nope("customerDetail"),
+  treasuryBalances: () => degradeIfUnavailable(liveTreasuryBalances, []),
+  treasuryTransactions: () => degradeIfUnavailable(liveTreasuryTransactions, []),
+  issuingCards: () => degradeIfUnavailable(liveIssuingCards, []),
+  issuingDisputes: () => degradeIfUnavailable(liveIssuingDisputes, []),
+  offrampSettlements: () => seedSource.offrampSettlements(),
+  subscriptionTiers: () => degradeIfUnavailable(liveSubscriptionTiers, []),
+  subscribers: () => degradeIfUnavailable(liveSubscribers, []),
+  promoCodes: () => degradeIfUnavailable(livePromoCodes, []),
+  customerSummaries: () => degradeIfUnavailable(liveCustomerSummaries, []),
+  customerDetail: (id: string) => degradeIfUnavailable(() => liveCustomerDetail(id), null),
 }

@@ -2,7 +2,6 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { getStripeSource } from '@/lib/stripe/source';
 import { seedSource } from '@/lib/stripe/source/seed';
 import { liveSource } from '@/lib/stripe/source/live';
-import { StripeNotWiredError } from '@/lib/stripe/config';
 
 const KEY = 'STRIPE_SECRET_KEY';
 afterEach(() => { delete process.env[KEY]; });
@@ -33,8 +32,7 @@ describe('seedSource', () => {
 });
 
 describe('liveSource', () => {
-  it('rejects every read with StripeNotWiredError until wired', async () => {
-    await expect(liveSource.treasuryBalances()).rejects.toBeInstanceOf(StripeNotWiredError);
-    await expect(liveSource.issuingCards()).rejects.toBeInstanceOf(StripeNotWiredError);
+  it('delegates offrampSettlements to the seed source (Stripe offramp not GA)', async () => {
+    expect(await liveSource.offrampSettlements()).toEqual(await seedSource.offrampSettlements());
   });
 });
