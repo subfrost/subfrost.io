@@ -22,6 +22,13 @@ const asUser = (privileges: string[]) =>
 beforeEach(() => vi.clearAllMocks());
 
 describe('authorization', () => {
+  it('rejects reads when unauthenticated (no user)', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(null);
+    const res = await listIntakesAction();
+    expect(res).toEqual({ ok: false, error: 'Not authenticated' });
+    expect(kyc.listIntakes).not.toHaveBeenCalled();
+  });
+
   it('rejects reads without MANAGE_AML', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
     const res = await listIntakesAction();
