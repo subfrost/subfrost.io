@@ -52,7 +52,7 @@ export function AdminNav({
   }
 
   return (
-    <nav className="flex-1 space-y-1 text-sm">
+    <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto text-sm">
       {visibleNav(privileges).map((group) => {
         const hasActive = groupHasActive(group, pathname)
         const open = explicit[group.key] !== undefined ? explicit[group.key] : hasActive
