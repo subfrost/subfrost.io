@@ -1,6 +1,6 @@
 import type {
   TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement,
-  SubscriptionTier, Subscriber, PromoCode,
+  SubscriptionTier, Subscriber, PromoCode, CustomerSummary, CustomerDetail,
 } from "@/lib/stripe/shapes"
 
 /** The pluggable read surface for the Stripe console. Implemented by the seed
@@ -16,4 +16,6 @@ export interface StripeSource {
   subscriptionTiers(): Promise<SubscriptionTier[]>
   subscribers(): Promise<Subscriber[]>
   promoCodes(): Promise<PromoCode[]>
+  customerSummaries(): Promise<CustomerSummary[]>
+  customerDetail(id: string): Promise<CustomerDetail | null>
 }

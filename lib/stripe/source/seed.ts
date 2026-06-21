@@ -60,4 +60,43 @@ export const seedSource: StripeSource = {
       { code: "EXPIRED5", type: "PERCENT", value: 5, redemptions: 88, maxRedemptions: 100, expiresAt: ago(24 * 30), active: false },
     ]
   },
+  async customerSummaries() {
+    return [
+      { id: "cus_ada", email: "ada.lovelace@example.com", name: "Ada Lovelace", activeSubscriptions: 1, lifetimeValue: 1_240_00, createdAt: ago(24 * 300) },
+      { id: "cus_bg", email: "bg@example.com", name: "Beatrice Glass", activeSubscriptions: 1, lifetimeValue: 89_00, createdAt: ago(24 * 30) },
+      { id: "cus_carl", email: "carl@example.com", name: "Carl Marx", activeSubscriptions: 0, lifetimeValue: 4_990_00, createdAt: ago(24 * 600) },
+    ]
+  },
+  async customerDetail(id: string) {
+    const details: Record<string, import("@/lib/stripe/shapes").CustomerDetail> = {
+      cus_ada: {
+        id: "cus_ada", email: "ada.lovelace@example.com", name: "Ada Lovelace",
+        subscriptions: [{ id: "sub_001", tier: "Pro", status: "active", renewsAt: ago(-24 * 20) }],
+        invoices: [
+          { id: "in_a1", number: "INV-0001", amountDue: 29_00, status: "paid", createdAt: ago(24 * 20) },
+          { id: "in_a2", number: "INV-0002", amountDue: 29_00, status: "open", createdAt: ago(24 * 1) },
+        ],
+        paymentMethods: [{ id: "pm_a1", brand: "visa", last4: "4242", expMonth: 11, expYear: 2028, isDefault: true }],
+        recentCharges: [
+          { id: "ch_a1", amount: 29_00, status: "succeeded", description: "Pro monthly", createdAt: ago(24 * 20) },
+          { id: "ch_a2", amount: 29_00, status: "succeeded", description: "Pro monthly", createdAt: ago(24 * 50) },
+        ],
+      },
+      cus_bg: {
+        id: "cus_bg", email: "bg@example.com", name: "Beatrice Glass",
+        subscriptions: [{ id: "sub_002", tier: "Basic", status: "trialing", renewsAt: ago(-24 * 11) }],
+        invoices: [{ id: "in_b1", number: "INV-0003", amountDue: 9_00, status: "open", createdAt: ago(24 * 2) }],
+        paymentMethods: [{ id: "pm_b1", brand: "mastercard", last4: "4444", expMonth: 4, expYear: 2027, isDefault: true }],
+        recentCharges: [{ id: "ch_b1", amount: 9_00, status: "pending", description: "Basic monthly", createdAt: ago(24 * 2) }],
+      },
+      cus_carl: {
+        id: "cus_carl", email: "carl@example.com", name: "Carl Marx",
+        subscriptions: [],
+        invoices: [{ id: "in_c1", number: "INV-0004", amountDue: 499_00, status: "paid", createdAt: ago(24 * 40) }],
+        paymentMethods: [{ id: "pm_c1", brand: "amex", last4: "0005", expMonth: 1, expYear: 2026, isDefault: true }],
+        recentCharges: [{ id: "ch_c1", amount: 499_00, status: "succeeded", description: "Institutional monthly", createdAt: ago(24 * 40) }],
+      },
+    }
+    return details[id] ?? null
+  },
 }
