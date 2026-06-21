@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 
 const SURFACES: { key: string; label: string; href: string; desc: string; ready: boolean }[] = [
   { key: "subscriptions", label: "Subscriptions", href: "/admin/billing/subscriptions", desc: "Tiers & subscribers", ready: true },
-  { key: "promo", label: "Promo codes", href: "/admin/billing/promo", desc: "Coupons & promotion codes", ready: false },
+  { key: "promo", label: "Promo codes", href: "/admin/billing/promo", desc: "Coupons & promotion codes", ready: true },
   { key: "treasury", label: "Treasury", href: "/admin/billing/treasury", desc: "Balances, transactions, ACH", ready: false },
   { key: "issuing", label: "Issuing", href: "/admin/billing/issuing", desc: "Cards, controls, disputes", ready: false },
   { key: "offramp", label: "Offramp", href: "/admin/billing/offramp", desc: "Crypto→fiat settlements", ready: false },
