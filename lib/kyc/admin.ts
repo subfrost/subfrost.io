@@ -72,7 +72,9 @@ export async function recordDisposition(
   notes: string | null,
   by: string,
 ): Promise<{ customerName: string }> {
-  if (!STATUS_BY_DECISION[decision]) throw new KycError(`Invalid decision: ${decision}`)
+  if (!Object.prototype.hasOwnProperty.call(STATUS_BY_DECISION, decision)) {
+    throw new KycError(`Invalid decision: ${decision}`)
+  }
   const intake = await prisma.kycIntake.findUnique({ where: { id: intakeId } })
   if (!intake) throw new KycError("Intake not found")
   const cleanNotes = notes?.trim() || null

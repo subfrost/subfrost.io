@@ -91,5 +91,6 @@ describe('recordDisposition', () => {
     expect(kd.create).toHaveBeenLastCalledWith({ data: { intakeId: 'k1', decision: 'REJECT', notes: null, by: 'op@x.io' } });
     await recordDisposition('k1', 'REVIEW', null, 'op@x.io');
     expect(ki.update).toHaveBeenLastCalledWith({ where: { id: 'k1' }, data: { status: 'IN_REVIEW' } });
+    expect(kd.create).toHaveBeenLastCalledWith({ data: { intakeId: 'k1', decision: 'REVIEW', notes: null, by: 'op@x.io' } });
   });
 });
