@@ -99,7 +99,7 @@ describe('submitDisputeEvidence', () => {
     const submit = vi.fn().mockResolvedValue({ id: 'idp_1' });
     (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ issuing: { cards: {}, disputes: { update, submit } } });
     const r = await submitDisputeEvidence('idp_1', { evidence: 'receipt attached' }, 'op');
-    expect(update).toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith('idp_1', { evidence: { other: { explanation: 'receipt attached' } } });
     expect(submit).toHaveBeenCalledWith('idp_1');
     expect(prisma.stripeDisputeEvidence.create).not.toHaveBeenCalled();
     expect(r).toEqual({ disputeId: 'idp_1' });
