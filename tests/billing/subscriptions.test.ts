@@ -10,11 +10,13 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/stripe/config')>();
   return { ...actual, isLive: vi.fn(() => false) };
 });
+vi.mock('@/lib/stripe/client', () => ({ getStripeClient: vi.fn() }));
 
 import { listTiers, listSubscribers, changeSubscription } from '@/lib/stripe/subscriptions';
 import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
 import { getStripeSource } from '@/lib/stripe/source';
 import { prisma } from '@/lib/prisma';
+import { getStripeClient } from '@/lib/stripe/client';
 
 const ssa = prisma.stripeSubscriptionAction as unknown as Record<string, ReturnType<typeof vi.fn>>;
 const gss = getStripeSource as unknown as ReturnType<typeof vi.fn>;
@@ -64,10 +66,14 @@ describe('changeSubscription', () => {
     await expect(changeSubscription('sub_001', { action: 'delete' }, 'op')).rejects.toBeInstanceOf(BillingError);
     expect(ssa.create).not.toHaveBeenCalled();
   });
-  it('throws StripeNotWiredError in live mode without writing', async () => {
+  it('cancels at period end via Stripe in live mode (no overlay write)', async () => {
     live.mockReturnValue(true);
-    await expect(changeSubscription('sub_001', { action: 'cancel' }, 'op')).rejects.toBeInstanceOf(StripeNotWiredError);
-    expect(ssa.create).not.toHaveBeenCalled();
+    const update = vi.fn().mockResolvedValue({ id: 'sub_1' });
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ subscriptions: { update } });
+    const r = await changeSubscription('sub_1', { action: 'cancel' }, 'op');
+    expect(update).toHaveBeenCalledWith('sub_1', { cancel_at_period_end: true });
+    expect(prisma.stripeSubscriptionAction.create).not.toHaveBeenCalled();
+    expect(r.action).toBe('cancel');
   });
   it('writes the overlay in seed mode', async () => {
     ssa.create.mockResolvedValueOnce({ id: 'a9', subscriptionId: 'sub_001', action: 'cancel', note: 'fraud', by: 'op', at: new Date('2026-06-03T00:00:00Z') });

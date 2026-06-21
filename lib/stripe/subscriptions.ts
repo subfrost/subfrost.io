@@ -4,7 +4,8 @@
  *  the demo is interactive. Mutations are low-risk: live → Stripe (stubbed today);
  *  seed → overlay row. */
 import prisma from "@/lib/prisma"
-import { isLive, BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { isLive, BillingError } from "@/lib/stripe/config"
+import { getStripeClient } from "@/lib/stripe/client"
 import { getStripeSource } from "@/lib/stripe/source"
 import { SubscriptionActionSchema, type SubscriptionTier, type Subscriber, type SubscriberStatus } from "@/lib/stripe/shapes"
 
@@ -48,7 +49,13 @@ export async function listSubscribers(): Promise<{ subscribers: Subscriber[]; li
 export async function changeSubscription(subscriptionId: string, input: unknown, by: string): Promise<SubscriptionActionRow> {
   const res = SubscriptionActionSchema.safeParse(input)
   if (!res.success) throw new BillingError("Validation failed: " + JSON.stringify(res.error.issues))
-  if (isLive()) throw new StripeNotWiredError("changeSubscription")
+
+  if (isLive()) {
+    const stripe = getStripeClient()
+    await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: res.data.action === "cancel" })
+    return { id: subscriptionId, subscriptionId, action: res.data.action, note: res.data.note ?? null, by, at: new Date().toISOString() }
+  }
+
   const saved = (await prisma.stripeSubscriptionAction.create({
     data: { subscriptionId, action: res.data.action, note: res.data.note ?? null, by },
   })) as DbAction
