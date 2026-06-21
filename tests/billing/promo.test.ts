@@ -13,7 +13,7 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
 });
 
 import { listPromoCodes, createPromoCode } from '@/lib/stripe/promo';
-import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
+import { BillingError, isLive } from '@/lib/stripe/config';
 import { getStripeSource } from '@/lib/stripe/source';
 import { getStripeClient } from '@/lib/stripe/client';
 import { prisma } from '@/lib/prisma';
@@ -68,7 +68,7 @@ describe('createPromoCode', () => {
     (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ coupons, promotionCodes });
     const r = await createPromoCode({ code: 'X', type: 'PERCENT', value: 10 }, 'op');
     expect(coupons.create).toHaveBeenCalledWith({ percent_off: 10, duration: 'forever' });
-    expect(promotionCodes.create).toHaveBeenCalled();
+    expect(promotionCodes.create).toHaveBeenCalledWith({ promotion: { type: 'coupon', coupon: 'co_1' }, code: 'X' });
     expect(spc.create).not.toHaveBeenCalled();
     expect(r).toMatchObject({ code: 'X', type: 'PERCENT', value: 10 });
   });
