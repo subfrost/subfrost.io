@@ -53,3 +53,48 @@ export const ApplicationUpsertSchema = z.object({
   notes: z.string().optional(),
 })
 export type ApplicationUpsertInput = z.infer<typeof ApplicationUpsertSchema>
+
+// --- Revenue: subscriptions + promo (D2) ---
+export type SubscriptionTier = {
+  id: string; name: string; priceMonthly: number; priceYearly: number
+  features: string[]; activeSubs: number
+}
+export type SubscriberStatus = "active" | "trialing" | "past_due" | "canceled"
+export type Subscriber = {
+  id: string; customerEmail: string; tier: string
+  status: SubscriberStatus; startedAt: string; renewsAt: string | null
+}
+export type PromoCode = {
+  code: string; type: "PERCENT" | "AMOUNT"; value: number
+  redemptions: number; maxRedemptions: number | null
+  expiresAt: string | null; active: boolean
+}
+
+export const PROMO_TYPES = ["PERCENT", "AMOUNT"] as const
+export type PromoTypeValue = (typeof PROMO_TYPES)[number]
+export const PROMO_TYPE_LABELS: Record<PromoTypeValue, string> = {
+  PERCENT: "Percent off (%)",
+  AMOUNT: "Amount off (cents)",
+}
+
+export const SUBSCRIPTION_ACTIONS = ["cancel", "resume"] as const
+export type SubscriptionActionValue = (typeof SUBSCRIPTION_ACTIONS)[number]
+export const SUBSCRIPTION_ACTION_LABELS: Record<SubscriptionActionValue, string> = {
+  cancel: "Cancel",
+  resume: "Resume",
+}
+
+export const CreatePromoSchema = z.object({
+  code: z.string().min(1).max(64),
+  type: z.enum(PROMO_TYPES),
+  value: z.number().int().positive(),
+  maxRedemptions: z.number().int().positive().optional(),
+  expiresAt: z.string().optional(), // ISO date string
+})
+export type CreatePromoInput = z.infer<typeof CreatePromoSchema>
+
+export const SubscriptionActionSchema = z.object({
+  action: z.enum(SUBSCRIPTION_ACTIONS),
+  note: z.string().optional(),
+})
+export type SubscriptionActionInput = z.infer<typeof SubscriptionActionSchema>
