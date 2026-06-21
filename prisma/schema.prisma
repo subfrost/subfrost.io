@@ -492,3 +492,59 @@ model FuelAllocation {
 
   @@index([amount])
 }
+
+// ============================================
+// COMPLIANCE — KYC (F2-A)
+// ============================================
+
+enum KycProvider {
+  PERSONA
+  STRIPE_IDENTITY
+  SUMSUB
+}
+
+enum RiskScore {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum KycStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum KycDecision {
+  APPROVE
+  REJECT
+  REVIEW
+}
+
+model KycIntake {
+  id            String           @id @default(cuid())
+  externalId    String? // id at the provider, once a live source is wired
+  customerEmail String
+  customerName  String
+  provider      KycProvider
+  riskScore     RiskScore
+  status        KycStatus        @default(PENDING)
+  submittedAt   DateTime
+  createdAt     DateTime         @default(now())
+  dispositions  KycDisposition[]
+
+  @@index([status])
+}
+
+model KycDisposition {
+  id       String      @id @default(cuid())
+  intakeId String
+  intake   KycIntake   @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  decision KycDecision
+  notes    String?
+  by       String // operator email
+  at       DateTime    @default(now())
+
+  @@index([intakeId])
+}
