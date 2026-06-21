@@ -12,7 +12,7 @@ vi.mock('@/lib/stripe/config', async (importOriginal) => {
 vi.mock('@/lib/stripe/client', () => ({ getStripeClient: vi.fn() }));
 
 import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, queueRefund } from '@/lib/stripe/money';
-import { BillingError, StripeNotWiredError, isLive } from '@/lib/stripe/config';
+import { BillingError, isLive } from '@/lib/stripe/config';
 import { getStripeClient } from '@/lib/stripe/client';
 import { prisma } from '@/lib/prisma';
 
@@ -93,6 +93,25 @@ describe('confirmIntent', () => {
     (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ treasury: { outboundPayments: { create: vi.fn() } } });
     smi.findUnique.mockResolvedValueOnce({ id: 'm2', status: 'QUEUED', kind: 'ACH_TRANSFER', direction: 'out', amount: 5000, counterparty: 'pm_dest', reference: null, memo: null });
     await expect(confirmIntent('m2', 'op')).rejects.toBeInstanceOf(BillingError);
+    expect(smi.update).not.toHaveBeenCalled();
+  });
+  it('executes a real ACH inbound transfer in live mode then marks CONFIRMED', async () => {
+    live.mockReturnValue(true);
+    process.env.STRIPE_TREASURY_FINANCIAL_ACCOUNT = 'fa_1';
+    const create = vi.fn().mockResolvedValue({ id: 'it_1' });
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ treasury: { inboundTransfers: { create } } });
+    smi.findUnique.mockResolvedValueOnce({ id: 'm3', status: 'QUEUED', kind: 'ACH_TRANSFER', direction: 'in', amount: 7500, counterparty: 'pm_src', reference: null, memo: 'topup' });
+    smi.update.mockResolvedValueOnce({ id: 'm3', kind: 'ACH_TRANSFER', direction: 'in', amount: 7500, counterparty: 'pm_src', reference: null, memo: 'topup', status: 'CONFIRMED', requestedBy: 'r', requestedAt: new Date('2026-06-03T00:00:00Z'), decidedBy: 'op', decidedAt: new Date('2026-06-04T00:00:00Z') });
+    const r = await confirmIntent('m3', 'op');
+    expect(create).toHaveBeenCalledWith({ financial_account: 'fa_1', amount: 7500, currency: 'usd', origin_payment_method: 'pm_src', description: 'topup' });
+    expect(r.status).toBe('CONFIRMED');
+  });
+  it('leaves ACH intent QUEUED when counterparty is missing', async () => {
+    live.mockReturnValue(true);
+    process.env.STRIPE_TREASURY_FINANCIAL_ACCOUNT = 'fa_1';
+    (getStripeClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ treasury: { outboundPayments: { create: vi.fn() }, inboundTransfers: { create: vi.fn() } } });
+    smi.findUnique.mockResolvedValueOnce({ id: 'm4', status: 'QUEUED', kind: 'ACH_TRANSFER', direction: 'out', amount: 5000, counterparty: null, reference: null, memo: null });
+    await expect(confirmIntent('m4', 'op')).rejects.toBeInstanceOf(BillingError);
     expect(smi.update).not.toHaveBeenCalled();
   });
   it('marks CONFIRMED with decidedBy in seed mode', async () => {
