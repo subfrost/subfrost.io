@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { format } from "date-fns"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
@@ -15,10 +16,15 @@ const statusColor: Record<string, string> = {
 
 export default async function AdminDashboard() {
   const user = await currentUser()
-  const canSeeAll = user ? user.privileges.includes("EDIT_ANY_ARTICLE") : false
+  // The edge middleware only verifies the JWT signature and defers full auth to
+  // here, so a stale-but-signed session (legacy token, bumped tokenVersion,
+  // revoked session) lands here with no user. Redirect to login instead of
+  // dereferencing null — matches the guard every other /admin page already has.
+  if (!user) redirect("/admin/login")
+  const canSeeAll = user.privileges.includes("EDIT_ANY_ARTICLE")
 
   const articles = await prisma.article.findMany({
-    where: canSeeAll ? {} : { authorId: user!.id },
+    where: canSeeAll ? {} : { authorId: user.id },
     orderBy: { updatedAt: "desc" },
     include: {
       author: { select: { name: true, email: true } },
