@@ -238,6 +238,8 @@ enum Privilege {
   VIEW_AUDIT // read the audit log
   MANAGE_REFERRAL_CODES // growth: manage invite/referral codes + view redemptions
   MANAGE_FUEL // growth: manage FUEL allocations per address
+  MANAGE_AML // compliance: KYC review, FinCEN/BSA filings, MTL, OFAC rescreen
+  MANAGE_BILLING // compliance: Stripe treasury/issuing/offramp + applications tracker
 }
 
 // Token kinds for emailed, single-use links (Resend-delivered).
