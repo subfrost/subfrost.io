@@ -10,17 +10,25 @@ const iso = (sec: number | null | undefined) => (sec != null ? new Date(sec * 10
 
 export async function liveSubscribers(): Promise<Subscriber[]> {
   const stripe = getStripeClient()
+  // Stripe caps `expand` at 4 levels, so `data.items.data.price.product` (5 levels) is rejected.
+  // Resolve product names via a separate products lookup keyed by id instead.
+  const products = await stripe.products.list({ limit: 100 })
+  const nameById = new Map<string, string>((products.data as any[]).map((p) => [p.id, p.name as string]))
   const res = await stripe.subscriptions.list({
-    status: "all", limit: 100, expand: ["data.customer", "data.items.data.price.product"],
+    status: "all", limit: 100, expand: ["data.customer"],
   })
-  return res.data.map((s: any) => ({
-    id: s.id,
-    customerEmail: s.customer?.email ?? "",
-    tier: s.items?.data?.[0]?.price?.product?.name ?? "",
-    status: SUB_STATUS[s.status] ?? "canceled",
-    startedAt: iso(s.start_date) ?? "",
-    renewsAt: s.status === "canceled" ? null : iso(s.current_period_end),
-  }))
+  return res.data.map((s: any) => {
+    const product = s.items?.data?.[0]?.price?.product
+    const tier = typeof product === "string" ? (nameById.get(product) ?? "") : (product?.name ?? "")
+    return {
+      id: s.id,
+      customerEmail: s.customer?.email ?? "",
+      tier,
+      status: SUB_STATUS[s.status] ?? "canceled",
+      startedAt: iso(s.start_date) ?? "",
+      renewsAt: s.status === "canceled" ? null : iso(s.current_period_end),
+    }
+  })
 }
 
 export async function liveSubscriptionTiers(): Promise<SubscriptionTier[]> {

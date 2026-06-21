@@ -7,12 +7,13 @@ const gsc = getStripeClient as unknown as ReturnType<typeof vi.fn>;
 beforeEach(() => vi.clearAllMocks());
 
 describe('liveSubscribers', () => {
-  it('maps Stripe subscriptions to the Subscriber shape', async () => {
+  it('maps Stripe subscriptions to the Subscriber shape (product id -> name via products lookup)', async () => {
     gsc.mockReturnValue({
+      products: { list: vi.fn().mockResolvedValue({ data: [{ id: 'prod_1', name: 'Pro' }] }) },
       subscriptions: { list: vi.fn().mockResolvedValue({ data: [{
         id: 'sub_1', status: 'active', start_date: 1717200000, current_period_end: 1719792000,
         customer: { email: 'ada@example.com' },
-        items: { data: [{ price: { product: { name: 'Pro' } } }] },
+        items: { data: [{ price: { product: 'prod_1' } }] },
       }] }) },
     });
     const r = await liveSubscribers();
@@ -21,6 +22,16 @@ describe('liveSubscribers', () => {
       status: 'active', startedAt: new Date(1717200000 * 1000).toISOString(),
       renewsAt: new Date(1719792000 * 1000).toISOString(),
     });
+  });
+  it('does not over-expand: subscriptions.list expand is at most 4 levels', async () => {
+    const subsList = vi.fn().mockResolvedValue({ data: [] });
+    gsc.mockReturnValue({
+      products: { list: vi.fn().mockResolvedValue({ data: [] }) },
+      subscriptions: { list: subsList },
+    });
+    await liveSubscribers();
+    const expand: string[] = subsList.mock.calls[0][0].expand ?? [];
+    for (const path of expand) expect(path.split('.').length).toBeLessThanOrEqual(4);
   });
 });
 
