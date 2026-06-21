@@ -118,6 +118,14 @@ spec:
                   name: subfrost-io-secrets
                   key: RESEND_API_KEY
                   optional: true
+            # Live Stripe path (SP-1). optional:true so a not-yet-synced secret
+            # can't block pod startup — absent key => console runs in demo mode.
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: STRIPE_SECRET_KEY
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
