@@ -38,4 +38,20 @@ describe("UserMenu", () => {
     expect(signOut?.getAttribute("type")).toBe("submit")
     expect(signOut?.closest("form")).not.toBeNull()
   })
+
+  it("closes the popover on an outside mousedown", () => {
+    const { getByRole, queryByText } = render(<UserMenu name="Vitor" email="v@s.io" role="ADMIN" />)
+    fireEvent.click(getByRole("button", { name: /Vitor/ }))
+    expect(queryByText("My profile")).not.toBeNull()
+    fireEvent.mouseDown(document.body)
+    expect(queryByText("My profile")).toBeNull()
+  })
+
+  it("closes the popover on Escape", () => {
+    const { getByRole, queryByText } = render(<UserMenu name="Vitor" email="v@s.io" role="ADMIN" />)
+    fireEvent.click(getByRole("button", { name: /Vitor/ }))
+    expect(queryByText("My profile")).not.toBeNull()
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(queryByText("My profile")).toBeNull()
+  })
 })
