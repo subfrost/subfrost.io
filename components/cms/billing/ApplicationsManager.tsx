@@ -73,7 +73,7 @@ export function ApplicationsManager() {
       })
       if (res.ok) {
         setCardErrors((prev) => ({ ...prev, [product]: "" }))
-        fetchRows()
+        await fetchRows()
       } else {
         setCardErrors((prev) => ({ ...prev, [product]: res.error }))
       }
