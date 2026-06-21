@@ -24,11 +24,17 @@ review-links de revisor AML externo, tracker/subzero/audit internos.
 
 ## Decisões de arquitetura
 
-1. **Stripe é dono do subfrost.io, direto.** `lib/stripe/` usando o Stripe Node SDK, gateado por
-   `STRIPE_SECRET_KEY` (espelha o `isLive()`/`notHookedUp` do admin). **NÃO mexer no `subkube`**
-   (`subfrost-api-nextjs`) — ele fica intocado e é sunsetado junto com o subfrost-admin no F3. Quando
-   o flex quiser ligar, ele seta `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`) no subfrost.io —
-   mesmo modelo da `REFERRAL_API_KEY` pendente da F1.
+1. **Stripe é dono do subfrost.io, direto — conformando ao MESMO contrato de APIs.** `lib/stripe/`
+   gateado por `STRIPE_SECRET_KEY` (espelha o `isLive()`/`notHookedUp` do admin). **NÃO mexer no
+   `subkube`** (`subfrost-api-nextjs`) — ele fica intocado e é sunsetado junto com o subfrost-admin
+   no F3. **Input do flex ("Yes but we use the same APIs"):** a integração do subfrost.io conforma ao
+   **mesmo contrato** já definido (as formas em `subkube-mock.ts` são "the contract we want subkube to
+   expose") e aos mesmos produtos Stripe (Treasury/Issuing/Identity/…) — sem inventar uma superfície
+   paralela. A **fonte live é um adapter plugável** atrás de `lib/stripe/source` que devolve as formas
+   canônicas; se a fonte é o Stripe SDK direto ou um endpoint de mesmo-contrato vira **um swap atrás da
+   fronteira da lib**, decidível quando a credencial chegar (o caminho live está gateado, então não
+   trava agora). Quando o flex quiser ligar, ele seta `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`)
+   no subfrost.io — mesmo modelo da `REFERRAL_API_KEY` pendente da F1.
 2. **Filings FinCEN em coluna `Json`.** O `data` do draft (Form 107/SAR/CTR) é `Json` no Postgres +
    validação **zod** no domain lib (espelha `DraftRecord<T>`). Dados aninhados (officers/owners/
    addresses) sem explodir em tabelas — YAGNI evitado; rascunho é revisado por humano antes do envio.
@@ -191,9 +197,11 @@ seja da API viva (com chave) ou de seed determinístico (sem chave → painel `N
 3. **MTL + OFAC** — `lib/mtl/admin.ts` (tracker 50-estados, seed dos nomes) + `app/admin/mtl` +
    `MtlManager`. OFAC rescreen como **ação manual** (`actions/cms/aml.ts` → marca intakes p/
    re-screen); agendamento fica pra ops (subfrost.io não tem o cron k8s do admin).
-4. **Stripe** — `lib/stripe/` (client gateado por `STRIPE_SECRET_KEY` + seed determinístico) +
-   `actions/cms/billing.ts` + telas Treasury / Issuing / Offramp + tracker de aplicações Stripe
-   (funciona **sem** chave viva). Painel `NotHookedUp` compartilhado em `components/cms/`.
+4. **Stripe** — `lib/stripe/` exporta as formas canônicas via um **adapter de fonte** (`source`):
+   `seed` determinístico (sem chave → `NotHookedUp`) e `live` (gateado por `STRIPE_SECRET_KEY`,
+   conformando ao mesmo contrato — ver Decisão 1). `actions/cms/billing.ts` + telas Treasury /
+   Issuing / Offramp + tracker de aplicações Stripe (funciona **sem** chave viva). Painel
+   `NotHookedUp` compartilhado em `components/cms/`.
 
 ## Padrão por módulo (idêntico à F1)
 
