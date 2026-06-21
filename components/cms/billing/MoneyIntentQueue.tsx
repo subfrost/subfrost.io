@@ -1,6 +1,7 @@
 "use client"
 
 import { MONEY_INTENT_STATUS_LABELS } from "@/lib/stripe/shapes"
+import { centsToDisplay } from "@/lib/stripe/format"
 import { Button } from "@/components/ui/button"
 import type { MoneyIntentRow } from "@/lib/stripe/money"
 
@@ -20,11 +21,6 @@ function statusBadgeClass(status: string): string {
   return "rounded-md border border-amber-700/50 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-400"
 }
 
-function centsToDisplay(amount: number): string {
-  const abs = Math.abs(amount)
-  const formatted = (abs / 100).toFixed(2)
-  return amount < 0 ? `-$${formatted}` : `$${formatted}`
-}
 
 export function MoneyIntentQueue({ intents, pending, onConfirm, onCancel, error }: MoneyIntentQueueProps) {
   const statusLabel = (status: string): string =>

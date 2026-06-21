@@ -4,12 +4,10 @@ import { useCallback, useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { listCardsAction, listDisputesAction, setCardControlAction, submitDisputeEvidenceAction } from "@/actions/cms/billing"
+import { centsToUsd } from "@/lib/stripe/format"
 import { CARD_STATES, CARD_STATE_LABELS } from "@/lib/stripe/shapes"
 import type { IssuingCard, IssuingDispute } from "@/lib/stripe/shapes"
 
-function centsToUsd(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
-}
 
 function StateBadge({ state }: { state: IssuingCard["state"] }) {
   const cls =

@@ -11,16 +11,12 @@ import {
   confirmIntentAction,
   cancelIntentAction,
 } from "@/actions/cms/billing"
+import { centsToDisplay } from "@/lib/stripe/format"
 import { TRANSFER_DIRECTIONS } from "@/lib/stripe/shapes"
 import { MoneyIntentQueue } from "@/components/cms/billing/MoneyIntentQueue"
 import type { MoneyIntentRow } from "@/lib/stripe/money"
 import type { TreasuryBalance, TreasuryTransaction } from "@/lib/stripe/shapes"
 
-function centsToDisplay(amount: number): string {
-  const abs = Math.abs(amount)
-  const formatted = (abs / 100).toFixed(2)
-  return amount < 0 ? `-$${formatted}` : `$${formatted}`
-}
 
 export function TreasuryManager() {
   const [balances, setBalances] = useState<TreasuryBalance[]>([])

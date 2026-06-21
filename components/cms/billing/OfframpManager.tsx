@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { listSettlementsAction } from "@/actions/cms/billing"
+import { centsToUsd } from "@/lib/stripe/format"
 import type { OfframpSettlement } from "@/lib/stripe/shapes"
-
-function centsToUsd(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
-}
 
 export function OfframpManager() {
   const [settlements, setSettlements] = useState<OfframpSettlement[]>([])
