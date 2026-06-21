@@ -524,13 +524,14 @@ enum KycDecision {
 
 model KycIntake {
   id            String           @id @default(cuid())
-  externalId    String? // id at the provider, once a live source is wired
+  externalId    String?          @unique // id at the provider (Stripe vs_...); unique for idempotent sync
   customerEmail String
   customerName  String
   provider      KycProvider
   riskScore     RiskScore
   status        KycStatus        @default(PENDING)
   submittedAt   DateTime
+  providerData  Json? // synced provider summary (verdict, lastError, document, extracted) — SP-2
   createdAt     DateTime         @default(now())
   dispositions  KycDisposition[]
 
