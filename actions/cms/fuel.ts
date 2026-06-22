@@ -14,8 +14,6 @@ import {
   type ListFuelResult,
 } from "@/lib/fuel/admin"
 
-const REQUIRED: Privilege = "MANAGE_FUEL"
-
 export type FuelActionResult = { ok: true } | { ok: false; error: string }
 
 async function ip(): Promise<string | null> {
@@ -23,17 +21,19 @@ async function ip(): Promise<string | null> {
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null
 }
 
-async function actor(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: string }> {
+async function actor(
+  required: Privilege,
+): Promise<{ ok: true; me: CmsUser } | { ok: false; error: string }> {
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
-  if (!me.privileges.includes(REQUIRED)) return { ok: false, error: "Insufficient privileges" }
+  if (!me.privileges.includes(required)) return { ok: false, error: "Insufficient privileges" }
   return { ok: true, me }
 }
 
 export async function listAllocationsAction(): Promise<
   ({ ok: true } & ListFuelResult) | { ok: false; error: string }
 > {
-  const a = await actor()
+  const a = await actor("FUEL_VIEW")
   if (!a.ok) return a
   return { ok: true, ...(await listAllocations()) }
 }
@@ -41,7 +41,7 @@ export async function listAllocationsAction(): Promise<
 export async function upsertAllocationsAction(
   entries: FuelEntry[],
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  const a = await actor()
+  const a = await actor("FUEL_EDIT")
   if (!a.ok) return a
   try {
     const { count } = await upsertAllocations(entries)
@@ -59,7 +59,7 @@ export async function upsertAllocationsAction(
 }
 
 export async function deleteAllocationAction(id: string): Promise<FuelActionResult> {
-  const a = await actor()
+  const a = await actor("FUEL_EDIT")
   if (!a.ok) return a
   try {
     const { address } = await deleteAllocation(id)

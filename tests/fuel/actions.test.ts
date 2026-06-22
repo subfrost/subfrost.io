@@ -32,24 +32,33 @@ beforeEach(() => {
 });
 
 describe('authorization', () => {
-  it('rejects reads without MANAGE_FUEL', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_REFERRAL_CODES']));
+  it('rejects reads without FUEL_VIEW', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_VIEW']));
     const res = await listAllocationsAction();
     expect(res.ok).toBe(false);
     expect(fuel.listAllocations).not.toHaveBeenCalled();
   });
 
-  it('rejects writes without MANAGE_FUEL', async () => {
+  it('rejects writes without FUEL_EDIT', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser([]));
     const res = await upsertAllocationsAction([{ address: 'bc1pa', amount: 1 }]);
     expect(res.ok).toBe(false);
+    expect(fuel.upsertAllocations).not.toHaveBeenCalled();
+  });
+
+  it('allows read with FUEL_VIEW but rejects write with only FUEL_VIEW', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser(['FUEL_VIEW']));
+    const list = await listAllocationsAction();
+    expect(list.ok).toBe(true);
+    const write = await upsertAllocationsAction([{ address: 'bc1pa', amount: 1 }]);
+    expect(write.ok).toBe(false);
     expect(fuel.upsertAllocations).not.toHaveBeenCalled();
   });
 });
 
 describe('upsertAllocationsAction', () => {
   beforeEach(() => {
-    vi.mocked(currentUser).mockResolvedValue(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValue(asUser(['FUEL_EDIT']));
   });
 
   it('upserts, audits and revalidates', async () => {
@@ -73,7 +82,7 @@ describe('upsertAllocationsAction', () => {
 
 describe('deleteAllocationAction', () => {
   it('deletes, audits with the address and revalidates', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['FUEL_EDIT']));
     vi.mocked(fuel.deleteAllocation).mockResolvedValueOnce({ address: 'bc1pa' });
     const res = await deleteAllocationAction('x');
     expect(res).toEqual({ ok: true });
@@ -83,7 +92,7 @@ describe('deleteAllocationAction', () => {
 
 describe('listAllocationsAction', () => {
   it('returns the domain payload for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['FUEL_VIEW']));
     const payload = { allocations: [], totalAllocated: 0 };
     vi.mocked(fuel.listAllocations).mockResolvedValueOnce(payload);
     const res = await listAllocationsAction();

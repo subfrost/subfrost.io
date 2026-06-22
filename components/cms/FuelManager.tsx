@@ -23,7 +23,7 @@ const FIELD_ORDER: (keyof FormEntry)[] = ["address", "amount", "note"]
 
 type SortKey = "amount" | "note" | "updatedAt"
 
-export function FuelManager() {
+export function FuelManager({ canEdit }: { canEdit: boolean }) {
   const [rows, setRows] = useState<FuelRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -193,14 +193,16 @@ export function FuelManager() {
           <Stat label="Total allocated" value={`${total.toLocaleString()} FUEL`} />
           <Stat label="Addresses" value={String(rows.length)} />
         </div>
-        <Button variant={showForm ? "ghost" : "default"} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "Add allocation"}
-        </Button>
+        {canEdit && (
+          <Button variant={showForm ? "ghost" : "default"} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
+            {showForm ? "Cancel" : "Add allocation"}
+          </Button>
+        )}
       </div>
 
       {error && <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">{error}<button onClick={() => setError(null)} className="ml-2 underline">dismiss</button></div>}
 
-      {showForm && (
+      {showForm && canEdit && (
         <form onSubmit={onSubmit} className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
           <div className="hidden gap-3 text-xs text-zinc-500 sm:flex">
             <div className="flex-[3]">Wallet address</div>
@@ -272,10 +274,12 @@ export function FuelManager() {
                   <td className="px-4 py-3 text-zinc-400">{a.note || "—"}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500">{new Date(a.updatedAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => onEdit(a)}>Edit</Button>
-                      <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => onDelete(a)}>Delete</Button>
-                    </div>
+                    {canEdit && (
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => onEdit(a)}>Edit</Button>
+                        <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => onDelete(a)}>Delete</Button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
