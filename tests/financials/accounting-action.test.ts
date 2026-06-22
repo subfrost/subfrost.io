@@ -14,11 +14,15 @@ vi.mock("@/lib/financials/accounting/store", () => ({
   updateInvoiceStatus: vi.fn(),
   recordPayment: vi.fn(),
   linkPayment: vi.fn(),
+  loadPayeeProfile: vi.fn(),
+  updatePayee: vi.fn(),
+  listLinkableUsers: vi.fn(),
 }))
 
 import {
   accountingOverviewAction, createInvoiceAction, createPayeeAction,
   exportLedgerCsvAction, linkPaymentAction, recordPaymentAction, updateInvoiceStatusAction,
+  payeeProfileAction, updatePayeeAction, listLinkableUsersAction,
 } from "@/actions/cms/accounting"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import { currentUser } from "@/lib/cms/authz"
@@ -147,5 +151,52 @@ describe("exportLedgerCsvAction", () => {
     const r = await exportLedgerCsvAction()
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.value.split("\n")[0]).toContain("Invoice,Payee,Type")
+  })
+})
+
+describe("payeeProfileAction", () => {
+  it("rejects a caller without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await payeeProfileAction("pe1")).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.loadPayeeProfile).not.toHaveBeenCalled()
+  })
+  it("returns not_found when the payee is missing", async () => {
+    vi.mocked(store.loadPayeeProfile).mockResolvedValue(null)
+    expect(await payeeProfileAction("nope")).toEqual({ ok: false, error: "not_found" })
+  })
+  it("returns the profile on the happy path", async () => {
+    const profile = { payee: { id: "pe1" }, user: null, kyc: null, invoices: [], payments: [], totals: { payeeId: "pe1", payeeName: "Ada", invoiceCount: 0, totalUsd: 0, totalDiesel: 0 } } as never
+    vi.mocked(store.loadPayeeProfile).mockResolvedValue(profile)
+    expect(await payeeProfileAction("pe1")).toEqual({ ok: true, profile })
+  })
+})
+
+describe("updatePayeeAction", () => {
+  it("rejects a caller without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await updatePayeeAction("pe1", { name: "x" })).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.updatePayee).not.toHaveBeenCalled()
+  })
+  it("maps an AccountingError to { ok:false, error }", async () => {
+    vi.mocked(store.updatePayee).mockRejectedValue(new AccountingError("That user is already linked to another payee"))
+    expect(await updatePayeeAction("pe1", { userId: "u1" })).toEqual({ ok: false, error: "That user is already linked to another payee" })
+  })
+  it("updates, audits, and revalidates on the happy path", async () => {
+    vi.mocked(store.updatePayee).mockResolvedValue({ id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: null, userId: "u1", agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" })
+    const r = await updatePayeeAction("pe1", { userId: "u1" })
+    expect(r).toEqual({ ok: true, value: expect.objectContaining({ userId: "u1" }) })
+    expect(audit).toHaveBeenCalledWith("accounting_payee_update", expect.objectContaining({ actorId: "u1", target: "Ada" }))
+  })
+})
+
+describe("listLinkableUsersAction", () => {
+  it("rejects a caller without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await listLinkableUsersAction()).toEqual({ ok: false, error: "unauthorized" })
+  })
+  it("returns the users", async () => {
+    vi.mocked(store.listLinkableUsers).mockResolvedValue([{ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" }])
+    const r = await listLinkableUsersAction()
+    expect(r).toEqual({ ok: true, users: [{ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" }] })
   })
 })
