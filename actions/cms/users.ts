@@ -61,7 +61,7 @@ const createSchema = z.object({
 })
 
 export async function createUser(input: z.input<typeof createSchema>): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const parsed = createSchema.safeParse(input)
@@ -106,7 +106,7 @@ export async function updateUser(
   userId: string,
   input: z.input<typeof updateSchema>,
 ): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const parsed = updateSchema.safeParse(input)
@@ -156,7 +156,7 @@ export async function setUserPrivileges(userId: string, privileges: Privilege[])
 }
 
 export async function resetPassword(userId: string, password: string): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   if (password.length < 8) return { ok: false, error: "Password must be at least 8 characters" }
@@ -174,7 +174,7 @@ export async function resetPassword(userId: string, password: string): Promise<U
 
 /** Hard-delete a user when safe; otherwise instruct the admin to reassign/deactivate. */
 export async function deleteUser(userId: string): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const m = await manageable(me, userId)
@@ -217,7 +217,7 @@ export async function updateProfile(
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
   const isSelf = me.id === userId
-  if (!isSelf && !me.privileges.includes("MANAGE_USERS")) {
+  if (!isSelf && !me.privileges.includes("USERS_EDIT")) {
     return { ok: false, error: "Not allowed" }
   }
   const parsed = profileSchema.safeParse(input)
@@ -227,7 +227,7 @@ export async function updateProfile(
   // Public byline fields are gated behind the editor capability.
   const wantsByline =
     d.bio !== undefined || d.twitter !== undefined || d.avatarUrl !== undefined
-  const canByline = me.privileges.includes("EDIT_BIO") || me.privileges.includes("MANAGE_USERS")
+  const canByline = me.privileges.includes("EDIT_BIO") || me.privileges.includes("USERS_EDIT")
   if (wantsByline && !canByline) {
     return { ok: false, error: "Editing your public profile requires editor privileges" }
   }
