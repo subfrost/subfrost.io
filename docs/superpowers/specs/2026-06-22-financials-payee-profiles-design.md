@@ -166,6 +166,7 @@ shows the author fields; attaching a contract PDF persists.
 - Additive migration only (applied via the deploy migrate initContainer).
 - Gate everything on `FINANCIALS_PRIVILEGE` (= `financials.view`, restricted).
 - branch → PR → merge, never main direct.
-- ⚠️ flex PR #68 (session/device mgmt) is OPEN and touches `prisma/schema.prisma` +
-  `lib/cms/iam/registry.ts`. We touch `schema.prisma` (Payee/User) but not the registry. If #68
-  merges first, bring main in, merge, re-run gates (as done with #65).
+- flex PR #68 (session/device mgmt) MERGED `d4b56cd` (2026-06-22) and main was brought into this
+  branch (`57be38b`). No overlap: #68 only added `Session.tlsFingerprint` (Session model, not
+  Payee/User) and the `iam.manage_sessions` privilege (we don't touch the registry). Baseline is
+  now main@7b2b148 incl. #68; this branch builds on it cleanly.
