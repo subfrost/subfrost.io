@@ -213,6 +213,28 @@ describe("updatePayee", () => {
     expect(usr.findUnique).not.toHaveBeenCalled()
     expect(pe.update.mock.calls[0][0].data).toEqual({ userId: null })
   })
+
+  it("clears agreementUrl with explicit null", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    pe.update.mockResolvedValueOnce({ ...baseRow, agreementUrl: null })
+    await updatePayee("pe1", { agreementUrl: null })
+    expect(pe.update.mock.calls[0][0].data).toEqual({ agreementUrl: null })
+  })
+
+  it("clears kycIntakeId with explicit null without verifying the intake", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    pe.update.mockResolvedValueOnce({ ...baseRow, kycIntakeId: null })
+    await updatePayee("pe1", { kycIntakeId: null })
+    expect(kyc.findUnique).not.toHaveBeenCalled()
+    expect(pe.update.mock.calls[0][0].data).toEqual({ kycIntakeId: null })
+  })
+
+  it("rejects a kycIntakeId that does not exist", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    kyc.findUnique.mockResolvedValueOnce(null)
+    await expect(updatePayee("pe1", { kycIntakeId: "missing" })).rejects.toBeInstanceOf(AccountingError)
+    expect(pe.update).not.toHaveBeenCalled()
+  })
 })
 
 describe("listLinkableUsers", () => {
