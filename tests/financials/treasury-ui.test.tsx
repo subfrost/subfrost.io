@@ -45,4 +45,19 @@ describe("TreasuryManager", () => {
     render(<TreasuryManager initial={{ ok: false, error: "upstream" }} />)
     expect(screen.getByText(/unavailable/i)).toBeTruthy()
   })
+
+  it("shows a cached badge on a stale snapshot", () => {
+    const staleResult: TreasuryResult = {
+      ok: true,
+      stale: true,
+      snapshot: { grandTotalUsd: 100, fetchedAt: "2026-06-22T00:00:00Z", wallets: [] },
+    }
+    render(<TreasuryManager initial={staleResult} />)
+    expect(screen.getByText(/cached/i)).toBeTruthy()
+  })
+
+  it("shows the unauthorized state", () => {
+    render(<TreasuryManager initial={{ ok: false, error: "unauthorized" }} />)
+    expect(screen.getByText(/access/i)).toBeTruthy()
+  })
 })

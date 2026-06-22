@@ -31,9 +31,13 @@ export function TreasuryManager({ initial }: { initial: TreasuryResult }) {
       <div className="flex items-end justify-between">
         <div>
           <div className="text-3xl font-bold text-white">{usd(snapshot.grandTotalUsd)}</div>
-          <div className="text-xs text-zinc-500">
-            Total across {snapshot.wallets.length} wallet(s)
-            {stale ? " · showing last cached snapshot" : ""}
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <span>Total across {snapshot.wallets.length} wallet(s)</span>
+            {stale ? (
+              <span className="rounded bg-yellow-900/40 px-1.5 py-0.5 text-[10px] font-medium text-yellow-400">
+                cached
+              </span>
+            ) : null}
           </div>
         </div>
         <button
