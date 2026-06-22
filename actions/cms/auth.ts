@@ -46,11 +46,29 @@ const RL_MAX_PER_EMAIL = 5
 const RL_MAX_PER_IP = 20
 
 async function tooManyAttempts(email: string, ip: string | null): Promise<boolean> {
+  const auditLog = (prisma as unknown as {
+    auditLog?: {
+      count: (args: {
+        where: {
+          action: string
+          target?: string
+          ip?: string
+          createdAt: { gt: Date }
+        }
+      }) => Promise<number>
+    }
+  }).auditLog
+
+  // During local dev, a stale generated Prisma client (or hot-reload race)
+  // can momentarily miss a model delegate. Fail open for rate-limiting instead
+  // of crashing the entire login flow.
+  if (!auditLog?.count) return false
+
   const since = new Date(Date.now() - RL_WINDOW_MS)
   const [byEmail, byIp] = await Promise.all([
-    prisma.auditLog.count({ where: { action: "login_failed", target: email, createdAt: { gt: since } } }),
+    auditLog.count({ where: { action: "login_failed", target: email, createdAt: { gt: since } } }),
     ip
-      ? prisma.auditLog.count({ where: { action: "login_failed", ip, createdAt: { gt: since } } })
+      ? auditLog.count({ where: { action: "login_failed", ip, createdAt: { gt: since } } })
       : Promise.resolve(0),
   ])
   return byEmail >= RL_MAX_PER_EMAIL || byIp >= RL_MAX_PER_IP

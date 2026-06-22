@@ -152,6 +152,13 @@ App runs at `http://localhost:3000`.
 - `pnpm db:migrate`: create/apply local migration (dev)
 - `pnpm db:migrate:deploy`: apply migrations (production)
 - `pnpm db:studio`: open Prisma Studio
+- `pnpm db:seed:articles:local`: seed 6 local mock published articles (refuses non-local DB hosts)
+
+Local mock article seeding safety:
+
+- The seed command is intentionally local-only and aborts when `DATABASE_URL` is not a loopback/local host.
+- It also aborts in cloud runtime environments (`VERCEL`, `GCP_PROJECT`, `K_SERVICE`).
+- It upserts only the known mock slugs and is meant for local development preview data.
 
 ### Infrastructure
 

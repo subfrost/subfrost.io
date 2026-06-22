@@ -1,3 +1,9 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable standalone output for Docker deployment
@@ -12,7 +18,11 @@ const nextConfig = {
   },
 
   // Turbopack configuration (Next.js 16+)
-  turbopack: {},
+  // Pin root so Next doesn't infer from parent lockfiles and accidentally
+  // resolve dependencies from outside this repo.
+  turbopack: {
+    root: __dirname,
+  },
 
   // Mark packages with native/WASM dependencies as external
   // This prevents the bundler from transforming __dirname and breaking WASM loading
