@@ -179,3 +179,53 @@ export async function linkPayment(paymentId: string, invoiceId: string): Promise
   })
   return mapPayment(row)
 }
+
+export async function updatePayee(id: string, patch: {
+  name?: string; type?: PayeeType; notes?: string | null
+  kycIntakeId?: string | null; userId?: string | null; agreementUrl?: string | null
+}): Promise<PayeeRow> {
+  const existing = await prisma.payee.findUnique({ where: { id } })
+  if (!existing) throw new AccountingError("Payee not found")
+
+  const data: Record<string, unknown> = {}
+  if ("name" in patch) {
+    const name = (patch.name ?? "").trim()
+    if (!name) throw new AccountingError("Payee name is required")
+    data.name = name
+  }
+  if ("type" in patch) data.type = patch.type
+  if ("notes" in patch) data.notes = patch.notes?.trim() || null
+  if ("agreementUrl" in patch) data.agreementUrl = patch.agreementUrl || null
+  if ("kycIntakeId" in patch) {
+    if (patch.kycIntakeId) {
+      const k = await prisma.kycIntake.findUnique({ where: { id: patch.kycIntakeId } })
+      if (!k) throw new AccountingError("KYC intake not found")
+    }
+    data.kycIntakeId = patch.kycIntakeId || null
+  }
+  if ("userId" in patch) {
+    if (patch.userId) {
+      const u = await prisma.user.findUnique({ where: { id: patch.userId } })
+      if (!u) throw new AccountingError("User not found")
+      const taken = await prisma.payee.findUnique({ where: { userId: patch.userId } })
+      if (taken && taken.id !== id) throw new AccountingError("That user is already linked to another payee")
+    }
+    data.userId = patch.userId || null
+  }
+
+  const row = await prisma.payee.update({
+    where: { id }, data, include: { kycIntake: { select: { customerName: true } } },
+  })
+  return mapPayee(row)
+}
+
+export async function listLinkableUsers(): Promise<
+  { id: string; name: string | null; email: string; avatarUrl: string | null; role: string }[]
+> {
+  const rows = await prisma.user.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, avatarUrl: true, role: true },
+  })
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, role: String(u.role) }))
+}
