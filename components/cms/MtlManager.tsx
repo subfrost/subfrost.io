@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { listMtlAction, seedMtlAction, updateMtlAction } from "@/actions/cms/mtl"
 import { MTL_STATUSES, MTL_STATUS_LABELS } from "@/lib/mtl/schema"
 import type { MtlRow } from "@/lib/mtl/admin"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 interface RowState {
   status: string
@@ -104,7 +105,7 @@ export function MtlManager({ canEdit }: { canEdit: boolean }) {
       )
     : rows
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   if (rows.length === 0) {
     return (

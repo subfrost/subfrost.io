@@ -17,6 +17,7 @@ import {
 } from "@/actions/cms/communities"
 import type { FuelRow } from "@/lib/fuel/admin"
 import type { CommunityOverview, CommunitySummary } from "@/lib/community/aggregate"
+import { SkeletonTable, SkeletonStats, SkeletonList, SkeletonText } from "@/components/cms/Skeleton"
 
 const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })
@@ -53,7 +54,12 @@ function FuelDistribution() {
     }
   }, [ov])
 
-  if (!ov || !stats) return <div className="py-6 text-sm text-zinc-500">Loading FUEL distribution…</div>
+  if (!ov || !stats) return (
+    <div className="space-y-5">
+      <SkeletonStats count={6} className="sm:grid-cols-3 lg:grid-cols-6" />
+      <SkeletonList rows={8} height="h-8" />
+    </div>
+  )
 
   const gross = stats.totalFuelAllocated || 1
   const maxCommunity = Math.max(1, ...ov.communities.map((c) => c.totalFuel))
@@ -104,7 +110,7 @@ function FuelDistribution() {
             </button>
             {expanded === c.rootId && (
               <div className="border-t border-zinc-800 px-3 py-2">
-                {!details[c.rootId] ? <div className="text-xs text-zinc-600">Loading…</div> : (
+                {!details[c.rootId] ? <SkeletonText lines={5} /> : (
                   <MemberBars detail={details[c.rootId]} communityTotal={c.totalFuel} />
                 )}
               </div>
@@ -295,7 +301,7 @@ function AllocationsEditor({ canEdit }: { canEdit: boolean }) {
 
       <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by address or note…" className={`max-w-md ${inputCls}`} />
 
-      {loading ? <div className="text-zinc-500">Loading…</div> : (
+      {loading ? <SkeletonTable /> : (
         <div className="overflow-x-auto rounded-xl border border-zinc-800">
           <table className="w-full text-sm">
             <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">

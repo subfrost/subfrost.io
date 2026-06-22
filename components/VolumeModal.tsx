@@ -204,8 +204,6 @@ const CHART_HEIGHT_MOBILE = 250
 /* ------------------------------------------------------------------ */
 
 function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
-  const { t } = useTranslation()
-  const loadingChartText = t("volume.loadingChart")
   // Deterministic pseudo-random heights so the skeleton doesn't reshuffle on re-render
   const bars = Array.from({ length: 32 }, (_, i) => 25 + ((i * 53) % 65))
 
@@ -265,9 +263,6 @@ function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
           />
         </svg>
       )}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-wider text-[#284372]/50 font-semibold">
-        {loadingChartText}
-      </div>
     </div>
   )
 }

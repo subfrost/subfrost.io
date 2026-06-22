@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AddressAvatar } from "@/components/cms/AddressAvatar"
 import { AddressChip } from "@/components/cms/address-profile/AddressProfilePanel"
+import { SkeletonText, SkeletonList } from "@/components/cms/Skeleton"
 import {
   communityDetailAction,
   unattributedFuelAction,
@@ -129,7 +130,7 @@ export function CommunitiesManager({
             {expanded === c.rootId && (
               <div className="border-t border-zinc-800 px-4 py-4">
                 {loadingId === c.rootId && !details[c.rootId]
-                  ? <div className="py-6 text-center text-sm text-zinc-500">Loading breakdown…</div>
+                  ? <SkeletonText lines={6} className="py-2" />
                   : details[c.rootId]
                     ? <CommunityBody detail={details[c.rootId]} community={c.rootCode} canSeeFuel={canSeeFuel} />
                     : null}
@@ -231,7 +232,7 @@ function UnattributedSection({ count, fuel }: { count: number; fuel: number }) {
       </button>
       {open && (
         <div className="border-t border-zinc-800 px-4 py-3">
-          {!rows ? <div className="py-4 text-center text-sm text-zinc-500">Loading…</div> : (
+          {!rows ? <SkeletonList rows={5} height="h-6" className="py-2" /> : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-zinc-500"><tr><th className="py-1.5">Address</th><th className="py-1.5 text-right">FUEL</th><th className="py-1.5">Note</th></tr></thead>
               <tbody>

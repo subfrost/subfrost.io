@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { listSettlementsAction } from "@/actions/cms/billing"
 import { centsToUsd } from "@/lib/stripe/format"
 import type { OfframpSettlement } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 export function OfframpManager() {
   const [settlements, setSettlements] = useState<OfframpSettlement[]>([])
@@ -25,7 +26,7 @@ export function OfframpManager() {
     fetchSettlements()
   }, [fetchSettlements])
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-6">

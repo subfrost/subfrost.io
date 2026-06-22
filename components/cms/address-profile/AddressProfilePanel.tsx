@@ -5,6 +5,7 @@ import { Crown, Copy, X, Flame, Pencil } from "lucide-react"
 import { AddressAvatar } from "@/components/cms/AddressAvatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { SkeletonStats, SkeletonText } from "@/components/cms/Skeleton"
 import {
   addressProfileAction,
   updateAddressNoteAction,
@@ -49,7 +50,13 @@ export function AddressProfileProvider({ children }: { children: React.ReactNode
             <button onClick={close} className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-200"><X size={18} /></button>
             <ProfileHeader address={address} data={data} />
             {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-            {!data && !error && <p className="mt-6 text-sm text-zinc-500">Loading profile…</p>}
+            {!data && !error && (
+              <div className="mt-6 space-y-6">
+                <SkeletonStats count={2} className="grid-cols-2 sm:grid-cols-2" />
+                <SkeletonText lines={4} />
+                <SkeletonText lines={3} />
+              </div>
+            )}
             {data && <ProfileBody data={data} canEdit={canEdit} onSaved={() => open(address)} />}
           </div>
         </div>

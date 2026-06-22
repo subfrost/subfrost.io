@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AddressChip } from "@/components/cms/address-profile/AddressProfilePanel"
+import { SkeletonList, SkeletonText } from "@/components/cms/Skeleton"
 import {
   getAnnotatedCodeTreeAction,
   codeRedeemersAction,
@@ -74,7 +75,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
       )}
 
       {loading ? (
-        <div className="py-10 text-center text-sm text-zinc-500">Loading tree…</div>
+        <SkeletonList rows={10} height="h-8" />
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 px-4 py-8 text-center text-zinc-600">No codes match.</div>
       ) : (
@@ -154,7 +155,7 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
           {node.redemptionCount > 0 && (
             <div style={{ paddingLeft: 12 + (depth + 1) * 18 }} className="border-t border-zinc-800/40 bg-zinc-950/40 py-2 pr-3">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-zinc-600">Redeemers</div>
-              {!redeemers ? <div className="text-xs text-zinc-600">Loading…</div> : (
+              {!redeemers ? <SkeletonText lines={4} /> : (
                 <>
                   <div className="space-y-1">
                     {redeemers.slice(0, limit).map((r) => (

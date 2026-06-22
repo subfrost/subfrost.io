@@ -7,6 +7,7 @@ import { listCardsAction, listDisputesAction, setCardControlAction, submitDisput
 import { centsToUsd } from "@/lib/stripe/format"
 import { CARD_STATES, CARD_STATE_LABELS } from "@/lib/stripe/shapes"
 import type { IssuingCard, IssuingDispute } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 
 function StateBadge({ state }: { state: IssuingCard["state"] }) {
@@ -115,7 +116,7 @@ export function IssuingManager({ canEdit }: { canEdit: boolean }) {
       }
     })
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-8">

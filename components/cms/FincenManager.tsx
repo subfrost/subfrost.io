@@ -12,6 +12,7 @@ import {
 import { FORM_107_DEFAULTS } from "@/lib/fincen/schemas"
 import type { DraftRow, SubmissionRow } from "@/lib/fincen/admin"
 import type { Form107, Sar, Ctr } from "@/lib/fincen/schemas"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 const SAR_TEMPLATE = JSON.stringify(
   {
@@ -230,7 +231,7 @@ export function FincenManager({ canEdit }: { canEdit: boolean }) {
       )}
 
       {loading ? (
-        <div className="text-zinc-500">Loading…</div>
+        <SkeletonTable />
       ) : (
         <>
           {/* ===== Form 107 tab ===== */}

@@ -287,19 +287,12 @@ export default function BroadcastPage() {
     <Suspense
       fallback={
         <div
-          className="flex min-h-screen items-center justify-center"
+          className="flex min-h-screen flex-col items-center justify-center gap-3"
           style={{ background: "#0a0f1a" }}
         >
-          <span
-            style={{
-              fontSize: 11,
-              fontFamily: '"Courier New", monospace',
-              color: "rgba(91,156,255,0.4)",
-              letterSpacing: 3,
-            }}
-          >
-            LOADING...
-          </span>
+          <div className="h-2.5 w-48 animate-pulse rounded bg-[rgba(91,156,255,0.18)]" />
+          <div className="h-2.5 w-32 animate-pulse rounded bg-[rgba(91,156,255,0.12)]" />
+          <div className="h-2.5 w-40 animate-pulse rounded bg-[rgba(91,156,255,0.1)]" />
         </div>
       }
     >
