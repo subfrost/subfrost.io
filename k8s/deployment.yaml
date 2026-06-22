@@ -142,6 +142,14 @@ spec:
                   name: subfrost-io-secrets
                   key: FUEL_API_KEY
                   optional: true
+            # GoldRush (Covalent) key for Financials > Treasury BSC balances.
+            # optional:true — absent => the page shows "not configured".
+            - name: GOLDRUSH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: GOLDRUSH_API_KEY
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
