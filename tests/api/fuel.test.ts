@@ -36,6 +36,7 @@ describe('GET /api/fuel', () => {
   it('rejects requests without an x-api-key (401)', async () => {
     const res = await fuelGET(getReq('/api/fuel?address=bc1ptap'));
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 
   it('rejects requests with a wrong x-api-key (401)', async () => {
@@ -47,6 +48,7 @@ describe('GET /api/fuel', () => {
     delete process.env.FUEL_API_KEY;
     const res = await fuelGET(getReq('/api/fuel?address=bc1ptap', { 'x-api-key': KEY }));
     expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: 'FUEL_API_KEY not configured' });
   });
 
   it('returns the amount for a known address with a valid key', async () => {
@@ -70,5 +72,19 @@ describe('GET /api/fuel', () => {
     const res = await fuelGET(getReq('/api/fuel', { 'x-api-key': KEY }));
     expect(res.status).toBe(400);
     expect(fa.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('serves a cache hit without touching the DB', async () => {
+    vi.mocked(cacheGet).mockResolvedValueOnce({ amount: 7 });
+    const res = await fuelGET(getReq('/api/fuel?address=bc1ptap', { 'x-api-key': KEY }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ amount: 7 });
+    expect(fa.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('writes the DB result to cache with the 60s TTL', async () => {
+    fa.findUnique.mockResolvedValueOnce({ amount: 42 });
+    await fuelGET(getReq('/api/fuel?address=bc1ptap', { 'x-api-key': KEY }));
+    expect(cacheSet).toHaveBeenCalledWith('fuel:public:bc1ptap', { amount: 42 }, 60);
   });
 });
