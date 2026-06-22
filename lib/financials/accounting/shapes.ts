@@ -12,6 +12,8 @@ export interface PayeeRow {
   kycIntakeId: string | null
   kycCustomerName: string | null // resolved from the linked KycIntake, when any
   notes: string | null
+  userId: string | null
+  agreementUrl: string | null
   createdAt: string // ISO
 }
 

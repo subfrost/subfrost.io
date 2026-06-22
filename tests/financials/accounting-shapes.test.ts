@@ -5,8 +5,8 @@ import {
 } from "@/lib/financials/accounting/shapes"
 
 const payees: PayeeRow[] = [
-  { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada Lovelace", notes: null, createdAt: "2026-01-01T00:00:00.000Z" },
-  { id: "pe2", name: "Acme, Inc", type: "ORG", kycIntakeId: null, kycCustomerName: null, notes: null, createdAt: "2026-01-01T00:00:00.000Z" },
+  { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada Lovelace", notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
+  { id: "pe2", name: "Acme, Inc", type: "ORG", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
 ]
 const invoices: InvoiceRow[] = [
   { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "work", amountUsd: 1000, amountDiesel: 2, issuedAt: "2026-02-10T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-10T00:00:00.000Z" },

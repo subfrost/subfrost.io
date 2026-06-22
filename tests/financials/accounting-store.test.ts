@@ -24,11 +24,11 @@ beforeEach(() => vi.clearAllMocks())
 describe("listPayees", () => {
   it("maps rows and resolves kycCustomerName", async () => {
     pe.findMany.mockResolvedValueOnce([
-      { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, createdAt: D("2026-01-01T00:00:00Z"), kycIntake: { customerName: "Ada L" } },
+      { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, userId: "u1", agreementUrl: "https://x/a.pdf", createdAt: D("2026-01-01T00:00:00Z"), kycIntake: { customerName: "Ada L" } },
     ])
     const rows = await listPayees()
     expect(pe.findMany).toHaveBeenCalledWith({ orderBy: { name: "asc" }, include: { kycIntake: { select: { customerName: true } } } })
-    expect(rows[0]).toEqual({ id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada L", notes: null, createdAt: "2026-01-01T00:00:00.000Z" })
+    expect(rows[0]).toEqual({ id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada L", notes: null, userId: "u1", agreementUrl: "https://x/a.pdf", createdAt: "2026-01-01T00:00:00.000Z" })
   })
 })
 
@@ -38,10 +38,11 @@ describe("createPayee", () => {
     expect(pe.create).not.toHaveBeenCalled()
   })
   it("trims and creates", async () => {
-    pe.create.mockResolvedValueOnce({ id: "pe2", name: "Acme", type: "ORG", kycIntakeId: null, notes: null, createdAt: D("2026-01-02T00:00:00Z"), kycIntake: null })
+    pe.create.mockResolvedValueOnce({ id: "pe2", name: "Acme", type: "ORG", kycIntakeId: null, notes: null, userId: null, agreementUrl: null, createdAt: D("2026-01-02T00:00:00Z"), kycIntake: null })
     const row = await createPayee({ name: " Acme ", type: "ORG" })
     expect(pe.create.mock.calls[0][0].data).toMatchObject({ name: "Acme", type: "ORG", kycIntakeId: null, notes: null })
     expect(row.kycCustomerName).toBeNull()
+    expect(row.userId).toBeNull()
   })
 })
 

@@ -90,7 +90,7 @@ describe("accountingOverviewAction", () => {
 
 describe("createPayeeAction", () => {
   it("creates, audits, and returns the payee", async () => {
-    const payee = { id: "pe1", name: "Ada", type: "PERSON" as const, kycIntakeId: null, kycCustomerName: null, notes: null, createdAt: "2026-01-01T00:00:00.000Z" }
+    const payee = { id: "pe1", name: "Ada", type: "PERSON" as const, kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" }
     vi.mocked(store.createPayee).mockResolvedValue(payee)
     const r = await createPayeeAction({ name: "Ada", type: "PERSON" })
     expect(r).toEqual({ ok: true, value: payee })

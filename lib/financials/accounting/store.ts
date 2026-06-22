@@ -11,11 +11,13 @@ export class AccountingError extends Error {}
 
 function mapPayee(r: {
   id: string; name: string; type: string; kycIntakeId: string | null
-  notes: string | null; createdAt: Date; kycIntake?: { customerName: string } | null
+  notes: string | null; userId: string | null; agreementUrl: string | null
+  createdAt: Date; kycIntake?: { customerName: string } | null
 }): PayeeRow {
   return {
     id: r.id, name: r.name, type: r.type as PayeeType, kycIntakeId: r.kycIntakeId,
     kycCustomerName: r.kycIntake?.customerName ?? null, notes: r.notes,
+    userId: r.userId, agreementUrl: r.agreementUrl,
     createdAt: r.createdAt.toISOString(),
   }
 }
