@@ -226,19 +226,19 @@
    Tokens come from the approved mockup (subfrost-articles-mockup.html).
    ========================================================================== */
 [data-ed-theme] {
-  --ed-canvas: #fbfcfe;
+  --ed-canvas: #eef3f9;
   --ed-ink: #0a1628;
-  --ed-body: #37465d;
-  --ed-muted: #6b7a93;
-  --ed-hair: #e6ebf3;
+  --ed-body: #33455f;
+  --ed-muted: #607792;
+  --ed-hair: #d8e2ee;
   --ed-accent: #1a4d8f;
   --ed-ice: #5b9cff;
   --ed-flare: #ec4521;
   --ed-nav: #0a1628;
-  --ed-surface: #ffffff;
+  --ed-surface: #f6f9fd;
   --ed-cover: #11294a;
   --ed-cover-2: #1a3c66;
-  --ed-band: #eef3fb;
+  --ed-band: #e5edf7;
 }
 [data-ed-theme="dark"] {
   --ed-canvas: #0a1628;
