@@ -21,10 +21,10 @@ describe("visibleNav", () => {
     ])
   })
 
-  it("shows all 6 groups for ADMIN (all privileges)", () => {
+  it("shows all 7 groups for ADMIN (all privileges)", () => {
     const groups = visibleNav([...ALL_PRIVILEGES])
     expect(groups.map((g) => g.key)).toEqual([
-      "overview", "articles", "community", "compliance", "billing", "settings",
+      "overview", "articles", "community", "compliance", "billing", "financials", "settings",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
   })

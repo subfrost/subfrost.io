@@ -1,10 +1,11 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
-  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard,
+  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
+import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 
 export interface NavLeaf {
   label: string
@@ -60,6 +61,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "billing.read" },
       { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "billing.read" },
       { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "billing.read" },
+    ],
+  },
+  {
+    key: "financials", label: "Financials", icon: Banknote, items: [
+      { label: "Treasury", href: "/admin/financials/treasury", icon: Wallet, privilege: FINANCIALS_PRIVILEGE },
     ],
   },
   {
