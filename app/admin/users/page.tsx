@@ -42,6 +42,7 @@ export default async function UsersPage() {
         canEdit={me.privileges.includes("iam.modify_user")}
         canCreate={me.privileges.includes("iam.create_user")}
         canManageRoles={me.privileges.includes("iam.manage_roles")}
+        canManageSessions={me.privileges.includes("iam.manage_sessions")}
       />
     </div>
   )
