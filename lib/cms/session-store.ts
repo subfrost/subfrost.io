@@ -22,6 +22,7 @@ export async function createSession(opts: {
   jti: string
   ip?: string | null
   userAgent?: string | null
+  tlsFingerprint?: string | null
 }): Promise<Date> {
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000)
   await prisma.session.create({
@@ -30,6 +31,7 @@ export async function createSession(opts: {
       tokenHash: sha256(opts.jti),
       ip: opts.ip ?? null,
       userAgent: opts.userAgent ?? null,
+      tlsFingerprint: opts.tlsFingerprint ?? null,
       expiresAt,
     },
   })
@@ -84,6 +86,7 @@ export interface SessionInfo {
   id: string
   ip: string | null
   userAgent: string | null
+  tlsFingerprint: string | null
   createdAt: Date
   lastSeenAt: Date
   expiresAt: Date
@@ -103,6 +106,7 @@ export async function listUserSessions(
     id: r.id,
     ip: r.ip,
     userAgent: r.userAgent,
+    tlsFingerprint: r.tlsFingerprint,
     createdAt: r.createdAt,
     lastSeenAt: r.lastSeenAt,
     expiresAt: r.expiresAt,
