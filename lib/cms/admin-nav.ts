@@ -1,7 +1,7 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
-  ClipboardList, Settings, KeyRound, ScrollText,
+  ClipboardList, Settings, KeyRound, ScrollText, Webhook,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@prisma/client"
@@ -53,6 +53,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "On-ramp", href: "/admin/billing/onramp", icon: ArrowDownToLine, privilege: "BILLING_VIEW" },
       { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "BILLING_VIEW" },
       { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "BILLING_VIEW" },
+      { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "BILLING_VIEW" },
     ],
   },
   {
