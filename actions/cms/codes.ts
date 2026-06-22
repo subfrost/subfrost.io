@@ -27,8 +27,6 @@ import {
   type CodeTreeNode,
 } from "@/lib/referral/admin"
 
-const REQUIRED: Privilege = "MANAGE_REFERRAL_CODES"
-
 export type CodeActionResult = { ok: true } | { ok: false; error: string }
 
 async function ip(): Promise<string | null> {
@@ -36,11 +34,13 @@ async function ip(): Promise<string | null> {
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null
 }
 
-/** Gate on the referral privilege; returns the actor or an error envelope. */
-async function actor(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: string }> {
+/** Gate on the given privilege; returns the actor or an error envelope. */
+async function actor(
+  required: Privilege,
+): Promise<{ ok: true; me: CmsUser } | { ok: false; error: string }> {
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
-  if (!me.privileges.includes(REQUIRED)) return { ok: false, error: "Insufficient privileges" }
+  if (!me.privileges.includes(required)) return { ok: false, error: "Insufficient privileges" }
   return { ok: true, me }
 }
 
@@ -49,7 +49,7 @@ async function actor(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: 
 export async function listCodesAction(
   query: ListCodesQuery,
 ): Promise<({ ok: true } & ListCodesResult) | { ok: false; error: string }> {
-  const a = await actor()
+  const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   return { ok: true, ...(await listCodes(query)) }
 }
@@ -57,7 +57,7 @@ export async function listCodesAction(
 export async function getParentOptionsAction(): Promise<
   { ok: true; options: { id: string; code: string }[] } | { ok: false; error: string }
 > {
-  const a = await actor()
+  const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   return { ok: true, options: await getParentOptions() }
 }
@@ -65,7 +65,7 @@ export async function getParentOptionsAction(): Promise<
 export async function getCodeTreeAction(): Promise<
   { ok: true; tree: CodeTreeNode[] } | { ok: false; error: string }
 > {
-  const a = await actor()
+  const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   return { ok: true, tree: await getCodeTree() }
 }
@@ -73,7 +73,7 @@ export async function getCodeTreeAction(): Promise<
 export async function listRedemptionsAction(
   query: ListRedemptionsQuery,
 ): Promise<({ ok: true } & ListRedemptionsResult) | { ok: false; error: string }> {
-  const a = await actor()
+  const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   return { ok: true, ...(await listRedemptions(query)) }
 }
@@ -81,7 +81,7 @@ export async function listRedemptionsAction(
 export async function exportRedemptionsCsvAction(): Promise<
   { ok: true; csv: string; filename: string } | { ok: false; error: string }
 > {
-  const a = await actor()
+  const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   const csv = await exportRedemptionsCsv()
   return { ok: true, csv, filename: `redemptions-${new Date().toISOString().slice(0, 10)}.csv` }
@@ -101,7 +101,7 @@ async function run(op: () => Promise<void>): Promise<CodeActionResult> {
 }
 
 export async function createCodeAction(input: CreateCodeInput): Promise<CodeActionResult> {
-  const a = await actor()
+  const a = await actor("REFERRAL_EDIT")
   if (!a.ok) return a
   return run(async () => {
     const created = await createCode(input)
@@ -113,7 +113,7 @@ export async function createCodeAction(input: CreateCodeInput): Promise<CodeActi
 export async function bulkCreateCodesAction(
   input: BulkCreateInput,
 ): Promise<{ ok: true; count: number; codes: string[] } | { ok: false; error: string }> {
-  const a = await actor()
+  const a = await actor("REFERRAL_EDIT")
   if (!a.ok) return a
   try {
     const res = await bulkCreateCodes(input)
@@ -136,7 +136,7 @@ export async function updateCodeAction(
   id: string,
   input: UpdateCodeInput,
 ): Promise<CodeActionResult> {
-  const a = await actor()
+  const a = await actor("REFERRAL_EDIT")
   if (!a.ok) return a
   return run(async () => {
     const updated = await updateCode(id, input)
@@ -156,7 +156,7 @@ export async function toggleCodeAction(id: string, isActive: boolean): Promise<C
 }
 
 export async function deleteCodeAction(id: string): Promise<CodeActionResult> {
-  const a = await actor()
+  const a = await actor("REFERRAL_EDIT")
   if (!a.ok) return a
   return run(async () => {
     const { code } = await deleteCode(id)

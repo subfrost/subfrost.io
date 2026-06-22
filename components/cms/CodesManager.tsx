@@ -31,7 +31,7 @@ const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
 const selectCls =
   "h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
 
-export function CodesManager() {
+export function CodesManager({ canEdit }: { canEdit: boolean }) {
   const [view, setView] = useState<View>("codes")
   return (
     <div className="space-y-6">
@@ -40,7 +40,7 @@ export function CodesManager() {
         <Tab active={view === "hierarchy"} onClick={() => setView("hierarchy")}>Hierarchy</Tab>
         <Tab active={view === "redemptions"} onClick={() => setView("redemptions")}>Redemptions</Tab>
       </div>
-      {view === "codes" && <CodesView />}
+      {view === "codes" && <CodesView canEdit={canEdit} />}
       {view === "hierarchy" && <HierarchyView />}
       {view === "redemptions" && <RedemptionsView />}
     </div>
@@ -62,7 +62,7 @@ function Tab({ active, onClick, children }: { active: boolean; onClick: () => vo
 
 // --- Codes table -----------------------------------------------------------
 
-function CodesView() {
+function CodesView({ canEdit }: { canEdit: boolean }) {
   const [codes, setCodes] = useState<CodeRow[]>([])
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 25, total: 0, totalPages: 0 })
   const [search, setSearch] = useState("")
@@ -162,8 +162,8 @@ function CodesView() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <Button onClick={() => setShowCreate(true)}>Create code</Button>
-        <Button variant="ghost" onClick={() => setShowBulk(true)}>Bulk generate</Button>
+        {canEdit && <Button onClick={() => setShowCreate(true)}>Create code</Button>}
+        {canEdit && <Button variant="ghost" onClick={() => setShowBulk(true)}>Bulk generate</Button>}
         {error && <span className="text-sm text-red-400">{error}</span>}
       </div>
 
@@ -181,7 +181,7 @@ function CodesView() {
                 <Th field="redemptions">Redemptions</Th>
                 <Th field="children">Children</Th>
                 <Th field="parent">Parent</Th>
-                <th className="px-4 py-3"></th>
+                {canEdit && <th className="px-4 py-3"></th>}
               </tr>
             </thead>
             <tbody>
@@ -203,17 +203,19 @@ function CodesView() {
                   <td className="px-4 py-3 text-zinc-300">{c.redemptionCount}</td>
                   <td className="px-4 py-3 text-zinc-300">{c.childCount}</td>
                   <td className="px-4 py-3 text-zinc-400">{c.parentCode?.code || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => setEditing(c)}>Edit</Button>
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => onToggle(c)}>
-                        {c.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => onDelete(c)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
+                  {canEdit && (
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setEditing(c)}>Edit</Button>
+                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => onToggle(c)}>
+                          {c.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+                        <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => onDelete(c)}>
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -234,7 +236,7 @@ function CodesView() {
         </div>
       )}
 
-      {showCreate && (
+      {canEdit && showCreate && (
         <CreateCodeModal
           parentOptions={parentOptions}
           onClose={() => setShowCreate(false)}
@@ -244,14 +246,14 @@ function CodesView() {
           }}
         />
       )}
-      {showBulk && (
+      {canEdit && showBulk && (
         <BulkCreateModal
           parentOptions={parentOptions}
           onClose={() => setShowBulk(false)}
           onDone={() => fetchCodes(pagination.page)}
         />
       )}
-      {editing && (
+      {canEdit && editing && (
         <EditCodeModal
           code={editing}
           onClose={() => setEditing(null)}

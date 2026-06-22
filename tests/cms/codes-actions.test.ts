@@ -49,24 +49,39 @@ describe('authorization', () => {
     expect(admin.createCode).not.toHaveBeenCalled();
   });
 
-  it('rejects a caller without MANAGE_REFERRAL_CODES', async () => {
+  it('rejects a write caller without REFERRAL_EDIT', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_USERS']));
     const res = await createCodeAction({ code: 'ALPHA' });
     expect(res.ok).toBe(false);
     expect(admin.createCode).not.toHaveBeenCalled();
   });
 
-  it('rejects reads without the privilege too', async () => {
+  it('rejects reads without REFERRAL_VIEW', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser([]));
     const res = await listCodesAction({});
     expect(res.ok).toBe(false);
     expect(admin.listCodes).not.toHaveBeenCalled();
   });
+
+  it('allows reads with REFERRAL_VIEW but rejects writes with only REFERRAL_VIEW', async () => {
+    // read succeeds
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_VIEW']));
+    const payload = { codes: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } };
+    vi.mocked(admin.listCodes).mockResolvedValueOnce(payload);
+    const readRes = await listCodesAction({});
+    expect(readRes.ok).toBe(true);
+
+    // write rejected (only VIEW, no EDIT)
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_VIEW']));
+    const writeRes = await createCodeAction({ code: 'ALPHA' });
+    expect(writeRes.ok).toBe(false);
+    expect(admin.createCode).not.toHaveBeenCalled();
+  });
 });
 
 describe('createCodeAction', () => {
   beforeEach(() => {
-    vi.mocked(currentUser).mockResolvedValue(asUser(['MANAGE_REFERRAL_CODES']));
+    vi.mocked(currentUser).mockResolvedValue(asUser(['REFERRAL_EDIT']));
   });
 
   it('creates, audits and revalidates on success', async () => {
@@ -87,8 +102,8 @@ describe('createCodeAction', () => {
 });
 
 describe('listCodesAction', () => {
-  it('returns the domain result for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_REFERRAL_CODES']));
+  it('returns the domain result for a caller with REFERRAL_VIEW', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_VIEW']));
     const payload = { codes: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } };
     vi.mocked(admin.listCodes).mockResolvedValueOnce(payload);
     const res = await listCodesAction({ search: 'x' });
@@ -98,15 +113,15 @@ describe('listCodesAction', () => {
 });
 
 describe('bulkCreateCodesAction', () => {
-  it('rejects a caller without the privilege', async () => {
+  it('rejects a caller without REFERRAL_EDIT', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser([]));
     const res = await bulkCreateCodesAction({ prefix: 'AB', count: 3 });
     expect(res.ok).toBe(false);
     expect(admin.bulkCreateCodes).not.toHaveBeenCalled();
   });
 
-  it('generates, audits and revalidates', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_REFERRAL_CODES']));
+  it('generates, audits and revalidates with REFERRAL_EDIT', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_EDIT']));
     vi.mocked(admin.bulkCreateCodes).mockResolvedValueOnce({ count: 3, codes: ['AB-1', 'AB-2', 'AB-3'] });
     const res = await bulkCreateCodesAction({ prefix: 'AB', count: 3 });
     expect(res).toMatchObject({ ok: true, count: 3 });
@@ -117,8 +132,8 @@ describe('bulkCreateCodesAction', () => {
 });
 
 describe('deleteCodeAction', () => {
-  it('deletes, audits with the code name and revalidates', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_REFERRAL_CODES']));
+  it('deletes, audits with the code name and revalidates with REFERRAL_EDIT', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_EDIT']));
     vi.mocked(admin.deleteCode).mockResolvedValueOnce({ code: 'ALPHA' });
     const res = await deleteCodeAction('x');
     expect(res).toEqual({ ok: true });
@@ -128,8 +143,8 @@ describe('deleteCodeAction', () => {
 });
 
 describe('exportRedemptionsCsvAction', () => {
-  it('returns the CSV plus a dated filename', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_REFERRAL_CODES']));
+  it('returns the CSV plus a dated filename with REFERRAL_VIEW', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['REFERRAL_VIEW']));
     vi.mocked(admin.exportRedemptionsCsv).mockResolvedValueOnce('id,code\n');
     const res = await exportRedemptionsCsvAction();
     expect(res.ok).toBe(true);
