@@ -88,13 +88,13 @@ export type OnrampSession = {
   status: OnrampStatus
   createdAt: string          // ISO 8601
   sourceCurrency: string     // fiat, e.g. "USD"
-  sourceAmount: number       // fiat amount (major units)
+  sourceAmount: number       // fiat amount in CENTS (centsToUsd to display — matches the codebase)
   destCurrency: string       // crypto, e.g. "BTC" | "ETH" | "USDC"
-  destAmount: number | null  // crypto amount (null until known)
+  destAmount: number | null  // crypto amount in decimal units (e.g. 0.0021), null until known
   destNetwork: string        // e.g. "bitcoin" | "ethereum" | "polygon" | "solana"
   walletAddress: string
-  transactionFee: number | null  // Stripe fee (fiat)
-  networkFee: number | null       // network fee (fiat)
+  transactionFee: number | null  // Stripe fee in CENTS
+  networkFee: number | null       // network fee in CENTS
   rejectionReason: string | null  // populated when status === "rejected"
 }
 
