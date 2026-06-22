@@ -1,6 +1,6 @@
 // tests/stripe/onramp-ui.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import { NAV_GROUPS } from "@/lib/cms/admin-nav"
 
 vi.mock("@/actions/cms/billing", () => ({
@@ -47,5 +47,25 @@ describe("OnrampManager", () => {
     vi.mocked(listOnrampSessionsAction).mockResolvedValue({ ok: false, error: "Insufficient privileges" } as never)
     render(<OnrampManager />)
     await waitFor(() => expect(screen.getByText("Insufficient privileges")).toBeInTheDocument())
+  })
+
+  it("expands a row and shows the View in Stripe deep-link and rejection reason", async () => {
+    const session = s("cos_rejected_1", "rejected", { rejectionReason: "sanctioned_entity" })
+    vi.mocked(listOnrampSessionsAction).mockResolvedValue({
+      ok: true, live: false,
+      sessions: [session],
+      metrics: { total: 1, completed: 0, conversionRate: 0, fiatVolume: 0, totalFees: 0, cryptoVolumeByAsset: {}, byStatus: { initialized: 0, requires_payment: 0, fulfillment_processing: 0, fulfillment_complete: 0, rejected: 1, expired: 0 } },
+    } as never)
+    render(<OnrampManager />)
+    await waitFor(() => expect(screen.getByText("cos_rejected_1")).toBeInTheDocument())
+    // Click the row button to expand
+    fireEvent.click(screen.getByText("cos_rejected_1"))
+    // View in Stripe link should now be visible
+    const link = await screen.findByText(/View in Stripe/)
+    expect(link).toBeInTheDocument()
+    expect((link.closest("a") as HTMLAnchorElement).href).toContain("cos_rejected_1")
+    expect((link.closest("a") as HTMLAnchorElement).href).toContain("onramp")
+    // Rejection reason detail should be shown
+    expect(screen.getByText(/sanctioned_entity/)).toBeInTheDocument()
   })
 })

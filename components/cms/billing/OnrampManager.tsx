@@ -152,7 +152,7 @@ export function OnrampManager() {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
-                    <span>{centsToUsd(s.sourceAmount)} {s.sourceCurrency} → {fmtCrypto(s.destAmount, s.destCurrency)}</span>
+                    <span>{centsToUsd(s.sourceAmount)} → {fmtCrypto(s.destAmount, s.destCurrency)}</span>
                     <span>{s.destNetwork} · {short(s.walletAddress)}</span>
                     <span>Fee: {centsToUsd((s.transactionFee ?? 0) + (s.networkFee ?? 0))}</span>
                   </div>
