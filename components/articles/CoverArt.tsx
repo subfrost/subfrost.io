@@ -1,6 +1,5 @@
-// Geometric "frost" cover used when an article has no cover image. The angled
-// shards echo the SUBFROST glacier mark; `label` prints a small Fraunces marker
-// (typically the article's primary tag).
+// Frost cover used when an article has no CMS-provided cover image. `label`
+// prints the article's primary category in the top-right corner.
 export function CoverArt({
   label,
   className,
@@ -10,10 +9,10 @@ export function CoverArt({
 }) {
   return (
     <div className={`ed-cover ${className ?? ""}`}>
-      <span className="a" />
-      <span className="b" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/articles/subfrost-featured.png" alt="" />
       {label ? (
-        <span className="mk font-display" style={{ fontSize: 18 }}>
+        <span className="mk font-display">
           {label}
         </span>
       ) : null}

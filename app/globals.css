@@ -302,7 +302,7 @@ div[data-netlify-deploy-id] {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ed-accent);
+  color: var(--ed-ink);
 }
 .ed-eyebrow--lead {
   color: var(--ed-flare);
@@ -401,36 +401,28 @@ div[data-netlify-deploy-id] {
   color: inherit;
 }
 
-/* Geometric "frost" cover placeholder for articles without an image. */
+/* Frost cover placeholder for articles without a CMS image. */
 .ed-cover {
   position: relative;
   overflow: hidden;
-  background: var(--ed-cover);
+  background: #dceafb;
 }
-.ed-cover .a {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 52%;
-  height: 80%;
-  background: var(--ed-cover-2);
-  clip-path: polygon(0 100%, 100% 100%, 0 0);
-}
-.ed-cover .b {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 30%;
-  height: 46%;
-  background: var(--ed-accent);
-  clip-path: polygon(0 100%, 100% 100%, 0 0);
+.ed-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .ed-cover .mk {
   position: absolute;
-  right: 18px;
-  top: 14px;
-  color: var(--ed-ice);
-  letter-spacing: 2px;
+  right: 20px;
+  top: 18px;
+  color: #0a1628;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 1px 18px rgba(255, 255, 255, 0.42);
 }
 
 /* Feed / author card */
