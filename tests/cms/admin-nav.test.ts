@@ -27,6 +27,9 @@ describe("visibleNav", () => {
       "overview", "articles", "community", "compliance", "billing", "financials", "settings",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
+    expect(groups.find((g) => g.key === "financials")!.items.map((i) => i.href)).toEqual([
+      "/admin/financials/treasury", "/admin/financials/accounting",
+    ])
   })
 
   it("never returns a group with zero items", () => {

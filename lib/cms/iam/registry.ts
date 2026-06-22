@@ -31,6 +31,7 @@ export type CategoryKey =
   | "community"
   | "compliance"
   | "billing"
+  | "financials"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -43,6 +44,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "community", label: "Community" },
   { key: "compliance", label: "Compliance" },
   { key: "billing", label: "Billing" },
+  { key: "financials", label: "Financials" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -76,6 +78,9 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "billing.edit", label: "Billing — edit", description: "Manage subscriptions, promo codes, money movement, and card controls.", category: "billing", implies: ["billing.read"] },
   { code: "billing.treasury_view", label: "Treasury — view", description: "View treasury balances, transactions, and the ACH transfer queue. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "billing", implies: [] },
 
+  // --- Financials (409A) ---
+  { code: "financials.view", label: "Financials — view", description: "View the treasury holdings and the DIESEL accounting ledger for the 409A. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "financials", implies: [] },
+
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
 
@@ -89,7 +94,7 @@ const BY_CODE = new Map(PRIVILEGES.map((p) => [p.code, p]))
 /** Privileges that are NOT auto-granted by the ADMIN role bundle — they must be
  *  granted explicitly per-user (and, per the escalation guard, only by someone
  *  who already holds them). Use for sensitive surfaces like the treasury. */
-export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = ["billing.treasury_view"]
+export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = ["billing.treasury_view", "financials.view"]
 
 export function isRestricted(code: PrivilegeCode): boolean {
   return RESTRICTED_PRIVILEGES.includes(code)
@@ -175,6 +180,8 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/mtl": { view: "aml.read", edit: "aml.edit" },
   "/admin/billing": { view: "billing.read", edit: "billing.edit" },
   "/admin/billing/treasury": { view: "billing.treasury_view", edit: "billing.edit" },
+  "/admin/financials/treasury": { view: "financials.view" },
+  "/admin/financials/accounting": { view: "financials.view" },
   "/admin/users": { view: "iam.list_users", edit: "iam.modify_user" },
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },

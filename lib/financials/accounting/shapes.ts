@@ -1,0 +1,156 @@
+// Pure types + aggregators for the accounting ledger. DB-free and serializable
+// (dates are ISO strings), so every function here is unit-tested without Prisma.
+
+export type PayeeType = "PERSON" | "ORG"
+export type InvoiceStatus = "OPEN" | "PAID" | "VOID"
+export type PaymentSource = "ONCHAIN" | "MANUAL"
+
+export interface PayeeRow {
+  id: string
+  name: string
+  type: PayeeType
+  kycIntakeId: string | null
+  kycCustomerName: string | null // resolved from the linked KycIntake, when any
+  notes: string | null
+  createdAt: string // ISO
+}
+
+export interface InvoiceRow {
+  id: string
+  ref: string
+  payeeId: string
+  payeeName: string
+  description: string
+  amountUsd: number
+  amountDiesel: number | null
+  issuedAt: string // ISO
+  status: InvoiceStatus
+  pdfUrl: string | null
+  createdAt: string // ISO
+}
+
+export interface PaymentRow {
+  id: string
+  txid: string
+  vout: number | null
+  amountDiesel: number
+  recipientAddress: string
+  paidAt: string // ISO
+  blockHeight: number | null
+  invoiceId: string | null
+  invoiceRef: string | null // resolved from the linked invoice, when any
+  source: PaymentSource
+  createdAt: string // ISO
+}
+
+export interface SummaryMetrics {
+  totalPaidUsd: number // sum amountUsd of PAID invoices
+  totalPaidDiesel: number // sum amountDiesel across all payments
+  openInvoices: number // count status OPEN
+  unlinkedPayments: number // count payments with no invoice
+}
+
+export const round2 = (n: number): number => Math.round(n * 100) / 100
+
+export function summaryMetrics(invoices: InvoiceRow[], payments: PaymentRow[]): SummaryMetrics {
+  const totalPaidUsd = round2(
+    invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amountUsd, 0),
+  )
+  const totalPaidDiesel = round2(payments.reduce((s, p) => s + p.amountDiesel, 0))
+  const openInvoices = invoices.filter((i) => i.status === "OPEN").length
+  const unlinkedPayments = payments.filter((p) => p.invoiceId === null).length
+  return { totalPaidUsd, totalPaidDiesel, openInvoices, unlinkedPayments }
+}
+
+export interface PayeeTotals {
+  payeeId: string
+  payeeName: string
+  invoiceCount: number
+  totalUsd: number // sum amountUsd of this payee's PAID invoices
+  totalDiesel: number // sum amountDiesel of payments linked to this payee's invoices
+}
+
+export function totalsByPayee(
+  payees: PayeeRow[],
+  invoices: InvoiceRow[],
+  payments: PaymentRow[],
+): PayeeTotals[] {
+  const invoicePayee = new Map(invoices.map((i) => [i.id, i.payeeId]))
+  const dieselByPayee = new Map<string, number>()
+  for (const p of payments) {
+    if (!p.invoiceId) continue
+    const payeeId = invoicePayee.get(p.invoiceId)
+    if (!payeeId) continue
+    dieselByPayee.set(payeeId, (dieselByPayee.get(payeeId) ?? 0) + p.amountDiesel)
+  }
+  return payees.map((pe) => {
+    const own = invoices.filter((i) => i.payeeId === pe.id)
+    const totalUsd = round2(own.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amountUsd, 0))
+    const totalDiesel = round2(dieselByPayee.get(pe.id) ?? 0)
+    return { payeeId: pe.id, payeeName: pe.name, invoiceCount: own.length, totalUsd, totalDiesel }
+  })
+}
+
+export type PeriodGranularity = "month" | "quarter" | "year"
+
+export interface PeriodTotals {
+  period: string // "2026-06" | "2026-Q2" | "2026"
+  invoiceCount: number
+  totalUsd: number
+}
+
+export function periodKey(iso: string, g: PeriodGranularity): string {
+  const d = new Date(iso)
+  const y = d.getUTCFullYear()
+  if (g === "year") return String(y)
+  if (g === "quarter") return `${y}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`
+  return `${y}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`
+}
+
+export function totalsByPeriod(invoices: InvoiceRow[], g: PeriodGranularity): PeriodTotals[] {
+  const acc = new Map<string, { invoiceCount: number; totalUsd: number }>()
+  for (const i of invoices) {
+    const k = periodKey(i.issuedAt, g)
+    const cur = acc.get(k) ?? { invoiceCount: 0, totalUsd: 0 }
+    cur.invoiceCount += 1
+    cur.totalUsd += i.amountUsd
+    acc.set(k, cur)
+  }
+  return [...acc.entries()]
+    .map(([period, v]) => ({ period, invoiceCount: v.invoiceCount, totalUsd: round2(v.totalUsd) }))
+    .sort((a, b) => (a.period < b.period ? 1 : -1)) // newest first
+}
+
+export function csvEscape(s: string): string {
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+const CSV_HEADER = [
+  "Invoice", "Payee", "Type", "Description", "Amount USD", "Amount DIESEL (expected)",
+  "Status", "Issued", "Settling txids", "Paid DIESEL", "PDF",
+]
+
+export function toCsv(invoices: InvoiceRow[], payments: PaymentRow[], payees: PayeeRow[]): string {
+  const typeByPayee = new Map(payees.map((p) => [p.id, p.type]))
+  const paysByInvoice = new Map<string, PaymentRow[]>()
+  for (const p of payments) {
+    if (!p.invoiceId) continue
+    const arr = paysByInvoice.get(p.invoiceId) ?? []
+    arr.push(p)
+    paysByInvoice.set(p.invoiceId, arr)
+  }
+  const lines = [CSV_HEADER.join(",")]
+  for (const i of invoices) {
+    const pays = paysByInvoice.get(i.id) ?? []
+    const txids = pays.map((p) => p.txid).join(" ")
+    const paidDiesel = round2(pays.reduce((s, p) => s + p.amountDiesel, 0))
+    const row = [
+      i.ref, i.payeeName, typeByPayee.get(i.payeeId) ?? "", i.description,
+      String(i.amountUsd), i.amountDiesel === null ? "" : String(i.amountDiesel),
+      i.status, i.issuedAt.slice(0, 10), txids, String(paidDiesel), i.pdfUrl ?? "",
+    ]
+    lines.push(row.map((f) => csvEscape(f)).join(","))
+  }
+  return lines.join("\n")
+}

@@ -66,6 +66,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "financials", label: "Financials", icon: Banknote, items: [
       { label: "Treasury", href: "/admin/financials/treasury", icon: Wallet, privilege: FINANCIALS_PRIVILEGE },
+      { label: "Accounting", href: "/admin/financials/accounting", icon: ClipboardList, privilege: FINANCIALS_PRIVILEGE },
     ],
   },
   {

@@ -50,3 +50,28 @@ export async function uploadImage(
   })
   return { url: `https://storage.googleapis.com/${BUCKET}/${name}` }
 }
+
+/** Uploads an invoice PDF buffer under `invoices/` and returns its public URL.
+ *  Parallel to uploadImage: validation runs first, so bad input throws before
+ *  any GCS call. */
+export async function uploadPdf(
+  contentType: string,
+  data: Buffer,
+  idHint: string,
+): Promise<UploadResult> {
+  if (contentType !== "application/pdf") {
+    throw new Error(`Unsupported file type: ${contentType}`)
+  }
+  if (data.byteLength > 10 * 1024 * 1024) {
+    throw new Error("PDF exceeds 10MB limit")
+  }
+  const safe = idHint.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "invoice"
+  const name = `invoices/${safe}-${data.byteLength}.pdf`
+  const file = storage().bucket(BUCKET).file(name)
+  await file.save(data, {
+    contentType,
+    resumable: false,
+    metadata: { cacheControl: "public, max-age=31536000" },
+  })
+  return { url: `https://storage.googleapis.com/${BUCKET}/${name}` }
+}
