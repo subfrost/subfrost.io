@@ -37,6 +37,12 @@ describe("parseFincenDumps", () => {
     expect(drafts).toEqual([])
     expect(submissions).toEqual([])
   })
+  it("throws on an unknown submission status", () => {
+    const submissions = JSON.stringify([
+      { id: "sub_bad", draftId: "f107_1", type: "form-107", submittedAt: "t", submittedBy: "a", trackingId: "LOCAL-ZZZ", status: "bogus" },
+    ])
+    expect(() => parseFincenDumps({ submissions })).toThrow(/unknown submission status/)
+  })
 })
 
 describe("validateFincenDrafts", () => {
