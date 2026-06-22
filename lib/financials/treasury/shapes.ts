@@ -6,9 +6,8 @@ export interface GoldRushItem {
   contract_decimals: number | null
   balance: string | null
   quote: number | null
-  native_token: boolean
+  is_native_token?: boolean
   is_spam?: boolean
-  logo_url?: string | null
 }
 
 export interface TreasuryToken {
@@ -19,7 +18,6 @@ export interface TreasuryToken {
   /** USD value (GoldRush `quote`), or null when the provider has no price. */
   usd: number | null
   isNative: boolean
-  logo?: string
 }
 
 export interface TreasuryWallet {
@@ -53,8 +51,7 @@ export function normalizeBalances(
       name: it.contract_name ?? "Unknown",
       amount: Number(it.balance ?? "0") / 10 ** (it.contract_decimals ?? 0),
       usd: typeof it.quote === "number" ? it.quote : null,
-      isNative: it.native_token === true,
-      logo: it.logo_url ?? undefined,
+      isNative: it.is_native_token === true,
     }))
     .filter((t) => t.amount > 0)
     .sort((a, b) => {
