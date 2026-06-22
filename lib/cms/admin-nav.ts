@@ -1,6 +1,6 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
-  CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, Users,
+  CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -50,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Treasury", href: "/admin/billing/treasury", icon: Landmark, privilege: "BILLING_VIEW" },
       { label: "Issuing", href: "/admin/billing/issuing", icon: CreditCard, privilege: "BILLING_VIEW" },
       { label: "Offramp", href: "/admin/billing/offramp", icon: ArrowLeftRight, privilege: "BILLING_VIEW" },
+      { label: "On-ramp", href: "/admin/billing/onramp", icon: ArrowDownToLine, privilege: "BILLING_VIEW" },
       { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "BILLING_VIEW" },
       { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "BILLING_VIEW" },
     ],
