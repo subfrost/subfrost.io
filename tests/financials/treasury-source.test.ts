@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { fetchWalletBalances } from "@/lib/financials/treasury/source/live"
+import { fetchWalletBalances, fetchTreasurySnapshot } from "@/lib/financials/treasury/source/live"
 
 function mockFetch(json: unknown, ok = true, status = 200) {
   const fn = vi.fn().mockResolvedValue({ ok, status, json: async () => json })
@@ -46,5 +46,15 @@ describe("fetchWalletBalances", () => {
   it("throws on a non-OK response", async () => {
     mockFetch({ error: true }, false, 429)
     await expect(fetchWalletBalances("0xABC")).rejects.toThrow(/GoldRush 429/)
+  })
+})
+
+describe("fetchTreasurySnapshot", () => {
+  it("fans out over both treasury wallets and sums the grand total", async () => {
+    mockFetch(sample) // each wallet fetch returns the BNB quote:600 sample
+    const snap = await fetchTreasurySnapshot()
+    expect(snap.wallets).toHaveLength(2) // TREASURY_WALLETS has 2 addresses
+    expect(snap.grandTotalUsd).toBe(1200) // round2(600 + 600)
+    expect(typeof snap.fetchedAt).toBe("string")
   })
 })

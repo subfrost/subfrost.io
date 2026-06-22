@@ -30,6 +30,7 @@ describe("treasuryOverviewAction", () => {
   it("returns not_configured when the key is unset", async () => {
     delete process.env.GOLDRUSH_API_KEY
     expect(await treasuryOverviewAction()).toEqual({ ok: false, error: "not_configured" })
+    expect(fetchTreasurySnapshot).not.toHaveBeenCalled()
   })
 
   it("serves a cache hit without calling the provider", async () => {
@@ -43,7 +44,8 @@ describe("treasuryOverviewAction", () => {
     vi.mocked(fetchTreasurySnapshot).mockResolvedValueOnce(snap as never)
     const r = await treasuryOverviewAction()
     expect(r).toEqual({ ok: true, snapshot: snap })
-    expect(cacheSet).toHaveBeenCalled()
+    expect(cacheSet).toHaveBeenCalledWith("financials:treasury", snap, 300)
+    expect(cacheSet).toHaveBeenCalledWith("financials:treasury:last", snap, 86_400)
   })
 
   it("serves last-good (stale) when the provider throws", async () => {
