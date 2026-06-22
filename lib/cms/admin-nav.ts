@@ -99,10 +99,11 @@ export function groupHasActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((it) => isItemActive(it.href, pathname))
 }
 
-/** Primeira folha visível fora do grupo Articles (p/ landing de quem não vê artigos). */
+/** Primeira folha visível fora dos grupos Overview/Articles (p/ landing de quem
+ *  não vê artigos). Overview (o Dashboard) é o landing universal, então é pulado. */
 export function firstNonArticleLeaf(privileges: string[]): string | null {
   for (const g of visibleNav(privileges)) {
-    if (g.key === "articles") continue
+    if (g.key === "articles" || g.key === "overview") continue
     if (g.items[0]) return g.items[0].href
   }
   return null

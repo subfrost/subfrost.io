@@ -17,9 +17,7 @@ const statusColor: Record<string, string> = {
 export default async function ArticlesList() {
   const user = await currentUser()
   if (!user) redirect("/admin/login")
-  const hasArticles =
-    user.privileges.includes("WRITE_ARTICLES") || user.privileges.includes("EDIT_ANY_ARTICLE")
-  if (!hasArticles) redirect("/admin")
+  // Any signed-in user sees their own articles; editors/admins see all.
   const canSeeAll = user.privileges.includes("EDIT_ANY_ARTICLE")
 
   const articles = await prisma.article.findMany({

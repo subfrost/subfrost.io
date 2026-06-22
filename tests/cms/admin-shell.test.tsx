@@ -22,7 +22,8 @@ describe("AdminShell", () => {
     )
     // brand appears in desktop sidebar + mobile top bar
     expect(getAllByText("SUBFROST").length).toBeGreaterThanOrEqual(1)
-    expect(getByText("All articles")).toBeTruthy() // AdminNav rendered (Articles group always visible)
+    // pathname is /admin → the Overview group is active/expanded, rendering Dashboard
+    expect(getByText("Dashboard")).toBeTruthy()
     expect(getByText("page body")).toBeTruthy()
   })
 
