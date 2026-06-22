@@ -23,7 +23,7 @@ describe("visibleNav", () => {
     expect(groups.map((g) => g.key)).toEqual([
       "articles", "community", "compliance", "billing", "settings",
     ])
-    expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(9)
+    expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
   })
 
   it("never returns a group with zero items", () => {
