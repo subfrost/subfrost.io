@@ -1,10 +1,11 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
-  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network,
+  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, Banknote, Wallet,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@prisma/client"
+import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 
 export interface NavLeaf {
   label: string
@@ -55,6 +56,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "BILLING_VIEW" },
       { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "BILLING_VIEW" },
       { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "BILLING_VIEW" },
+    ],
+  },
+  {
+    key: "financials", label: "Financials", icon: Banknote, items: [
+      { label: "Treasury", href: "/admin/financials/treasury", icon: Wallet, privilege: FINANCIALS_PRIVILEGE },
     ],
   },
   {
