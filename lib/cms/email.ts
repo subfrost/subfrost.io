@@ -95,3 +95,16 @@ export function verifyEmail(token: string, name?: string | null) {
     ),
   }
 }
+
+export function onboardingEmail(name: string | null, tempPassword: string) {
+  const href = `${APP_URL}/admin/login`
+  return {
+    subject: "Your SUBFROST admin account",
+    html: shell(
+      "Welcome to the SUBFROST admin",
+      `<p>${name ? `Hi ${name}, ` : ""}an admin account has been created for you. Sign in with this temporary password, then change it from your profile:</p>
+       <p style="font-family:ui-monospace,Menlo,monospace;font-size:16px;letter-spacing:1px;background:#f1f5f9;color:#0f172a;padding:10px 14px;border-radius:8px;display:inline-block">${tempPassword}</p>
+       ${button(href, "Sign in")}`,
+    ),
+  }
+}

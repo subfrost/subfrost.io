@@ -1,54 +1,60 @@
 import { describe, it, expect } from "vitest"
 import {
-  ALL_PRIVILEGES, LEGACY_PRIVILEGE_MAP, PRIVILEGE_LABELS,
+  ALL_PRIVILEGES, PRIVILEGE_LABELS,
   rolePrivileges, effectivePrivileges, roleRank, canManageRole, assignableRoles,
 } from "@/lib/cms/privileges"
 
 describe("ALL_PRIVILEGES", () => {
-  it("inclui os granulares novos e exclui os tombstones MANAGE_*", () => {
-    for (const p of ["FUEL_VIEW","FUEL_EDIT","REFERRAL_VIEW","REFERRAL_EDIT","AML_VIEW","AML_EDIT","BILLING_VIEW","BILLING_EDIT","USERS_VIEW","USERS_EDIT"]) {
+  it("are namespaced domain.action codes with labels", () => {
+    for (const p of ["fuel.read", "fuel.edit", "referral.read", "iam.list_users", "iam.modify_user"]) {
       expect(ALL_PRIVILEGES).toContain(p)
     }
-    for (const t of ["MANAGE_FUEL","MANAGE_REFERRAL_CODES","MANAGE_AML","MANAGE_BILLING","MANAGE_USERS"]) {
-      expect(ALL_PRIVILEGES).not.toContain(t)
+    for (const p of ALL_PRIVILEGES) {
+      expect(p).toMatch(/^[a-z]+\.[a-z_]+$/)
+      expect(PRIVILEGE_LABELS[p]).toBeTruthy()
     }
-  })
-  it("tem label legível pra todo privilege ativo", () => {
-    for (const p of ALL_PRIVILEGES) expect(PRIVILEGE_LABELS[p]).toBeTruthy()
   })
 })
 
-describe("effectivePrivileges (shim legado)", () => {
-  it("expande MANAGE_FUEL para FUEL_VIEW + FUEL_EDIT", () => {
-    const eff = effectivePrivileges("STAFF", ["MANAGE_FUEL"])
-    expect(eff).toContain("FUEL_VIEW")
-    expect(eff).toContain("FUEL_EDIT")
-    expect(eff).not.toContain("MANAGE_FUEL")
+describe("effectivePrivileges (dependency graph + legacy resolution)", () => {
+  it("closes over implies: fuel.edit pulls in fuel.read", () => {
+    const eff = effectivePrivileges("STAFF", ["fuel.edit"])
+    expect(eff).toContain("fuel.edit")
+    expect(eff).toContain("fuel.read")
   })
-  it("expande todos os tombstones do LEGACY_PRIVILEGE_MAP", () => {
-    for (const [legacy, granular] of Object.entries(LEGACY_PRIVILEGE_MAP)) {
-      const eff = effectivePrivileges("STAFF", [legacy as never])
-      for (const g of granular!) expect(eff).toContain(g)
+  it("iam.modify_user implies iam.list_users", () => {
+    expect(effectivePrivileges("STAFF", ["iam.modify_user"])).toContain("iam.list_users")
+  })
+  it("resolves legacy enum codes: FUEL_EDIT → fuel.read + fuel.edit", () => {
+    const eff = effectivePrivileges("STAFF", ["FUEL_EDIT"])
+    expect(eff).toContain("fuel.read")
+    expect(eff).toContain("fuel.edit")
+  })
+  it("resolves a coarse legacy grant: MANAGE_USERS → the iam set", () => {
+    const eff = effectivePrivileges("STAFF", ["MANAGE_USERS"])
+    for (const c of ["iam.list_users", "iam.create_user", "iam.modify_user", "iam.delete_user"]) {
+      expect(eff).toContain(c)
     }
   })
-  it("não duplica quando o grant já é granular", () => {
-    const eff = effectivePrivileges("STAFF", ["FUEL_VIEW", "FUEL_VIEW"])
-    expect(eff.filter((p) => p === "FUEL_VIEW")).toHaveLength(1)
+  it("de-duplicates", () => {
+    const eff = effectivePrivileges("STAFF", ["fuel.read", "fuel.read"])
+    expect(eff.filter((p) => p === "fuel.read")).toHaveLength(1)
   })
 })
 
-describe("bundles de papel", () => {
-  it("STAFF tem bundle vazio", () => {
+describe("role bundles", () => {
+  it("STAFF is empty", () => {
     expect(rolePrivileges("STAFF")).toEqual([])
   })
-  it("ADMIN recebe todos os privileges ativos", () => {
+  it("ADMIN gets every privilege", () => {
     expect(new Set(effectivePrivileges("ADMIN"))).toEqual(new Set(ALL_PRIVILEGES))
   })
-  it("EDITOR e AUTHOR seguem só-conteúdo (sem domínios operacionais)", () => {
+  it("EDITOR/AUTHOR are content-only (no operational domains)", () => {
     const editor = effectivePrivileges("EDITOR")
-    expect(editor).toContain("PUBLISH_ARTICLES")
-    expect(editor).not.toContain("FUEL_VIEW")
-    expect(effectivePrivileges("AUTHOR")).toEqual(["WRITE_ARTICLES"])
+    expect(editor).toContain("articles.publish")
+    expect(editor).toContain("articles.write")
+    expect(editor).not.toContain("fuel.read")
+    expect(effectivePrivileges("AUTHOR")).toEqual(["articles.write"])
   })
 })
 
@@ -58,10 +64,10 @@ describe("ranks", () => {
     expect(roleRank("AUTHOR")).toBeLessThan(roleRank("EDITOR"))
     expect(roleRank("EDITOR")).toBeLessThan(roleRank("ADMIN"))
   })
-  it("assignableRoles(ADMIN) inclui STAFF, AUTHOR, EDITOR e não ADMIN", () => {
+  it("assignableRoles(ADMIN) excludes ADMIN", () => {
     expect(new Set(assignableRoles("ADMIN"))).toEqual(new Set(["STAFF", "AUTHOR", "EDITOR"]))
   })
-  it("canManageRole é estrito por rank", () => {
+  it("canManageRole is strict by rank", () => {
     expect(canManageRole("ADMIN", "EDITOR")).toBe(true)
     expect(canManageRole("ADMIN", "ADMIN")).toBe(false)
     expect(canManageRole("EDITOR", "ADMIN")).toBe(false)

@@ -32,7 +32,7 @@ describe('authorization', () => {
   });
 
   it('rejects reads without AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['fuel.edit']));
     const res = await listIntakesAction();
     expect(res.ok).toBe(false);
     expect(kyc.listIntakes).not.toHaveBeenCalled();
@@ -46,7 +46,7 @@ describe('authorization', () => {
   });
 
   it('allows read with AML_VIEW but rejects write with only AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValue(asUser(['aml.read']));
     const list = await listIntakesAction();
     expect(list.ok).toBe(true);
     const write = await recordDispositionAction('k1', 'APPROVE', null);
@@ -56,7 +56,7 @@ describe('authorization', () => {
 });
 
 describe('recordDispositionAction', () => {
-  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['AML_EDIT'])));
+  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['aml.edit'])));
 
   it('records, audits with the customer name and revalidates', async () => {
     vi.mocked(kyc.recordDisposition).mockResolvedValueOnce({ customerName: 'Ada' });
@@ -77,7 +77,7 @@ describe('recordDispositionAction', () => {
 
 describe('listIntakesAction', () => {
   it('returns the intakes for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['aml.read']));
     vi.mocked(kyc.listIntakes).mockResolvedValueOnce([]);
     const res = await listIntakesAction();
     expect(res).toEqual({ ok: true, intakes: [] });
@@ -86,14 +86,14 @@ describe('listIntakesAction', () => {
 
 describe('rescreenOfacAction', () => {
   it('rejects without AML_EDIT', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['fuel.edit']));
     const res = await rescreenOfacAction();
     expect(res.ok).toBe(false);
     expect(kyc.rescreenOfac).not.toHaveBeenCalled();
   });
 
   it('returns {ok:true, screened}, audits ofac_rescreen, and revalidates /admin/kyc', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['AML_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['aml.edit']));
     vi.mocked(kyc.rescreenOfac).mockResolvedValueOnce({ screened: 12 });
     const res = await rescreenOfacAction();
     expect(res).toEqual({ ok: true, screened: 12 });
@@ -105,14 +105,14 @@ describe('rescreenOfacAction', () => {
 
 describe("syncStripeIdentityAction", () => {
   it("rejects without AML_EDIT", async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["MANAGE_FUEL"]))
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["fuel.edit"]))
     const res = await syncStripeIdentityAction()
     expect(res.ok).toBe(false)
     expect(syncStripeIdentity).not.toHaveBeenCalled()
   })
 
   it("syncs, audits and returns counts for an authorized operator", async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["AML_EDIT"]))
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["aml.edit"]))
     vi.mocked(syncStripeIdentity).mockResolvedValueOnce({ created: 2, updated: 1, skipped: 0 })
     const res = await syncStripeIdentityAction()
     expect(res).toEqual({ ok: true, created: 2, updated: 1, skipped: 0 })

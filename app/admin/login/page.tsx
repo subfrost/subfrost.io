@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8">
         <div className="mb-6 text-center">
           <div className="text-xl font-bold text-white">SUBFROST</div>
-          <div className="text-xs uppercase tracking-widest text-zinc-500">Editorial</div>
+          <div className="text-xs uppercase tracking-widest text-zinc-500">Admin</div>
         </div>
 
         {step === "credentials" ? (

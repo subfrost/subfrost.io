@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function FuelPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("FUEL_VIEW")) redirect("/admin")
-  const canEdit = me.privileges.includes("FUEL_EDIT")
+  if (!me.privileges.includes("fuel.read")) redirect("/admin")
+  const canEdit = me.privileges.includes("fuel.edit")
 
   return (
     <div>

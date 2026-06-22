@@ -100,8 +100,8 @@ describe('createUser — authorization', () => {
     expect(db.create).not.toHaveBeenCalled();
   });
 
-  it('allows a caller with USERS_EDIT', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+  it('allows a caller with iam.create_user', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.create_user']));
     db.findUnique.mockResolvedValueOnce(null); // email not taken
     db.create.mockResolvedValueOnce({ id: 'new', email: 'a@b.io', role: 'AUTHOR', privileges: [] });
     const res = await createUser({ email: 'a@b.io', password: 'password1', role: 'AUTHOR' });
@@ -119,7 +119,7 @@ describe('updateUser — authorization', () => {
   });
 
   it('allows name/active change with only USERS_EDIT', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.modify_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     db.update.mockResolvedValueOnce({});
     const res = await updateUser('t1', { name: 'Alice' });
@@ -128,24 +128,24 @@ describe('updateUser — authorization', () => {
   });
 
   it('rejects role change without MANAGE_ROLES (even with USERS_EDIT)', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.modify_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     const res = await updateUser('t1', { role: 'AUTHOR' });
-    expect(res).toEqual({ ok: false, error: expect.stringContaining('MANAGE_ROLES') });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('iam.manage_roles') });
     expect(db.update).not.toHaveBeenCalled();
   });
 
   it('rejects privileges change without MANAGE_ROLES (even with USERS_EDIT)', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.modify_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     const res = await updateUser('t1', { privileges: [] });
-    expect(res).toEqual({ ok: false, error: expect.stringContaining('MANAGE_ROLES') });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('iam.manage_roles') });
     expect(db.update).not.toHaveBeenCalled();
   });
 
   it('allows role + privileges change when actor has USERS_EDIT + MANAGE_ROLES', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(
-      asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES']),
+      asUser('ADMIN', ['iam.modify_user', 'iam.manage_roles']),
     );
     db.findUnique.mockResolvedValueOnce(targetRow());
     db.update.mockResolvedValueOnce({});
@@ -165,7 +165,7 @@ describe('resetPassword — authorization', () => {
   });
 
   it('allows reset with USERS_EDIT', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.modify_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     db.update.mockResolvedValueOnce({});
     const res = await resetPassword('t1', 'newpass1');
@@ -181,8 +181,8 @@ describe('deleteUser — authorization', () => {
     expect(res).toEqual({ ok: false, error: 'Insufficient privileges' });
   });
 
-  it('deletes with USERS_EDIT when user has no articles', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+  it('deletes with iam.delete_user when user has no articles', async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.delete_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     (prisma.article as unknown as { count: ReturnType<typeof vi.fn> }).count.mockResolvedValueOnce(0);
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
@@ -191,7 +191,7 @@ describe('deleteUser — authorization', () => {
   });
 
   it('refuses deletion when user has articles', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['USERS_EDIT']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser('ADMIN', ['iam.delete_user']));
     db.findUnique.mockResolvedValueOnce(targetRow());
     (prisma.article as unknown as { count: ReturnType<typeof vi.fn> }).count.mockResolvedValueOnce(3);
     const res = await deleteUser('t1');
@@ -205,7 +205,7 @@ describe('deleteUser — authorization', () => {
 // ---------------------------------------------------------------------------
 describe('Task 8 — ADMIN gerencia par ADMIN (trim)', () => {
   it('ADMIN pode rebaixar OUTRO ADMIN quando há ≥2 admins ativos', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['iam.modify_user', 'iam.manage_roles'], 'me'));
     db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
     db.count.mockResolvedValue(2); // dois admins ativos — trim é seguro
     db.update.mockResolvedValue({});
@@ -215,14 +215,14 @@ describe('Task 8 — ADMIN gerencia par ADMIN (trim)', () => {
   });
 
   it('ADMIN NÃO pode se auto-gerenciar via updateUser', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['iam.modify_user', 'iam.manage_roles'], 'me'));
     const res = await updateUser('me', { role: 'STAFF' });
     expect(res).toEqual({ ok: false, error: expect.stringContaining('own profile') });
     expect(db.update).not.toHaveBeenCalled();
   });
 
   it('bloqueia rebaixar o último admin ativo', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['iam.modify_user', 'iam.manage_roles'], 'me'));
     db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
     db.count.mockResolvedValue(1); // único admin ativo
     const res = await updateUser('t1', { role: 'STAFF' });
@@ -231,7 +231,7 @@ describe('Task 8 — ADMIN gerencia par ADMIN (trim)', () => {
   });
 
   it('bloqueia desativar o último admin ativo', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['iam.modify_user', 'iam.manage_roles'], 'me'));
     db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
     db.count.mockResolvedValue(1); // único admin ativo
     const res = await updateUser('t1', { active: false });
@@ -240,7 +240,7 @@ describe('Task 8 — ADMIN gerencia par ADMIN (trim)', () => {
   });
 
   it('bloqueia deletar o último admin ativo', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT'], 'me'));
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['iam.delete_user'], 'me'));
     db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
     db.count.mockResolvedValue(1); // único admin ativo
     (prisma.article as unknown as { count: ReturnType<typeof vi.fn> }).count.mockResolvedValue(0);

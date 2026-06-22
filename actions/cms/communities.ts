@@ -14,10 +14,10 @@ async function canView(): Promise<{ ok: true; canSeeFuel: boolean } | { ok: fals
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
   // Reachable from both the Referral and FUEL surfaces.
-  if (!me.privileges.includes("REFERRAL_VIEW") && !me.privileges.includes("FUEL_VIEW")) {
+  if (!me.privileges.includes("referral.read") && !me.privileges.includes("fuel.read")) {
     return { ok: false, error: "Insufficient privileges" }
   }
-  return { ok: true, canSeeFuel: me.privileges.includes("FUEL_VIEW") }
+  return { ok: true, canSeeFuel: me.privileges.includes("fuel.read") }
 }
 
 export type OverviewResult =

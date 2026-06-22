@@ -12,14 +12,14 @@ beforeEach(() => {
 
 describe("listOnrampSessionsAction", () => {
   it("rejects a user without BILLING_VIEW", async () => {
-    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["FUEL_VIEW"] } as never)
+    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["fuel.read"] } as never)
     const res = await listOnrampSessionsAction("30d")
     expect(res.ok).toBe(false)
     if (!res.ok) expect(res.error).toMatch(/privileges/i)
   })
 
   it("returns sessions + metrics + live for a BILLING_VIEW user", async () => {
-    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["BILLING_VIEW"] } as never)
+    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["billing.read"] } as never)
     const res = await listOnrampSessionsAction("all")
     expect(res.ok).toBe(true)
     if (res.ok) {

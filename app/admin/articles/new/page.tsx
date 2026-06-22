@@ -14,7 +14,7 @@ export default async function NewArticlePage() {
   // rendering the editor with no real session — matches the guard every other
   // /admin page already has.
   if (!user) redirect("/admin/login")
-  const canPublish = user.privileges.includes("PUBLISH_ARTICLES")
+  const canPublish = user.privileges.includes("articles.publish")
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-white">New article</h1>

@@ -17,6 +17,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 import AdminDashboard from "@/app/admin/page"
+import ArticlesList from "@/app/admin/articles/page"
 import { currentUser } from "@/lib/cms/authz"
 import { redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
@@ -32,7 +33,7 @@ describe("admin dashboard auth guard", () => {
     expect(prisma.article.findMany).not.toHaveBeenCalled()
   })
 
-  it("lists the author's own articles for a non-privileged user", async () => {
+  it("lists the author's own articles for a non-privileged user (on /admin/articles)", async () => {
     vi.mocked(currentUser).mockResolvedValueOnce({
       id: "u1",
       email: "a@b.io",
@@ -42,7 +43,7 @@ describe("admin dashboard auth guard", () => {
     } as never)
     vi.mocked(prisma.article.findMany as never as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
 
-    await AdminDashboard()
+    await ArticlesList()
 
     expect(redirect).not.toHaveBeenCalled()
     expect(prisma.article.findMany).toHaveBeenCalledWith(

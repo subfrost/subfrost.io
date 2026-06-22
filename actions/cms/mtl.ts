@@ -30,7 +30,7 @@ async function actor(
 export async function listMtlAction(): Promise<
   { ok: true; entries: MtlRow[] } | { ok: false; error: string }
 > {
-  const a = await actor("AML_VIEW")
+  const a = await actor("aml.read")
   if (!a.ok) return a
   return { ok: true, entries: await listEntries() }
 }
@@ -38,7 +38,7 @@ export async function listMtlAction(): Promise<
 export async function seedMtlAction(): Promise<
   { ok: true; created: number } | { ok: false; error: string }
 > {
-  const a = await actor("AML_EDIT")
+  const a = await actor("aml.edit")
   if (!a.ok) return a
   try {
     const { created } = await seedStates()
@@ -55,7 +55,7 @@ export async function updateMtlAction(
   state: string,
   input: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("AML_EDIT")
+  const a = await actor("aml.edit")
   if (!a.ok) return a
   try {
     await upsertEntry(state, input)

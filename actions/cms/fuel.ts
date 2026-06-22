@@ -33,7 +33,7 @@ async function actor(
 export async function listAllocationsAction(): Promise<
   ({ ok: true } & ListFuelResult) | { ok: false; error: string }
 > {
-  const a = await actor("FUEL_VIEW")
+  const a = await actor("fuel.read")
   if (!a.ok) return a
   return { ok: true, ...(await listAllocations()) }
 }
@@ -41,7 +41,7 @@ export async function listAllocationsAction(): Promise<
 export async function upsertAllocationsAction(
   entries: FuelEntry[],
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  const a = await actor("FUEL_EDIT")
+  const a = await actor("fuel.edit")
   if (!a.ok) return a
   try {
     const { count } = await upsertAllocations(entries)
@@ -59,7 +59,7 @@ export async function upsertAllocationsAction(
 }
 
 export async function deleteAllocationAction(id: string): Promise<FuelActionResult> {
-  const a = await actor("FUEL_EDIT")
+  const a = await actor("fuel.edit")
   if (!a.ok) return a
   try {
     const { address } = await deleteAllocation(id)

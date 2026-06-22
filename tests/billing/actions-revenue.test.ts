@@ -24,12 +24,12 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('gate', () => {
   it('denies reads without BILLING_VIEW', async () => {
-    asUser(['MANAGE_AML']);
+    asUser(['aml.edit']);
     expect((await listSubscribersAction()).ok).toBe(false);
     expect((await listPromoCodesAction()).ok).toBe(false);
   });
   it('denies writes without BILLING_EDIT', async () => {
-    asUser(['BILLING_VIEW']);
+    asUser(['billing.read']);
     expect((await changeSubscriptionAction('sub_001', { action: 'cancel' })).ok).toBe(false);
     expect((await createPromoCodeAction({ code: 'X', type: 'PERCENT', value: 5 })).ok).toBe(false);
     expect(changeSubscription).not.toHaveBeenCalled();
@@ -39,7 +39,7 @@ describe('gate', () => {
 
 describe('reads', () => {
   it('passes through live flag with BILLING_VIEW', async () => {
-    asUser(['BILLING_VIEW']);
+    asUser(['billing.read']);
     (listSubscribers as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ subscribers: [], live: false });
     expect(await listSubscribersAction()).toEqual({ ok: true, subscribers: [], live: false });
     (listPromoCodes as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ codes: [], live: false });
@@ -49,27 +49,27 @@ describe('reads', () => {
 
 describe('mutations', () => {
   it('changeSubscription audits + revalidates with BILLING_EDIT', async () => {
-    asUser(['BILLING_EDIT']);
+    asUser(['billing.edit']);
     (changeSubscription as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'a1', subscriptionId: 'sub_001', action: 'cancel', note: null, by: 'op@subfrost.io', at: '2026-06-03T00:00:00.000Z' });
     expect(await changeSubscriptionAction('sub_001', { action: 'cancel' })).toEqual({ ok: true });
     expect(audit).toHaveBeenCalledWith('stripe_subscription_action', expect.objectContaining({ actorId: 'u1', target: 'sub_001' }));
     expect(revalidatePath).toHaveBeenCalledWith('/admin/billing/subscriptions');
   });
   it('createPromoCode audits with the code + revalidates with BILLING_EDIT', async () => {
-    asUser(['BILLING_EDIT']);
+    asUser(['billing.edit']);
     (createPromoCode as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ code: 'SAVE20', type: 'PERCENT', value: 20, redemptions: 0, maxRedemptions: null, expiresAt: null, active: true });
     expect(await createPromoCodeAction({ code: 'SAVE20', type: 'PERCENT', value: 20 })).toEqual({ ok: true });
     expect(audit).toHaveBeenCalledWith('stripe_promo_create', expect.objectContaining({ actorId: 'u1', target: 'SAVE20' }));
     expect(revalidatePath).toHaveBeenCalledWith('/admin/billing/promo');
   });
   it('maps BillingError without auditing', async () => {
-    asUser(['BILLING_EDIT']);
+    asUser(['billing.edit']);
     (createPromoCode as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new BillingError('Promo code already exists: DUP'));
     expect(await createPromoCodeAction({ code: 'DUP', type: 'PERCENT', value: 5 })).toEqual({ ok: false, error: 'Promo code already exists: DUP' });
     expect(audit).not.toHaveBeenCalled();
   });
   it('maps StripeNotWiredError without auditing', async () => {
-    asUser(['BILLING_EDIT']);
+    asUser(['billing.edit']);
     (changeSubscription as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StripeNotWiredError('changeSubscription'));
     expect(await changeSubscriptionAction('sub_001', { action: 'cancel' })).toEqual({ ok: false, error: expect.any(String) });
     expect(audit).not.toHaveBeenCalled();
