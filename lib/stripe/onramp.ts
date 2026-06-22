@@ -6,7 +6,10 @@ import {
   type OnrampMetrics,
   type OnrampSession,
   type OnrampStatus,
+  type OnrampPeriod,
 } from "@/lib/stripe/shapes"
+import { isLive } from "@/lib/stripe/config"
+import { getStripeSource } from "@/lib/stripe/source"
 
 export function computeOnrampMetrics(sessions: OnrampSession[]): OnrampMetrics {
   const byStatus = Object.fromEntries(
@@ -39,4 +42,11 @@ export function computeOnrampMetrics(sessions: OnrampSession[]): OnrampMetrics {
     cryptoVolumeByAsset,
     totalFees,
   }
+}
+
+export async function listOnrampSessions(
+  period: OnrampPeriod = "30d",
+): Promise<{ sessions: OnrampSession[]; metrics: OnrampMetrics; live: boolean }> {
+  const sessions = await getStripeSource().onrampSessions(period)
+  return { sessions, metrics: computeOnrampMetrics(sessions), live: isLive() }
 }

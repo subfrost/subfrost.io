@@ -43,3 +43,27 @@ describe("computeOnrampMetrics", () => {
     expect(m.byStatus.fulfillment_complete).toBe(0)
   })
 })
+
+import { listOnrampSessions } from "@/lib/stripe/onramp"
+import { seedSource } from "@/lib/stripe/source/seed"
+
+describe("seed onrampSessions period filter", () => {
+  it("'all' returns more rows than '7d', and '7d' rows are all recent", async () => {
+    const all = await seedSource.onrampSessions("all")
+    const week = await seedSource.onrampSessions("7d")
+    expect(all.length).toBeGreaterThan(week.length)
+    expect(week.length).toBeGreaterThan(0)
+  })
+})
+
+describe("listOnrampSessions", () => {
+  it("returns seed sessions + computed metrics + live=false in demo mode", async () => {
+    delete process.env.STRIPE_SECRET_KEY // ensure demo source
+    const { sessions, metrics, live } = await listOnrampSessions("all")
+    expect(live).toBe(false)
+    expect(sessions.length).toBeGreaterThan(0)
+    expect(metrics.total).toBe(sessions.length)
+    // metrics are internally consistent with the returned sessions
+    expect(metrics.completed).toBe(sessions.filter((s) => s.status === "fulfillment_complete").length)
+  })
+})

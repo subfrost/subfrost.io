@@ -1,8 +1,16 @@
 import type { StripeSource } from "@/lib/stripe/source/types"
+import type { OnrampPeriod, OnrampSession } from "@/lib/stripe/shapes"
 
 // Fixed reference instant keeps seed timestamps deterministic across calls.
 const T0 = Date.parse("2026-06-21T00:00:00.000Z")
 const ago = (h: number) => new Date(T0 - h * 3600 * 1000).toISOString()
+
+const DAY_MS = 24 * 3600 * 1000
+function withinPeriod(iso: string, period: OnrampPeriod): boolean {
+  if (period === "all") return true
+  const days = period === "7d" ? 7 : 30
+  return Date.parse(iso) >= T0 - days * DAY_MS
+}
 
 export const seedSource: StripeSource = {
   async treasuryBalances() {
@@ -37,6 +45,17 @@ export const seedSource: StripeSource = {
       { id: "off_001", userId: "usr_a1b2", cryptoAsset: "USDC", cryptoAmount: 5_000_00, fiatAmount: 4_997_50, feeAmount: 2_50, status: "settled", at: ago(6) },
       { id: "off_002", userId: "usr_c3d4", cryptoAsset: "BTC", cryptoAmount: 2_500_00, fiatAmount: 2_493_75, feeAmount: 6_25, status: "pending", at: ago(1) },
     ]
+  },
+  async onrampSessions(period: OnrampPeriod = "30d") {
+    const all: OnrampSession[] = [
+      { id: "cos_001", status: "fulfillment_complete", createdAt: ago(3), sourceCurrency: "USD", sourceAmount: 250_00, destCurrency: "BTC", destAmount: 0.00231, destNetwork: "bitcoin", walletAddress: "bc1qa9w0d3xq7r2k8m4n6p0s2t4v6x8z0c2e4g6i8k", transactionFee: 7_25, networkFee: 1_10, rejectionReason: null },
+      { id: "cos_002", status: "fulfillment_processing", createdAt: ago(10), sourceCurrency: "USD", sourceAmount: 1_000_00, destCurrency: "ETH", destAmount: 0.412, destNetwork: "ethereum", walletAddress: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F", transactionFee: 28_00, networkFee: 6_40, rejectionReason: null },
+      { id: "cos_003", status: "rejected", createdAt: ago(26), sourceCurrency: "USD", sourceAmount: 500_00, destCurrency: "USDC", destAmount: null, destNetwork: "polygon", walletAddress: "0x4E83362442B8d1beC281594ceA3050c8EB01311C", transactionFee: null, networkFee: null, rejectionReason: "sanctioned_region" },
+      { id: "cos_004", status: "requires_payment", createdAt: ago(40), sourceCurrency: "USD", sourceAmount: 75_00, destCurrency: "BTC", destAmount: null, destNetwork: "bitcoin", walletAddress: "bc1qf3e7h9j1k3m5n7p9r1t3v5x7z9b1d3f5h7j9l", transactionFee: null, networkFee: null, rejectionReason: null },
+      { id: "cos_005", status: "fulfillment_complete", createdAt: ago(200), sourceCurrency: "USD", sourceAmount: 320_00, destCurrency: "USDC", destAmount: 318.5, destNetwork: "solana", walletAddress: "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin", transactionFee: 9_60, networkFee: 50, rejectionReason: null },
+      { id: "cos_006", status: "expired", createdAt: ago(800), sourceCurrency: "USD", sourceAmount: 150_00, destCurrency: "ETH", destAmount: null, destNetwork: "ethereum", walletAddress: "0x32Be343B94f860124dC4fEe278FDCBD38C102D88", transactionFee: null, networkFee: null, rejectionReason: null },
+    ]
+    return all.filter((s) => withinPeriod(s.createdAt, period))
   },
   async subscriptionTiers() {
     return [

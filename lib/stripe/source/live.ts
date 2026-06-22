@@ -15,6 +15,7 @@ export const liveSource: StripeSource = {
   issuingCards: () => degradeIfUnavailable(liveIssuingCards, []),
   issuingDisputes: () => degradeIfUnavailable(liveIssuingDisputes, []),
   offrampSettlements: () => seedSource.offrampSettlements(),
+  onrampSessions: (period) => seedSource.onrampSessions(period),
   subscriptionTiers: () => degradeIfUnavailable(liveSubscriptionTiers, []),
   subscribers: () => degradeIfUnavailable(liveSubscribers, []),
   promoCodes: () => degradeIfUnavailable(livePromoCodes, []),

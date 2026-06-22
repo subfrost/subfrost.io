@@ -1,6 +1,7 @@
 import type {
   TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement,
   SubscriptionTier, Subscriber, PromoCode, CustomerSummary, CustomerDetail,
+  OnrampSession, OnrampPeriod,
 } from "@/lib/stripe/shapes"
 
 /** The pluggable read surface for the Stripe console. Implemented by the seed
@@ -13,6 +14,7 @@ export interface StripeSource {
   issuingCards(): Promise<IssuingCard[]>
   issuingDisputes(): Promise<IssuingDispute[]>
   offrampSettlements(): Promise<OfframpSettlement[]>
+  onrampSessions(period?: OnrampPeriod): Promise<OnrampSession[]>
   subscriptionTiers(): Promise<SubscriptionTier[]>
   subscribers(): Promise<Subscriber[]>
   promoCodes(): Promise<PromoCode[]>
