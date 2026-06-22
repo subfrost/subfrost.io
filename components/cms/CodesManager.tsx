@@ -1,584 +1,87 @@
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
+import { ChevronRight, Plus, Layers, Flame, Check, Power, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { AddressChip } from "@/components/cms/address-profile/AddressProfilePanel"
+import { SkeletonList, SkeletonText } from "@/components/cms/Skeleton"
 import {
-  listCodesAction,
-  getParentOptionsAction,
+  getAnnotatedCodeTreeAction,
+  codeRedeemersAction,
   createCodeAction,
   bulkCreateCodesAction,
-  updateCodeAction,
   toggleCodeAction,
   deleteCodeAction,
-  getCodeTreeAction,
-  listRedemptionsAction,
   exportRedemptionsCsvAction,
 } from "@/actions/cms/codes"
-import type {
-  CodeRow,
-  Pagination,
-  CodeTreeNode,
-  RedemptionRow,
-} from "@/lib/referral/admin"
+import type { AnnotatedCodeNode, CodeRedeemer } from "@/lib/referral/admin"
 
-type View = "codes" | "hierarchy" | "redemptions"
-type SortField = "code" | "description" | "redemptions" | "children" | "parent"
-type SortDir = "asc" | "desc"
+const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })
 
-const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
-const selectCls =
-  "h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
+// Keep a node if it (or any descendant) matches the search + redeemed filter.
+function filterTree(nodes: AnnotatedCodeNode[], q: string, onlyRedeemed: boolean): AnnotatedCodeNode[] {
+  const out: AnnotatedCodeNode[] = []
+  for (const n of nodes) {
+    const kids = filterTree(n.children, q, onlyRedeemed)
+    const selfMatch =
+      (!q || n.code.toLowerCase().includes(q) || (n.ownerTaprootAddress ?? "").toLowerCase().includes(q)) &&
+      (!onlyRedeemed || n.redemptionCount > 0)
+    if (selfMatch || kids.length) out.push({ ...n, children: kids })
+  }
+  return out
+}
 
 export function CodesManager({ canEdit }: { canEdit: boolean }) {
-  const [view, setView] = useState<View>("codes")
-  return (
-    <div className="space-y-6">
-      <div className="flex gap-1 border-b border-zinc-800 text-sm">
-        <Tab active={view === "codes"} onClick={() => setView("codes")}>Codes</Tab>
-        <Tab active={view === "hierarchy"} onClick={() => setView("hierarchy")}>Hierarchy</Tab>
-        <Tab active={view === "redemptions"} onClick={() => setView("redemptions")}>Redemptions</Tab>
-      </div>
-      {view === "codes" && <CodesView canEdit={canEdit} />}
-      {view === "hierarchy" && <HierarchyView />}
-      {view === "redemptions" && <RedemptionsView />}
-    </div>
-  )
-}
-
-function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2 ${
-        active ? "border-white text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
-
-// --- Codes table -----------------------------------------------------------
-
-function CodesView({ canEdit }: { canEdit: boolean }) {
-  const [codes, setCodes] = useState<CodeRow[]>([])
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 25, total: 0, totalPages: 0 })
-  const [search, setSearch] = useState("")
-  const [status, setStatus] = useState("all")
-  const [sortField, setSortField] = useState<SortField | "">("")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [tree, setTree] = useState<AnnotatedCodeNode[] | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-  const [showCreate, setShowCreate] = useState(false)
-  const [showBulk, setShowBulk] = useState(false)
-  const [editing, setEditing] = useState<CodeRow | null>(null)
-  const [parentOptions, setParentOptions] = useState<{ id: string; code: string }[]>([])
+  const [search, setSearch] = useState("")
+  const [onlyRedeemed, setOnlyRedeemed] = useState(false)
+  const [form, setForm] = useState<{ type: "child" | "bulk"; parentId: string | null } | null>(null)
+  const [, startTransition] = useTransition()
 
-  const fetchCodes = useCallback(
-    async (page = 1) => {
-      setLoading(true)
-      const res = await listCodesAction({
-        page,
-        search: search || undefined,
-        status,
-        sortBy: sortField || undefined,
-        sortDir,
-      })
-      if (res.ok) {
-        setCodes(res.codes)
-        setPagination(res.pagination)
-        setError(null)
-      } else {
-        setError(res.error)
-      }
-      setLoading(false)
-    },
-    [search, status, sortField, sortDir],
-  )
-
-  useEffect(() => {
-    fetchCodes(1)
-  }, [fetchCodes])
-
-  useEffect(() => {
-    getParentOptionsAction().then((res) => {
-      if (res.ok) setParentOptions(res.options)
-    })
-  }, [])
-
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDir(field === "code" || field === "description" || field === "parent" ? "asc" : "desc")
-    }
+  async function reload() {
+    const res = await getAnnotatedCodeTreeAction()
+    if (res.ok) setTree(res.tree)
+    setLoading(false)
   }
+  useEffect(() => { reload() }, [])
 
-  const onToggle = (c: CodeRow) =>
-    startTransition(async () => {
-      const res = await toggleCodeAction(c.id, !c.isActive)
-      if (!res.ok) setError(res.error)
-      fetchCodes(pagination.page)
-    })
-
-  const onDelete = (c: CodeRow) => {
-    if (!confirm(`Delete code "${c.code}"? This also deletes its ${c.redemptionCount} redemption(s).`)) return
-    startTransition(async () => {
-      const res = await deleteCodeAction(c.id)
-      if (!res.ok) setError(res.error)
-      fetchCodes(pagination.page)
-    })
-  }
-
-  const SortIndicator = ({ field }: { field: SortField }) =>
-    sortField !== field ? (
-      <span className="ml-1 text-zinc-600">↕</span>
-    ) : (
-      <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>
-    )
-
-  const Th = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <th className="cursor-pointer select-none px-4 py-3 hover:text-zinc-200" onClick={() => toggleSort(field)}>
-      {children}
-      <SortIndicator field={field} />
-    </th>
-  )
+  const q = search.trim().toLowerCase()
+  const filtered = useMemo(() => (tree ? filterTree(tree, q, onlyRedeemed) : []), [tree, q, onlyRedeemed])
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search codes…"
-          className={`w-64 ${inputCls}`}
-        />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        {canEdit && <Button onClick={() => setShowCreate(true)}>Create code</Button>}
-        {canEdit && <Button variant="ghost" onClick={() => setShowBulk(true)}>Bulk generate</Button>}
-        {error && <span className="text-sm text-red-400">{error}</span>}
+      <div className="flex flex-wrap items-center gap-2">
+        {canEdit && (
+          <>
+            <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New root code</Button>
+            <Button size="sm" variant="outline" onClick={() => setForm({ type: "bulk", parentId: null })}><Layers size={14} /> Bulk generate</Button>
+          </>
+        )}
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or owner…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <label className="flex items-center gap-1.5 text-xs text-zinc-400">
+          <input type="checkbox" checked={onlyRedeemed} onChange={(e) => setOnlyRedeemed(e.target.checked)} /> Only redeemed
+        </label>
+        <Button size="sm" variant="ghost" className="ml-auto"
+          onClick={() => startTransition(async () => { const r = await exportRedemptionsCsvAction(); if (r.ok) downloadCsv(r.csv, r.filename) })}>
+          <Download size={14} /> Export redemptions
+        </Button>
       </div>
+
+      {form?.parentId === null && (
+        <NodeForm type={form.type} parentId={null} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
+      )}
 
       {loading ? (
-        <div className="text-zinc-500">Loading…</div>
+        <SkeletonList rows={10} height="h-8" />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-zinc-800 px-4 py-8 text-center text-zinc-600">No codes match.</div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <Th field="code">Code</Th>
-                <th className="px-4 py-3">Owner</th>
-                <Th field="description">Description</Th>
-                <th className="px-4 py-3">Status</th>
-                <Th field="redemptions">Redemptions</Th>
-                <Th field="children">Children</Th>
-                <Th field="parent">Parent</Th>
-                {canEdit && <th className="px-4 py-3"></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {codes.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">No codes found.</td>
-                </tr>
-              )}
-              {codes.map((c) => (
-                <tr key={c.id} className="border-t border-zinc-800">
-                  <td className="px-4 py-3 font-mono text-white">{c.code}</td>
-                  <td className="px-4 py-3">
-                    {c.ownerTaprootAddress ? <TruncatedAddress address={c.ownerTaprootAddress} /> : <span className="text-zinc-600">—</span>}
-                  </td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-zinc-400">{c.description || "—"}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge active={c.isActive} />
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{c.redemptionCount}</td>
-                  <td className="px-4 py-3 text-zinc-300">{c.childCount}</td>
-                  <td className="px-4 py-3 text-zinc-400">{c.parentCode?.code || "—"}</td>
-                  {canEdit && (
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setEditing(c)}>Edit</Button>
-                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => onToggle(c)}>
-                          {c.isActive ? "Deactivate" : "Activate"}
-                        </Button>
-                        <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => onDelete(c)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">
-            {(pagination.page - 1) * pagination.limit + 1}–
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" disabled={pagination.page <= 1} onClick={() => fetchCodes(pagination.page - 1)}>Prev</Button>
-            <Button size="sm" variant="ghost" disabled={pagination.page >= pagination.totalPages} onClick={() => fetchCodes(pagination.page + 1)}>Next</Button>
-          </div>
-        </div>
-      )}
-
-      {canEdit && showCreate && (
-        <CreateCodeModal
-          parentOptions={parentOptions}
-          onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            setShowCreate(false)
-            fetchCodes(pagination.page)
-          }}
-        />
-      )}
-      {canEdit && showBulk && (
-        <BulkCreateModal
-          parentOptions={parentOptions}
-          onClose={() => setShowBulk(false)}
-          onDone={() => fetchCodes(pagination.page)}
-        />
-      )}
-      {canEdit && editing && (
-        <EditCodeModal
-          code={editing}
-          onClose={() => setEditing(null)}
-          onUpdated={() => {
-            setEditing(null)
-            fetchCodes(pagination.page)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-function BulkCreateModal({
-  parentOptions,
-  onClose,
-  onDone,
-}: {
-  parentOptions: { id: string; code: string }[]
-  onClose: () => void
-  onDone: () => void
-}) {
-  const [prefix, setPrefix] = useState("")
-  const [count, setCount] = useState("10")
-  const [description, setDescription] = useState("")
-  const [parentCodeId, setParentCodeId] = useState("")
-  const [generated, setGenerated] = useState<string[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    startTransition(async () => {
-      const res = await bulkCreateCodesAction({
-        prefix,
-        count: Number(count),
-        description: description || undefined,
-        parentCodeId: parentCodeId || undefined,
-      })
-      if (res.ok) {
-        setGenerated(res.codes)
-        onDone()
-      } else {
-        setError(res.error)
-      }
-    })
-  }
-
-  return (
-    <Modal title="Bulk-generate codes" onClose={onClose}>
-      {generated ? (
-        <div className="space-y-3">
-          <div className="text-sm text-emerald-300">Generated {generated.length} codes:</div>
-          <textarea
-            readOnly
-            value={generated.join("\n")}
-            className="h-48 w-full rounded-md border border-zinc-700 bg-zinc-950 p-2 font-mono text-xs text-zinc-200"
-          />
-          <div className="flex justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(generated.join("\n"))}>Copy all</Button>
-            <Button size="sm" onClick={onClose}>Done</Button>
-          </div>
-        </div>
-      ) : (
-        <form onSubmit={submit} className="space-y-3">
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1.5">
-              <Label className="text-zinc-300">Prefix <span className="text-zinc-500">(min 2)</span></Label>
-              <Input value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase())} placeholder="PROMO" required className={`font-mono ${inputCls}`} />
-            </div>
-            <div className="w-28 space-y-1.5">
-              <Label className="text-zinc-300">Count <span className="text-zinc-500">(1–500)</span></Label>
-              <Input type="number" min={1} max={500} value={count} onChange={(e) => setCount(e.target.value)} required className={inputCls} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-zinc-300">Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="applied to every generated code" className={inputCls} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-zinc-300">Parent code</Label>
-            <select value={parentCodeId} onChange={(e) => setParentCodeId(e.target.value)} className={`w-full ${selectCls}`}>
-              <option value="">None (top-level)</option>
-              {parentOptions.map((p) => (
-                <option key={p.id} value={p.id}>{p.code}</option>
-              ))}
-            </select>
-          </div>
-          <p className="text-xs text-zinc-500">Codes are generated as <code className="text-zinc-300">PREFIX-XXXXX</code> (5 random chars).</p>
-          {error && <div className="text-sm text-red-400">{error}</div>}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={pending || prefix.trim().length < 2}>Generate</Button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  )
-}
-
-function StatusBadge({ active }: { active: boolean }) {
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-emerald-900/50 text-emerald-300" : "bg-red-900/40 text-red-300"}`}>
-      {active ? "Active" : "Inactive"}
-    </span>
-  )
-}
-
-function TruncatedAddress({ address }: { address: string }) {
-  const [copied, setCopied] = useState(false)
-  const short = address.length > 12 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address
-  return (
-    <button
-      title={copied ? "Copied!" : address}
-      onClick={async () => {
-        await navigator.clipboard.writeText(address)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      }}
-      className="font-mono text-zinc-300 hover:text-white"
-    >
-      {short}
-    </button>
-  )
-}
-
-// --- Create / Edit modals --------------------------------------------------
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="text-sm font-medium text-zinc-200">{title}</div>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function CreateCodeModal({
-  parentOptions,
-  onClose,
-  onCreated,
-}: {
-  parentOptions: { id: string; code: string }[]
-  onClose: () => void
-  onCreated: () => void
-}) {
-  const [code, setCode] = useState("")
-  const [description, setDescription] = useState("")
-  const [parentCodeId, setParentCodeId] = useState("")
-  const [ownerTaprootAddress, setOwnerTaprootAddress] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    startTransition(async () => {
-      const res = await createCodeAction({
-        code,
-        description: description || undefined,
-        parentCodeId: parentCodeId || undefined,
-        ownerTaprootAddress: ownerTaprootAddress || undefined,
-      })
-      if (res.ok) onCreated()
-      else setError(res.error)
-    })
-  }
-
-  return (
-    <Modal title="Create invite code" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Code <span className="text-zinc-500">(min 3 chars)</span></Label>
-          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="MYCODE123" required className={`font-mono ${inputCls}`} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Description</Label>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Twitter campaign Jan 2026" className={inputCls} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Parent code</Label>
-          <select value={parentCodeId} onChange={(e) => setParentCodeId(e.target.value)} className={`w-full ${selectCls}`}>
-            <option value="">None (top-level)</option>
-            {parentOptions.map((p) => (
-              <option key={p.id} value={p.id}>{p.code}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Owner taproot address</Label>
-          <Input value={ownerTaprootAddress} onChange={(e) => setOwnerTaprootAddress(e.target.value)} placeholder="bc1p…" className={`font-mono ${inputCls}`} />
-        </div>
-        {error && <div className="text-sm text-red-400">{error}</div>}
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" size="sm" disabled={pending || code.trim().length < 3}>Create</Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-function EditCodeModal({ code, onClose, onUpdated }: { code: CodeRow; onClose: () => void; onUpdated: () => void }) {
-  const [description, setDescription] = useState(code.description || "")
-  const [ownerTaprootAddress, setOwnerTaprootAddress] = useState(code.ownerTaprootAddress || "")
-  const [isActive, setIsActive] = useState(code.isActive)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    startTransition(async () => {
-      const res = await updateCodeAction(code.id, {
-        description: description || null,
-        ownerTaprootAddress: ownerTaprootAddress || null,
-        isActive,
-      })
-      if (res.ok) onUpdated()
-      else setError(res.error)
-    })
-  }
-
-  return (
-    <Modal title={`Edit: ${code.code}`} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Description</Label>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">Owner taproot address</Label>
-          <Input value={ownerTaprootAddress} onChange={(e) => setOwnerTaprootAddress(e.target.value)} className={`font-mono ${inputCls}`} />
-        </div>
-        <div className="flex items-center gap-3">
-          <Label className="text-zinc-300">Status</Label>
-          <button type="button" onClick={() => setIsActive(!isActive)}>
-            <StatusBadge active={isActive} />
-          </button>
-        </div>
-        {error && <div className="text-sm text-red-400">{error}</div>}
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" size="sm" disabled={pending}>Save</Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-// --- Hierarchy -------------------------------------------------------------
-
-function HierarchyView() {
-  const [tree, setTree] = useState<CodeTreeNode[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    getCodeTreeAction().then((res) => {
-      if (res.ok) setTree(sortTree(res.tree))
-      else setError(res.error)
-      setLoading(false)
-    })
-  }, [])
-
-  if (loading) return <div className="text-zinc-500">Loading…</div>
-  if (error) return <div className="text-red-400">{error}</div>
-  if (tree.length === 0) return <div className="text-zinc-500">No codes found.</div>
-
-  return (
-    <div className="rounded-xl border border-zinc-800 p-4">
-      <div className="divide-y divide-zinc-800/40">
-        {tree.map((node) => (
-          <TreeItem key={node.id} node={node} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function sortTree(nodes: CodeTreeNode[]): CodeTreeNode[] {
-  return [...nodes]
-    .sort((a, b) => a.code.localeCompare(b.code))
-    .map((n) => ({ ...n, children: sortTree(n.children) }))
-}
-
-function aggregateRedemptions(node: CodeTreeNode): number {
-  return node.redemptionCount + node.children.reduce((s, c) => s + aggregateRedemptions(c), 0)
-}
-function countNodes(node: CodeTreeNode): number {
-  return 1 + node.children.reduce((s, c) => s + countNodes(c), 0)
-}
-
-function LeafRow({ node, depth }: { node: CodeTreeNode; depth: number }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-zinc-800/40" style={{ paddingLeft: `${depth * 24 + 12}px` }}>
-      <span className="w-5" />
-      <span className="font-mono text-sm text-zinc-100">{node.code}</span>
-      <StatusBadge active={node.isActive} />
-      <span className="text-xs text-zinc-500">{node.redemptionCount} redemptions</span>
-    </div>
-  )
-}
-
-function TreeItem({ node, depth = 0 }: { node: CodeTreeNode; depth?: number }) {
-  const [expanded, setExpanded] = useState(false)
-  if (node.children.length === 0) return <LeafRow node={node} depth={depth} />
-  return (
-    <div>
-      <div className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-zinc-800/40" style={{ paddingLeft: `${depth * 24 + 12}px` }}>
-        <button onClick={() => setExpanded(!expanded)} className="w-5 text-center text-xs text-zinc-500">
-          {expanded ? "▼" : "▶"}
-        </button>
-        <span className="font-mono text-sm font-semibold text-zinc-100">{node.code}</span>
-        <span className="text-xs text-zinc-500">{aggregateRedemptions(node)} redemptions</span>
-        <span className="text-xs text-zinc-500">{countNodes(node)} codes</span>
-      </div>
-      {expanded && (
-        <div>
-          <LeafRow node={node} depth={depth + 1} />
-          {node.children.map((child) => (
-            <TreeItem key={child.id} node={child} depth={depth + 1} />
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+          {filtered.map((n) => (
+            <TreeRow key={n.id} node={n} depth={0} canEdit={canEdit} form={form} setForm={setForm} reload={reload} isCommunity />
           ))}
         </div>
       )}
@@ -586,104 +89,162 @@ function TreeItem({ node, depth = 0 }: { node: CodeTreeNode; depth?: number }) {
   )
 }
 
-// --- Redemptions -----------------------------------------------------------
+function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
+  node: AnnotatedCodeNode; depth: number; canEdit: boolean
+  form: { type: "child" | "bulk"; parentId: string | null } | null
+  setForm: (f: { type: "child" | "bulk"; parentId: string | null } | null) => void
+  reload: () => void; isCommunity?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [redeemers, setRedeemers] = useState<CodeRedeemer[] | null>(null)
+  const [limit, setLimit] = useState(50)
+  const [, startTransition] = useTransition()
+  const hasChildren = node.children.length > 0
+  const expandable = hasChildren || node.redemptionCount > 0
 
-function RedemptionsView() {
-  const [rows, setRows] = useState<RedemptionRow[]>([])
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 25, total: 0, totalPages: 0 })
-  const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  const fetchRows = useCallback(
-    async (page = 1) => {
-      setLoading(true)
-      const res = await listRedemptionsAction({ page, search: search || undefined })
-      if (res.ok) {
-        setRows(res.redemptions)
-        setPagination(res.pagination)
-        setError(null)
-      } else {
-        setError(res.error)
-      }
-      setLoading(false)
-    },
-    [search],
-  )
-
-  useEffect(() => {
-    fetchRows(1)
-  }, [fetchRows])
-
-  const onExport = () =>
-    startTransition(async () => {
-      const res = await exportRedemptionsCsvAction()
-      if (!res.ok) {
-        setError(res.error)
-        return
-      }
-      const blob = new Blob([res.csv], { type: "text/csv" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = res.filename
-      a.click()
-      URL.revokeObjectURL(url)
-    })
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next && node.redemptionCount > 0 && !redeemers) {
+      startTransition(async () => { const r = await codeRedeemersAction(node.id); if (r.ok) setRedeemers(r.redeemers) })
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search address or code…" className={`w-72 ${inputCls}`} />
-        <Button variant="ghost" disabled={pending} onClick={onExport}>Export CSV</Button>
-        {error && <span className="text-sm text-red-400">{error}</span>}
+    <div className={depth > 0 ? "border-t border-zinc-800/50" : ""}>
+      <div className="flex items-center gap-2 px-3 py-2 hover:bg-zinc-900/40" style={{ paddingLeft: 12 + depth * 18 }}>
+        <button onClick={toggle} disabled={!expandable} className={`shrink-0 ${expandable ? "text-zinc-500" : "text-transparent"}`}>
+          <ChevronRight size={15} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+        </button>
+        <span className={`font-mono ${isCommunity ? "font-semibold text-white" : "text-zinc-200"}`}>{node.code}</span>
+        {isCommunity && <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">community</span>}
+        <span title={node.isActive ? "active" : "inactive"} className={`h-1.5 w-1.5 rounded-full ${node.isActive ? "bg-emerald-400" : "bg-zinc-600"}`} />
+        {node.redemptionCount > 0
+          ? <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] text-emerald-300">{node.redemptionCount} claimed</span>
+          : <span className="rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] text-amber-300/90">unclaimed</span>}
+
+        {node.ownerTaprootAddress && (
+          <span className="ml-1 flex items-center gap-1">
+            <AddressChip address={node.ownerTaprootAddress} />
+            {node.ownerRedeemed && <Check size={12} className="text-emerald-400" aria-label="owner redeemed own code" />}
+            {node.ownerFuel != null && <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(node.ownerFuel)}</span>}
+          </span>
+        )}
+
+        {canEdit && (
+          <span className="ml-auto flex items-center gap-1">
+            <IconBtn title="Add child code" onClick={() => setForm({ type: "child", parentId: node.id })}><Plus size={13} /></IconBtn>
+            <IconBtn title="Bulk generate under" onClick={() => setForm({ type: "bulk", parentId: node.id })}><Layers size={13} /></IconBtn>
+            <IconBtn title={node.isActive ? "Deactivate" : "Activate"} onClick={() => startTransition(async () => { await toggleCodeAction(node.id, !node.isActive); reload() })}><Power size={13} /></IconBtn>
+            <IconBtn title="Delete" danger onClick={() => { if (confirm(`Delete ${node.code}? Redemptions cascade.`)) startTransition(async () => { await deleteCodeAction(node.id); reload() }) }}><Trash2 size={13} /></IconBtn>
+          </span>
+        )}
       </div>
 
-      {loading ? (
-        <div className="text-zinc-500">Loading…</div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Taproot address</th>
-                <th className="px-4 py-3">Segwit address</th>
-                <th className="px-4 py-3">Redeemed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">No redemptions found.</td>
-                </tr>
-              )}
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-zinc-800">
-                  <td className="px-4 py-3 font-mono text-white">{r.code}</td>
-                  <td className="px-4 py-3"><TruncatedAddress address={r.taprootAddress} /></td>
-                  <td className="px-4 py-3">{r.segwitAddress ? <TruncatedAddress address={r.segwitAddress} /> : <span className="text-zinc-600">—</span>}</td>
-                  <td className="px-4 py-3 text-zinc-400">{new Date(r.redeemedAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {form?.parentId === node.id && (
+        <div style={{ paddingLeft: 12 + (depth + 1) * 18 }} className="pr-3 pb-2">
+          <NodeForm type={form.type} parentId={node.id} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">
-            {(pagination.page - 1) * pagination.limit + 1}–
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" disabled={pagination.page <= 1} onClick={() => fetchRows(pagination.page - 1)}>Prev</Button>
-            <Button size="sm" variant="ghost" disabled={pagination.page >= pagination.totalPages} onClick={() => fetchRows(pagination.page + 1)}>Next</Button>
-          </div>
-        </div>
+      {open && (
+        <>
+          {node.children.map((c) => (
+            <TreeRow key={c.id} node={c} depth={depth + 1} canEdit={canEdit} form={form} setForm={setForm} reload={reload} />
+          ))}
+          {node.redemptionCount > 0 && (
+            <div style={{ paddingLeft: 12 + (depth + 1) * 18 }} className="border-t border-zinc-800/40 bg-zinc-950/40 py-2 pr-3">
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-zinc-600">Redeemers</div>
+              {!redeemers ? <SkeletonText lines={4} /> : (
+                <>
+                  <div className="space-y-1">
+                    {redeemers.slice(0, limit).map((r) => (
+                      <div key={r.address} className="flex items-center gap-2 text-xs">
+                        <AddressChip address={r.address} />
+                        {r.fuel != null
+                          ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)} FUEL</span>
+                          : <span className="rounded bg-zinc-800 px-1 text-[10px] text-zinc-500">no FUEL</span>}
+                        <span className="text-zinc-600">{r.redeemedAt.slice(0, 10)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {redeemers.length > limit && (
+                    <button onClick={() => setLimit((l) => l + 50)} className="mt-1 text-xs text-sky-400 hover:text-sky-300">Show more ({limit} of {redeemers.length})</button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
+}
+
+function NodeForm({ type, parentId, onDone, onCancel }: {
+  type: "child" | "bulk"; parentId: string | null; onDone: () => void; onCancel: () => void
+}) {
+  const [code, setCode] = useState("")
+  const [description, setDescription] = useState("")
+  const [owner, setOwner] = useState("")
+  const [prefix, setPrefix] = useState("")
+  const [count, setCount] = useState("10")
+  const [error, setError] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+  const cls = "h-9 bg-zinc-950 text-zinc-100 border-zinc-700"
+
+  function submit() {
+    setError(null)
+    startTransition(async () => {
+      if (type === "child") {
+        const r = await createCodeAction({ code, description, ownerTaprootAddress: owner || null, parentCodeId: parentId })
+        if (r.ok) onDone(); else setError(r.error)
+      } else {
+        const r = await bulkCreateCodesAction({ prefix, count: Number(count), description, parentCodeId: parentId })
+        if (r.ok) onDone(); else setError(r.error)
+      }
+    })
+  }
+
+  return (
+    <div className="mt-1 rounded-lg border border-sky-900/50 bg-sky-950/20 p-3">
+      <div className="mb-2 text-xs font-medium text-sky-300">
+        {type === "child" ? "New code" : "Bulk generate codes"}{parentId ? " under this node" : " (root)"}
+      </div>
+      {type === "child" ? (
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div><Label className="text-[11px] text-zinc-400">Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="HONGJIAN18" className={cls} /></div>
+          <div><Label className="text-[11px] text-zinc-400">Owner address (optional)</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="bc1p…" className={cls} /></div>
+          <div><Label className="text-[11px] text-zinc-400">Description (optional)</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} /></div>
+        </div>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div><Label className="text-[11px] text-zinc-400">Prefix</Label><Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="HONGJIAN" className={cls} /></div>
+          <div><Label className="text-[11px] text-zinc-400">Count (1–500)</Label><Input type="number" min={1} max={500} value={count} onChange={(e) => setCount(e.target.value)} className={cls} /></div>
+          <div><Label className="text-[11px] text-zinc-400">Description (optional)</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} /></div>
+        </div>
+      )}
+      <div className="mt-2 flex items-center gap-2">
+        <Button size="sm" disabled={pending} onClick={submit}>{type === "child" ? "Create" : "Generate"}</Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+        {error && <span className="text-xs text-red-400">{error}</span>}
+      </div>
+    </div>
+  )
+}
+
+function IconBtn({ title, onClick, children, danger }: { title: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
+  return (
+    <button title={title} onClick={onClick} className={`rounded p-1 hover:bg-zinc-800 ${danger ? "text-red-400/80 hover:text-red-300" : "text-zinc-500 hover:text-zinc-200"}`}>
+      {children}
+    </button>
+  )
+}
+
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
 }

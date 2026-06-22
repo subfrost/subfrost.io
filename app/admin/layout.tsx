@@ -1,5 +1,6 @@
 import { currentUser } from "@/lib/cms/authz"
 import { AdminShell } from "@/components/cms/AdminShell"
+import { AddressProfileProvider } from "@/components/cms/address-profile/AddressProfilePanel"
 
 export const dynamic = "force-dynamic"
 
@@ -13,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <AdminShell
       user={{ name: user.name, email: user.email, role: user.role, privileges: user.privileges }}
     >
-      {children}
+      <AddressProfileProvider>{children}</AddressProfileProvider>
     </AdminShell>
   )
 }

@@ -13,7 +13,10 @@ import {
 async function canView(): Promise<{ ok: true; canSeeFuel: boolean } | { ok: false; error: string }> {
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
-  if (!me.privileges.includes("REFERRAL_VIEW")) return { ok: false, error: "Insufficient privileges" }
+  // Reachable from both the Referral and FUEL surfaces.
+  if (!me.privileges.includes("REFERRAL_VIEW") && !me.privileges.includes("FUEL_VIEW")) {
+    return { ok: false, error: "Insufficient privileges" }
+  }
   return { ok: true, canSeeFuel: me.privileges.includes("FUEL_VIEW") }
 }
 

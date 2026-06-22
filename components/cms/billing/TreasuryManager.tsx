@@ -16,6 +16,7 @@ import { TRANSFER_DIRECTIONS } from "@/lib/stripe/shapes"
 import { MoneyIntentQueue } from "@/components/cms/billing/MoneyIntentQueue"
 import type { MoneyIntentRow } from "@/lib/stripe/money"
 import type { TreasuryBalance, TreasuryTransaction } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 
 export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
@@ -130,7 +131,7 @@ export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
       }
     })
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-8">

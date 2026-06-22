@@ -10,6 +10,7 @@ import {
   STRIPE_APPLICATION_STATUS_LABELS,
 } from "@/lib/stripe/shapes"
 import type { ApplicationRow } from "@/lib/stripe/applications"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 interface CardState {
   status: string
@@ -85,7 +86,7 @@ export function ApplicationsManager({ canEdit }: { canEdit: boolean }) {
       [product]: { ...prev[product], [field]: value },
     }))
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-4">

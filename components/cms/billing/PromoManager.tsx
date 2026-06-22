@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { listPromoCodesAction, createPromoCodeAction } from "@/actions/cms/billing"
 import { PROMO_TYPES, PROMO_TYPE_LABELS } from "@/lib/stripe/shapes"
 import type { PromoCode } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 function formatValue(type: "PERCENT" | "AMOUNT", value: number): string {
   if (type === "PERCENT") return `${value}%`
@@ -75,7 +76,7 @@ export function PromoManager({ canEdit }: { canEdit: boolean }) {
       }
     })
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-8">

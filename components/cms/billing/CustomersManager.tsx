@@ -15,6 +15,7 @@ import { MoneyIntentQueue } from "@/components/cms/billing/MoneyIntentQueue"
 import { centsToUsd } from "@/lib/stripe/format"
 import type { CustomerSummary, CustomerDetail } from "@/lib/stripe/shapes"
 import type { MoneyIntentRow } from "@/lib/stripe/money"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 function statusBadgeClass(status: string): string {
   if (status === "active" || status === "paid" || status === "succeeded")
@@ -136,7 +137,7 @@ function CustomerRow({
       {expanded && (
         <div className="mt-4 space-y-5 border-t border-zinc-800 pt-4">
           {loadingDetail ? (
-            <p className="text-sm text-zinc-500">Loading…</p>
+            <SkeletonTable />
           ) : detail ? (
             <>
               {/* Subscriptions */}
@@ -419,7 +420,7 @@ export function CustomersManager({ canEdit }: { canEdit: boolean }) {
     return (c.email ?? "").toLowerCase().includes(q) || (c.name ?? "").toLowerCase().includes(q)
   })
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-8">

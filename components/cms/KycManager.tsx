@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { listIntakesAction, recordDispositionAction, rescreenOfacAction, syncStripeIdentityAction } from "@/actions/cms/kyc"
 import type { KycIntakeRow, KycDecision } from "@/lib/kyc/admin"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 const RISK_CLS: Record<string, string> = {
   LOW: "bg-emerald-950/50 text-emerald-300 border-emerald-800/50",
@@ -135,7 +136,7 @@ export function KycManager({ canEdit }: { canEdit: boolean }) {
       )}
 
       {loading ? (
-        <div className="text-zinc-500">Loading…</div>
+        <SkeletonTable />
       ) : visible.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-zinc-500">
           {search ? "No matching intakes." : "No intakes in the queue yet."}

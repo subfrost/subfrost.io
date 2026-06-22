@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { listWebhookEventsAction } from "@/actions/cms/billing"
 import { centsToUsd } from "@/lib/stripe/format"
 import type { WebhookEventRow } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 const STATUSES = ["received", "processed", "ignored", "failed"] as const
 
@@ -49,7 +50,7 @@ export function WebhookEventsManager() {
   let rows = failedOnly ? events.filter((e) => e.status === "failed") : events
   if (typeFilter) rows = rows.filter((e) => e.type.includes(typeFilter))
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-6">

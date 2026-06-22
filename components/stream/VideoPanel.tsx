@@ -39,12 +39,6 @@ export function VideoPanel({ src, label, muted = false, className }: VideoPanelP
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <Skeleton className="h-full w-full rounded-none bg-zinc-800" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-500 border-t-white" />
-              <span className="text-xs text-zinc-400">Loading stream...</span>
-            </div>
-          </div>
         </div>
       )}
 

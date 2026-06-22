@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { listTiersAction, listSubscribersAction, changeSubscriptionAction } from "@/actions/cms/billing"
 import { SUBSCRIPTION_ACTIONS, SUBSCRIPTION_ACTION_LABELS } from "@/lib/stripe/shapes"
 import type { SubscriptionTier, Subscriber } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 export function SubscriptionsManager({ canEdit }: { canEdit: boolean }) {
   const [tiers, setTiers] = useState<SubscriptionTier[]>([])
@@ -57,7 +58,7 @@ export function SubscriptionsManager({ canEdit }: { canEdit: boolean }) {
       }
     })
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-8">

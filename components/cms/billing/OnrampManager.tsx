@@ -10,6 +10,7 @@ import {
   type OnrampSession,
   type OnrampStatus,
 } from "@/lib/stripe/shapes"
+import { SkeletonTable } from "@/components/cms/Skeleton"
 
 const PERIODS: OnrampPeriod[] = ["7d", "30d", "all"]
 const STATUS_LABEL: Record<OnrampStatus, string> = {
@@ -65,7 +66,7 @@ export function OnrampManager() {
 
   const rows = rejectedOnly ? sessions.filter((s) => s.status === "rejected") : sessions
 
-  if (loading) return <div className="text-zinc-500">Loading…</div>
+  if (loading) return <SkeletonTable />
 
   return (
     <div className="space-y-6">
