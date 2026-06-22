@@ -5,6 +5,7 @@
  * lib/fuel/migrate.ts). Idempotent by SOURCE id — preserving ids keeps the
  * draft→submission FK and makes re-runs no-ops. data is opaque Json (never log it).
  */
+import type { Prisma } from "@prisma/client"
 import { Form107Schema, SarSchema, CtrSchema } from "@/lib/fincen/schemas"
 
 type SourceType = "form-107" | "sar" | "ctr"
@@ -95,7 +96,7 @@ export async function migrateFincen(
 
 async function defaultEffects() {
   const prisma = (await import("@/lib/prisma")).default
-  const asJson = (v: unknown) => v as never // Prisma.InputJsonValue at the call site
+  const asJson = (v: unknown) => v as Prisma.InputJsonValue // matches lib/fincen/admin.ts
   return {
     upsertDraft: async (d: DraftLoadRow) => {
       await prisma.fincenDraft.upsert({
