@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic"
 export default async function TreasuryPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("billing.read")) redirect("/admin")
+  // Treasury is a restricted surface — requires the explicit treasury grant,
+  // which the ADMIN role does NOT confer automatically.
+  if (!me.privileges.includes("billing.treasury_view")) redirect("/admin")
   const canEdit = me.privileges.includes("billing.edit")
 
   return (

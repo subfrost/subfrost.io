@@ -8,6 +8,7 @@ import type { Role } from "@prisma/client"
 import {
   ALL_CODES,
   PRIVILEGES,
+  RESTRICTED_PRIVILEGES,
   expand,
   type PrivilegeCode,
 } from "@/lib/cms/iam/registry"
@@ -21,12 +22,16 @@ export const PRIVILEGE_LABELS: Record<string, string> = Object.fromEntries(
   PRIVILEGES.map((p) => [p.code, p.label]),
 )
 
-// Bundle padrão por papel (em códigos novos).
+// Bundle padrão por papel (em códigos novos). ADMIN recebe tudo EXCETO os
+// privilégios restritos (ex.: treasury), que precisam de grant explícito por
+// usuário — assim "todos os outros usuários" (incl. outros ADMINs) ficam sem o
+// acesso até serem explicitamente habilitados.
+const RESTRICTED = new Set(RESTRICTED_PRIVILEGES)
 const ROLE_PRIVILEGES: Record<Role, PrivilegeCode[]> = {
   STAFF: [],
   AUTHOR: ["articles.write"],
   EDITOR: ["articles.write", "articles.edit_any", "articles.publish", "articles.edit_bio", "apikeys.manage"],
-  ADMIN: [...ALL_CODES],
+  ADMIN: ALL_CODES.filter((c) => !RESTRICTED.has(c)),
 }
 
 export function rolePrivileges(role: Role): Privilege[] {
