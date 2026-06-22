@@ -1,21 +1,25 @@
 /**
- * GET /api/fuel?address=X — public FUEL allocation lookup for wallets.
+ * GET /api/fuel?address=X — FUEL allocation lookup for wallets.
  * subfrost.io owns the allocations table (admin writes via lib/fuel/admin.ts);
- * app.subfrost.io reads them here server-side. Public (no auth), exact-match
- * address, light 60s cache. Shape is { amount: number } to match the app
- * consumer.
+ * app.subfrost.io reads them here server-to-server. Auth: shared `x-api-key`
+ * (FUEL_API_KEY), mirroring the referral endpoints. Exact-match address, light
+ * 60s cache. Shape is { amount: number } to match the app consumer.
  */
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { cacheGet, cacheSet } from "@/lib/redis"
+import { requireApiKey } from "@/lib/api/service-key"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const CACHE_TTL = 60
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const denied = requireApiKey(request, process.env.FUEL_API_KEY, "FUEL_API_KEY")
+    if (denied) return denied
+
     const address = new URL(request.url).searchParams.get("address")?.trim() ?? ""
     if (!address) {
       return NextResponse.json({ error: "address query param required" }, { status: 400 })
