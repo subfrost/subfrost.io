@@ -49,9 +49,7 @@ export function TreasuryManager({ initial }: { initial: TreasuryResult }) {
         <div key={w.address} className="rounded-lg border border-zinc-800 p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <div className="font-mono text-xs text-zinc-400">{w.label ?? w.address}</div>
-            <div className="text-sm text-zinc-400">
-              {w.tokens.length} asset{w.tokens.length !== 1 ? "s" : ""}
-            </div>
+            <div className="text-lg font-semibold text-white">{usd(w.totalUsd)}</div>
           </div>
           <table className="w-full text-sm">
             <tbody>
