@@ -89,3 +89,12 @@ export function isItemActive(href: string, pathname: string): boolean {
 export function groupHasActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((it) => isItemActive(it.href, pathname))
 }
+
+/** Primeira folha visível fora do grupo Articles (p/ landing de quem não vê artigos). */
+export function firstNonArticleLeaf(privileges: string[]): string | null {
+  for (const g of visibleNav(privileges)) {
+    if (g.key === "articles") continue
+    if (g.items[0]) return g.items[0].href
+  }
+  return null
+}
