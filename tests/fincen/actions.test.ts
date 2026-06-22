@@ -30,7 +30,7 @@ const asUser = (privileges: string[]) =>
 beforeEach(() => vi.clearAllMocks());
 
 describe('authorization', () => {
-  it('rejects reads without MANAGE_AML', async () => {
+  it('rejects reads without AML_VIEW', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
     const res = await getFincenDataAction();
     expect(res.ok).toBe(false);
@@ -42,17 +42,29 @@ describe('authorization', () => {
     expect(res).toEqual({ ok: false, error: 'Not authenticated' });
     expect(fincen.saveForm107).not.toHaveBeenCalled();
   });
-  it('rejects writes without MANAGE_AML', async () => {
+  it('rejects writes without AML_EDIT', async () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser([]));
     const res = await queueSubmissionAction('d1');
     expect(res.ok).toBe(false);
+    expect(fincen.queueSubmission).not.toHaveBeenCalled();
+  });
+  it('allows read with AML_VIEW but rejects write with only AML_VIEW', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser(['AML_VIEW']));
+    vi.mocked(fincen.getForm107).mockResolvedValueOnce(null);
+    vi.mocked(fincen.listSar).mockResolvedValueOnce([]);
+    vi.mocked(fincen.listCtr).mockResolvedValueOnce([]);
+    vi.mocked(fincen.listSubmissions).mockResolvedValueOnce([]);
+    const read = await getFincenDataAction();
+    expect(read.ok).toBe(true);
+    const write = await queueSubmissionAction('d1');
+    expect(write.ok).toBe(false);
     expect(fincen.queueSubmission).not.toHaveBeenCalled();
   });
 });
 
 describe('getFincenDataAction', () => {
   it('aggregates all four reads for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_AML']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['AML_VIEW']));
     vi.mocked(fincen.getForm107).mockResolvedValueOnce(null);
     vi.mocked(fincen.listSar).mockResolvedValueOnce([]);
     vi.mocked(fincen.listCtr).mockResolvedValueOnce([]);
@@ -63,7 +75,7 @@ describe('getFincenDataAction', () => {
 });
 
 describe('mutations', () => {
-  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['MANAGE_AML'])));
+  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['AML_EDIT'])));
 
   it('saveForm107Action audits and revalidates', async () => {
     vi.mocked(fincen.saveForm107).mockResolvedValueOnce({ id: 'd1', type: 'FORM107', data: {} as never, updatedBy: 'op@x.io', updatedAt: 'x' });

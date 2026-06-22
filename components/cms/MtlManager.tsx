@@ -36,7 +36,7 @@ function Badge({ label, cls }: { label: string; cls: string }) {
   return <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
 }
 
-export function MtlManager() {
+export function MtlManager({ canEdit }: { canEdit: boolean }) {
   const [rows, setRows] = useState<MtlRow[]>([])
   const [draftById, setDraftById] = useState<Record<string, RowState>>({})
   const [loading, setLoading] = useState(true)
@@ -117,9 +117,11 @@ export function MtlManager() {
         )}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center">
           <p className="mb-4 text-zinc-400">No jurisdictions seeded yet.</p>
-          <Button onClick={handleSeed} disabled={pending}>
-            Seed 51 jurisdictions
-          </Button>
+          {canEdit && (
+            <Button onClick={handleSeed} disabled={pending}>
+              Seed 51 jurisdictions
+            </Button>
+          )}
         </div>
       </div>
     )
@@ -156,56 +158,79 @@ export function MtlManager() {
                 <Badge label={statusLabel} cls={STATUS_CLS[draft.status] ?? "bg-zinc-800 text-zinc-400 border-zinc-700"} />
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Status</label>
-                  <select
-                    value={draft.status}
-                    onChange={(e) => setField(r.state, "status", e.target.value)}
-                    className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                  >
-                    {MTL_STATUSES.map((s) => (
-                      <option key={s} value={s}>{MTL_STATUS_LABELS[s]}</option>
-                    ))}
-                  </select>
-                </div>
+              {canEdit ? (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Status</label>
+                      <select
+                        value={draft.status}
+                        onChange={(e) => setField(r.state, "status", e.target.value)}
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                      >
+                        {MTL_STATUSES.map((s) => (
+                          <option key={s} value={s}>{MTL_STATUS_LABELS[s]}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Next filing due</label>
-                  <Input
-                    value={draft.nextFilingDue}
-                    onChange={(e) => setField(r.state, "nextFilingDue", e.target.value)}
-                    placeholder="e.g. 2025-12-31"
-                    className="border-zinc-700 bg-zinc-900 text-zinc-100"
-                  />
-                </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Next filing due</label>
+                      <Input
+                        value={draft.nextFilingDue}
+                        onChange={(e) => setField(r.state, "nextFilingDue", e.target.value)}
+                        placeholder="e.g. 2025-12-31"
+                        className="border-zinc-700 bg-zinc-900 text-zinc-100"
+                      />
+                    </div>
 
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Portal URL</label>
-                  <Input
-                    value={draft.portalUrl}
-                    onChange={(e) => setField(r.state, "portalUrl", e.target.value)}
-                    placeholder="https://…"
-                    className="border-zinc-700 bg-zinc-900 text-zinc-100"
-                  />
-                </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Portal URL</label>
+                      <Input
+                        value={draft.portalUrl}
+                        onChange={(e) => setField(r.state, "portalUrl", e.target.value)}
+                        placeholder="https://…"
+                        className="border-zinc-700 bg-zinc-900 text-zinc-100"
+                      />
+                    </div>
 
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Notes</label>
-                  <Input
-                    value={draft.notes}
-                    onChange={(e) => setField(r.state, "notes", e.target.value)}
-                    placeholder="Internal notes…"
-                    className="border-zinc-700 bg-zinc-900 text-zinc-100"
-                  />
-                </div>
-              </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Notes</label>
+                      <Input
+                        value={draft.notes}
+                        onChange={(e) => setField(r.state, "notes", e.target.value)}
+                        placeholder="Internal notes…"
+                        className="border-zinc-700 bg-zinc-900 text-zinc-100"
+                      />
+                    </div>
+                  </div>
 
-              <div className="mt-3 flex justify-end">
-                <Button size="sm" disabled={pending} onClick={() => handleSave(r.state)}>
-                  Save
-                </Button>
-              </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button size="sm" disabled={pending} onClick={() => handleSave(r.state)}>
+                      Save
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                  {draft.nextFilingDue && (
+                    <div className="text-zinc-400">
+                      <span className="text-zinc-500">Next due: </span>{draft.nextFilingDue}
+                    </div>
+                  )}
+                  {draft.portalUrl && (
+                    <div className="truncate text-zinc-400">
+                      <span className="text-zinc-500">Portal: </span>
+                      <a href={draft.portalUrl} target="_blank" rel="noreferrer" className="underline">{draft.portalUrl}</a>
+                    </div>
+                  )}
+                  {draft.notes && (
+                    <div className="text-zinc-400 sm:col-span-2">
+                      <span className="text-zinc-500">Notes: </span>{draft.notes}
+                    </div>
+                  )}
+                </div>
+              )}
             </li>
           )
         })}

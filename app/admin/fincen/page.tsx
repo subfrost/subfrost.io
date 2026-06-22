@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function FincenPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_AML")) redirect("/admin")
+  if (!me.privileges.includes("AML_VIEW")) redirect("/admin")
+  const canEdit = me.privileges.includes("AML_EDIT")
 
   return (
     <div>
@@ -16,7 +17,7 @@ export default async function FincenPage() {
         Draft the MSB registration (Form 107), SARs and CTRs. Submissions queue locally until the BSA
         E-Filing credentials are mounted.
       </p>
-      <FincenManager />
+      <FincenManager canEdit={canEdit} />
     </div>
   )
 }
