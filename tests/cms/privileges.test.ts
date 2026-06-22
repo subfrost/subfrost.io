@@ -3,6 +3,7 @@ import {
   ALL_PRIVILEGES, PRIVILEGE_LABELS,
   rolePrivileges, effectivePrivileges, roleRank, canManageRole, assignableRoles,
 } from "@/lib/cms/privileges"
+import { RESTRICTED_PRIVILEGES } from "@/lib/cms/iam/registry"
 
 describe("ALL_PRIVILEGES", () => {
   it("are namespaced domain.action codes with labels", () => {
@@ -46,8 +47,16 @@ describe("role bundles", () => {
   it("STAFF is empty", () => {
     expect(rolePrivileges("STAFF")).toEqual([])
   })
-  it("ADMIN gets every privilege", () => {
-    expect(new Set(effectivePrivileges("ADMIN"))).toEqual(new Set(ALL_PRIVILEGES))
+  it("ADMIN gets every privilege EXCEPT restricted ones", () => {
+    const adminEff = new Set(effectivePrivileges("ADMIN"))
+    const expected = new Set(ALL_PRIVILEGES.filter((p) => !RESTRICTED_PRIVILEGES.includes(p)))
+    expect(adminEff).toEqual(expected)
+    // treasury is restricted → not auto-granted to ADMIN
+    expect(adminEff.has("billing.treasury_view")).toBe(false)
+  })
+  it("restricted privileges apply only via explicit grant", () => {
+    expect(effectivePrivileges("ADMIN", ["billing.treasury_view"])).toContain("billing.treasury_view")
+    expect(RESTRICTED_PRIVILEGES).toContain("billing.treasury_view")
   })
   it("EDITOR/AUTHOR are content-only (no operational domains)", () => {
     const editor = effectivePrivileges("EDITOR")
