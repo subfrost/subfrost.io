@@ -199,3 +199,53 @@ describe('deleteUser — authorization', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task 8: ADMIN-par gerenciamento + guarda anti-lockout
+// ---------------------------------------------------------------------------
+describe('Task 8 — ADMIN gerencia par ADMIN (trim)', () => {
+  it('ADMIN pode rebaixar OUTRO ADMIN quando há ≥2 admins ativos', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
+    db.count.mockResolvedValue(2); // dois admins ativos — trim é seguro
+    db.update.mockResolvedValue({});
+    const res = await updateUser('t1', { role: 'STAFF' });
+    expect(res).toEqual({ ok: true });
+    expect(db.update).toHaveBeenCalled();
+  });
+
+  it('ADMIN NÃO pode se auto-gerenciar via updateUser', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    const res = await updateUser('me', { role: 'STAFF' });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('own profile') });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia rebaixar o último admin ativo', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
+    db.count.mockResolvedValue(1); // único admin ativo
+    const res = await updateUser('t1', { role: 'STAFF' });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('last active admin') });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia desativar o último admin ativo', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT', 'MANAGE_ROLES'], 'me'));
+    db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
+    db.count.mockResolvedValue(1); // único admin ativo
+    const res = await updateUser('t1', { active: false });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('last active admin') });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia deletar o último admin ativo', async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser('ADMIN', ['USERS_EDIT'], 'me'));
+    db.findUnique.mockResolvedValue({ ...targetRow('t1', 'ADMIN') });
+    db.count.mockResolvedValue(1); // único admin ativo
+    (prisma.article as unknown as { count: ReturnType<typeof vi.fn> }).count.mockResolvedValue(0);
+    const res = await deleteUser('t1');
+    expect(res).toEqual({ ok: false, error: expect.stringContaining('last active admin') });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

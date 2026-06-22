@@ -38,7 +38,9 @@ async function actor(
 
 type ManageableTarget = Awaited<ReturnType<typeof prisma.user.findUnique>>
 
-/** Load a target the actor is allowed to manage (must strictly outrank, not self). */
+/** Load a target the actor is allowed to manage (must strictly outrank, not self).
+ *  Exception: ADMIN may manage peer ADMINs to enable trimming (anti-lockout guard is
+ *  applied separately in updateUser/deleteUser). */
 async function manageable(
   me: CmsUser,
   userId: string,
@@ -46,10 +48,19 @@ async function manageable(
   if (userId === me.id) return { ok: false, error: "Use your own profile for self-service changes" }
   const target = await prisma.user.findUnique({ where: { id: userId } })
   if (!target) return { ok: false, error: "User not found" }
-  if (!canManageRole(me.role, target.role as Role)) {
+  // ADMIN (top role) may manage peer ADMINs for trim; all other roles use strict rank.
+  const allowed = me.role === "ADMIN" || canManageRole(me.role, target.role as Role)
+  if (!allowed) {
     return { ok: false, error: "You cannot manage a user at or above your role" }
   }
   return { ok: true, target }
+}
+
+/** True if the target is an ADMIN and is the only remaining active ADMIN. */
+async function isLastActiveAdmin(target: { id: string; role: string; active?: boolean }): Promise<boolean> {
+  if (target.role !== "ADMIN") return false
+  const count = await prisma.user.count({ where: { role: "ADMIN", active: true } })
+  return count <= 1
 }
 
 const createSchema = z.object({
@@ -129,6 +140,12 @@ export async function updateUser(
     }
   }
 
+  const demoting = role !== undefined && role !== "ADMIN" && (m.target.role as Role) === "ADMIN"
+  const deactivating = active === false && (m.target.role as Role) === "ADMIN"
+  if ((demoting || deactivating) && (await isLastActiveAdmin(m.target))) {
+    return { ok: false, error: "Cannot remove the last active admin" }
+  }
+
   const data: Prisma.UserUpdateInput = {}
   if (name !== undefined) data.name = name
   if (role !== undefined) data.role = role
@@ -179,6 +196,10 @@ export async function deleteUser(userId: string): Promise<UserActionResult> {
   const me = a.me
   const m = await manageable(me, userId)
   if (!m.ok) return m
+
+  if (await isLastActiveAdmin(m.target)) {
+    return { ok: false, error: "Cannot delete the last active admin" }
+  }
 
   const articleCount = await prisma.article.count({ where: { authorId: userId } })
   if (articleCount > 0) {
