@@ -302,6 +302,82 @@ export async function getCodeTree(): Promise<CodeTreeNode[]> {
   )
 }
 
+// --- Annotated tree (referral dashboard) -----------------------------------
+
+export interface AnnotatedCodeNode extends CodeTreeNode {
+  ownerFuel: number | null // FUEL on the code's owner address, if any
+  ownerRedeemed: boolean // did the owner redeem this very code?
+  children: AnnotatedCodeNode[]
+}
+
+/** The hierarchy tree, plus per-node owner-FUEL and owner-redeemed flags. Powers
+ *  the unified referral view (create/redeemed/FUEL annotations in one tree). */
+export async function getAnnotatedCodeTree(): Promise<AnnotatedCodeNode[]> {
+  const tree = await getCodeTree()
+
+  // Distinct owners → their FUEL.
+  const owners = new Set<string>()
+  const walk = (n: CodeTreeNode) => {
+    if (n.ownerTaprootAddress) owners.add(n.ownerTaprootAddress)
+    n.children.forEach(walk)
+  }
+  tree.forEach(walk)
+
+  const [fuelRows, ownerRedeemed] = await Promise.all([
+    owners.size
+      ? prisma.fuelAllocation.findMany({
+          where: { address: { in: [...owners] } },
+          select: { address: true, amount: true },
+        })
+      : Promise.resolve([] as { address: string; amount: number }[]),
+    // code ids where the owner redeemed their own code
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT c.id FROM "InviteCode" c
+      WHERE c."ownerTaprootAddress" IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM "InviteCodeRedemption" r
+          WHERE r."codeId" = c.id AND r."taprootAddress" = c."ownerTaprootAddress"
+        )`,
+  ])
+  const fuelByAddr = new Map(fuelRows.map((f) => [f.address, f.amount]))
+  const redeemedIds = new Set(ownerRedeemed.map((r) => r.id))
+
+  const annotate = (n: CodeTreeNode): AnnotatedCodeNode => ({
+    ...n,
+    ownerFuel: n.ownerTaprootAddress ? fuelByAddr.get(n.ownerTaprootAddress) ?? null : null,
+    ownerRedeemed: redeemedIds.has(n.id),
+    children: n.children.map(annotate),
+  })
+  return tree.map(annotate)
+}
+
+export interface CodeRedeemer {
+  address: string
+  redeemedAt: string
+  fuel: number | null
+}
+
+/** Redeemers of a single code (newest first) with their FUEL allocation. */
+export async function getCodeRedeemers(codeId: string): Promise<CodeRedeemer[]> {
+  const reds = await prisma.inviteCodeRedemption.findMany({
+    where: { codeId },
+    orderBy: { redeemedAt: "desc" },
+    select: { taprootAddress: true, redeemedAt: true },
+  })
+  if (reds.length === 0) return []
+  const addrs = [...new Set(reds.map((r) => r.taprootAddress))]
+  const fuels = await prisma.fuelAllocation.findMany({
+    where: { address: { in: addrs } },
+    select: { address: true, amount: true },
+  })
+  const fuelByAddr = new Map(fuels.map((f) => [f.address, f.amount]))
+  return reds.map((r) => ({
+    address: r.taprootAddress,
+    redeemedAt: r.redeemedAt.toISOString(),
+    fuel: fuelByAddr.get(r.taprootAddress) ?? null,
+  }))
+}
+
 // --- Redemptions -----------------------------------------------------------
 
 export interface ListRedemptionsQuery {

@@ -518,6 +518,15 @@ model FuelAllocation {
   @@index([amount])
 }
 
+// Editable per-address profile metadata, keyed by the (taproot) address itself.
+// Exists independently of FUEL/referral rows so any address can be annotated.
+model AddressProfile {
+  address   String   @id
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ============================================
 // COMPLIANCE — KYC (F2-A)
 // ============================================

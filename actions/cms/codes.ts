@@ -15,6 +15,8 @@ import {
   updateCode,
   deleteCode,
   getCodeTree,
+  getAnnotatedCodeTree,
+  getCodeRedeemers,
   listRedemptions,
   exportRedemptionsCsv,
   type CreateCodeInput,
@@ -25,6 +27,8 @@ import {
   type ListRedemptionsQuery,
   type ListRedemptionsResult,
   type CodeTreeNode,
+  type AnnotatedCodeNode,
+  type CodeRedeemer,
 } from "@/lib/referral/admin"
 
 export type CodeActionResult = { ok: true } | { ok: false; error: string }
@@ -68,6 +72,22 @@ export async function getCodeTreeAction(): Promise<
   const a = await actor("REFERRAL_VIEW")
   if (!a.ok) return a
   return { ok: true, tree: await getCodeTree() }
+}
+
+export async function getAnnotatedCodeTreeAction(): Promise<
+  { ok: true; tree: AnnotatedCodeNode[] } | { ok: false; error: string }
+> {
+  const a = await actor("REFERRAL_VIEW")
+  if (!a.ok) return a
+  return { ok: true, tree: await getAnnotatedCodeTree() }
+}
+
+export async function codeRedeemersAction(
+  codeId: string,
+): Promise<{ ok: true; redeemers: CodeRedeemer[] } | { ok: false; error: string }> {
+  const a = await actor("REFERRAL_VIEW")
+  if (!a.ok) return a
+  return { ok: true, redeemers: await getCodeRedeemers(codeId) }
 }
 
 export async function listRedemptionsAction(

@@ -25,6 +25,8 @@ export type AuditAction =
   | "delete_code"
   | "upsert_fuel"
   | "delete_fuel"
+  | "update_address_note"
+  | "bulk_create_codes"
   | "kyc_disposition"
   | "save_form107"
   | "create_fincen_draft"

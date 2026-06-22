@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react"
 import { ChevronRight, Crown, Copy, Flame } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { AddressAvatar } from "@/components/cms/AddressAvatar"
+import { AddressChip } from "@/components/cms/address-profile/AddressProfilePanel"
 import {
   communityDetailAction,
   unattributedFuelAction,
@@ -99,6 +101,7 @@ export function CommunitiesManager({
                   {c.leaderCount > 1 && <span className="text-[10px] text-zinc-500">{c.leaderCount} sub-leaders</span>}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                  {c.leader && <AddressAvatar address={c.leader} size={16} />}
                   <Crown size={11} className="text-amber-400/70" />
                   {c.leader ? <span className="font-mono">{truncAddr(c.leader)}</span> : <span className="italic">no leader set</span>}
                 </div>
@@ -163,10 +166,7 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
               {detail.members.slice(0, limit).map((m: CommunityMember) => (
                 <tr key={m.address} className="border-t border-zinc-800/60">
                   <td className="py-1.5">
-                    <span className="inline-flex items-center gap-1.5">
-                      {m.isLeader && <Crown size={11} className="text-amber-400" />}
-                      <Copyable value={m.address} />
-                    </span>
+                    <AddressChip address={m.address} showLeader={m.isLeader} />
                   </td>
                   {canSeeFuel && <td className="py-1.5 text-right font-medium text-sky-300">{fmtFuel(m.fuel)}</td>}
                   <td className="py-1.5 font-mono text-xs text-zinc-400">{m.codesClaimed.join(", ")}</td>
@@ -194,7 +194,7 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
             {detail.codes.map((code: CommunityCode) => (
               <tr key={code.id} className="border-t border-zinc-800/60">
                 <td className="py-1.5 font-mono text-zinc-200">{code.code}{!code.isActive && <span className="ml-1 text-[10px] text-zinc-600">(inactive)</span>}</td>
-                <td className="py-1.5">{code.owner ? <Copyable value={code.owner} /> : <span className="text-zinc-700">—</span>}</td>
+                <td className="py-1.5">{code.owner ? <AddressChip address={code.owner} /> : <span className="text-zinc-700">—</span>}</td>
                 <td className="py-1.5 text-right text-zinc-400">{code.redemptionCount}</td>
                 <td className="py-1.5">
                   {code.claimed
