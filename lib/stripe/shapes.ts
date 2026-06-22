@@ -194,3 +194,40 @@ export type StripeIdentityVerification = {
   email: string
   createdAt: string // ISO
 }
+
+// --- On-ramp (Stripe Crypto On-ramp; read-only observability, SP-3) ---
+export type OnrampStatus =
+  | "initialized" | "requires_payment" | "fulfillment_processing"
+  | "fulfillment_complete" | "rejected" | "expired"
+
+export type OnrampPeriod = "7d" | "30d" | "all"
+
+export const ONRAMP_STATUSES: OnrampStatus[] = [
+  "initialized", "requires_payment", "fulfillment_processing",
+  "fulfillment_complete", "rejected", "expired",
+]
+
+export type OnrampSession = {
+  id: string
+  status: OnrampStatus
+  createdAt: string            // ISO 8601
+  sourceCurrency: string       // fiat, e.g. "USD"
+  sourceAmount: number         // fiat in CENTS
+  destCurrency: string         // crypto, e.g. "BTC"
+  destAmount: number | null    // crypto decimal units (e.g. 0.0021), null until known
+  destNetwork: string          // e.g. "bitcoin"
+  walletAddress: string
+  transactionFee: number | null // Stripe fee in CENTS
+  networkFee: number | null     // network fee in CENTS
+  rejectionReason: string | null
+}
+
+export type OnrampMetrics = {
+  total: number
+  byStatus: Record<OnrampStatus, number>
+  completed: number
+  conversionRate: number                       // completed / total (0 when total 0)
+  fiatVolume: number                           // cents, completed only
+  cryptoVolumeByAsset: Record<string, number>  // decimal units by destCurrency, completed only
+  totalFees: number                            // cents, completed only
+}
