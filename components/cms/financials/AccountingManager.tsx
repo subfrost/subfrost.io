@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useTransition, type ReactNode } from "react"
 import {
   accountingOverviewAction, createInvoiceAction, createPayeeAction,
@@ -184,7 +185,10 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                 const pe = payeeById.get(t.payeeId)
                 return (
                   <tr key={t.payeeId} className="border-t border-zinc-900">
-                    <td className="py-2 text-zinc-200">{t.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
+                    <td className="py-2 text-zinc-200">
+                      <Link href={`/admin/financials/payees/${t.payeeId}`} className="text-sky-300 hover:underline">{t.payeeName}</Link>
+                      {pe?.kycIntakeId ? <KycBadge /> : null}
+                    </td>
                     <td className="text-zinc-400">{pe?.type}</td>
                     <td className="text-right text-zinc-300">{t.invoiceCount}</td>
                     <td className="text-right text-zinc-200">{usd(t.totalUsd)}</td>

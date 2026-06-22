@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, cleanup } from "@testing-library/react"
+import { render, cleanup, fireEvent } from "@testing-library/react"
 
 vi.mock("@/actions/cms/accounting", () => ({
   accountingOverviewAction: vi.fn(),
@@ -61,5 +61,11 @@ describe("AccountingManager", () => {
     )
     expect(getByText("PAID")).toBeTruthy()
     expect(getAllByText("KYC").length).toBeGreaterThan(0)
+  })
+  it("links a payee name to its profile in the Payees tab", () => {
+    const { getByText, getByRole } = render(<AccountingManager initial={ok({ payees: [payee()] })} />)
+    fireEvent.click(getByText("Payees"))
+    const link = getByRole("link", { name: /Ada/ })
+    expect(link.getAttribute("href")).toBe("/admin/financials/payees/pe1")
   })
 })
