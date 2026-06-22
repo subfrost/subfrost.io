@@ -18,7 +18,7 @@ vi.mock("@/lib/financials/accounting/store", () => ({
 
 import {
   accountingOverviewAction, createInvoiceAction, createPayeeAction,
-  exportLedgerCsvAction, linkPaymentAction,
+  exportLedgerCsvAction, linkPaymentAction, recordPaymentAction, updateInvoiceStatusAction,
 } from "@/actions/cms/accounting"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import { currentUser } from "@/lib/cms/authz"
@@ -43,6 +43,31 @@ describe("gating", () => {
     vi.mocked(currentUser).mockResolvedValue(asUser([]))
     expect(await createPayeeAction({ name: "x", type: "PERSON" })).toEqual({ ok: false, error: "unauthorized" })
     expect(store.createPayee).not.toHaveBeenCalled()
+  })
+  it("createInvoiceAction rejects + does not touch the store without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await createInvoiceAction({ ref: "INV-1", payeeId: "pe1", description: "x", amountUsd: 1, issuedAt: "2026-02-01" })).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.createInvoice).not.toHaveBeenCalled()
+  })
+  it("updateInvoiceStatusAction rejects + does not touch the store without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await updateInvoiceStatusAction("i1", "PAID")).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.updateInvoiceStatus).not.toHaveBeenCalled()
+  })
+  it("recordPaymentAction rejects + does not touch the store without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await recordPaymentAction({ txid: "t", amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-01" })).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.recordPayment).not.toHaveBeenCalled()
+  })
+  it("linkPaymentAction rejects + does not touch the store without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await linkPaymentAction("p1", "i1")).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.linkPayment).not.toHaveBeenCalled()
+  })
+  it("exportLedgerCsvAction rejects + does not touch the store without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await exportLedgerCsvAction()).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.listPayees).not.toHaveBeenCalled()
   })
 })
 
@@ -79,6 +104,30 @@ describe("createInvoiceAction", () => {
     const r = await createInvoiceAction({ ref: "INV-1", payeeId: "pe1", description: "x", amountUsd: 1, issuedAt: "2026-02-01" })
     expect(r).toEqual({ ok: false, error: "Invoice ref already exists: INV-1" })
   })
+  it("creates, audits, and revalidates on the happy path", async () => {
+    vi.mocked(store.createInvoice).mockResolvedValue({ id: "i2", ref: "INV-2", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 50, amountDiesel: null, issuedAt: "2026-02-02T00:00:00.000Z", status: "OPEN", pdfUrl: null, createdAt: "2026-02-02T00:00:00.000Z" })
+    const r = await createInvoiceAction({ ref: "INV-2", payeeId: "pe1", description: "x", amountUsd: 50, issuedAt: "2026-02-02" })
+    expect(r).toEqual({ ok: true, value: expect.objectContaining({ ref: "INV-2" }) })
+    expect(audit).toHaveBeenCalledWith("accounting_invoice_create", expect.objectContaining({ target: "INV-2" }))
+  })
+})
+
+describe("updateInvoiceStatusAction", () => {
+  it("updates, audits, and revalidates", async () => {
+    vi.mocked(store.updateInvoiceStatus).mockResolvedValue({ id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 1, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-01T00:00:00.000Z" })
+    const r = await updateInvoiceStatusAction("i1", "PAID")
+    expect(r.ok).toBe(true)
+    expect(audit).toHaveBeenCalledWith("accounting_invoice_status", expect.objectContaining({ actorId: "u1", target: "INV-1 -> PAID" }))
+  })
+})
+
+describe("recordPaymentAction", () => {
+  it("records, audits, and revalidates", async () => {
+    vi.mocked(store.recordPayment).mockResolvedValue({ id: "p1", txid: "txa", vout: null, amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: null, invoiceRef: null, source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z" })
+    const r = await recordPaymentAction({ txid: "txa", amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-02" })
+    expect(r.ok).toBe(true)
+    expect(audit).toHaveBeenCalledWith("accounting_payment_record", expect.objectContaining({ actorId: "u1", target: "txa" }))
+  })
 })
 
 describe("linkPaymentAction", () => {
@@ -86,7 +135,7 @@ describe("linkPaymentAction", () => {
     vi.mocked(store.linkPayment).mockResolvedValue({ id: "p1", txid: "t", vout: null, amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: "i1", invoiceRef: "INV-1", source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z" })
     const r = await linkPaymentAction("p1", "i1")
     expect(r.ok).toBe(true)
-    expect(audit).toHaveBeenCalledWith("accounting_payment_link", expect.anything())
+    expect(audit).toHaveBeenCalledWith("accounting_payment_link", expect.objectContaining({ actorId: "u1", target: "t -> INV-1" }))
   })
 })
 
