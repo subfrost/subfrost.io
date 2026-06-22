@@ -30,6 +30,10 @@ async function main() {
   console.log(`\nParsed: ${entries.length} allocations, total amount = ${totalAmount}`)
   console.log("Sample:", entries.slice(0, 3))
 
+  if (entries.length === 0) {
+    console.warn("\nWARNING: snapshot has 0 allocations — nothing to load. Check the source dump / proxy.")
+  }
+
   if (dryRun) {
     console.log("\n[dry-run] parsed cleanly; no database writes performed.")
     return
