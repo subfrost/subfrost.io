@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic"
 export default async function CommunitiesPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("REFERRAL_VIEW")) redirect("/admin")
+  if (!me.privileges.includes("referral.read")) redirect("/admin")
 
-  const canSeeFuel = me.privileges.includes("FUEL_VIEW")
+  const canSeeFuel = me.privileges.includes("fuel.read")
   const overview = toOverview(await loadCommunityData(canSeeFuel))
 
   return (

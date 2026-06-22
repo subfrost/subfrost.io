@@ -14,7 +14,7 @@ beforeEach(() => {
 
 describe("listWebhookEventsAction", () => {
   it("rejects a user without BILLING_VIEW", async () => {
-    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["FUEL_VIEW"] } as never)
+    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["fuel.read"] } as never)
     const res = await listWebhookEventsAction()
     expect(res.ok).toBe(false)
     if (!res.ok) expect(res.error).toMatch(/privileges/i)
@@ -22,7 +22,7 @@ describe("listWebhookEventsAction", () => {
   })
 
   it("returns events + live for a BILLING_VIEW user", async () => {
-    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["BILLING_VIEW"] } as never)
+    vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["billing.read"] } as never)
     vi.mocked(listWebhookEvents).mockResolvedValue([{ id: "evt_1", type: "charge.succeeded" } as never])
     const res = await listWebhookEventsAction({ status: "processed" })
     expect(res.ok).toBe(true)

@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function CodesPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("REFERRAL_VIEW")) redirect("/admin")
-  const canEdit = me.privileges.includes("REFERRAL_EDIT")
+  if (!me.privileges.includes("referral.read")) redirect("/admin")
+  const canEdit = me.privileges.includes("referral.edit")
 
   return (
     <div>

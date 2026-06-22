@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic"
 export default async function WebhookEventsPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
+  if (!me.privileges.includes("billing.read")) redirect("/admin")
 
   return (
     <div>

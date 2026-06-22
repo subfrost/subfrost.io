@@ -31,7 +31,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('authorization', () => {
   it('rejects reads without AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['fuel.edit']));
     const res = await getFincenDataAction();
     expect(res.ok).toBe(false);
     expect(fincen.getForm107).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('authorization', () => {
     expect(fincen.queueSubmission).not.toHaveBeenCalled();
   });
   it('allows read with AML_VIEW but rejects write with only AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValue(asUser(['aml.read']));
     vi.mocked(fincen.getForm107).mockResolvedValueOnce(null);
     vi.mocked(fincen.listSar).mockResolvedValueOnce([]);
     vi.mocked(fincen.listCtr).mockResolvedValueOnce([]);
@@ -64,7 +64,7 @@ describe('authorization', () => {
 
 describe('getFincenDataAction', () => {
   it('aggregates all four reads for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['aml.read']));
     vi.mocked(fincen.getForm107).mockResolvedValueOnce(null);
     vi.mocked(fincen.listSar).mockResolvedValueOnce([]);
     vi.mocked(fincen.listCtr).mockResolvedValueOnce([]);
@@ -75,7 +75,7 @@ describe('getFincenDataAction', () => {
 });
 
 describe('mutations', () => {
-  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['AML_EDIT'])));
+  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['aml.edit'])));
 
   it('saveForm107Action audits and revalidates', async () => {
     vi.mocked(fincen.saveForm107).mockResolvedValueOnce({ id: 'd1', type: 'FORM107', data: {} as never, updatedBy: 'op@x.io', updatedAt: 'x' });

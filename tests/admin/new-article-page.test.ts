@@ -37,7 +37,7 @@ describe("new article page auth guard", () => {
       email: "a@b.io",
       name: null,
       role: "EDITOR",
-      privileges: ["PUBLISH_ARTICLES"],
+      privileges: ["articles.publish"],
     } as never)
 
     const tree = (await NewArticlePage()) as { props: { children: unknown[] } }

@@ -4,7 +4,7 @@ import {
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import type { Privilege } from "@prisma/client"
+import type { Privilege } from "@/lib/cms/privileges"
 
 export interface NavLeaf {
   label: string
@@ -36,37 +36,37 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: "community", label: "Community", icon: Megaphone, items: [
-      { label: "Dashboard", href: "/admin/communities", icon: Network, privilege: "REFERRAL_VIEW" },
-      { label: "FUEL", href: "/admin/fuel", icon: Fuel, privilege: "FUEL_VIEW" },
-      { label: "Referral codes", href: "/admin/codes", icon: Ticket, privilege: "REFERRAL_VIEW" },
+      { label: "Dashboard", href: "/admin/communities", icon: Network, privilege: "referral.read" },
+      { label: "FUEL", href: "/admin/fuel", icon: Fuel, privilege: "fuel.read" },
+      { label: "Referral codes", href: "/admin/codes", icon: Ticket, privilege: "referral.read" },
     ],
   },
   {
     key: "compliance", label: "Compliance", icon: ShieldCheck, items: [
-      { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "AML_VIEW" },
-      { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "AML_VIEW" },
-      { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "AML_VIEW" },
+      { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "aml.read" },
+      { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "aml.read" },
+      { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "aml.read" },
     ],
   },
   {
     key: "billing", label: "Billing", icon: CreditCard, items: [
-      { label: "Overview", href: "/admin/billing", icon: LayoutGrid, privilege: "BILLING_VIEW" },
-      { label: "Subscriptions", href: "/admin/billing/subscriptions", icon: Repeat, privilege: "BILLING_VIEW" },
-      { label: "Promo codes", href: "/admin/billing/promo", icon: Tag, privilege: "BILLING_VIEW" },
-      { label: "Treasury", href: "/admin/billing/treasury", icon: Landmark, privilege: "BILLING_VIEW" },
-      { label: "Issuing", href: "/admin/billing/issuing", icon: CreditCard, privilege: "BILLING_VIEW" },
-      { label: "Offramp", href: "/admin/billing/offramp", icon: ArrowLeftRight, privilege: "BILLING_VIEW" },
-      { label: "On-ramp", href: "/admin/billing/onramp", icon: ArrowDownToLine, privilege: "BILLING_VIEW" },
-      { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "BILLING_VIEW" },
-      { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "BILLING_VIEW" },
-      { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "BILLING_VIEW" },
+      { label: "Overview", href: "/admin/billing", icon: LayoutGrid, privilege: "billing.read" },
+      { label: "Subscriptions", href: "/admin/billing/subscriptions", icon: Repeat, privilege: "billing.read" },
+      { label: "Promo codes", href: "/admin/billing/promo", icon: Tag, privilege: "billing.read" },
+      { label: "Treasury", href: "/admin/billing/treasury", icon: Landmark, privilege: "billing.read" },
+      { label: "Issuing", href: "/admin/billing/issuing", icon: CreditCard, privilege: "billing.read" },
+      { label: "Offramp", href: "/admin/billing/offramp", icon: ArrowLeftRight, privilege: "billing.read" },
+      { label: "On-ramp", href: "/admin/billing/onramp", icon: ArrowDownToLine, privilege: "billing.read" },
+      { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "billing.read" },
+      { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "billing.read" },
+      { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "billing.read" },
     ],
   },
   {
     key: "settings", label: "Settings", icon: Settings, items: [
-      { label: "Users", href: "/admin/users", icon: Users, privilege: "USERS_VIEW" },
-      { label: "API keys", href: "/admin/api-keys", icon: KeyRound, privilege: "MANAGE_API_KEYS" },
-      { label: "Audit log", href: "/admin/audit", icon: ScrollText, privilege: "VIEW_AUDIT" },
+      { label: "Users", href: "/admin/users", icon: Users, privilege: "iam.list_users" },
+      { label: "API keys", href: "/admin/api-keys", icon: KeyRound, privilege: "apikeys.manage" },
+      { label: "Audit log", href: "/admin/audit", icon: ScrollText, privilege: "audit.view" },
     ],
   },
 ]

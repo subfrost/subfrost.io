@@ -20,7 +20,7 @@ export async function deleteArticle(id: string): Promise<ActionResult> {
   if (!user) return { ok: false, error: "Not authenticated" }
   const existing = await prisma.article.findUnique({ where: { id } })
   if (!existing) return { ok: false, error: "Article not found" }
-  if (!user.privileges.includes("EDIT_ANY_ARTICLE") && existing.authorId !== user.id) {
+  if (!user.privileges.includes("articles.edit_any") && existing.authorId !== user.id) {
     return { ok: false, error: "Not allowed" }
   }
   await prisma.article.delete({ where: { id } })

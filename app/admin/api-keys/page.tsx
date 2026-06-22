@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic"
 export default async function ApiKeysPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_API_KEYS")) redirect("/admin")
+  if (!me.privileges.includes("apikeys.manage")) redirect("/admin")
 
   // You see your own keys; user-managers see everyone's.
-  const seeAll = me.privileges.includes("MANAGE_USERS")
+  const seeAll = me.privileges.includes("iam.modify_user")
   const keys = await prisma.apiKey.findMany({
     where: seeAll ? {} : { userId: me.id },
     orderBy: { createdAt: "desc" },

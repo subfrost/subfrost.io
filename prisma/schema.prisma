@@ -228,30 +228,9 @@ enum Role {
 // Fine-grained capabilities. A user's effective privileges are the union of the
 // default bundle for their Role (see lib/cms/privileges.ts) plus any extra
 // grants stored in User.privileges. API-key scopes are a subset of these.
-enum Privilege {
-  WRITE_ARTICLES // create + edit own drafts
-  EDIT_ANY_ARTICLE // edit/delete any article regardless of author
-  PUBLISH_ARTICLES // publish/unpublish + feature on homepage
-  EDIT_BIO // maintain public author profile (bio/avatar/twitter) — "editor privilege"
-  MANAGE_API_KEYS // mint/revoke own API keys
-  MANAGE_USERS // tombstone legado → USERS_VIEW + USERS_EDIT
-  MANAGE_ROLES // assign roles and privilege grants to others
-  VIEW_AUDIT // read the audit log
-  MANAGE_REFERRAL_CODES // tombstone legado → REFERRAL_VIEW + REFERRAL_EDIT
-  MANAGE_FUEL // tombstone legado → FUEL_VIEW + FUEL_EDIT
-  MANAGE_AML // tombstone legado → AML_VIEW + AML_EDIT
-  MANAGE_BILLING // tombstone legado → BILLING_VIEW + BILLING_EDIT
-  USERS_VIEW
-  USERS_EDIT
-  REFERRAL_VIEW
-  REFERRAL_EDIT
-  FUEL_VIEW
-  FUEL_EDIT
-  AML_VIEW
-  AML_EDIT
-  BILLING_VIEW
-  BILLING_EDIT
-}
+// Privileges are namespaced `domain.action` string codes managed by the IAM
+// registry in lib/cms/iam/registry.ts (not a Postgres enum — the registry is the
+// single source of truth, with a dependency graph and English descriptions).
 
 // Token kinds for emailed, single-use links (Resend-delivered).
 enum TokenPurpose {
@@ -281,7 +260,7 @@ model User {
   role           Role        @default(AUTHOR)
   active         Boolean     @default(true)
   // Extra capability grants beyond the role's default bundle.
-  privileges     Privilege[] @default([])
+  privileges     String[]    @default([])
   // Public author profile
   avatarUrl      String? // GCS URL
   bio            String?
@@ -453,7 +432,7 @@ model ApiKey {
   prefix     String // first 8 chars, shown in UI for identification
   // Capability scopes for this key — always a subset of the owner's effective
   // privileges at mint time. The verifier caps the key's authority to this set.
-  scopes     Privilege[] @default([])
+  scopes     String[]    @default([])
   createdBy  User        @relation(fields: [userId], references: [id])
   userId     String
   lastUsedAt DateTime?

@@ -25,7 +25,7 @@ describe("admin nav", () => {
     const billing = NAV_GROUPS.find((g) => g.key === "billing")!
     const item = billing.items.find((i) => i.href === "/admin/billing/onramp")
     expect(item).toBeTruthy()
-    expect(item!.privilege).toBe("BILLING_VIEW")
+    expect(item!.privilege).toBe("billing.read")
   })
 })
 

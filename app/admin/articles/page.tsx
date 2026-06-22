@@ -18,7 +18,7 @@ export default async function ArticlesList() {
   const user = await currentUser()
   if (!user) redirect("/admin/login")
   // Any signed-in user sees their own articles; editors/admins see all.
-  const canSeeAll = user.privileges.includes("EDIT_ANY_ARTICLE")
+  const canSeeAll = user.privileges.includes("articles.edit_any")
 
   const articles = await prisma.article.findMany({
     where: canSeeAll ? {} : { authorId: user.id },

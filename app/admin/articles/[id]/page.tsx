@@ -18,7 +18,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   })
   if (!article) notFound()
 
-  const canPublish = user.privileges.includes("PUBLISH_ARTICLES")
+  const canPublish = user.privileges.includes("articles.publish")
   if (!canPublish && article.authorId !== user.id) redirect("/admin/articles")
 
   const tr = (loc: "en" | "zh") => {

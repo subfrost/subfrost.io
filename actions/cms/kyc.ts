@@ -32,13 +32,13 @@ async function actor(
 export async function listIntakesAction(): Promise<
   { ok: true; intakes: KycIntakeRow[] } | { ok: false; error: string }
 > {
-  const a = await actor("AML_VIEW")
+  const a = await actor("aml.read")
   if (!a.ok) return a
   return { ok: true, intakes: await listIntakes() }
 }
 
 export async function rescreenOfacAction(): Promise<{ ok: true; screened: number } | { ok: false; error: string }> {
-  const a = await actor("AML_EDIT")
+  const a = await actor("aml.edit")
   if (!a.ok) return a
   const { screened } = await rescreenOfac()
   await audit("ofac_rescreen", { actorId: a.me.id, target: `${screened} intakes`, ip: await ip() })
@@ -51,7 +51,7 @@ export async function recordDispositionAction(
   decision: KycDecision,
   notes: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("AML_EDIT")
+  const a = await actor("aml.edit")
   if (!a.ok) return a
   try {
     const { customerName } = await recordDisposition(intakeId, decision, notes, a.me.email)
@@ -67,7 +67,7 @@ export async function recordDispositionAction(
 export async function syncStripeIdentityAction(): Promise<
   { ok: true; created: number; updated: number; skipped: number } | { ok: false; error: string }
 > {
-  const a = await actor("AML_EDIT")
+  const a = await actor("aml.edit")
   if (!a.ok) return a
   const { created, updated, skipped } = await syncStripeIdentity()
   await audit("kyc_identity_sync", { actorId: a.me.id, target: `${created} new, ${updated} updated`, ip: await ip() })

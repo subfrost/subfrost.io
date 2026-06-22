@@ -1,5 +1,6 @@
 "use server"
 
+import crypto from "crypto"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { z } from "zod"
@@ -14,7 +15,18 @@ import {
   type Role,
 } from "@/lib/cms/privileges"
 import { revokeAllUserSessions } from "@/lib/cms/session-store"
+import { sendEmail, onboardingEmail } from "@/lib/cms/email"
 import { audit } from "@/lib/cms/audit"
+
+/** Readable, strong temporary password (no ambiguous chars): XXXX-XXXX-XXXX. */
+function genTempPassword(): string {
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  const group = () =>
+    Array.from(crypto.randomBytes(4))
+      .map((b) => A[b % A.length])
+      .join("")
+  return `${group()}-${group()}-${group()}`
+}
 
 export type UserActionResult = { ok: true } | { ok: false; error: string }
 
@@ -72,7 +84,7 @@ const createSchema = z.object({
 })
 
 export async function createUser(input: z.input<typeof createSchema>): Promise<UserActionResult> {
-  const a = await actor("USERS_EDIT")
+  const a = await actor("iam.create_user")
   if (!a.ok) return a
   const me = a.me
   const parsed = createSchema.safeParse(input)
@@ -104,6 +116,62 @@ export async function createUser(input: z.input<typeof createSchema>): Promise<U
   return { ok: true }
 }
 
+const provisionSchema = z.object({
+  email: z.string().email(),
+  name: z.string().max(120).optional().default(""),
+  role: z.enum(ROLES).default("STAFF"),
+  privileges: z.array(privilegeEnum).optional().default([]),
+  emailOnboarding: z.boolean().optional().default(false),
+})
+
+export type ProvisionResult =
+  | { ok: true; tempPassword: string; emailed: boolean }
+  | { ok: false; error: string }
+
+/** GSuite-style provisioning: create a user with a generated temporary password
+ *  (returned to the admin to share) and optionally email them an onboarding link
+ *  carrying that password. Requires iam.create_user. */
+export async function provisionUser(input: z.input<typeof provisionSchema>): Promise<ProvisionResult> {
+  const a = await actor("iam.create_user")
+  if (!a.ok) return a
+  const me = a.me
+  const parsed = provisionSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  const { email, name, role, privileges, emailOnboarding } = parsed.data
+
+  if (!canManageRole(me.role, role)) {
+    return { ok: false, error: "You cannot create a user at or above your own role" }
+  }
+  const ungrantable = privileges.filter((p) => !me.privileges.includes(p))
+  if (ungrantable.length) {
+    return { ok: false, error: `You cannot grant privileges you lack: ${ungrantable.join(", ")}` }
+  }
+  if (await prisma.user.findUnique({ where: { email: email.toLowerCase() } })) {
+    return { ok: false, error: "A user with that email already exists" }
+  }
+
+  const tempPassword = genTempPassword()
+  const u = await prisma.user.create({
+    data: {
+      email: email.toLowerCase(),
+      name: name || null,
+      passwordHash: await bcrypt.hash(tempPassword, 12),
+      role,
+      privileges,
+    },
+  })
+
+  let emailed = false
+  if (emailOnboarding) {
+    const tpl = onboardingEmail(u.name, tempPassword)
+    const sent = await sendEmail({ to: u.email, subject: tpl.subject, html: tpl.html })
+    emailed = sent.ok && !sent.skipped
+  }
+  await audit("create_user", { actorId: me.id, target: u.email, details: { role, privileges, emailed }, ip: await ip() })
+  revalidatePath("/admin/users")
+  return { ok: true, tempPassword, emailed }
+}
+
 const updateSchema = z.object({
   name: z.string().max(120).nullable().optional(),
   role: z.enum(ROLES).optional(),
@@ -117,7 +185,7 @@ export async function updateUser(
   userId: string,
   input: z.input<typeof updateSchema>,
 ): Promise<UserActionResult> {
-  const a = await actor("USERS_EDIT")
+  const a = await actor("iam.modify_user")
   if (!a.ok) return a
   const me = a.me
   const parsed = updateSchema.safeParse(input)
@@ -127,8 +195,8 @@ export async function updateUser(
   const { name, role, privileges, active } = parsed.data
 
   const changesRolePriv = role !== undefined || privileges !== undefined
-  if (changesRolePriv && !me.privileges.includes("MANAGE_ROLES")) {
-    return { ok: false, error: "Changing roles or privileges requires MANAGE_ROLES" }
+  if (changesRolePriv && !me.privileges.includes("iam.manage_roles")) {
+    return { ok: false, error: "Changing roles or privileges requires iam.manage_roles" }
   }
   if (role !== undefined && !canManageRole(me.role, role)) {
     return { ok: false, error: "You cannot assign a role at or above your own" }
@@ -173,7 +241,7 @@ export async function setUserPrivileges(userId: string, privileges: Privilege[])
 }
 
 export async function resetPassword(userId: string, password: string): Promise<UserActionResult> {
-  const a = await actor("USERS_EDIT")
+  const a = await actor("iam.modify_user")
   if (!a.ok) return a
   const me = a.me
   if (password.length < 8) return { ok: false, error: "Password must be at least 8 characters" }
@@ -191,7 +259,7 @@ export async function resetPassword(userId: string, password: string): Promise<U
 
 /** Hard-delete a user when safe; otherwise instruct the admin to reassign/deactivate. */
 export async function deleteUser(userId: string): Promise<UserActionResult> {
-  const a = await actor("USERS_EDIT")
+  const a = await actor("iam.delete_user")
   if (!a.ok) return a
   const me = a.me
   const m = await manageable(me, userId)
@@ -238,7 +306,7 @@ export async function updateProfile(
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
   const isSelf = me.id === userId
-  if (!isSelf && !me.privileges.includes("USERS_EDIT")) {
+  if (!isSelf && !me.privileges.includes("iam.modify_user")) {
     return { ok: false, error: "Not allowed" }
   }
   const parsed = profileSchema.safeParse(input)
@@ -248,7 +316,7 @@ export async function updateProfile(
   // Public byline fields are gated behind the editor capability.
   const wantsByline =
     d.bio !== undefined || d.twitter !== undefined || d.avatarUrl !== undefined
-  const canByline = me.privileges.includes("EDIT_BIO") || me.privileges.includes("USERS_EDIT")
+  const canByline = me.privileges.includes("articles.edit_bio") || me.privileges.includes("iam.modify_user")
   if (wantsByline && !canByline) {
     return { ok: false, error: "Editing your public profile requires editor privileges" }
   }
