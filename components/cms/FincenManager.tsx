@@ -61,7 +61,7 @@ interface FincenData {
   submissions: SubmissionRow[]
 }
 
-export function FincenManager() {
+export function FincenManager({ canEdit }: { canEdit: boolean }) {
   const [data, setData] = useState<FincenData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -237,9 +237,11 @@ export function FincenManager() {
           {active === "form107" && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={loadForm107Defaults}>
-                  {data?.form107 ? "Load saved draft" : "Load defaults"}
-                </Button>
+                {canEdit && (
+                  <Button size="sm" variant="ghost" onClick={loadForm107Defaults}>
+                    {data?.form107 ? "Load saved draft" : "Load defaults"}
+                  </Button>
+                )}
                 {data?.form107 && (
                   <span className="text-xs text-zinc-500">
                     Last saved {new Date(data.form107.updatedAt).toLocaleString()} by{" "}
@@ -247,25 +249,34 @@ export function FincenManager() {
                   </span>
                 )}
               </div>
-              <textarea
-                value={form107Json}
-                onChange={(e) => setForm107Json(e.target.value)}
-                placeholder="Click 'Load defaults' to seed the Form 107 JSON…"
-                className="w-full min-h-[20rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                spellCheck={false}
-              />
-              {form107ParseErr && (
-                <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
-                  {form107ParseErr}
+              {canEdit && (
+                <>
+                  <textarea
+                    value={form107Json}
+                    onChange={(e) => setForm107Json(e.target.value)}
+                    placeholder="Click 'Load defaults' to seed the Form 107 JSON…"
+                    className="w-full min-h-[20rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                    spellCheck={false}
+                  />
+                  {form107ParseErr && (
+                    <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
+                      {form107ParseErr}
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    disabled={form107Saving || !form107Json.trim()}
+                    onClick={handleSaveForm107}
+                  >
+                    {form107Saving ? "Saving…" : "Save draft"}
+                  </Button>
+                </>
+              )}
+              {!canEdit && !data?.form107 && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center text-zinc-500">
+                  No Form 107 draft saved yet.
                 </div>
               )}
-              <Button
-                size="sm"
-                disabled={form107Saving || !form107Json.trim()}
-                onClick={handleSaveForm107}
-              >
-                {form107Saving ? "Saving…" : "Save draft"}
-              </Button>
             </div>
           )}
 
@@ -296,55 +307,59 @@ export function FincenManager() {
                             Updated {new Date(row.updatedAt).toLocaleString()} · {row.updatedBy}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={queuePending}
-                          onClick={() => handleQueue(row.id)}
-                        >
-                          Queue submission
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={queuePending}
+                            onClick={() => handleQueue(row.id)}
+                          >
+                            Queue submission
+                          </Button>
+                        )}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
 
-              {showNewSar ? (
-                <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                  <div className="text-sm font-medium text-zinc-300">New SAR</div>
-                  <textarea
-                    value={sarJson}
-                    onChange={(e) => setSarJson(e.target.value)}
-                    className="w-full min-h-[16rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                    spellCheck={false}
-                  />
-                  {sarParseErr && (
-                    <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
-                      {sarParseErr}
+              {canEdit && (
+                showNewSar ? (
+                  <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                    <div className="text-sm font-medium text-zinc-300">New SAR</div>
+                    <textarea
+                      value={sarJson}
+                      onChange={(e) => setSarJson(e.target.value)}
+                      className="w-full min-h-[16rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                      spellCheck={false}
+                    />
+                    {sarParseErr && (
+                      <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
+                        {sarParseErr}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" disabled={sarPending} onClick={handleCreateSar}>
+                        {sarPending ? "Creating…" : "Create"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowNewSar(false)
+                          setSarJson(SAR_TEMPLATE)
+                          setSarParseErr(null)
+                        }}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" disabled={sarPending} onClick={handleCreateSar}>
-                      {sarPending ? "Creating…" : "Create"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowNewSar(false)
-                        setSarJson(SAR_TEMPLATE)
-                        setSarParseErr(null)
-                      }}
-                    >
-                      Cancel
-                    </Button>
                   </div>
-                </div>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setShowNewSar(true)}>
-                  + New SAR
-                </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setShowNewSar(true)}>
+                    + New SAR
+                  </Button>
+                )
               )}
             </div>
           )}
@@ -373,55 +388,59 @@ export function FincenManager() {
                             Updated {new Date(row.updatedAt).toLocaleString()} · {row.updatedBy}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={queuePending}
-                          onClick={() => handleQueue(row.id)}
-                        >
-                          Queue submission
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={queuePending}
+                            onClick={() => handleQueue(row.id)}
+                          >
+                            Queue submission
+                          </Button>
+                        )}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
 
-              {showNewCtr ? (
-                <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                  <div className="text-sm font-medium text-zinc-300">New CTR</div>
-                  <textarea
-                    value={ctrJson}
-                    onChange={(e) => setCtrJson(e.target.value)}
-                    className="w-full min-h-[16rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                    spellCheck={false}
-                  />
-                  {ctrParseErr && (
-                    <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
-                      {ctrParseErr}
+              {canEdit && (
+                showNewCtr ? (
+                  <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                    <div className="text-sm font-medium text-zinc-300">New CTR</div>
+                    <textarea
+                      value={ctrJson}
+                      onChange={(e) => setCtrJson(e.target.value)}
+                      className="w-full min-h-[16rem] rounded-lg border border-zinc-700 bg-zinc-900 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                      spellCheck={false}
+                    />
+                    {ctrParseErr && (
+                      <div className="rounded-md bg-red-950/40 p-2 text-xs text-red-300">
+                        {ctrParseErr}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" disabled={ctrPending} onClick={handleCreateCtr}>
+                        {ctrPending ? "Creating…" : "Create"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowNewCtr(false)
+                          setCtrJson(CTR_TEMPLATE)
+                          setCtrParseErr(null)
+                        }}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" disabled={ctrPending} onClick={handleCreateCtr}>
-                      {ctrPending ? "Creating…" : "Create"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowNewCtr(false)
-                        setCtrJson(CTR_TEMPLATE)
-                        setCtrParseErr(null)
-                      }}
-                    >
-                      Cancel
-                    </Button>
                   </div>
-                </div>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setShowNewCtr(true)}>
-                  + New CTR
-                </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setShowNewCtr(true)}>
+                    + New CTR
+                  </Button>
+                )
               )}
             </div>
           )}

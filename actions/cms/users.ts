@@ -18,7 +18,7 @@ import { audit } from "@/lib/cms/audit"
 
 export type UserActionResult = { ok: true } | { ok: false; error: string }
 
-const ROLES = ["ADMIN", "EDITOR", "AUTHOR"] as const
+const ROLES = ["ADMIN", "EDITOR", "AUTHOR", "STAFF"] as const
 const privilegeEnum = z.enum(ALL_PRIVILEGES as [Privilege, ...Privilege[]])
 
 async function ip(): Promise<string | null> {
@@ -38,7 +38,9 @@ async function actor(
 
 type ManageableTarget = Awaited<ReturnType<typeof prisma.user.findUnique>>
 
-/** Load a target the actor is allowed to manage (must strictly outrank, not self). */
+/** Load a target the actor is allowed to manage (must strictly outrank, not self).
+ *  Exception: ADMIN may manage peer ADMINs to enable trimming (anti-lockout guard is
+ *  applied separately in updateUser/deleteUser). */
 async function manageable(
   me: CmsUser,
   userId: string,
@@ -46,10 +48,19 @@ async function manageable(
   if (userId === me.id) return { ok: false, error: "Use your own profile for self-service changes" }
   const target = await prisma.user.findUnique({ where: { id: userId } })
   if (!target) return { ok: false, error: "User not found" }
-  if (!canManageRole(me.role, target.role as Role)) {
+  // ADMIN (top role) may manage peer ADMINs for trim; all other roles use strict rank.
+  const allowed = me.role === "ADMIN" || canManageRole(me.role, target.role as Role)
+  if (!allowed) {
     return { ok: false, error: "You cannot manage a user at or above your role" }
   }
   return { ok: true, target }
+}
+
+/** True if the target is an ADMIN and is the only remaining active ADMIN. */
+async function isLastActiveAdmin(target: { id: string; role: string; active?: boolean }): Promise<boolean> {
+  if (target.role !== "ADMIN") return false
+  const count = await prisma.user.count({ where: { role: "ADMIN", active: true } })
+  return count <= 1
 }
 
 const createSchema = z.object({
@@ -61,7 +72,7 @@ const createSchema = z.object({
 })
 
 export async function createUser(input: z.input<typeof createSchema>): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const parsed = createSchema.safeParse(input)
@@ -106,7 +117,7 @@ export async function updateUser(
   userId: string,
   input: z.input<typeof updateSchema>,
 ): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const parsed = updateSchema.safeParse(input)
@@ -127,6 +138,12 @@ export async function updateUser(
     if (ungrantable.length) {
       return { ok: false, error: `You cannot grant privileges you lack: ${ungrantable.join(", ")}` }
     }
+  }
+
+  const demoting = role !== undefined && role !== "ADMIN" && (m.target.role as Role) === "ADMIN"
+  const deactivating = active === false && (m.target.role as Role) === "ADMIN"
+  if ((demoting || deactivating) && (await isLastActiveAdmin(m.target))) {
+    return { ok: false, error: "Cannot remove the last active admin" }
   }
 
   const data: Prisma.UserUpdateInput = {}
@@ -156,7 +173,7 @@ export async function setUserPrivileges(userId: string, privileges: Privilege[])
 }
 
 export async function resetPassword(userId: string, password: string): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   if (password.length < 8) return { ok: false, error: "Password must be at least 8 characters" }
@@ -174,11 +191,15 @@ export async function resetPassword(userId: string, password: string): Promise<U
 
 /** Hard-delete a user when safe; otherwise instruct the admin to reassign/deactivate. */
 export async function deleteUser(userId: string): Promise<UserActionResult> {
-  const a = await actor("MANAGE_USERS")
+  const a = await actor("USERS_EDIT")
   if (!a.ok) return a
   const me = a.me
   const m = await manageable(me, userId)
   if (!m.ok) return m
+
+  if (await isLastActiveAdmin(m.target)) {
+    return { ok: false, error: "Cannot delete the last active admin" }
+  }
 
   const articleCount = await prisma.article.count({ where: { authorId: userId } })
   if (articleCount > 0) {
@@ -217,7 +238,7 @@ export async function updateProfile(
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
   const isSelf = me.id === userId
-  if (!isSelf && !me.privileges.includes("MANAGE_USERS")) {
+  if (!isSelf && !me.privileges.includes("USERS_EDIT")) {
     return { ok: false, error: "Not allowed" }
   }
   const parsed = profileSchema.safeParse(input)
@@ -227,7 +248,7 @@ export async function updateProfile(
   // Public byline fields are gated behind the editor capability.
   const wantsByline =
     d.bio !== undefined || d.twitter !== undefined || d.avatarUrl !== undefined
-  const canByline = me.privileges.includes("EDIT_BIO") || me.privileges.includes("MANAGE_USERS")
+  const canByline = me.privileges.includes("EDIT_BIO") || me.privileges.includes("USERS_EDIT")
   if (wantsByline && !canByline) {
     return { ok: false, error: "Editing your public profile requires editor privileges" }
   }

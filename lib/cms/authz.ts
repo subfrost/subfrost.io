@@ -4,6 +4,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
 import { validateAndTouchSession } from "@/lib/cms/session-store"
 import {
   effectivePrivileges,
+  roleRank,
   type Privilege,
   type Role,
 } from "@/lib/cms/privileges"
@@ -75,17 +76,15 @@ export function userHasPrivilege(user: CmsUser, required: Privilege): boolean {
 
 // --- Role helpers (retained for back-compat with existing call sites) ---
 
-const RANK: Record<Role, number> = { AUTHOR: 1, EDITOR: 2, ADMIN: 3 }
-
 export async function requireRole(min: Role): Promise<CmsUser> {
   const user = await currentUser()
   if (!user) throw new AuthzError(401, "Not authenticated")
-  if (RANK[user.role] < RANK[min]) throw new AuthzError(403, "Insufficient role")
+  if (roleRank(user.role) < roleRank(min)) throw new AuthzError(403, "Insufficient role")
   return user
 }
 
 export function hasRole(role: Role, min: Role) {
-  return RANK[role] >= RANK[min]
+  return roleRank(role) >= roleRank(min)
 }
 
 export class AuthzError extends Error {

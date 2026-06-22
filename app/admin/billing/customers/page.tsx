@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic"
 export default async function CustomersPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_BILLING")) redirect("/admin")
+  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
+  const canEdit = me.privileges.includes("BILLING_EDIT")
 
   return (
     <div>
@@ -19,7 +20,7 @@ export default async function CustomersPage() {
         confirmation.
       </p>
       <BillingBanner live={isLive()} />
-      <CustomersManager />
+      <CustomersManager canEdit={canEdit} />
     </div>
   )
 }

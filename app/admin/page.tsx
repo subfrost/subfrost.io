@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { format } from "date-fns"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
+import { firstNonArticleLeaf } from "@/lib/cms/admin-nav"
 import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
@@ -21,6 +22,12 @@ export default async function AdminDashboard() {
   // revoked session) lands here with no user. Redirect to login instead of
   // dereferencing null — matches the guard every other /admin page already has.
   if (!user) redirect("/admin/login")
+  const hasArticles =
+    user.privileges.includes("WRITE_ARTICLES") || user.privileges.includes("EDIT_ANY_ARTICLE")
+  if (!hasArticles) {
+    const dest = firstNonArticleLeaf(user.privileges)
+    if (dest) redirect(dest)
+  }
   const canSeeAll = user.privileges.includes("EDIT_ANY_ARTICLE")
 
   const articles = await prisma.article.findMany({

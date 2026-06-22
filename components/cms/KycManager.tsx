@@ -22,7 +22,7 @@ function Badge({ label, cls }: { label: string; cls: string }) {
   return <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
 }
 
-export function KycManager() {
+export function KycManager({ canEdit }: { canEdit: boolean }) {
   const [rows, setRows] = useState<KycIntakeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -77,43 +77,47 @@ export function KycManager() {
           className="max-w-md flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
         />
         <span className="text-xs text-zinc-500">{visible.length} intake(s)</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              setNotice(null)
-              const res = await syncStripeIdentityAction()
-              if (res.ok) {
-                setNotice(`Synced from Stripe Identity: ${res.created} new, ${res.updated} updated`)
-                fetchRows()
-              } else {
-                setError(res.error)
-              }
-            })
-          }
-        >
-          Sync from Stripe Identity
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              setNotice(null)
-              const res = await rescreenOfacAction()
-              if (res.ok) {
-                setNotice(`Rescreened ${res.screened} intakes — no live provider yet`)
-              } else {
-                setError(res.error)
-              }
-            })
-          }
-        >
-          Run OFAC rescreen
-        </Button>
+        {canEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setNotice(null)
+                const res = await syncStripeIdentityAction()
+                if (res.ok) {
+                  setNotice(`Synced from Stripe Identity: ${res.created} new, ${res.updated} updated`)
+                  fetchRows()
+                } else {
+                  setError(res.error)
+                }
+              })
+            }
+          >
+            Sync from Stripe Identity
+          </Button>
+        )}
+        {canEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setNotice(null)
+                const res = await rescreenOfacAction()
+                if (res.ok) {
+                  setNotice(`Rescreened ${res.screened} intakes — no live provider yet`)
+                } else {
+                  setError(res.error)
+                }
+              })
+            }
+          >
+            Run OFAC rescreen
+          </Button>
+        )}
       </div>
 
       {notice && (
@@ -186,19 +190,21 @@ export function KycManager() {
                 </div>
               )}
 
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Input
-                  value={notesById[r.id] ?? ""}
-                  onChange={(e) => setNotesById((p) => ({ ...p, [r.id]: e.target.value }))}
-                  placeholder="Disposition note (optional)…"
-                  className="flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" disabled={pending} onClick={() => disposition(r.id, "APPROVE")}>Approve</Button>
-                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => disposition(r.id, "REVIEW")}>Review</Button>
-                  <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => disposition(r.id, "REJECT")}>Reject</Button>
+              {canEdit && (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    value={notesById[r.id] ?? ""}
+                    onChange={(e) => setNotesById((p) => ({ ...p, [r.id]: e.target.value }))}
+                    placeholder="Disposition note (optional)…"
+                    className="flex-1 border-zinc-700 bg-zinc-900 text-zinc-100"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" disabled={pending} onClick={() => disposition(r.id, "APPROVE")}>Approve</Button>
+                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => disposition(r.id, "REVIEW")}>Review</Button>
+                    <Button size="sm" variant="ghost" disabled={pending} className="text-red-400 hover:text-red-300" onClick={() => disposition(r.id, "REJECT")}>Reject</Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </li>
           ))}
         </ul>

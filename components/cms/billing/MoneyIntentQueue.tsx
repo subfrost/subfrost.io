@@ -11,6 +11,7 @@ interface MoneyIntentQueueProps {
   onConfirm: (id: string) => void
   onCancel: (id: string) => void
   error?: string | null
+  canEdit?: boolean
 }
 
 function statusBadgeClass(status: string): string {
@@ -22,7 +23,7 @@ function statusBadgeClass(status: string): string {
 }
 
 
-export function MoneyIntentQueue({ intents, pending, onConfirm, onCancel, error }: MoneyIntentQueueProps) {
+export function MoneyIntentQueue({ intents, pending, onConfirm, onCancel, error, canEdit = true }: MoneyIntentQueueProps) {
   const statusLabel = (status: string): string =>
     (MONEY_INTENT_STATUS_LABELS as Record<string, string>)[status] ?? status
 
@@ -76,7 +77,7 @@ export function MoneyIntentQueue({ intents, pending, onConfirm, onCancel, error 
                 </span>
               </div>
 
-              {intent.status === "QUEUED" && (
+              {intent.status === "QUEUED" && canEdit && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button size="sm" disabled={pending} onClick={() => onConfirm(intent.id)}>
                     Confirm

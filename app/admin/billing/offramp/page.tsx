@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 export default async function OfframpPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_BILLING")) redirect("/admin")
+  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
 
   return (
     <div>

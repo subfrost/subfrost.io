@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function KycPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_AML")) redirect("/admin")
+  if (!me.privileges.includes("AML_VIEW")) redirect("/admin")
+  const canEdit = me.privileges.includes("AML_EDIT")
 
   return (
     <div>
@@ -16,7 +17,7 @@ export default async function KycPage() {
         Customer identity intakes awaiting disposition. Decisions are recorded with your email and
         kept as an append-only history.
       </p>
-      <KycManager />
+      <KycManager canEdit={canEdit} />
     </div>
   )
 }

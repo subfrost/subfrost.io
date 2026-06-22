@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 export default async function UsersPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_USERS")) redirect("/admin")
+  if (!me.privileges.includes("USERS_VIEW")) redirect("/admin")
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
@@ -39,6 +39,7 @@ export default async function UsersPage() {
         myRole={me.role}
         myPrivileges={me.privileges}
         assignableRoles={assignableRoles(me.role)}
+        canEdit={me.privileges.includes("USERS_EDIT")}
         canManageRoles={me.privileges.includes("MANAGE_ROLES")}
       />
     </div>

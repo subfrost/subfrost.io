@@ -9,8 +9,8 @@ describe("visibleNav", () => {
     expect(groups[0].items.map((i) => i.href)).toEqual(["/admin", "/admin/articles/new"])
   })
 
-  it("shows Articles + Compliance (3 items) for a MANAGE_AML-only user", () => {
-    const groups = visibleNav(["MANAGE_AML"])
+  it("shows Articles + Compliance (3 items) for an AML_VIEW-only user", () => {
+    const groups = visibleNav(["AML_VIEW"])
     expect(groups.map((g) => g.key)).toEqual(["articles", "compliance"])
     const compliance = groups.find((g) => g.key === "compliance")!
     expect(compliance.items.map((i) => i.href)).toEqual([
@@ -27,7 +27,7 @@ describe("visibleNav", () => {
   })
 
   it("never returns a group with zero items", () => {
-    for (const g of visibleNav(["MANAGE_FUEL"])) {
+    for (const g of visibleNav(["FUEL_VIEW"])) {
       expect(g.items.length).toBeGreaterThan(0)
     }
   })

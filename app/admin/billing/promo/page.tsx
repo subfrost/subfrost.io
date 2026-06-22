@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic"
 export default async function PromoPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_BILLING")) redirect("/admin")
+  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
+  const canEdit = me.privileges.includes("BILLING_EDIT")
 
   return (
     <div>
@@ -18,7 +19,7 @@ export default async function PromoPage() {
         Coupons and promotion codes.
       </p>
       <BillingBanner live={isLive()} />
-      <PromoManager />
+      <PromoManager canEdit={canEdit} />
     </div>
   )
 }

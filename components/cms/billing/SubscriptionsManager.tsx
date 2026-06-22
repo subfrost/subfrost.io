@@ -6,7 +6,7 @@ import { listTiersAction, listSubscribersAction, changeSubscriptionAction } from
 import { SUBSCRIPTION_ACTIONS, SUBSCRIPTION_ACTION_LABELS } from "@/lib/stripe/shapes"
 import type { SubscriptionTier, Subscriber } from "@/lib/stripe/shapes"
 
-export function SubscriptionsManager() {
+export function SubscriptionsManager({ canEdit }: { canEdit: boolean }) {
   const [tiers, setTiers] = useState<SubscriptionTier[]>([])
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
   const [loading, setLoading] = useState(true)
@@ -153,25 +153,27 @@ export function SubscriptionsManager() {
                     <span>Renews: {sub.renewsAt ? new Date(sub.renewsAt).toLocaleString() : "—"}</span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {sub.status !== "canceled" && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleAction(sub.id, "cancel")}
-                      >
-                        {SUBSCRIPTION_ACTION_LABELS.cancel}
-                      </Button>
-                    )}
-                    {sub.status === "canceled" && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleAction(sub.id, "resume")}
-                      >
-                        {SUBSCRIPTION_ACTION_LABELS.resume}
-                      </Button>
-                    )}
-                  </div>
+                  {canEdit && (
+                    <div className="flex flex-wrap gap-2">
+                      {sub.status !== "canceled" && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleAction(sub.id, "cancel")}
+                        >
+                          {SUBSCRIPTION_ACTION_LABELS.cancel}
+                        </Button>
+                      )}
+                      {sub.status === "canceled" && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction(sub.id, "resume")}
+                        >
+                          {SUBSCRIPTION_ACTION_LABELS.resume}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </li>
               )
             })}

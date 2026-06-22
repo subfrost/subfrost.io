@@ -5,11 +5,12 @@ const pathnameMock = vi.fn(() => "/admin/kyc")
 vi.mock("next/navigation", () => ({ usePathname: () => pathnameMock() }))
 
 import { AdminNav } from "@/components/cms/AdminNav"
+import { ALL_PRIVILEGES } from "@/lib/cms/privileges"
 
-const ALL = [
-  "MANAGE_FUEL", "MANAGE_REFERRAL_CODES", "MANAGE_AML",
-  "MANAGE_BILLING", "MANAGE_USERS", "MANAGE_API_KEYS", "VIEW_AUDIT",
-]
+// Every active privilege → every nav group visible. Sourced from the canonical
+// list so the test stays in sync as the privilege model evolves (e.g. the
+// MANAGE_* → X_VIEW split).
+const ALL = [...ALL_PRIVILEGES]
 
 beforeEach(() => {
   cleanup()

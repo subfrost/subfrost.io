@@ -25,7 +25,7 @@ describe("KycManager", () => {
   it("shows a Sync from Stripe Identity button and runs the sync", async () => {
     vi.mocked(listIntakesAction).mockResolvedValue({ ok: true, intakes: [row] } as never)
     vi.mocked(syncStripeIdentityAction).mockResolvedValue({ ok: true, created: 1, updated: 0, skipped: 0 } as never)
-    render(<KycManager />)
+    render(<KycManager canEdit={true} />)
     const btn = await screen.findByRole("button", { name: /sync from stripe identity/i })
     fireEvent.click(btn)
     await waitFor(() => expect(syncStripeIdentityAction).toHaveBeenCalled())
@@ -33,7 +33,7 @@ describe("KycManager", () => {
 
   it("reveals the Stripe verdict + extracted fields when a row is expanded", async () => {
     vi.mocked(listIntakesAction).mockResolvedValue({ ok: true, intakes: [row] } as never)
-    render(<KycManager />)
+    render(<KycManager canEdit={true} />)
     const toggle = await screen.findByRole("button", { name: /details/i })
     fireEvent.click(toggle)
     expect(await screen.findByText(/verified/i)).toBeInTheDocument()

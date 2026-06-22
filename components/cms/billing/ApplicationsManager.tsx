@@ -24,7 +24,7 @@ function toCardState(r: ApplicationRow): CardState {
   return { status: r.status, notes: r.notes ?? "" }
 }
 
-export function ApplicationsManager() {
+export function ApplicationsManager({ canEdit }: { canEdit: boolean }) {
   const [rowsByProduct, setRowsByProduct] = useState<Record<string, ApplicationRow>>({})
   const [drafts, setDrafts] = useState<Record<string, CardState>>(
     Object.fromEntries(STRIPE_APPLICATION_PRODUCTS.map((p) => [p, defaultCardState()])),
@@ -130,32 +130,34 @@ export function ApplicationsManager() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Status</label>
-                  <select
-                    value={draft.status}
-                    onChange={(e) => setField(product, "status", e.target.value)}
-                    className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                  >
-                    {STRIPE_APPLICATION_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {STRIPE_APPLICATION_STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {canEdit && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Status</label>
+                    <select
+                      value={draft.status}
+                      onChange={(e) => setField(product, "status", e.target.value)}
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                    >
+                      {STRIPE_APPLICATION_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {STRIPE_APPLICATION_STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-500">Notes</label>
-                  <Input
-                    value={draft.notes}
-                    onChange={(e) => setField(product, "notes", e.target.value)}
-                    placeholder="Internal notes…"
-                    className="border-zinc-700 bg-zinc-900 text-zinc-100"
-                  />
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Notes</label>
+                    <Input
+                      value={draft.notes}
+                      onChange={(e) => setField(product, "notes", e.target.value)}
+                      placeholder="Internal notes…"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-100"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {row && (
                 <p className="mt-2 text-xs text-zinc-600">
@@ -164,11 +166,13 @@ export function ApplicationsManager() {
                 </p>
               )}
 
-              <div className="mt-3 flex justify-end">
-                <Button size="sm" disabled={pending} onClick={() => handleSave(product)}>
-                  Save
-                </Button>
-              </div>
+              {canEdit && (
+                <div className="mt-3 flex justify-end">
+                  <Button size="sm" disabled={pending} onClick={() => handleSave(product)}>
+                    Save
+                  </Button>
+                </div>
+              )}
             </li>
           )
         })}

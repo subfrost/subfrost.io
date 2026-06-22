@@ -53,6 +53,7 @@ export function UsersManager({
   myRole,
   myPrivileges,
   assignableRoles,
+  canEdit,
   canManageRoles,
 }: {
   users: UserRow[]
@@ -60,6 +61,7 @@ export function UsersManager({
   myRole: Role
   myPrivileges: Privilege[]
   assignableRoles: Role[]
+  canEdit: boolean
   canManageRoles: boolean
 }) {
   const router = useRouter()
@@ -94,41 +96,43 @@ export function UsersManager({
 
   return (
     <div className="space-y-8">
-      <form onSubmit={onCreate} className="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 sm:grid-cols-2">
-        <div className="sm:col-span-2 text-sm font-medium text-zinc-300">Add user</div>
-        <div className="space-y-1.5"><Label className="text-zinc-300">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} /></div>
-        <div className="space-y-1.5"><Label className="text-zinc-300">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
-        <div className="space-y-1.5">
-          <Label className="text-zinc-300">{invite ? "Password" : "Temporary password"}</Label>
-          {invite
-            ? <div className="flex h-10 items-center text-xs text-zinc-500">Set via emailed invite link</div>
-            : <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} />}
-        </div>
-        <div className="space-y-1.5"><Label className="text-zinc-300">Role</Label>
-          <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={selectCls}>
-            {assignableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-        {canManageRoles && grantable.length > 0 && (
-          <div className="sm:col-span-2 space-y-2">
-            <Label className="text-zinc-300">Extra privileges (beyond role defaults)</Label>
-            <PrivilegeChecklist
-              role={role}
-              grantable={grantable}
-              value={newGrants}
-              onChange={setNewGrants}
-            />
+      {canEdit && (
+        <form onSubmit={onCreate} className="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 sm:grid-cols-2">
+          <div className="sm:col-span-2 text-sm font-medium text-zinc-300">Add user</div>
+          <div className="space-y-1.5"><Label className="text-zinc-300">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} /></div>
+          <div className="space-y-1.5"><Label className="text-zinc-300">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
+          <div className="space-y-1.5">
+            <Label className="text-zinc-300">{invite ? "Password" : "Temporary password"}</Label>
+            {invite
+              ? <div className="flex h-10 items-center text-xs text-zinc-500">Set via emailed invite link</div>
+              : <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} />}
           </div>
-        )}
-        <label className="sm:col-span-2 flex items-center gap-2 text-xs text-zinc-400">
-          <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
-          Email an invite link (user sets their own password)
-        </label>
-        <div className="sm:col-span-2 flex items-center gap-3">
-          <Button type="submit" disabled={pending}>{invite ? "Send invite" : "Create user"}</Button>
-          {error && <span className="text-sm text-red-400">{error}</span>}
-        </div>
-      </form>
+          <div className="space-y-1.5"><Label className="text-zinc-300">Role</Label>
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={selectCls}>
+              {assignableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          {canManageRoles && grantable.length > 0 && (
+            <div className="sm:col-span-2 space-y-2">
+              <Label className="text-zinc-300">Extra privileges (beyond role defaults)</Label>
+              <PrivilegeChecklist
+                role={role}
+                grantable={grantable}
+                value={newGrants}
+                onChange={setNewGrants}
+              />
+            </div>
+          )}
+          <label className="sm:col-span-2 flex items-center gap-2 text-xs text-zinc-400">
+            <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+            Email an invite link (user sets their own password)
+          </label>
+          <div className="sm:col-span-2 flex items-center gap-3">
+            <Button type="submit" disabled={pending}>{invite ? "Send invite" : "Create user"}</Button>
+            {error && <span className="text-sm text-red-400">{error}</span>}
+          </div>
+        </form>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-zinc-800">
         <table className="w-full text-sm">
@@ -179,14 +183,14 @@ export function UsersManager({
                             Privileges
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" disabled={!manageable || pending}
+                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending}
                           onClick={() => startTransition(async () => { const r = await setUserActive(u.id, !u.active); if (!r.ok) setError(r.error); refresh() })}>
                           {u.active ? "Disable" : "Enable"}
                         </Button>
-                        <Button size="sm" variant="ghost" disabled={!manageable || pending} onClick={() => { setError(null); setResetFor(u) }}>
+                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setResetFor(u) }}>
                           Reset password
                         </Button>
-                        <Button size="sm" variant="ghost" disabled={!manageable || pending}
+                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending}
                           className="text-red-400 hover:text-red-300"
                           onClick={() => { if (confirm(`Delete ${u.email}? This cannot be undone.`)) startTransition(async () => { const r = await deleteUser(u.id); if (!r.ok) setError(r.error); refresh() }) }}>
                           Delete

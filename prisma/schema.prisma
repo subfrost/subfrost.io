@@ -222,6 +222,7 @@ enum Role {
   ADMIN // full control: manage users + all articles + API keys
   EDITOR // publish/unpublish + edit any article
   AUTHOR // create + edit own drafts, submit for review
+  STAFF // bundle vazio: só grants granulares extras (personas least-privilege)
 }
 
 // Fine-grained capabilities. A user's effective privileges are the union of the
@@ -233,13 +234,23 @@ enum Privilege {
   PUBLISH_ARTICLES // publish/unpublish + feature on homepage
   EDIT_BIO // maintain public author profile (bio/avatar/twitter) — "editor privilege"
   MANAGE_API_KEYS // mint/revoke own API keys
-  MANAGE_USERS // IAM: create/modify/disable/delete users — "IAM privilege"
+  MANAGE_USERS // tombstone legado → USERS_VIEW + USERS_EDIT
   MANAGE_ROLES // assign roles and privilege grants to others
   VIEW_AUDIT // read the audit log
-  MANAGE_REFERRAL_CODES // growth: manage invite/referral codes + view redemptions
-  MANAGE_FUEL // growth: manage FUEL allocations per address
-  MANAGE_AML // compliance: KYC review, FinCEN/BSA filings, MTL, OFAC rescreen
-  MANAGE_BILLING // compliance: Stripe treasury/issuing/offramp + applications tracker
+  MANAGE_REFERRAL_CODES // tombstone legado → REFERRAL_VIEW + REFERRAL_EDIT
+  MANAGE_FUEL // tombstone legado → FUEL_VIEW + FUEL_EDIT
+  MANAGE_AML // tombstone legado → AML_VIEW + AML_EDIT
+  MANAGE_BILLING // tombstone legado → BILLING_VIEW + BILLING_EDIT
+  USERS_VIEW
+  USERS_EDIT
+  REFERRAL_VIEW
+  REFERRAL_EDIT
+  FUEL_VIEW
+  FUEL_EDIT
+  AML_VIEW
+  AML_EDIT
+  BILLING_VIEW
+  BILLING_EDIT
 }
 
 // Token kinds for emailed, single-use links (Resend-delivered).

@@ -18,7 +18,7 @@ import type { MoneyIntentRow } from "@/lib/stripe/money"
 import type { TreasuryBalance, TreasuryTransaction } from "@/lib/stripe/shapes"
 
 
-export function TreasuryManager() {
+export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
   const [balances, setBalances] = useState<TreasuryBalance[]>([])
   const [transactions, setTransactions] = useState<TreasuryTransaction[]>([])
   const [intents, setIntents] = useState<MoneyIntentRow[]>([])
@@ -215,6 +215,7 @@ export function TreasuryManager() {
       </section>
 
       {/* Queue ACH Transfer */}
+      {canEdit && (
       <section>
         <h2 className="mb-3 text-lg font-semibold text-white">Queue ACH Transfer</h2>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -289,6 +290,7 @@ export function TreasuryManager() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Money Intent Queue */}
       <section>
@@ -299,6 +301,7 @@ export function TreasuryManager() {
           onConfirm={handleConfirm}
           onCancel={handleCancel}
           error={queueError}
+          canEdit={canEdit}
         />
       </section>
     </div>
