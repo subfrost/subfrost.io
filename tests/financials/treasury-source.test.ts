@@ -19,7 +19,7 @@ const sample = {
   data: {
     items: [
       { contract_address: "0xnative", contract_ticker_symbol: "BNB", contract_name: "BNB",
-        contract_decimals: 18, balance: "1000000000000000000", quote: 600, native_token: true, is_spam: false },
+        contract_decimals: 18, balance: "1000000000000000000", quote: 600, is_native_token: true, is_spam: false },
     ],
   },
   error: false,
