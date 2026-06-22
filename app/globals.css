@@ -26,6 +26,10 @@
 @tailwind components;
 @tailwind utilities;
 
+div[data-netlify-deploy-id] {
+  display: none !important;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -33,6 +37,10 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
@@ -226,7 +234,8 @@
    Tokens come from the approved mockup (subfrost-articles-mockup.html).
    ========================================================================== */
 [data-ed-theme] {
-  --ed-canvas: #eef3f9;
+  --ed-sans: var(--font-geist-sans), Arial, Helvetica, ui-sans-serif, sans-serif;
+  --ed-canvas: #ffffff;
   --ed-ink: #0a1628;
   --ed-body: #33455f;
   --ed-muted: #607792;
@@ -239,6 +248,7 @@
   --ed-cover: #11294a;
   --ed-cover-2: #1a3c66;
   --ed-band: #e5edf7;
+  --ed-logo-filter: none;
 }
 [data-ed-theme="dark"] {
   --ed-canvas: #0a1628;
@@ -254,22 +264,30 @@
   --ed-cover: #16335a;
   --ed-cover-2: #1f4a82;
   --ed-band: #0e2138;
+  --ed-logo-filter: invert(1);
 }
 
 .font-display {
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
-  letter-spacing: -0.4px;
+  font-family: var(--ed-sans);
+  letter-spacing: 0;
 }
 .font-reading {
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  font-family: var(--ed-sans);
+}
+
+[data-ed-theme] [data-topic-filter],
+[data-ed-theme] [data-topic-filter]:focus,
+[data-ed-theme] [data-topic-filter]:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 /* Eyebrow / kicker label */
 .ed-eyebrow {
-  font-family: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-family: var(--ed-sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--ed-accent);
 }
 .ed-eyebrow--lead {
@@ -278,9 +296,9 @@
 
 /* Long-form reading typography for rendered markdown. */
 .ed-article-prose {
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
-  font-size: 20px;
-  line-height: 1.78;
+  font-family: var(--ed-sans);
+  font-size: 17px;
+  line-height: 1.65;
   color: var(--ed-body);
 }
 .ed-article-prose > * + * {
@@ -290,11 +308,11 @@
 .ed-article-prose h2,
 .ed-article-prose h3,
 .ed-article-prose h4 {
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  font-family: var(--ed-sans);
   color: var(--ed-ink);
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  line-height: 1.18;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.32;
   margin-top: 44px;
   margin-bottom: 4px;
 }
@@ -316,9 +334,8 @@
 }
 .ed-article-prose blockquote {
   margin: 28px 0;
-  padding: 4px 0 4px 22px;
-  border-left: 4px solid var(--ed-accent);
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  padding: 2px 0;
+  font-family: var(--ed-sans);
   font-style: italic;
   font-size: 24px;
   line-height: 1.45;
@@ -332,13 +349,12 @@
   margin-top: 8px;
 }
 .ed-article-prose img {
-  border-radius: 14px;
+  border-radius: 4px;
   width: 100%;
 }
 .ed-article-prose hr {
   border: 0;
-  border-top: 1px solid var(--ed-hair);
-  margin: 40px 0;
+  margin: 36px 0;
 }
 .ed-article-prose code {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -346,13 +362,12 @@
   background: color-mix(in srgb, var(--ed-accent) 12%, transparent);
   color: var(--ed-accent);
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .ed-article-prose pre {
   background: #0a1628;
   color: #e6ecf7;
-  border: 1px solid var(--ed-hair);
-  border-radius: 14px;
+  border-radius: 6px;
   padding: 18px 20px;
   overflow-x: auto;
   font-size: 14.5px;
@@ -366,13 +381,10 @@
 }
 /* Drop cap on the opening paragraph — a Frost Editorial signature. */
 .ed-article-prose > p:first-of-type::first-letter {
-  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif;
-  font-weight: 600;
-  float: left;
-  font-size: 76px;
-  line-height: 58px;
-  padding: 6px 12px 0 0;
-  color: var(--ed-accent);
+  font: inherit;
+  float: none;
+  padding: 0;
+  color: inherit;
 }
 
 /* Geometric "frost" cover placeholder for articles without an image. */
@@ -411,16 +423,29 @@
 .ed-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--ed-hair);
-  border-radius: 14px;
+  border-radius: 0;
   overflow: hidden;
-  background: var(--ed-surface);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background: transparent;
+  cursor: pointer;
 }
-.ed-card:hover {
-  border-color: color-mix(in srgb, var(--ed-ice) 55%, var(--ed-hair));
-  transform: translateY(-3px);
-  box-shadow: 0 18px 40px -24px rgba(10, 22, 40, 0.5);
+
+.ed-cover-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 32% 42%, color-mix(in srgb, var(--ed-ice) 20%, transparent), transparent 42%),
+    var(--ed-cover);
+  box-shadow: 0 24px 62px -42px rgba(10, 22, 40, 0.82);
+}
+.ed-cover-frame img {
+  display: block;
+  transform: scale(1.04);
+  transform-origin: center;
+}
+.ed-card > .ed-cover-frame {
+  border-radius: 4px;
+  box-shadow: none;
 }
 
 /* Avatar */

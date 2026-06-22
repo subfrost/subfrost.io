@@ -9,6 +9,29 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
   title: "SUBFROST | Bitcoin-native Layer 0",
   description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
+  alternates: {
+    canonical: "https://subfrost.io",
+  },
+  keywords: [
+    "SUBFROST",
+    "Bitcoin DeFi",
+    "Bitcoin native yield",
+    "frBTC",
+    "Bitcoin Layer 0",
+    "Alkanes",
+    "self-custodial Bitcoin wallet",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     title: "SUBFROST | Bitcoin-native Layer 0",
     description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",

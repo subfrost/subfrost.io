@@ -18,7 +18,7 @@ export function LocaleToggle() {
     const next = isZh ? "en" : "zh"
     const p = new URLSearchParams(params.toString())
     p.set("lang", next)
-    router.push(`${pathname}?${p.toString()}`)
+    router.push(`${pathname}?${p.toString()}`, { scroll: false })
   }
 
   return (
@@ -26,7 +26,7 @@ export function LocaleToggle() {
       type="button"
       onClick={toggle}
       aria-label={`Switch to ${isZh ? "English" : "Chinese"}`}
-      className="text-base font-bold leading-none transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
+      className="rounded-sm text-base font-bold leading-none outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
       style={{ color: isZh ? "var(--ed-accent)" : "var(--ed-muted)" }}
     >
       文

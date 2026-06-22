@@ -1,17 +1,75 @@
 import { notFound } from "next/navigation"
+import { headers } from "next/headers"
 import type { Metadata } from "next"
 import { getAuthorProfile, getAuthorArticles, type CmsLocale } from "@/lib/cms/articles"
 import { ArticleCard } from "@/components/articles/ArticleCard"
+import { authorUrl, shouldUseArticlePreviewFallback } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+const authorCopy = {
+  en: {
+    author: "Author",
+    articleSingular: "article",
+    articlePlural: "articles",
+    joined: "Joined",
+    articlesBy: "Articles by",
+    noArticles: "No published articles yet.",
+  },
+  zh: {
+    author: "作者",
+    articleSingular: "篇文章",
+    articlePlural: "篇文章",
+    joined: "加入于",
+    articlesBy: "作者文章：",
+    noArticles: "暂无已发布文章。",
+  },
+} satisfies Record<CmsLocale, Record<string, string>>
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ lang?: string }>
+}): Promise<Metadata> {
   const { id } = await params
-  const author = await getAuthorProfile(id)
+  const { lang } = await searchParams
+  const locale: CmsLocale = lang === "zh" ? "zh" : "en"
+  const requestHeaders = await headers()
+  const author = await getAuthorProfile(id, {
+    previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
+  }).catch(() => null)
   if (!author) return { title: "Not found" }
+  const title = `${author.name} — SUBFROST`
+  const description = author.bio ?? `Articles by ${author.name} on SUBFROST.`
+  const url = authorUrl(id, locale)
   return {
-    title: `${author.name} — SUBFROST`,
-    description: author.bio ?? `Articles by ${author.name} on SUBFROST.`,
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: {
+        en: authorUrl(id),
+        zh: authorUrl(id, "zh"),
+        "x-default": authorUrl(id),
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      url,
+      siteName: "SUBFROST",
+      images: author.avatarUrl ? [{ url: author.avatarUrl, alt: author.name }] : [{ url: "/Logo.png", alt: "SUBFROST" }],
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: author.avatarUrl ? [author.avatarUrl] : ["/Logo.png"],
+    },
   }
 }
 
@@ -25,9 +83,12 @@ export default async function AuthorPage({
   const { id } = await params
   const { lang } = await searchParams
   const locale: CmsLocale = lang === "zh" ? "zh" : "en"
-  const author = await getAuthorProfile(id)
+  const copy = authorCopy[locale]
+  const requestHeaders = await headers()
+  const previewFallback = shouldUseArticlePreviewFallback(requestHeaders.get("host"))
+  const author = await getAuthorProfile(id, { previewFallback }).catch(() => null)
   if (!author) notFound()
-  const articles = await getAuthorArticles(id, locale)
+  const articles = await getAuthorArticles(id, locale, { previewFallback }).catch(() => [])
 
   const twitterHandle = author.twitter?.replace(/^@/, "").replace(/^https?:\/\/(x|twitter)\.com\//i, "")
 
@@ -53,7 +114,7 @@ export default async function AuthorPage({
             )}
           </span>
           <div className="min-w-[280px] flex-1">
-            <div className="ed-eyebrow mb-2">Author</div>
+            <div className="ed-eyebrow mb-2">{copy.author}</div>
             <h1 className="font-display text-[40px] font-semibold leading-[1.05] sm:text-[44px]" style={{ color: "var(--ed-ink)" }}>
               {author.name}
             </h1>
@@ -76,9 +137,9 @@ export default async function AuthorPage({
               ) : null}
               <span>
                 <b style={{ color: "var(--ed-ink)", fontWeight: 500 }}>{author.articleCount}</b>{" "}
-                {author.articleCount === 1 ? "article" : "articles"}
+                {author.articleCount === 1 ? copy.articleSingular : copy.articlePlural}
               </span>
-              <span>Joined {author.joinedYear}</span>
+              <span>{copy.joined} {author.joinedYear}</span>
             </div>
           </div>
         </div>
@@ -87,16 +148,16 @@ export default async function AuthorPage({
       {/* Their articles */}
       <div className="mx-auto max-w-[1120px] px-6 pb-16 sm:px-7">
         <h2 className="font-display mb-1 mt-10 text-[24px] font-semibold" style={{ color: "var(--ed-ink)" }}>
-          Articles by {author.name}
+          {copy.articlesBy} {author.name}
         </h2>
         {articles.length === 0 ? (
           <p className="font-reading mt-4 text-[17px]" style={{ color: "var(--ed-muted)" }}>
-            No published articles yet.
+            {copy.noArticles}
           </p>
         ) : (
           <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {articles.map((a) => (
-              <ArticleCard key={a.slug} a={a} />
+              <ArticleCard key={a.slug} a={a} locale={locale} />
             ))}
           </div>
         )}

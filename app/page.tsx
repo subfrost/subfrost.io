@@ -218,6 +218,13 @@ export default function Page() {
               <StableText textKey="hero.officialDocs" />
             </span>
           </a>
+          <a
+            href="/articles"
+            onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "hero_header" })}
+            className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
+          >
+            <StableText textKey="hero.blog" />
+          </a>
         </div>
 
         {/* Top Right Button */}
