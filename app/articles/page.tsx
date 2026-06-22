@@ -174,6 +174,13 @@ function primaryCategory(article: ArticlePreview, locale: CmsLocale) {
   return article.tags.map((tag) => categoryLabel(tag, locale)).find((tag): tag is string => Boolean(tag))
 }
 
+function topicCoverOffset(topicId: string) {
+  if (topicId === "research") return 1
+  if (topicId === "protocol") return 3
+  if (topicId === "docs") return 6
+  return 1
+}
+
 function TagPills({ article, locale }: { article: ArticlePreview; locale: CmsLocale }) {
   const visibleTags = Array.from(new Set(article.tags.map((tag) => categoryLabel(tag, locale)).filter((tag): tag is string => Boolean(tag)))).slice(0, 2)
   return (
@@ -191,11 +198,11 @@ function TagPills({ article, locale }: { article: ArticlePreview; locale: CmsLoc
   )
 }
 
-function DocsBackfillCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
+function DocsBackfillCard({ doc, locale, copy, coverVariant }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en; coverVariant?: number | string }) {
   return (
     <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card">
       <div className="ed-cover-frame">
-        <CoverArt label={copy.docsEyebrow} className="h-[220px] sm:h-[300px]" />
+        <CoverArt className="h-[220px] sm:h-[300px]" variant={coverVariant ?? doc.href} />
       </div>
       <div className="flex flex-1 flex-col pt-4">
         <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
@@ -258,7 +265,7 @@ export default async function ArticlesIndex({
       <h1 className="sr-only">{copy.srTitle}</h1>
 
       <section style={{ background: "var(--ed-canvas)" }}>
-        <div className="mx-auto max-w-[1440px] px-6 py-9 sm:px-8 sm:py-10">
+        <div className="mx-auto max-w-[1440px] px-6 pb-9 pt-14 sm:px-8 sm:pb-10 sm:pt-[88px]">
           <h2 className="font-display text-[44px] font-normal leading-none sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>
             {pageTitle}
           </h2>
@@ -303,12 +310,12 @@ export default async function ArticlesIndex({
             {selectedTopic ? (
               <section id={`topic-${selectedTopic.id}`} className="grid gap-x-8 gap-y-12 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                 {selectedTopic.id === "docs" ? (
-                  docsBackfill.map((doc) => (
-                    <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} />
+                  docsBackfill.map((doc, index) => (
+                    <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
                   ))
                 ) : selectedInitialArticles.length > 0 ? (
-                  selectedInitialArticles.map((a) => (
-                    <ArticleCard key={`${selectedTopic.id}-${a.slug}`} a={a} locale={locale} coverLabel={selectedTopic.title} />
+                  selectedInitialArticles.map((a, index) => (
+                    <ArticleCard key={`${selectedTopic.id}-${a.slug}`} a={a} locale={locale} coverLabel={selectedTopic.title} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
                   ))
                 ) : (
                   <div className="font-reading text-[17px]" style={{ color: "var(--ed-muted)" }}>
@@ -342,7 +349,7 @@ export default async function ArticlesIndex({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={lead.coverImage} alt="" className="h-[320px] w-full object-contain sm:h-[443px] sm:object-cover" />
                       ) : (
-                        <CoverArt label={primaryCategory(lead, locale)} className="h-[320px] sm:h-[443px]" />
+                        <CoverArt className="h-[320px] sm:h-[443px]" variant={0} />
                       )}
                     </div>
                     <div className="flex flex-1 flex-col pt-4">
@@ -423,14 +430,14 @@ export default async function ArticlesIndex({
                   </div>
                   {topic.articles.length > 0 ? (
                     <div className="grid gap-6 md:grid-cols-2">
-                      {topic.articles.map((a) => (
-                        <ArticleCard key={`${topic.id}-${a.slug}`} a={a} locale={locale} coverLabel={topic.title} />
+                      {topic.articles.map((a, index) => (
+                        <ArticleCard key={`${topic.id}-${a.slug}`} a={a} locale={locale} coverLabel={topic.title} coverVariant={topicCoverOffset(topic.id) + index} />
                       ))}
                     </div>
                   ) : topic.id === "docs" ? (
                     <div className="grid gap-6 md:grid-cols-3">
-                      {docsBackfill.map((doc) => (
-                        <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} />
+                      {docsBackfill.map((doc, index) => (
+                        <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} coverVariant={topicCoverOffset(topic.id) + index} />
                       ))}
                     </div>
                   ) : (

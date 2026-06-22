@@ -413,18 +413,6 @@ div[data-netlify-deploy-id] {
   height: 100%;
   object-fit: cover;
 }
-.ed-cover .mk {
-  position: absolute;
-  right: 20px;
-  top: 18px;
-  color: #0a1628;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow: 0 1px 18px rgba(255, 255, 255, 0.42);
-}
-
 /* Feed / author card */
 .ed-card {
   display: flex;
@@ -441,8 +429,8 @@ div[data-netlify-deploy-id] {
 
 @media (hover: hover) and (pointer: fine) {
   .ed-card:hover {
-    transform: translateY(-2px);
-    filter: drop-shadow(0 18px 28px rgba(10, 22, 40, 0.08));
+    transform: translateY(-1px);
+    filter: drop-shadow(0 9px 14px rgba(10, 22, 40, 0.04));
   }
 }
 
@@ -461,7 +449,7 @@ div[data-netlify-deploy-id] {
 .ed-cover-frame {
   position: relative;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 6px;
   background:
     radial-gradient(circle at 32% 42%, color-mix(in srgb, var(--ed-ice) 20%, transparent), transparent 42%),
     var(--ed-cover);
@@ -473,7 +461,7 @@ div[data-netlify-deploy-id] {
   transform-origin: center;
 }
 .ed-card > .ed-cover-frame {
-  border-radius: 4px;
+  border-radius: 6px;
   box-shadow: none;
 }
 

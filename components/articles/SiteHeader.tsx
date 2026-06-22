@@ -85,13 +85,13 @@ export function SiteHeader() {
         background: "var(--ed-canvas)",
       }}
     >
-      <div className={`mx-auto flex h-[60px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 ${scrolled ? "sm:px-5" : ""}`}>
-        <div className="flex min-w-0 items-center gap-5 sm:gap-7">
+      <div className={`mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 ${scrolled ? "sm:px-5" : ""}`}>
+        <div className="flex min-w-0 items-center gap-5">
           <Link href="/" className="flex shrink-0 items-center" aria-label="Subfrost">
             <img
               src="/subfrost-logotype-black.svg"
               alt="Subfrost"
-              className="h-[22px] w-auto sm:h-[20px]"
+              className="h-[30px] w-auto sm:h-[28px]"
               style={{ filter: "var(--ed-logo-filter)" }}
             />
           </Link>
