@@ -134,6 +134,14 @@ spec:
                   name: subfrost-io-secrets
                   key: STRIPE_WEBHOOK_SECRET
                   optional: true
+            # Static key gating GET /api/fuel. optional:true mirrors the STRIPE_*
+            # entries — an unsynced secret can't block startup; absent => 503.
+            - name: FUEL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: FUEL_API_KEY
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
