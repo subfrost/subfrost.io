@@ -12,8 +12,9 @@ import { createPromoCode, listPromoCodes } from "@/lib/stripe/promo"
 import { listIntents, queueAchTransfer, confirmIntent, cancelIntent, queueRefund, type MoneyIntentRow } from "@/lib/stripe/money"
 import { listBalances, listTransactions } from "@/lib/stripe/treasury"
 import { listSettlements } from "@/lib/stripe/offramp"
+import { listOnrampSessions } from "@/lib/stripe/onramp"
 import { listCards, listDisputes, setCardControl, submitDisputeEvidence } from "@/lib/stripe/issuing"
-import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement, CustomerSummary, CustomerDetail } from "@/lib/stripe/shapes"
+import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement, CustomerSummary, CustomerDetail, OnrampSession, OnrampMetrics, OnrampPeriod } from "@/lib/stripe/shapes"
 import { listCustomers, getCustomer } from "@/lib/stripe/customers"
 
 async function ip(): Promise<string | null> {
@@ -286,4 +287,15 @@ export async function requestRefundAction(
     if (e instanceof BillingError || e instanceof StripeNotWiredError) return { ok: false, error: e.message }
     throw e
   }
+}
+
+export async function listOnrampSessionsAction(
+  period: OnrampPeriod = "30d",
+): Promise<
+  { ok: true; sessions: OnrampSession[]; metrics: OnrampMetrics; live: boolean } | { ok: false; error: string }
+> {
+  const a = await actor("BILLING_VIEW")
+  if (!a.ok) return a
+  const { sessions, metrics, live } = await listOnrampSessions(period)
+  return { ok: true, sessions, metrics, live }
 }
