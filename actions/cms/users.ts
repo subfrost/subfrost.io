@@ -18,7 +18,7 @@ import { audit } from "@/lib/cms/audit"
 
 export type UserActionResult = { ok: true } | { ok: false; error: string }
 
-const ROLES = ["ADMIN", "EDITOR", "AUTHOR"] as const
+const ROLES = ["ADMIN", "EDITOR", "AUTHOR", "STAFF"] as const
 const privilegeEnum = z.enum(ALL_PRIVILEGES as [Privilege, ...Privilege[]])
 
 async function ip(): Promise<string | null> {

@@ -39,7 +39,7 @@ const bodySchema = z.object({
   email: z.string().email(),
   name: z.string().max(120).optional(),
   password: z.string().min(8, "Password must be at least 8 characters").optional(),
-  role: z.enum(["ADMIN", "EDITOR", "AUTHOR"]).optional(),
+  role: z.enum(["ADMIN", "EDITOR", "AUTHOR", "STAFF"]).optional(),
   active: z.boolean().optional(),
 })
 

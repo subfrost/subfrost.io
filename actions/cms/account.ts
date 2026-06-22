@@ -20,7 +20,7 @@ async function ip(): Promise<string | null> {
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null
 }
 
-const ROLES = ["ADMIN", "EDITOR", "AUTHOR"] as const
+const ROLES = ["ADMIN", "EDITOR", "AUTHOR", "STAFF"] as const
 const privilegeEnum = z.enum(ALL_PRIVILEGES as [Privilege, ...Privilege[]])
 
 const inviteSchema = z.object({

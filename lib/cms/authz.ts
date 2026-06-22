@@ -75,7 +75,7 @@ export function userHasPrivilege(user: CmsUser, required: Privilege): boolean {
 
 // --- Role helpers (retained for back-compat with existing call sites) ---
 
-const RANK: Record<Role, number> = { AUTHOR: 1, EDITOR: 2, ADMIN: 3 }
+const RANK: Record<Role, number> = { STAFF: 0, AUTHOR: 1, EDITOR: 2, ADMIN: 3 }
 
 export async function requireRole(min: Role): Promise<CmsUser> {
   const user = await currentUser()
