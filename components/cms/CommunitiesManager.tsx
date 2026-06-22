@@ -94,17 +94,17 @@ export function CommunitiesManager({
       <div className="space-y-2">
         {filtered.map((c) => (
           <div key={c.rootId} className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
-            <button onClick={() => toggle(c)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-900/60">
+            <button onClick={() => toggle(c)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 text-left hover:bg-zinc-900/60">
               <ChevronRight size={16} className={`shrink-0 text-zinc-500 transition-transform ${expanded === c.rootId ? "rotate-90" : ""}`} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-white">{c.rootCode}</span>
-                  {c.leaderCount > 1 && <span className="text-[10px] text-zinc-500">{c.leaderCount} sub-leaders</span>}
+                  {c.leaderCount > 1 && <span className="shrink-0 text-[10px] text-zinc-500">{c.leaderCount} sub-leaders</span>}
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <div className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
                   {c.leader && <AddressAvatar address={c.leader} size={16} />}
-                  <Crown size={11} className="text-amber-400/70" />
-                  {c.leader ? <span className="font-mono">{truncAddr(c.leader)}</span> : <span className="italic">no leader set</span>}
+                  <Crown size={11} className="shrink-0 text-amber-400/70" />
+                  {c.leader ? <span className="truncate font-mono">{truncAddr(c.leader)}</span> : <span className="italic">no leader set</span>}
                 </div>
               </div>
               {canSeeFuel && (
@@ -114,9 +114,10 @@ export function CommunitiesManager({
                   </div>
                 </div>
               )}
-              <div className="shrink-0 text-right">
+              {/* On mobile this wraps to its own full-width line below the name/leader. */}
+              <div className="flex w-full items-center justify-between sm:w-auto sm:shrink-0 sm:flex-col sm:items-end sm:justify-normal">
                 {canSeeFuel && (
-                  <div className="flex items-center justify-end gap-1 font-semibold text-sky-300">
+                  <div className="flex items-center gap-1 font-semibold text-sky-300">
                     <Flame size={13} className="text-orange-400/80" />{fmtFuel(c.totalFuel)}
                   </div>
                 )}
