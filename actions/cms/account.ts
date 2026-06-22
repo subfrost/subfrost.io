@@ -34,7 +34,7 @@ const inviteSchema = z.object({
  *  to set their own. Requires MANAGE_USERS. */
 export async function inviteUser(input: z.input<typeof inviteSchema>): Promise<Result> {
   const me = await currentUser()
-  if (!me || !me.privileges.includes("MANAGE_USERS")) return { ok: false, error: "Insufficient privileges" }
+  if (!me || !me.privileges.includes("iam.create_user")) return { ok: false, error: "Insufficient privileges" }
   const parsed = inviteSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { email, name, role, privileges } = parsed.data

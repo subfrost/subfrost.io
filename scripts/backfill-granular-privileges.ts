@@ -1,30 +1,41 @@
 import prisma from "@/lib/prisma"
-import { LEGACY_PRIVILEGE_MAP, type Privilege } from "@/lib/cms/privileges"
+import { resolveCode } from "@/lib/cms/iam/registry"
 
-/** Expande grants legados grossos no granular e remove o legado; idempotente. */
-export function expandGrants(privileges: string[]): string[] {
-  const out: string[] = []
-  for (const p of privileges) {
-    const mapped = LEGACY_PRIVILEGE_MAP[p as Privilege]
-    if (mapped) out.push(...mapped)
-    else out.push(p)
-  }
-  return [...new Set(out)]
+/** Normaliza códigos legados (enum FUEL_EDIT, MANAGE_USERS, …) para os códigos
+ *  pontilhados do registro IAM (fuel.edit, iam.*). Pass-through p/ códigos já
+ *  novos; de-dupa; descarta desconhecidos. Não fecha sobre `implies` — o
+ *  fechamento acontece em effectivePrivileges na leitura, então o grant
+ *  armazenado fica mínimo e editável. */
+export function expandGrants(codes: string[]): string[] {
+  return [...new Set(codes.flatMap(resolveCode))]
 }
 
 async function main() {
   const dry = process.argv.includes("--dry")
-  const legacyKeys = Object.keys(LEGACY_PRIVILEGE_MAP)
-  const users = await prisma.user.findMany({ where: { privileges: { hasSome: legacyKeys as Privilege[] } } })
-  console.log(`${users.length} user(s) com grants legados${dry ? " (dry-run)" : ""}`)
+
+  const users = await prisma.user.findMany({ select: { id: true, email: true, privileges: true } })
+  let cu = 0
   for (const u of users) {
     const next = expandGrants(u.privileges)
-    console.log(`  ${u.email}: [${u.privileges.join(", ")}] → [${next.join(", ")}]`)
-    if (!dry) {
-      await prisma.user.update({ where: { id: u.id }, data: { privileges: next as Privilege[] } })
+    if (JSON.stringify(next) !== JSON.stringify(u.privileges)) {
+      cu++
+      console.log(`  user ${u.email}: [${u.privileges.join(", ")}] → [${next.join(", ")}]`)
+      if (!dry) await prisma.user.update({ where: { id: u.id }, data: { privileges: next } })
     }
   }
-  console.log(dry ? "dry-run completo (nada gravado)" : "backfill aplicado")
+
+  const keys = await prisma.apiKey.findMany({ select: { id: true, prefix: true, scopes: true } })
+  let ck = 0
+  for (const k of keys) {
+    const next = expandGrants(k.scopes)
+    if (JSON.stringify(next) !== JSON.stringify(k.scopes)) {
+      ck++
+      console.log(`  key ${k.prefix}…: [${k.scopes.join(", ")}] → [${next.join(", ")}]`)
+      if (!dry) await prisma.apiKey.update({ where: { id: k.id }, data: { scopes: next } })
+    }
+  }
+
+  console.log(`${cu} user(s), ${ck} key(s) ${dry ? "mudariam (dry-run)" : "atualizados"}`)
 }
 
 // Só roda quando invocado direto (não em import de teste).

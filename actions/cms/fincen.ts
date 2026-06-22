@@ -32,7 +32,7 @@ async function actor(required: Privilege): Promise<{ ok: true; me: CmsUser } | F
 export async function getFincenDataAction(): Promise<
   { ok: true; form107: DraftRow<Form107> | null; sar: DraftRow<Sar>[]; ctr: DraftRow<Ctr>[]; submissions: SubmissionRow[] } | Fail
 > {
-  const a = await actor("AML_VIEW")
+  const a = await actor("aml.read")
   if (!a.ok) return a
   const [form107, sar, ctr, submissions] = await Promise.all([getForm107(), listSar(), listCtr(), listSubmissions()])
   return { ok: true, form107, sar, ctr, submissions }
@@ -56,26 +56,26 @@ async function mutate(
 }
 
 export async function saveForm107Action(input: unknown): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => saveForm107(input, a.me.email), "save_form107", "form-107", a.me)
 }
 export async function createSarAction(input: unknown): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => createSar(input, a.me.email), "create_fincen_draft", "sar", a.me)
 }
 export async function updateSarAction(id: string, input: unknown): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => updateSar(id, input, a.me.email), "update_fincen_draft", id, a.me)
 }
 export async function createCtrAction(input: unknown): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => createCtr(input, a.me.email), "create_fincen_draft", "ctr", a.me)
 }
 export async function updateCtrAction(id: string, input: unknown): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => updateCtr(id, input, a.me.email), "update_fincen_draft", id, a.me)
 }
 export async function queueSubmissionAction(draftId: string): Promise<{ ok: true } | Fail> {
-  const a = await actor("AML_EDIT"); if (!a.ok) return a
+  const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => queueSubmission(draftId, a.me.email), "queue_fincen_submission", draftId, a.me)
 }

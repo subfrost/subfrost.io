@@ -25,7 +25,7 @@ const ACTION_COLORS: Record<string, string> = {
 export default async function AuditPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("VIEW_AUDIT")) redirect("/admin")
+  if (!me.privileges.includes("audit.view")) redirect("/admin")
 
   const entries = await listAudit(200)
 

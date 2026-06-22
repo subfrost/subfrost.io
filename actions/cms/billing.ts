@@ -36,7 +36,7 @@ async function actor(
 export async function listApplicationsAction(): Promise<
   { ok: true; applications: ApplicationRow[] } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   return { ok: true, applications: await listApplications() }
 }
@@ -45,7 +45,7 @@ export async function upsertApplicationAction(
   product: string,
   input: { status: string; notes?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await upsertApplication(product, input, a.me.email)
@@ -61,7 +61,7 @@ export async function upsertApplicationAction(
 export async function listTiersAction(): Promise<
   { ok: true; tiers: SubscriptionTier[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { tiers, live } = await listTiers()
   return { ok: true, tiers, live }
@@ -70,7 +70,7 @@ export async function listTiersAction(): Promise<
 export async function listSubscribersAction(): Promise<
   { ok: true; subscribers: Subscriber[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { subscribers, live } = await listSubscribers()
   return { ok: true, subscribers, live }
@@ -80,7 +80,7 @@ export async function changeSubscriptionAction(
   subscriptionId: string,
   input: { action: string; note?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await changeSubscription(subscriptionId, input, a.me.email)
@@ -96,7 +96,7 @@ export async function changeSubscriptionAction(
 export async function listPromoCodesAction(): Promise<
   { ok: true; codes: PromoCode[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { codes, live } = await listPromoCodes()
   return { ok: true, codes, live }
@@ -105,7 +105,7 @@ export async function listPromoCodesAction(): Promise<
 export async function createPromoCodeAction(
   input: { code: string; type: string; value: number; maxRedemptions?: number; expiresAt?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     const created = await createPromoCode(input, a.me.email)
@@ -121,7 +121,7 @@ export async function createPromoCodeAction(
 export async function listBalancesAction(): Promise<
   { ok: true; balances: TreasuryBalance[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { balances, live } = await listBalances()
   return { ok: true, balances, live }
@@ -130,7 +130,7 @@ export async function listBalancesAction(): Promise<
 export async function listTransactionsAction(): Promise<
   { ok: true; transactions: TreasuryTransaction[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { transactions, live } = await listTransactions()
   return { ok: true, transactions, live }
@@ -139,7 +139,7 @@ export async function listTransactionsAction(): Promise<
 export async function listMoneyIntentsAction(): Promise<
   { ok: true; intents: MoneyIntentRow[] } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   return { ok: true, intents: await listIntents("ACH_TRANSFER") }
 }
@@ -147,7 +147,7 @@ export async function listMoneyIntentsAction(): Promise<
 export async function queueAchTransferAction(
   input: { direction: string; amount: number; counterparty: string; memo?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await queueAchTransfer(input, a.me.email)
@@ -161,7 +161,7 @@ export async function queueAchTransferAction(
 }
 
 export async function confirmIntentAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await confirmIntent(id, a.me.email)
@@ -175,7 +175,7 @@ export async function confirmIntentAction(id: string): Promise<{ ok: true } | { 
 }
 
 export async function cancelIntentAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await cancelIntent(id, a.me.email)
@@ -191,7 +191,7 @@ export async function cancelIntentAction(id: string): Promise<{ ok: true } | { o
 export async function listCardsAction(): Promise<
   { ok: true; cards: IssuingCard[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { cards, live } = await listCards()
   return { ok: true, cards, live }
@@ -200,7 +200,7 @@ export async function listCardsAction(): Promise<
 export async function listDisputesAction(): Promise<
   { ok: true; disputes: IssuingDispute[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { disputes, live } = await listDisputes()
   return { ok: true, disputes, live }
@@ -210,7 +210,7 @@ export async function setCardControlAction(
   cardId: string,
   input: { state: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await setCardControl(cardId, input, a.me.email)
@@ -227,7 +227,7 @@ export async function submitDisputeEvidenceAction(
   disputeId: string,
   input: { evidence: string; evidenceFiles?: string[] },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await submitDisputeEvidence(disputeId, input, a.me.email)
@@ -243,7 +243,7 @@ export async function submitDisputeEvidenceAction(
 export async function listSettlementsAction(): Promise<
   { ok: true; settlements: OfframpSettlement[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { settlements, live } = await listSettlements()
   return { ok: true, settlements, live }
@@ -252,7 +252,7 @@ export async function listSettlementsAction(): Promise<
 export async function listCustomersAction(): Promise<
   { ok: true; customers: CustomerSummary[]; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { customers, live } = await listCustomers()
   return { ok: true, customers, live }
@@ -261,7 +261,7 @@ export async function listCustomersAction(): Promise<
 export async function getCustomerAction(id: string): Promise<
   { ok: true; customer: CustomerDetail | null; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { customer, live } = await getCustomer(id)
   return { ok: true, customer, live }
@@ -270,7 +270,7 @@ export async function getCustomerAction(id: string): Promise<
 export async function listRefundIntentsAction(): Promise<
   { ok: true; intents: MoneyIntentRow[] } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   return { ok: true, intents: await listIntents("REFUND") }
 }
@@ -278,7 +278,7 @@ export async function listRefundIntentsAction(): Promise<
 export async function requestRefundAction(
   input: { reference: string; amount: number; reason?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await actor("BILLING_EDIT")
+  const a = await actor("billing.edit")
   if (!a.ok) return a
   try {
     await queueRefund(input, a.me.email)
@@ -296,7 +296,7 @@ export async function listOnrampSessionsAction(
 ): Promise<
   { ok: true; sessions: OnrampSession[]; metrics: OnrampMetrics; live: boolean } | { ok: false; error: string }
 > {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   const { sessions, metrics, live } = await listOnrampSessions(period)
   return { ok: true, sessions, metrics, live }
@@ -305,7 +305,7 @@ export async function listOnrampSessionsAction(
 export async function listWebhookEventsAction(
   filter?: { type?: string; status?: string },
 ): Promise<{ ok: true; events: WebhookEventRow[]; live: boolean } | { ok: false; error: string }> {
-  const a = await actor("BILLING_VIEW")
+  const a = await actor("billing.read")
   if (!a.ok) return a
   return { ok: true, events: await listWebhookEvents(filter), live: isLive() }
 }

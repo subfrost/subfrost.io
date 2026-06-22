@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function MtlPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("AML_VIEW")) redirect("/admin")
-  const canEdit = me.privileges.includes("AML_EDIT")
+  if (!me.privileges.includes("aml.read")) redirect("/admin")
+  const canEdit = me.privileges.includes("aml.edit")
 
   return (
     <div>

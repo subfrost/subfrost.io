@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic"
 export default async function ApplicationsPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
-  const canEdit = me.privileges.includes("BILLING_EDIT")
+  if (!me.privileges.includes("billing.read")) redirect("/admin")
+  const canEdit = me.privileges.includes("billing.edit")
 
   return (
     <div>

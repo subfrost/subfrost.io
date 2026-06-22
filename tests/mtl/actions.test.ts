@@ -30,7 +30,7 @@ describe('authorization', () => {
   });
 
   it('rejects reads without AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['MANAGE_FUEL']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['fuel.edit']));
     const res = await listMtlAction();
     expect(res.ok).toBe(false);
     expect(mtl.listEntries).not.toHaveBeenCalled();
@@ -51,7 +51,7 @@ describe('authorization', () => {
   });
 
   it('allows read with AML_VIEW but rejects write with only AML_VIEW', async () => {
-    vi.mocked(currentUser).mockResolvedValue(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValue(asUser(['aml.read']));
     vi.mocked(mtl.listEntries).mockResolvedValueOnce([]);
     const list = await listMtlAction();
     expect(list.ok).toBe(true);
@@ -63,7 +63,7 @@ describe('authorization', () => {
 
 describe('listMtlAction', () => {
   it('returns entries for an authorized caller', async () => {
-    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['AML_VIEW']));
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(['aml.read']));
     vi.mocked(mtl.listEntries).mockResolvedValueOnce([]);
     const res = await listMtlAction();
     expect(res).toEqual({ ok: true, entries: [] });
@@ -71,7 +71,7 @@ describe('listMtlAction', () => {
 });
 
 describe('updateMtlAction', () => {
-  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['AML_EDIT'])));
+  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['aml.edit'])));
 
   it('upserts, audits update_mtl with target=state, and revalidates /admin/mtl', async () => {
     const fakeRow = { state: 'AL', name: 'Alabama', status: 'REGISTERED', nextFilingDue: null, portalUrl: null, notes: null, updatedAt: new Date().toISOString() };
@@ -92,7 +92,7 @@ describe('updateMtlAction', () => {
 });
 
 describe('seedMtlAction', () => {
-  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['AML_EDIT'])));
+  beforeEach(() => vi.mocked(currentUser).mockResolvedValue(asUser(['aml.edit'])));
 
   it('seeds, audits seed_mtl with target null, and revalidates /admin/mtl', async () => {
     vi.mocked(mtl.seedStates).mockResolvedValueOnce({ created: 51 });

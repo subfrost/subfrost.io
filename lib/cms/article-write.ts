@@ -61,7 +61,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
   if (translations.length === 0) return { ok: false, error: "Add a title for at least one language" }
 
   let status = data.status
-  if (status === "PUBLISHED" && !actor.privileges.includes("PUBLISH_ARTICLES")) status = "REVIEW"
+  if (status === "PUBLISHED" && !actor.privileges.includes("articles.publish")) status = "REVIEW"
 
   const primaryLocale = translations.some((t) => t.locale === data.primaryLocale)
     ? data.primaryLocale
@@ -77,7 +77,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
   if (data.id) {
     const existing = await prisma.article.findUnique({ where: { id: data.id } })
     if (!existing) return { ok: false, error: "Article not found" }
-    if (!actor.privileges.includes("EDIT_ANY_ARTICLE") && existing.authorId !== actor.id) {
+    if (!actor.privileges.includes("articles.edit_any") && existing.authorId !== actor.id) {
       return { ok: false, error: "You can only edit your own articles" }
     }
     const slug = await uniqueSlug(data.slug ? toSlug(data.slug) : existing.slug, existing.id)

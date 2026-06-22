@@ -1,92 +1,19 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
-import { format } from "date-fns"
-import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
-import { firstNonArticleLeaf } from "@/lib/cms/admin-nav"
-import { Button } from "@/components/ui/button"
+import { DashboardClient } from "@/components/cms/DashboardClient"
 
 export const dynamic = "force-dynamic"
 
-const statusColor: Record<string, string> = {
-  DRAFT: "text-zinc-400 border-zinc-700",
-  REVIEW: "text-amber-300 border-amber-700/60",
-  PUBLISHED: "text-emerald-300 border-emerald-700/60",
-  ARCHIVED: "text-zinc-500 border-zinc-800",
-}
-
 export default async function AdminDashboard() {
   const user = await currentUser()
-  // The edge middleware only verifies the JWT signature and defers full auth to
-  // here, so a stale-but-signed session (legacy token, bumped tokenVersion,
-  // revoked session) lands here with no user. Redirect to login instead of
-  // dereferencing null — matches the guard every other /admin page already has.
+  // Edge middleware only verifies the JWT signature; full auth happens here.
   if (!user) redirect("/admin/login")
-  const hasArticles =
-    user.privileges.includes("WRITE_ARTICLES") || user.privileges.includes("EDIT_ANY_ARTICLE")
-  if (!hasArticles) {
-    const dest = firstNonArticleLeaf(user.privileges)
-    if (dest) redirect(dest)
-  }
-  const canSeeAll = user.privileges.includes("EDIT_ANY_ARTICLE")
-
-  const articles = await prisma.article.findMany({
-    where: canSeeAll ? {} : { authorId: user.id },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      author: { select: { name: true, email: true } },
-      translations: { select: { locale: true, title: true } },
-    },
-    take: 100,
-  })
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Articles</h1>
-          <p className="text-sm text-zinc-500">{canSeeAll ? "All articles" : "Your articles"}</p>
-        </div>
-        <Link href="/admin/articles/new"><Button>New article</Button></Link>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-zinc-800">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Langs</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Author</th>
-              <th className="px-4 py-3">Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {articles.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-zinc-500">No articles yet.</td></tr>
-            )}
-            {articles.map((a) => {
-              const primary = a.translations.find((t) => t.locale === a.primaryLocale) ?? a.translations[0]
-              return (
-                <tr key={a.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
-                  <td className="px-4 py-3">
-                    <Link href={`/admin/articles/${a.id}`} className="font-medium text-white hover:underline">
-                      {primary?.title ?? a.slug}
-                    </Link>
-                    {a.featured && <span className="ml-2 rounded-full border border-sky-700/60 px-2 py-0.5 text-xs text-sky-300">Featured</span>}
-                  </td>
-                  <td className="px-4 py-3 uppercase text-zinc-400">{a.translations.map((t) => t.locale).join(" / ") || "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full border px-2 py-0.5 text-xs ${statusColor[a.status] ?? ""}`}>{a.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">{a.author.name ?? a.author.email}</td>
-                  <td className="px-4 py-3 text-zinc-500">{format(a.updatedAt, "MMM d, HH:mm")}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <h1 className="mb-1 text-2xl font-bold text-white">Dashboard</h1>
+      <p className="mb-6 text-sm text-zinc-500">frBTC at a glance and live mainnet network health.</p>
+      <DashboardClient />
     </div>
   )
 }

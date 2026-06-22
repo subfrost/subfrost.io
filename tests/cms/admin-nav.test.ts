@@ -3,31 +3,34 @@ import { visibleNav, isItemActive, NAV_GROUPS } from "@/lib/cms/admin-nav"
 import { ALL_PRIVILEGES } from "@/lib/cms/privileges"
 
 describe("visibleNav", () => {
-  it("shows only the Articles group when there are no privileges", () => {
+  it("shows Overview + Articles (both ungated) when there are no privileges", () => {
     const groups = visibleNav([])
-    expect(groups.map((g) => g.key)).toEqual(["articles"])
-    expect(groups[0].items.map((i) => i.href)).toEqual(["/admin", "/admin/articles/new"])
+    expect(groups.map((g) => g.key)).toEqual(["overview", "articles"])
+    expect(groups.find((g) => g.key === "articles")!.items.map((i) => i.href)).toEqual([
+      "/admin/articles", "/admin/articles/new",
+    ])
+    expect(groups.find((g) => g.key === "overview")!.items.map((i) => i.href)).toEqual(["/admin"])
   })
 
-  it("shows Articles + Compliance (3 items) for an AML_VIEW-only user", () => {
-    const groups = visibleNav(["AML_VIEW"])
-    expect(groups.map((g) => g.key)).toEqual(["articles", "compliance"])
+  it("shows Overview + Articles + Compliance for an AML_VIEW-only user", () => {
+    const groups = visibleNav(["aml.read"])
+    expect(groups.map((g) => g.key)).toEqual(["overview", "articles", "compliance"])
     const compliance = groups.find((g) => g.key === "compliance")!
     expect(compliance.items.map((i) => i.href)).toEqual([
       "/admin/kyc", "/admin/fincen", "/admin/mtl",
     ])
   })
 
-  it("shows all 5 groups for ADMIN (all privileges)", () => {
+  it("shows all 6 groups for ADMIN (all privileges)", () => {
     const groups = visibleNav([...ALL_PRIVILEGES])
     expect(groups.map((g) => g.key)).toEqual([
-      "articles", "community", "compliance", "billing", "settings",
+      "overview", "articles", "community", "compliance", "billing", "settings",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
   })
 
   it("never returns a group with zero items", () => {
-    for (const g of visibleNav(["FUEL_VIEW"])) {
+    for (const g of visibleNav(["fuel.read"])) {
       expect(g.items.length).toBeGreaterThan(0)
     }
   })
@@ -40,14 +43,16 @@ describe("visibleNav", () => {
 })
 
 describe("isItemActive", () => {
-  it("matches the articles list exactly on /admin", () => {
+  it("matches the dashboard exactly on /admin", () => {
     expect(isItemActive("/admin", "/admin")).toBe(true)
+    expect(isItemActive("/admin", "/admin/articles/abc123")).toBe(false)
   })
   it("keeps the articles list active while editing an article", () => {
-    expect(isItemActive("/admin", "/admin/articles/abc123")).toBe(true)
+    expect(isItemActive("/admin/articles", "/admin/articles/abc123")).toBe(true)
+    expect(isItemActive("/admin/articles", "/admin/articles")).toBe(true)
   })
   it("does not mark the articles list active on the new-article page", () => {
-    expect(isItemActive("/admin", "/admin/articles/new")).toBe(false)
+    expect(isItemActive("/admin/articles", "/admin/articles/new")).toBe(false)
     expect(isItemActive("/admin/articles/new", "/admin/articles/new")).toBe(true)
   })
   it("matches billing overview exactly, not its sub-pages", () => {

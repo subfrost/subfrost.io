@@ -23,13 +23,13 @@ export type ProfileResult =
 export async function addressProfileAction(address: string): Promise<ProfileResult> {
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
-  if (!me.privileges.includes("REFERRAL_VIEW") && !me.privileges.includes("FUEL_VIEW")) {
+  if (!me.privileges.includes("referral.read") && !me.privileges.includes("fuel.read")) {
     return { ok: false, error: "Insufficient privileges" }
   }
   if (!address?.trim()) return { ok: false, error: "Address required" }
   const profile = await getAddressProfile(address)
   // Editing the note rides on FUEL_EDIT (the address-curation privilege).
-  return { ok: true, profile, canEdit: me.privileges.includes("FUEL_EDIT") }
+  return { ok: true, profile, canEdit: me.privileges.includes("fuel.edit") }
 }
 
 export async function updateAddressNoteAction(
@@ -38,7 +38,7 @@ export async function updateAddressNoteAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const me = await currentUser()
   if (!me) return { ok: false, error: "Not authenticated" }
-  if (!me.privileges.includes("FUEL_EDIT")) return { ok: false, error: "Insufficient privileges" }
+  if (!me.privileges.includes("fuel.edit")) return { ok: false, error: "Insufficient privileges" }
   if (!address?.trim()) return { ok: false, error: "Address required" }
   await setAddressNote(address, note)
   invalidateProfileCache()

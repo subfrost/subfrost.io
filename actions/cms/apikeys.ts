@@ -31,7 +31,7 @@ export async function createApiKey(
   expiresInDays?: number,
 ): Promise<CreateKeyResult> {
   const me = await currentUser()
-  if (!me || !me.privileges.includes("MANAGE_API_KEYS")) {
+  if (!me || !me.privileges.includes("apikeys.manage")) {
     return { ok: false, error: "You need the Manage API keys privilege" }
   }
   if (!name.trim()) return { ok: false, error: "Name is required" }
@@ -57,11 +57,11 @@ export async function createApiKey(
 
 export async function revokeApiKey(id: string): Promise<{ ok: boolean }> {
   const me = await currentUser()
-  if (!me || !me.privileges.includes("MANAGE_API_KEYS")) return { ok: false }
+  if (!me || !me.privileges.includes("apikeys.manage")) return { ok: false }
   const key = await prisma.apiKey.findUnique({ where: { id } })
   if (!key) return { ok: false }
   // Own keys, or any key if you can manage users (admin oversight).
-  if (key.userId !== me.id && !me.privileges.includes("MANAGE_USERS")) return { ok: false }
+  if (key.userId !== me.id && !me.privileges.includes("iam.modify_user")) return { ok: false }
 
   await prisma.apiKey.update({ where: { id }, data: { revoked: true } })
   await audit("key_revoke", { actorId: me.id, target: key.prefix, ip: await ip() })

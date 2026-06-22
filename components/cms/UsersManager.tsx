@@ -2,25 +2,21 @@
 
 import { Fragment, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { UserPlus, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { rolePrivileges, type Privilege, type Role } from "@/lib/cms/privileges"
+import { resolveCode } from "@/lib/cms/iam/registry"
+import { PrivilegePicker } from "@/components/cms/PrivilegePicker"
 import {
-  ALL_PRIVILEGES,
-  PRIVILEGE_LABELS,
-  rolePrivileges,
-  type Privilege,
-  type Role,
-} from "@/lib/cms/privileges"
-import {
-  createUser,
+  provisionUser,
   setUserRole,
   setUserActive,
   setUserPrivileges,
   resetPassword,
   deleteUser,
 } from "@/actions/cms/users"
-import { inviteUser } from "@/actions/cms/account"
 
 export interface UserRow {
   id: string
@@ -47,14 +43,14 @@ function relTime(iso: string | null): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
+// Normalize stored grants (possibly legacy enum codes) to dotted, minus role defaults.
+function extraGrants(role: Role, stored: string[]): string[] {
+  const fromRole = new Set(rolePrivileges(role))
+  return [...new Set(stored.flatMap(resolveCode))].filter((p) => !fromRole.has(p))
+}
+
 export function UsersManager({
-  users,
-  meId,
-  myRole,
-  myPrivileges,
-  assignableRoles,
-  canEdit,
-  canManageRoles,
+  users, meId, myRole, myPrivileges, assignableRoles, canEdit, canCreate, canManageRoles,
 }: {
   users: UserRow[]
   meId: string
@@ -62,77 +58,30 @@ export function UsersManager({
   myPrivileges: Privilege[]
   assignableRoles: Role[]
   canEdit: boolean
+  canCreate: boolean
   canManageRoles: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [email, setEmail] = useState("")
-  const [name, setName] = useState("")
-  const [password, setPassword] = useState("")
-  const [role, setRole] = useState<Role>(assignableRoles[0] ?? "AUTHOR")
-  const [invite, setInvite] = useState(true)
-  const [newGrants, setNewGrants] = useState<Privilege[]>([])
+  const [adding, setAdding] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [resetFor, setResetFor] = useState<UserRow | null>(null)
 
   const refresh = () => router.refresh()
-  // Privileges the actor is allowed to grant.
-  const grantable = ALL_PRIVILEGES.filter((p) => myPrivileges.includes(p))
-
-  function onCreate(e: React.FormEvent) {
-    e.preventDefault(); setError(null)
-    startTransition(async () => {
-      const res = invite
-        ? await inviteUser({ email, name, role, privileges: newGrants })
-        : await createUser({ email, name, password, role, privileges: newGrants })
-      if (res.ok) { setEmail(""); setName(""); setPassword(""); setNewGrants([]); refresh() }
-      else setError(res.error)
-    })
-  }
-
-  const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
-  const selectCls = "flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
+  const grantable = myPrivileges // PrivilegePicker disables anything not in here
 
   return (
-    <div className="space-y-8">
-      {canEdit && (
-        <form onSubmit={onCreate} className="grid gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 sm:grid-cols-2">
-          <div className="sm:col-span-2 text-sm font-medium text-zinc-300">Add user</div>
-          <div className="space-y-1.5"><Label className="text-zinc-300">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} /></div>
-          <div className="space-y-1.5"><Label className="text-zinc-300">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
-          <div className="space-y-1.5">
-            <Label className="text-zinc-300">{invite ? "Password" : "Temporary password"}</Label>
-            {invite
-              ? <div className="flex h-10 items-center text-xs text-zinc-500">Set via emailed invite link</div>
-              : <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputCls} />}
-          </div>
-          <div className="space-y-1.5"><Label className="text-zinc-300">Role</Label>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={selectCls}>
-              {assignableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          {canManageRoles && grantable.length > 0 && (
-            <div className="sm:col-span-2 space-y-2">
-              <Label className="text-zinc-300">Extra privileges (beyond role defaults)</Label>
-              <PrivilegeChecklist
-                role={role}
-                grantable={grantable}
-                value={newGrants}
-                onChange={setNewGrants}
-              />
-            </div>
-          )}
-          <label className="sm:col-span-2 flex items-center gap-2 text-xs text-zinc-400">
-            <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
-            Email an invite link (user sets their own password)
-          </label>
-          <div className="sm:col-span-2 flex items-center gap-3">
-            <Button type="submit" disabled={pending}>{invite ? "Send invite" : "Create user"}</Button>
-            {error && <span className="text-sm text-red-400">{error}</span>}
-          </div>
-        </form>
-      )}
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-500">{users.length} user{users.length === 1 ? "" : "s"}</p>
+        {canCreate && (
+          <Button size="sm" onClick={() => { setError(null); setAdding(true) }}>
+            <UserPlus size={15} /> Add user
+          </Button>
+        )}
+      </div>
+      {error && <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">{error}</div>}
 
       <div className="overflow-hidden rounded-xl border border-zinc-800">
         <table className="w-full text-sm">
@@ -142,7 +91,6 @@ export function UsersManager({
           <tbody>
             {users.map((u) => {
               const isMe = u.id === meId
-              // The actor can manage this row only if they outrank the target.
               const manageable = !isMe && assignableRoles.includes(u.role)
               return (
                 <Fragment key={u.id}>
@@ -167,7 +115,6 @@ export function UsersManager({
                       <select value={u.role} disabled={!manageable || !canManageRoles || pending}
                         onChange={(e) => startTransition(async () => { const r = await setUserRole(u.id, e.target.value as Role); if (!r.ok) setError(r.error); refresh() })}
                         className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100 disabled:opacity-50">
-                        {/* show the current role plus any the actor may assign */}
                         {[...new Set([u.role, ...assignableRoles])].map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>
@@ -179,35 +126,23 @@ export function UsersManager({
                     <td className="px-4 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
                         {canManageRoles && manageable && (
-                          <Button size="sm" variant="ghost" disabled={pending} onClick={() => setExpanded(expanded === u.id ? null : u.id)}>
-                            Privileges
-                          </Button>
+                          <Button size="sm" variant="ghost" disabled={pending} onClick={() => setExpanded(expanded === u.id ? null : u.id)}>Privileges</Button>
                         )}
                         <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending}
                           onClick={() => startTransition(async () => { const r = await setUserActive(u.id, !u.active); if (!r.ok) setError(r.error); refresh() })}>
                           {u.active ? "Disable" : "Enable"}
                         </Button>
-                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setResetFor(u) }}>
-                          Reset password
-                        </Button>
-                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending}
-                          className="text-red-400 hover:text-red-300"
-                          onClick={() => { if (confirm(`Delete ${u.email}? This cannot be undone.`)) startTransition(async () => { const r = await deleteUser(u.id); if (!r.ok) setError(r.error); refresh() }) }}>
-                          Delete
-                        </Button>
+                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setResetFor(u) }}>Reset password</Button>
+                        <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} className="text-red-400 hover:text-red-300"
+                          onClick={() => { if (confirm(`Delete ${u.email}? This cannot be undone.`)) startTransition(async () => { const r = await deleteUser(u.id); if (!r.ok) setError(r.error); refresh() }) }}>Delete</Button>
                       </div>
                     </td>
                   </tr>
                   {expanded === u.id && canManageRoles && manageable && (
                     <tr className="border-t border-zinc-800/50 bg-zinc-900/30">
                       <td colSpan={5} className="px-4 py-4">
-                        <PrivilegeEditor
-                          role={u.role}
-                          grantable={grantable}
-                          initial={u.privileges}
-                          pending={pending}
-                          onSave={(grants) => startTransition(async () => { const r = await setUserPrivileges(u.id, grants); if (!r.ok) setError(r.error); else setExpanded(null); refresh() })}
-                        />
+                        <PrivilegeEditor role={u.role} grantable={grantable} initial={extraGrants(u.role, u.privileges)} pending={pending}
+                          onSave={(grants) => startTransition(async () => { const r = await setUserPrivileges(u.id, grants); if (!r.ok) setError(r.error); else setExpanded(null); refresh() })} />
                       </td>
                     </tr>
                   )}
@@ -218,50 +153,104 @@ export function UsersManager({
         </table>
       </div>
 
+      {adding && (
+        <AddUserModal assignableRoles={assignableRoles} grantable={grantable} canManageRoles={canManageRoles}
+          onClose={() => { setAdding(false); refresh() }} />
+      )}
       {resetFor && (
-        <ResetPasswordModal
-          user={resetFor}
-          pending={pending}
-          onClose={() => setResetFor(null)}
-          onSubmit={(pw) => startTransition(async () => { const r = await resetPassword(resetFor.id, pw); if (!r.ok) setError(r.error); else setResetFor(null) })}
-        />
+        <ResetPasswordModal user={resetFor} pending={pending} onClose={() => setResetFor(null)}
+          onSubmit={(pw) => startTransition(async () => { const r = await resetPassword(resetFor.id, pw); if (!r.ok) setError(r.error); else setResetFor(null) })} />
       )}
     </div>
   )
 }
 
-function PrivilegeChecklist({ role, grantable, value, onChange }: {
-  role: Role; grantable: Privilege[]; value: Privilege[]; onChange: (v: Privilege[]) => void
+function AddUserModal({ assignableRoles, grantable, canManageRoles, onClose }: {
+  assignableRoles: Role[]; grantable: Privilege[]; canManageRoles: boolean; onClose: () => void
 }) {
-  const fromRole = new Set(rolePrivileges(role))
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [role, setRole] = useState<Role>(assignableRoles[assignableRoles.length - 1] ?? "STAFF")
+  const [privileges, setPrivileges] = useState<string[]>([])
+  const [emailOnboarding, setEmailOnboarding] = useState(true)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{ tempPassword: string; emailed: boolean } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault(); setError(null)
+    startTransition(async () => {
+      const r = await provisionUser({ email, name, role, privileges, emailOnboarding })
+      if (r.ok) setResult({ tempPassword: r.tempPassword, emailed: r.emailed })
+      else setError(r.error)
+    })
+  }
+
+  const cls = "bg-zinc-950 text-zinc-100 border-zinc-700"
   return (
-    <div className="grid gap-1.5 sm:grid-cols-2">
-      {ALL_PRIVILEGES.map((p) => {
-        const inRole = fromRole.has(p)
-        const allowed = grantable.includes(p)
-        const checked = inRole || value.includes(p)
-        return (
-          <label key={p} className={`flex items-center gap-2 text-xs ${inRole || !allowed ? "text-zinc-500" : "text-zinc-300"}`}>
-            <input type="checkbox" checked={checked} disabled={inRole || !allowed}
-              onChange={(e) => onChange(e.target.checked ? [...value, p] : value.filter((x) => x !== p))} />
-            {PRIVILEGE_LABELS[p]}{inRole && <span className="text-[10px] text-zinc-600">(role)</span>}
-          </label>
-        )
-      })}
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={onClose}>
+      <div className="my-8 w-full max-w-lg space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 text-sm font-semibold text-white"><UserPlus size={16} /> Add a user</div>
+
+        {result ? (
+          <div className="space-y-4">
+            <p className="text-sm text-emerald-400">User created.{result.emailed ? " An onboarding email was sent." : ""}</p>
+            <div>
+              <Label className="text-xs text-zinc-400">Temporary password — share it securely</Label>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="flex-1 rounded-md bg-zinc-950 px-3 py-2 font-mono text-sm text-sky-300">{result.tempPassword}</code>
+                <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(result.tempPassword); setCopied(true) }}>
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </Button>
+              </div>
+              {!result.emailed && emailOnboarding && <p className="mt-1 text-xs text-amber-400">Email wasn’t sent (Resend not configured) — share the password manually.</p>}
+            </div>
+            <div className="flex justify-end"><Button size="sm" onClick={onClose}>Done</Button></div>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label className="text-zinc-300">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={cls} /></div>
+              <div className="space-y-1.5"><Label className="text-zinc-300">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className={cls} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-zinc-300">Role</Label>
+              <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100">
+                {assignableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <p className="text-[11px] text-zinc-600">Roles are convenient bundles; add precise privileges below.</p>
+            </div>
+            {canManageRoles && (
+              <div className="space-y-1.5">
+                <Label className="text-zinc-300">Privileges</Label>
+                <PrivilegePicker value={privileges} onChange={setPrivileges} grantable={grantable} />
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input type="checkbox" checked={emailOnboarding} onChange={(e) => setEmailOnboarding(e.target.checked)} />
+              Email the user their onboarding link + temporary password
+            </label>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button size="sm" type="submit" disabled={pending || !email}>Create user</Button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
 
 function PrivilegeEditor({ role, grantable, initial, pending, onSave }: {
-  role: Role; grantable: Privilege[]; initial: Privilege[]; pending: boolean; onSave: (g: Privilege[]) => void
+  role: Role; grantable: Privilege[]; initial: string[]; pending: boolean; onSave: (g: string[]) => void
 }) {
-  // Only the extra grants (not role defaults) are editable here.
-  const fromRole = new Set(rolePrivileges(role))
-  const [grants, setGrants] = useState<Privilege[]>(initial.filter((p) => !fromRole.has(p)))
+  const [grants, setGrants] = useState<string[]>(initial)
   return (
     <div className="space-y-3">
-      <div className="text-xs uppercase tracking-wide text-zinc-500">Extra privileges</div>
-      <PrivilegeChecklist role={role} grantable={grantable} value={grants} onChange={setGrants} />
+      <div className="text-xs uppercase tracking-wide text-zinc-500">Extra privileges (beyond the {role} role bundle)</div>
+      <PrivilegePicker value={grants} onChange={setGrants} grantable={grantable} />
       <Button size="sm" disabled={pending} onClick={() => onSave(grants)}>Save privileges</Button>
     </div>
   )
@@ -275,8 +264,7 @@ function ResetPasswordModal({ user, pending, onClose, onSubmit }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
         <div className="text-sm font-medium text-zinc-200">Reset password for {user.email}</div>
-        <Input type="text" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password (min 8)" minLength={8}
-          className="bg-zinc-950 text-zinc-100 border-zinc-700" />
+        <Input type="text" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password (min 8)" minLength={8} className="bg-zinc-950 text-zinc-100 border-zinc-700" />
         <p className="text-xs text-zinc-500">This signs the user out of all sessions.</p>
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
