@@ -5,7 +5,7 @@ import { headers } from "next/headers"
 import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import type { Privilege } from "@/lib/cms/privileges"
 import { audit } from "@/lib/cms/audit"
-import { BillingError, StripeNotWiredError } from "@/lib/stripe/config"
+import { BillingError, StripeNotWiredError, isLive } from "@/lib/stripe/config"
 import { listApplications, upsertApplication, type ApplicationRow } from "@/lib/stripe/applications"
 import { changeSubscription, listSubscribers, listTiers } from "@/lib/stripe/subscriptions"
 import { createPromoCode, listPromoCodes } from "@/lib/stripe/promo"
@@ -16,6 +16,8 @@ import { listOnrampSessions } from "@/lib/stripe/onramp"
 import { listCards, listDisputes, setCardControl, submitDisputeEvidence } from "@/lib/stripe/issuing"
 import type { SubscriptionTier, Subscriber, PromoCode, TreasuryBalance, TreasuryTransaction, IssuingCard, IssuingDispute, OfframpSettlement, CustomerSummary, CustomerDetail, OnrampSession, OnrampMetrics, OnrampPeriod } from "@/lib/stripe/shapes"
 import { listCustomers, getCustomer } from "@/lib/stripe/customers"
+import { listWebhookEvents } from "@/lib/stripe/webhooks/store"
+import type { WebhookEventRow } from "@/lib/stripe/shapes"
 
 async function ip(): Promise<string | null> {
   const h = await headers()
@@ -298,4 +300,12 @@ export async function listOnrampSessionsAction(
   if (!a.ok) return a
   const { sessions, metrics, live } = await listOnrampSessions(period)
   return { ok: true, sessions, metrics, live }
+}
+
+export async function listWebhookEventsAction(
+  filter?: { type?: string; status?: string },
+): Promise<{ ok: true; events: WebhookEventRow[]; live: boolean } | { ok: false; error: string }> {
+  const a = await actor("BILLING_VIEW")
+  if (!a.ok) return a
+  return { ok: true, events: await listWebhookEvents(filter), live: isLive() }
 }
