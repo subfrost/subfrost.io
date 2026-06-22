@@ -116,11 +116,11 @@ export async function createInvoice(input: {
 }
 
 export async function updateInvoiceStatus(id: string, status: InvoiceStatus): Promise<InvoiceRow> {
-  const row = await prisma.invoice
-    .update({ where: { id }, data: { status }, include: { payee: { select: { name: true } } } })
-    .catch(() => {
-      throw new AccountingError("Invoice not found")
-    })
+  const existing = await prisma.invoice.findUnique({ where: { id } })
+  if (!existing) throw new AccountingError("Invoice not found")
+  const row = await prisma.invoice.update({
+    where: { id }, data: { status }, include: { payee: { select: { name: true } } },
+  })
   return mapInvoice(row)
 }
 

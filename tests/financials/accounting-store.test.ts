@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => {
 
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
-  listPayees, listUnlinkedPayments, recordPayment, updateInvoiceStatus,
+  listPayees, listPayments, listUnlinkedPayments, recordPayment, updateInvoiceStatus,
 } from "@/lib/financials/accounting/store"
 import prisma from "@/lib/prisma"
 
@@ -67,6 +67,10 @@ describe("listInvoices", () => {
 })
 
 describe("createInvoice", () => {
+  it("rejects an empty ref", async () => {
+    await expect(createInvoice({ ref: "  ", payeeId: "pe1", description: "x", amountUsd: 1, issuedAt: "2026-02-01" })).rejects.toBeInstanceOf(AccountingError)
+    expect(inv.create).not.toHaveBeenCalled()
+  })
   it("rejects a missing payee", async () => {
     pe.findUnique.mockResolvedValueOnce(null)
     await expect(createInvoice({ ref: "INV-9", payeeId: "nope", description: "x", amountUsd: 1, issuedAt: "2026-02-01" })).rejects.toBeInstanceOf(AccountingError)
@@ -90,10 +94,16 @@ describe("createInvoice", () => {
 
 describe("updateInvoiceStatus", () => {
   it("updates and maps", async () => {
+    inv.findUnique.mockResolvedValueOnce({ id: "i1" })
     inv.update.mockResolvedValueOnce({ id: "i1", ref: "INV-1", payeeId: "pe1", description: "x", amountUsd: 1, amountDiesel: null, issuedAt: D("2026-02-01T00:00:00Z"), status: "PAID", pdfUrl: null, createdAt: D("2026-02-01T00:00:00Z"), payee: { name: "Ada" } })
     const row = await updateInvoiceStatus("i1", "PAID")
     expect(inv.update.mock.calls[0][0]).toMatchObject({ where: { id: "i1" }, data: { status: "PAID" } })
     expect(row.status).toBe("PAID")
+  })
+  it("throws AccountingError when the invoice is missing", async () => {
+    inv.findUnique.mockResolvedValueOnce(null)
+    await expect(updateInvoiceStatus("nope", "PAID")).rejects.toBeInstanceOf(AccountingError)
+    expect(inv.update).not.toHaveBeenCalled()
   })
 })
 
@@ -128,6 +138,18 @@ describe("linkPayment", () => {
     const row = await linkPayment("p1", "i1")
     expect(pay.update.mock.calls[0][0]).toMatchObject({ where: { id: "p1" }, data: { invoiceId: "i1" } })
     expect(row.invoiceRef).toBe("INV-1")
+  })
+})
+
+describe("listPayments", () => {
+  it("orders by paidAt desc, includes the invoice ref, and maps to ISO", async () => {
+    pay.findMany.mockResolvedValueOnce([
+      { id: "p1", txid: "txa", vout: 0, amountDiesel: 2, recipientAddress: "bc1", paidAt: D("2026-02-11T00:00:00Z"), blockHeight: null, invoiceId: "i1", source: "MANUAL", createdAt: D("2026-02-11T00:00:00Z"), invoice: { ref: "INV-1" } },
+    ])
+    const rows = await listPayments()
+    expect(pay.findMany.mock.calls[0][0]).toMatchObject({ orderBy: { paidAt: "desc" }, include: { invoice: { select: { ref: true } } } })
+    expect(rows[0].invoiceRef).toBe("INV-1")
+    expect(rows[0].paidAt).toBe("2026-02-11T00:00:00.000Z")
   })
 })
 
