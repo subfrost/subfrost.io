@@ -91,7 +91,7 @@ export function SiteHeader() {
             <img
               src="/subfrost-logotype-black.svg"
               alt="Subfrost"
-              className="h-[18px] w-auto sm:h-[20px]"
+              className="h-[22px] w-auto sm:h-[20px]"
               style={{ filter: "var(--ed-logo-filter)" }}
             />
           </Link>
