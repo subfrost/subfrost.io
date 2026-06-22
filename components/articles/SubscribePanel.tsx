@@ -97,7 +97,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
             onChange={(e) => setEmail(e.target.value)}
             placeholder={copy.placeholder}
             autoComplete="email"
-            className={`font-display w-full min-w-0 bg-transparent px-0 outline-none transition-opacity placeholder:text-black/35 focus:placeholder:text-black/25 ${footer ? "h-8 text-[14px] sm:w-[185px]" : "h-12 text-[16px] sm:w-[245px]"}`}
+            className={`ed-subscribe-input font-display w-full min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-8 text-[14px] sm:w-[185px]" : "h-12 text-[16px] sm:w-[245px]"}`}
             style={{
               color: "var(--ed-ink)",
             }}
@@ -109,7 +109,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
             aria-label={copy.cta}
             className={`font-display inline-flex shrink-0 items-center justify-center rounded-full px-0 font-semibold transition-[background-color,opacity,transform] duration-300 ease-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-90 ${state === "success" ? "scale-100" : ""} ${footer ? "h-8 w-8 text-[14px]" : "h-9 w-9 text-[14px]"}`}
             style={{
-              background: state === "success" ? "#16a34a" : hasEmail ? "var(--ed-ink)" : "color-mix(in srgb, var(--ed-ink) 42%, transparent)",
+              background: state === "success" ? "#16a34a" : hasEmail ? "var(--ed-ink)" : "var(--ed-button-muted)",
               color: "var(--ed-canvas)",
             }}
           >
