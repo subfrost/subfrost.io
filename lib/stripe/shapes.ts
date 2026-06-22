@@ -231,3 +231,30 @@ export type OnrampMetrics = {
   cryptoVolumeByAsset: Record<string, number>  // decimal units by destCurrency, completed only
   totalFees: number                            // cents, completed only
 }
+
+// SP-4: client-safe, PII-free summary of a Stripe webhook event (no verified_outputs / PAN).
+export type WebhookEventSummary = {
+  objectType: string | null
+  objectId: string | null
+  objectStatus: string | null
+  amount: number | null
+  currency: string | null
+  reason: string | null
+}
+
+// SP-4: client-safe row for the webhook event viewer (dates as ISO strings).
+export type WebhookEventRow = {
+  id: string
+  type: string
+  status: string
+  handled: boolean
+  error: string | null
+  stripeCreated: string
+  receivedAt: string
+  objectType: string | null
+  objectId: string | null
+  objectStatus: string | null
+  amount: number | null
+  currency: string | null
+  reason: string | null
+}

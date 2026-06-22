@@ -10,8 +10,26 @@ const dob = (d: { year?: number; month?: number; day?: number } | null | undefin
     ? `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`
     : null
 
-/** Lists Stripe Identity verification sessions + their report summary. No file/image
- *  data is read. Server-only (uses getStripeClient). */
+/** Normalize one raw VerificationSession into our PII-limited shape (no image files). */
+function normalizeSession(vs: any): StripeIdentityVerification {
+  const vo = vs.verified_outputs ?? null
+  const docReport = vs.last_verification_report?.document ?? null
+  return {
+    id: vs.id,
+    verdict: verdictOf(vs.status),
+    lastError: vs.last_error ? { code: vs.last_error.code ?? "", reason: vs.last_error.reason ?? "" } : null,
+    document: { type: docReport?.type ?? null, country: docReport?.issuing_country ?? null },
+    extracted: {
+      firstName: vo?.first_name ?? docReport?.first_name ?? null,
+      lastName: vo?.last_name ?? docReport?.last_name ?? null,
+      dob: dob(vo?.dob ?? docReport?.dob),
+    },
+    email: vs.metadata?.email ?? vo?.email ?? "",
+    createdAt: iso(vs.created),
+  }
+}
+
+/** Lists Stripe Identity verification sessions + their report summary. No image data. */
 export async function liveIdentityVerifications(): Promise<StripeIdentityVerification[]> {
   const stripe = getStripeClient()
   const out: StripeIdentityVerification[] = []
@@ -23,25 +41,20 @@ export async function liveIdentityVerifications(): Promise<StripeIdentityVerific
       expand: ["data.last_verification_report"],
       ...(startingAfter ? { starting_after: startingAfter } : {}),
     })
-    for (const vs of page.data as any[]) {
-      const vo = vs.verified_outputs ?? null
-      const docReport = vs.last_verification_report?.document ?? null
-      out.push({
-        id: vs.id,
-        verdict: verdictOf(vs.status),
-        lastError: vs.last_error ? { code: vs.last_error.code ?? "", reason: vs.last_error.reason ?? "" } : null,
-        document: { type: docReport?.type ?? null, country: docReport?.issuing_country ?? null },
-        extracted: {
-          firstName: vo?.first_name ?? docReport?.first_name ?? null,
-          lastName: vo?.last_name ?? docReport?.last_name ?? null,
-          dob: dob(vo?.dob ?? docReport?.dob),
-        },
-        email: vs.metadata?.email ?? vo?.email ?? "",
-        createdAt: iso(vs.created),
-      })
-    }
+    for (const vs of page.data as any[]) out.push(normalizeSession(vs))
     if (!page.has_more || page.data.length === 0) break
     startingAfter = page.data[page.data.length - 1].id
   }
   return out
+}
+
+/** Fetches one Stripe Identity verification session (report expanded; no image data).
+ *  Used by the SP-4 webhook handler. Returns null when the session can't be fetched. */
+export async function liveIdentityVerification(id: string): Promise<StripeIdentityVerification | null> {
+  const stripe = getStripeClient()
+  const vs: any = await (stripe as any).identity.verificationSessions.retrieve(id, {
+    expand: ["last_verification_report"],
+  })
+  if (!vs) return null
+  return normalizeSession(vs)
 }
