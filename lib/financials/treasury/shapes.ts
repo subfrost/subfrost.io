@@ -57,7 +57,12 @@ export function normalizeBalances(
       logo: it.logo_url ?? undefined,
     }))
     .filter((t) => t.amount > 0)
-    .sort((a, b) => (b.usd ?? -1) - (a.usd ?? -1))
+    .sort((a, b) => {
+      if (a.usd === null && b.usd === null) return 0
+      if (a.usd === null) return 1
+      if (b.usd === null) return -1
+      return b.usd - a.usd
+    })
   const totalUsd = round2(tokens.reduce((s, t) => s + (t.usd ?? 0), 0))
   return { address, label, totalUsd, tokens }
 }

@@ -36,4 +36,13 @@ describe("normalizeBalances", () => {
     expect(w.address).toBe("0xWALLET")
     expect(w.label).toBe("Main")
   })
+
+  it("keeps a priced-at-zero token as usd 0, not null", () => {
+    const z = normalizeBalances(
+      [{ contract_address: "0xz", contract_ticker_symbol: "ZP", contract_name: "Zero Priced",
+         contract_decimals: 18, balance: "1000000000000000000", quote: 0, native_token: false, is_spam: false }],
+      "0xW",
+    )
+    expect(z.tokens[0].usd).toBe(0)
+  })
 })
