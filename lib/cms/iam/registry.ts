@@ -54,6 +54,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "iam.modify_user", label: "Modify users", description: "Edit a user's name, status, role, and privilege grants; reset passwords.", category: "iam", implies: ["iam.list_users"] },
   { code: "iam.delete_user", label: "Delete users", description: "Permanently remove a user from the system.", category: "iam", implies: ["iam.list_users", "iam.modify_user"] },
   { code: "iam.manage_roles", label: "Assign roles & privileges", description: "Change a user's role and grant or revoke any privilege you hold.", category: "iam", implies: ["iam.list_users", "iam.modify_user"] },
+  { code: "iam.manage_sessions", label: "Manage sessions & devices", description: "View any user's active sessions and the devices/TLS fingerprints they're signed in from, and revoke them.", category: "iam", implies: ["iam.list_users"] },
 
   // --- Articles ---
   { code: "articles.write", label: "Write articles", description: "Create and edit your own article drafts and submit them for review.", category: "articles", implies: [] },

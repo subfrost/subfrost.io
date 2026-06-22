@@ -58,6 +58,14 @@ describe("role bundles", () => {
     expect(effectivePrivileges("ADMIN", ["billing.treasury_view"])).toContain("billing.treasury_view")
     expect(RESTRICTED_PRIVILEGES).toContain("billing.treasury_view")
   })
+  it("iam.manage_sessions is a normal (non-restricted) privilege ADMIN holds and implies list_users", () => {
+    expect(ALL_PRIVILEGES).toContain("iam.manage_sessions")
+    expect(RESTRICTED_PRIVILEGES).not.toContain("iam.manage_sessions")
+    const admin = effectivePrivileges("ADMIN")
+    expect(admin).toContain("iam.manage_sessions")
+    // granting it transitively grants the directory view it depends on
+    expect(effectivePrivileges("STAFF", ["iam.manage_sessions"])).toContain("iam.list_users")
+  })
   it("EDITOR/AUTHOR are content-only (no operational domains)", () => {
     const editor = effectivePrivileges("EDITOR")
     expect(editor).toContain("articles.publish")

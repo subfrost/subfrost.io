@@ -297,6 +297,10 @@ model Session {
   tokenHash  String   @unique // sha-256 of the session jti
   ip         String?
   userAgent  String?
+  // TLS fingerprint (JA4) of the client, injected by the tlsd ingress as a
+  // request header at TLS termination. Null until the fingerprint-capable
+  // ingress fronts this app — degrades gracefully.
+  tlsFingerprint String?
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
   expiresAt  DateTime

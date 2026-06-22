@@ -74,14 +74,18 @@ async function tooManyAttempts(email: string, ip: string | null): Promise<boolea
   return byEmail >= RL_MAX_PER_EMAIL || byIp >= RL_MAX_PER_IP
 }
 
-/** Captures client IP + user-agent for the session/audit records. */
-async function reqMeta(): Promise<{ ip: string | null; ua: string | null }> {
+/** Captures client IP, user-agent, and (when the fingerprint-capable tlsd ingress
+ *  is in front) the TLS JA4 fingerprint for the session/audit records. */
+async function reqMeta(): Promise<{ ip: string | null; ua: string | null; fp: string | null }> {
   const h = await headers()
   const ip =
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     h.get("x-real-ip") ||
     null
-  return { ip, ua: h.get("user-agent") }
+  // Injected by the tlsd ingress at TLS termination; absent behind the current
+  // Google-managed LB, so this stays null until that cutover.
+  const fp = h.get("x-tls-ja4") || h.get("x-tls-fingerprint") || null
+  return { ip, ua: h.get("user-agent"), fp }
 }
 
 async function issueSession(user: {
@@ -92,8 +96,8 @@ async function issueSession(user: {
   tokenVersion: number
 }) {
   const jti = newJti()
-  const { ip, ua } = await reqMeta()
-  await createSession({ userId: user.id, jti, ip, userAgent: ua })
+  const { ip, ua, fp } = await reqMeta()
+  await createSession({ userId: user.id, jti, ip, userAgent: ua, tlsFingerprint: fp })
   const token = await signSession({
     sub: user.id,
     email: user.email,

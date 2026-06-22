@@ -1,20 +1,27 @@
 "use client"
 
-import { Fragment, useState, useTransition } from "react"
+import { Fragment, useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { UserPlus, Copy, Check, Pencil } from "lucide-react"
+import { UserPlus, Copy, Check, Pencil, MonitorSmartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { rolePrivileges, type Privilege, type Role } from "@/lib/cms/privileges"
 import { resolveCode } from "@/lib/cms/iam/registry"
 import { PrivilegePicker } from "@/components/cms/PrivilegePicker"
+import { deviceLabel, relTime as sessRelTime, FingerprintBadge } from "@/components/cms/SessionsManager"
 import {
   provisionUser,
   updateUser,
   resetPassword,
   deleteUser,
 } from "@/actions/cms/users"
+import {
+  adminListUserSessions,
+  adminRevokeUserSession,
+  adminRevokeAllUserSessions,
+  type AdminSessionView,
+} from "@/actions/cms/sessions"
 
 export interface UserRow {
   id: string
@@ -48,7 +55,7 @@ function extraGrants(role: Role, stored: string[]): string[] {
 }
 
 export function UsersManager({
-  users, meId, myRole, myPrivileges, assignableRoles, canEdit, canCreate, canManageRoles,
+  users, meId, myRole, myPrivileges, assignableRoles, canEdit, canCreate, canManageRoles, canManageSessions,
 }: {
   users: UserRow[]
   meId: string
@@ -58,6 +65,7 @@ export function UsersManager({
   canEdit: boolean
   canCreate: boolean
   canManageRoles: boolean
+  canManageSessions: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -65,6 +73,7 @@ export function UsersManager({
   const [adding, setAdding] = useState(false)
   const [editFor, setEditFor] = useState<UserRow | null>(null)
   const [resetFor, setResetFor] = useState<UserRow | null>(null)
+  const [sessionsFor, setSessionsFor] = useState<UserRow | null>(null)
 
   const refresh = () => router.refresh()
   const grantable = myPrivileges // PrivilegePicker disables anything not in here
@@ -122,6 +131,11 @@ export function UsersManager({
                         <Button size="sm" variant="outline" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setEditFor(u) }}>
                           <Pencil size={13} /> Edit
                         </Button>
+                        {canManageSessions && (
+                          <Button size="sm" variant="ghost" disabled={!manageable || pending} onClick={() => { setError(null); setSessionsFor(u) }}>
+                            <MonitorSmartphone size={13} /> Sessions
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setResetFor(u) }}>Reset password</Button>
                         <Button size="sm" variant="ghost" disabled={!manageable || !canEdit || pending} className="text-red-400 hover:text-red-300"
                           onClick={() => { if (confirm(`Delete ${u.email}? This cannot be undone.`)) startTransition(async () => { const r = await deleteUser(u.id); if (!r.ok) setError(r.error); refresh() }) }}>Delete</Button>
@@ -147,6 +161,69 @@ export function UsersManager({
         <ResetPasswordModal user={resetFor} pending={pending} onClose={() => setResetFor(null)}
           onSubmit={(pw) => startTransition(async () => { const r = await resetPassword(resetFor.id, pw); if (!r.ok) setError(r.error); else setResetFor(null) })} />
       )}
+      {sessionsFor && (
+        <UserSessionsModal user={sessionsFor} onClose={() => setSessionsFor(null)} />
+      )}
+    </div>
+  )
+}
+
+function UserSessionsModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const [rows, setRows] = useState<AdminSessionView[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  useEffect(() => {
+    let alive = true
+    adminListUserSessions(user.id).then((r) => {
+      if (!alive) return
+      if (r.ok) setRows(r.sessions)
+      else setError(r.error)
+    })
+    return () => { alive = false }
+  }, [user.id])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={onClose}>
+      <div className="my-8 w-full max-w-lg space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white"><MonitorSmartphone size={16} /> Sessions — {user.email}</div>
+          {rows && rows.length > 0 && (
+            <Button size="sm" variant="ghost" disabled={pending}
+              onClick={() => startTransition(async () => { const r = await adminRevokeAllUserSessions(user.id); if (r.ok) setRows([]); else setError(r.error) })}>
+              Revoke all
+            </Button>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        {rows === null && !error && <p className="text-sm text-zinc-500">Loading…</p>}
+        {rows !== null && rows.length === 0 && !error && (
+          <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 px-4 py-8 text-center text-sm text-zinc-600">
+            No active sessions.
+          </div>
+        )}
+        {rows !== null && rows.length > 0 && (
+          <ul className="divide-y divide-zinc-800">
+            {rows.map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-200">
+                    {deviceLabel(s.userAgent)}
+                    <FingerprintBadge fp={s.tlsFingerprint} />
+                  </div>
+                  <div className="text-xs text-zinc-500">{s.ip ?? "unknown IP"} · active {sessRelTime(s.lastSeenAt)}</div>
+                </div>
+                <Button size="sm" variant="ghost" disabled={pending} className="shrink-0 text-red-400 hover:text-red-300"
+                  onClick={() => startTransition(async () => { const r = await adminRevokeUserSession(user.id, s.id); if (r.ok) setRows((p) => (p ?? []).filter((x) => x.id !== s.id)); else setError(r.error) })}>
+                  Revoke
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex justify-end"><Button size="sm" variant="ghost" onClick={onClose}>Close</Button></div>
+      </div>
     </div>
   )
 }

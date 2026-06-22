@@ -21,6 +21,7 @@ export default async function ProfilePage() {
     id: s.id,
     ip: s.ip,
     userAgent: s.userAgent,
+    tlsFingerprint: s.tlsFingerprint,
     createdAt: s.createdAt.toISOString(),
     lastSeenAt: s.lastSeenAt.toISOString(),
     current: s.current,
