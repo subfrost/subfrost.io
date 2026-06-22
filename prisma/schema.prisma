@@ -547,6 +547,7 @@ model KycIntake {
   providerData  Json? // synced provider summary (verdict, lastError, document, extracted) — SP-2
   createdAt     DateTime         @default(now())
   dispositions  KycDisposition[]
+  payees        Payee[]
 
   @@index([status])
 }
@@ -742,4 +743,72 @@ model StripeWebhookEvent {
   @@index([type])
   @@index([receivedAt])
   @@index([status])
+}
+
+// ============================================
+// FINANCIALS — Accounting (SP-1: DIESEL ledger)
+// ============================================
+
+enum PayeeType {
+  PERSON
+  ORG
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  VOID
+}
+
+enum PaymentSource {
+  ONCHAIN
+  MANUAL
+}
+
+model Payee {
+  id          String     @id @default(cuid())
+  name        String
+  type        PayeeType  @default(PERSON)
+  kycIntakeId String? // optional link to a KYC'd identity (Stripe Identity)
+  kycIntake   KycIntake? @relation(fields: [kycIntakeId], references: [id])
+  notes       String?
+  createdAt   DateTime   @default(now())
+  invoices    Invoice[]
+
+  @@index([name])
+}
+
+model Invoice {
+  id           String          @id @default(cuid())
+  ref          String          @unique // human ref e.g. INV-014
+  payeeId      String
+  payee        Payee           @relation(fields: [payeeId], references: [id])
+  description  String
+  amountUsd    Float
+  amountDiesel Float? // expected DIESEL (optional; actual comes from payments)
+  issuedAt     DateTime
+  status       InvoiceStatus   @default(OPEN)
+  pdfUrl       String? // GCS object (CMS_BUCKET)
+  createdAt    DateTime        @default(now())
+  payments     DieselPayment[]
+
+  @@index([payeeId])
+  @@index([status])
+}
+
+model DieselPayment {
+  id               String        @id @default(cuid())
+  txid             String // bitcoin txid of the DIESEL transfer
+  vout             Int?
+  amountDiesel     Float
+  recipientAddress String
+  paidAt           DateTime // block time
+  blockHeight      Int?
+  invoiceId        String?
+  invoice          Invoice?      @relation(fields: [invoiceId], references: [id])
+  source           PaymentSource @default(MANUAL)
+  createdAt        DateTime      @default(now())
+
+  @@unique([txid, vout]) // idempotent vs SP-2 ingestion
+  @@index([invoiceId])
 }
