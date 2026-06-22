@@ -126,6 +126,14 @@ spec:
                   name: subfrost-io-secrets
                   key: STRIPE_SECRET_KEY
                   optional: true
+            # SP-4 webhook signing secret. optional:true mirrors STRIPE_SECRET_KEY —
+            # an unsynced secret can't block startup; absent => receiver 400s deliveries.
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
