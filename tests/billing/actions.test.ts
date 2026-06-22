@@ -22,7 +22,17 @@ describe('gate', () => {
     cu.mockResolvedValueOnce(null);
     expect(await listApplicationsAction()).toEqual({ ok: false, error: 'Not authenticated' });
   });
-  it('denies without MANAGE_BILLING', async () => {
+  it('denies read without BILLING_VIEW', async () => {
+    asUser(['MANAGE_AML']);
+    expect((await listApplicationsAction()).ok).toBe(false);
+    expect(listApplications).not.toHaveBeenCalled();
+  });
+  it('denies write without BILLING_EDIT', async () => {
+    asUser(['BILLING_VIEW']);
+    expect(await upsertApplicationAction('treasury', { status: 'APPROVED' })).toEqual({ ok: false, error: 'Insufficient privileges' });
+    expect(upsertApplication).not.toHaveBeenCalled();
+  });
+  it('denies write without any billing privilege', async () => {
     asUser(['MANAGE_AML']);
     expect(await upsertApplicationAction('treasury', { status: 'APPROVED' })).toEqual({ ok: false, error: 'Insufficient privileges' });
     expect(upsertApplication).not.toHaveBeenCalled();
@@ -30,14 +40,14 @@ describe('gate', () => {
 });
 
 describe('actions', () => {
-  it('lists applications', async () => {
-    asUser(['MANAGE_BILLING']);
+  it('lists applications with BILLING_VIEW', async () => {
+    asUser(['BILLING_VIEW']);
     (listApplications as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 'a1', product: 'treasury', status: 'PENDING', notes: null, updatedBy: 'x', updatedAt: '2026-06-01T00:00:00.000Z' }]);
     const r = await listApplicationsAction();
     expect(r).toEqual({ ok: true, applications: [{ id: 'a1', product: 'treasury', status: 'PENDING', notes: null, updatedBy: 'x', updatedAt: '2026-06-01T00:00:00.000Z' }] });
   });
-  it('upserts, audits, revalidates', async () => {
-    asUser(['MANAGE_BILLING']);
+  it('upserts, audits, revalidates with BILLING_EDIT', async () => {
+    asUser(['BILLING_EDIT']);
     (upsertApplication as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'a1', product: 'treasury', status: 'APPROVED', notes: null, updatedBy: 'op@subfrost.io', updatedAt: '2026-06-02T00:00:00.000Z' });
     const r = await upsertApplicationAction('treasury', { status: 'APPROVED' });
     expect(r).toEqual({ ok: true });
@@ -45,7 +55,7 @@ describe('actions', () => {
     expect(revalidatePath).toHaveBeenCalledWith('/admin/billing/applications');
   });
   it('maps BillingError without auditing', async () => {
-    asUser(['MANAGE_BILLING']);
+    asUser(['BILLING_EDIT']);
     (upsertApplication as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new BillingError('Unknown product: x'));
     const r = await upsertApplicationAction('x', { status: 'APPROVED' });
     expect(r).toEqual({ ok: false, error: 'Unknown product: x' });

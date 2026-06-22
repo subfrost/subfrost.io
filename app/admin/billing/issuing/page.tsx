@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic"
 export default async function IssuingPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_BILLING")) redirect("/admin")
+  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
+  const canEdit = me.privileges.includes("BILLING_EDIT")
 
   return (
     <div>
@@ -18,7 +19,7 @@ export default async function IssuingPage() {
         Manage issued cards, state controls, and dispute evidence submission.
       </p>
       <BillingBanner live={isLive()} />
-      <IssuingManager />
+      <IssuingManager canEdit={canEdit} />
     </div>
   )
 }

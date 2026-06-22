@@ -29,7 +29,7 @@ function DisputeStatusBadge({ status }: { status: IssuingDispute["status"] }) {
   return <span className={cls}>{status}</span>
 }
 
-export function IssuingManager() {
+export function IssuingManager({ canEdit }: { canEdit: boolean }) {
   const [cards, setCards] = useState<IssuingCard[]>([])
   const [disputes, setDisputes] = useState<IssuingDispute[]>([])
   const [loading, setLoading] = useState(true)
@@ -174,27 +174,29 @@ export function IssuingManager() {
                     </div>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={cardStateSelects[card.id] ?? card.state}
-                      onChange={(e) =>
-                        setCardStateSelects((prev) => ({
-                          ...prev,
-                          [card.id]: e.target.value as IssuingCard["state"],
-                        }))
-                      }
-                      className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-zinc-500"
-                    >
-                      {CARD_STATES.map((s) => (
-                        <option key={s} value={s}>
-                          {CARD_STATE_LABELS[s]}
-                        </option>
-                      ))}
-                    </select>
-                    <Button size="sm" onClick={() => handleCardControl(card.id)}>
-                      Apply
-                    </Button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={cardStateSelects[card.id] ?? card.state}
+                        onChange={(e) =>
+                          setCardStateSelects((prev) => ({
+                            ...prev,
+                            [card.id]: e.target.value as IssuingCard["state"],
+                          }))
+                        }
+                        className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                      >
+                        {CARD_STATES.map((s) => (
+                          <option key={s} value={s}>
+                            {CARD_STATE_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <Button size="sm" onClick={() => handleCardControl(card.id)}>
+                        Apply
+                      </Button>
+                    </div>
+                  )}
                 </li>
               )
             })}
@@ -250,27 +252,29 @@ export function IssuingManager() {
                     </div>
                   )}
 
-                  <div className="mt-3 space-y-2">
-                    <textarea
-                      rows={3}
-                      placeholder="Evidence description…"
-                      value={disputeEvidence[dispute.id] ?? ""}
-                      onChange={(e) =>
-                        setDisputeEvidence((prev) => ({ ...prev, [dispute.id]: e.target.value }))
-                      }
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 resize-none"
-                    />
-                    <Input
-                      placeholder="Evidence filenames (comma-separated, optional)"
-                      value={disputeFiles[dispute.id] ?? ""}
-                      onChange={(e) =>
-                        setDisputeFiles((prev) => ({ ...prev, [dispute.id]: e.target.value }))
-                      }
-                    />
-                    <Button size="sm" onClick={() => handleDisputeEvidence(dispute.id)}>
-                      Submit evidence
-                    </Button>
-                  </div>
+                  {canEdit && (
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        rows={3}
+                        placeholder="Evidence description…"
+                        value={disputeEvidence[dispute.id] ?? ""}
+                        onChange={(e) =>
+                          setDisputeEvidence((prev) => ({ ...prev, [dispute.id]: e.target.value }))
+                        }
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 resize-none"
+                      />
+                      <Input
+                        placeholder="Evidence filenames (comma-separated, optional)"
+                        value={disputeFiles[dispute.id] ?? ""}
+                        onChange={(e) =>
+                          setDisputeFiles((prev) => ({ ...prev, [dispute.id]: e.target.value }))
+                        }
+                      />
+                      <Button size="sm" onClick={() => handleDisputeEvidence(dispute.id)}>
+                        Submit evidence
+                      </Button>
+                    </div>
+                  )}
                 </li>
               )
             })}

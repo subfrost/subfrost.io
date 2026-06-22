@@ -19,7 +19,7 @@ const SURFACES: { key: string; label: string; href: string; desc: string; ready:
 export default async function BillingPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
-  if (!me.privileges.includes("MANAGE_BILLING")) redirect("/admin")
+  if (!me.privileges.includes("BILLING_VIEW")) redirect("/admin")
 
   const live = isLive()
 

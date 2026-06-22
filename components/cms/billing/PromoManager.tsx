@@ -24,7 +24,7 @@ function defaultForm(): FormState {
   return { code: "", type: "PERCENT", value: "", maxRedemptions: "", expiresAt: "" }
 }
 
-export function PromoManager() {
+export function PromoManager({ canEdit }: { canEdit: boolean }) {
   const [codes, setCodes] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState<string | null>(null)
@@ -89,6 +89,7 @@ export function PromoManager() {
       )}
 
       {/* Create form */}
+      {canEdit && (
       <section>
         <h2 className="mb-3 text-lg font-semibold text-white">Create promo code</h2>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -171,6 +172,7 @@ export function PromoManager() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Codes list */}
       <section>

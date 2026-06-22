@@ -43,6 +43,7 @@ interface CustomerRowProps {
   loadingDetail: boolean
   onToggle: () => void
   onRefundSuccess: () => Promise<void>
+  canEdit: boolean
 }
 
 function CustomerRow({
@@ -52,6 +53,7 @@ function CustomerRow({
   loadingDetail,
   onToggle,
   onRefundSuccess,
+  canEdit,
 }: CustomerRowProps) {
   const [refundForms, setRefundForms] = useState<Record<string, RefundFormState>>({})
   const [pending, startTransition] = useTransition()
@@ -232,7 +234,7 @@ function CustomerRow({
                           </span>
                         </div>
 
-                        {charge.status === "succeeded" && !refundForms[charge.id] && (
+                        {canEdit && charge.status === "succeeded" && !refundForms[charge.id] && (
                           <div className="mt-2">
                             <Button
                               size="sm"
@@ -244,7 +246,7 @@ function CustomerRow({
                           </div>
                         )}
 
-                        {refundForms[charge.id] && (
+                        {canEdit && refundForms[charge.id] && (
                           <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
                             {refundForms[charge.id].error && (
                               <div className="rounded-lg bg-red-950/40 p-2 text-xs text-red-300">
@@ -322,7 +324,7 @@ function CustomerRow({
   )
 }
 
-export function CustomersManager() {
+export function CustomersManager({ canEdit }: { canEdit: boolean }) {
   const [customers, setCustomers] = useState<CustomerSummary[]>([])
   const [refundIntents, setRefundIntents] = useState<MoneyIntentRow[]>([])
   const [detailCache, setDetailCache] = useState<Record<string, CustomerDetail | null>>({})
@@ -456,6 +458,7 @@ export function CustomersManager() {
                 loadingDetail={!!loadingDetails[customer.id]}
                 onToggle={() => handleToggle(customer.id)}
                 onRefundSuccess={fetchRefundIntents}
+                canEdit={canEdit}
               />
             ))}
           </ul>
@@ -471,6 +474,7 @@ export function CustomersManager() {
           onConfirm={handleConfirm}
           onCancel={handleCancel}
           error={refundError}
+          canEdit={canEdit}
         />
       </section>
     </div>
