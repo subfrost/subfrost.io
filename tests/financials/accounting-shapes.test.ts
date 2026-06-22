@@ -57,6 +57,10 @@ describe("csvEscape", () => {
     expect(csvEscape("Acme, Inc")).toBe('"Acme, Inc"')
     expect(csvEscape('a "b"')).toBe('"a ""b"""')
   })
+  it("quotes fields containing a newline or carriage return", () => {
+    expect(csvEscape("a\nb")).toBe('"a\nb"')
+    expect(csvEscape("a\rb")).toBe('"a\rb"')
+  })
 })
 
 describe("toCsv", () => {

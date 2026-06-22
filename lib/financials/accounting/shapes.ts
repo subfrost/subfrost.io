@@ -122,7 +122,7 @@ export function totalsByPeriod(invoices: InvoiceRow[], g: PeriodGranularity): Pe
 }
 
 export function csvEscape(s: string): string {
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
   return s
 }
 
