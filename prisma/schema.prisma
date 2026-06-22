@@ -280,6 +280,7 @@ model User {
   sessions      Session[]
   recoveryCodes TotpRecoveryCode[]
   auditLogs     AuditLog[]         @relation("AuditActor")
+  payee Payee? @relation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -776,6 +777,9 @@ model Payee {
   kycIntakeId String? // optional link to a KYC'd identity (Stripe Identity)
   kycIntake   KycIntake? @relation(fields: [kycIntakeId], references: [id])
   notes       String?
+  userId       String?    @unique // optional 1:1 link to a team-member User
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agreementUrl String? // contract/agreement PDF (CMS_BUCKET)
   createdAt   DateTime   @default(now())
   invoices    Invoice[]
 
