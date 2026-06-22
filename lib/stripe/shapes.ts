@@ -241,3 +241,20 @@ export type WebhookEventSummary = {
   currency: string | null
   reason: string | null
 }
+
+// SP-4: client-safe row for the webhook event viewer (dates as ISO strings).
+export type WebhookEventRow = {
+  id: string
+  type: string
+  status: string
+  handled: boolean
+  error: string | null
+  stripeCreated: string
+  receivedAt: string
+  objectType: string | null
+  objectId: string | null
+  objectStatus: string | null
+  amount: number | null
+  currency: string | null
+  reason: string | null
+}
