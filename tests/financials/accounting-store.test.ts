@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => {
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
   listPayees, listPayments, listUnlinkedPayments, recordPayment, updateInvoiceStatus,
-  updatePayee, listLinkableUsers,
+  updatePayee, listLinkableUsers, loadPayeeProfile,
 } from "@/lib/financials/accounting/store"
 import prisma from "@/lib/prisma"
 
@@ -245,5 +245,36 @@ describe("listLinkableUsers", () => {
     const rows = await listLinkableUsers()
     expect(usr.findMany).toHaveBeenCalledWith({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, email: true, avatarUrl: true, role: true } })
     expect(rows[0]).toEqual({ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" })
+  })
+})
+
+describe("loadPayeeProfile", () => {
+  it("returns null when the payee is missing", async () => {
+    pe.findUnique.mockResolvedValueOnce(null)
+    expect(await loadPayeeProfile("nope")).toBeNull()
+  })
+
+  it("shapes payee + user + kyc and assembles invoices/payments/totals", async () => {
+    pe.findUnique.mockResolvedValueOnce({
+      id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, userId: "u1", agreementUrl: null,
+      createdAt: D("2026-01-01T00:00:00Z"),
+      kycIntake: { id: "k1", customerName: "Ada L", status: "APPROVED" },
+      user: { id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, bio: "math", twitter: null, status: null, role: "AUTHOR" },
+    })
+    inv.findMany.mockResolvedValueOnce([
+      { id: "i1", ref: "INV-1", payeeId: "pe1", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: D("2026-02-01T00:00:00Z"), status: "PAID", pdfUrl: null, createdAt: D("2026-02-01T00:00:00Z"), payee: { name: "Ada" } },
+    ])
+    pay.findMany.mockResolvedValueOnce([
+      { id: "p1", txid: "t", vout: null, amountDiesel: 5, recipientAddress: "bc1", paidAt: D("2026-02-02T00:00:00Z"), blockHeight: null, invoiceId: "i1", source: "MANUAL", createdAt: D("2026-02-02T00:00:00Z"), invoice: { ref: "INV-1" } },
+      { id: "p2", txid: "u", vout: null, amountDiesel: 9, recipientAddress: "bc1", paidAt: D("2026-02-03T00:00:00Z"), blockHeight: null, invoiceId: null, source: "MANUAL", createdAt: D("2026-02-03T00:00:00Z"), invoice: null },
+    ])
+    const prof = await loadPayeeProfile("pe1")
+    expect(prof).not.toBeNull()
+    expect(prof!.user?.email).toBe("ada@x.io")
+    expect(prof!.kyc).toEqual({ id: "k1", customerName: "Ada L", status: "APPROVED" })
+    expect(prof!.payments.map((p) => p.id)).toEqual(["p1"]) // p2 unlinked → excluded
+    expect(prof!.totals.totalUsd).toBe(100)
+    expect(prof!.totals.totalDiesel).toBe(5)
+    expect(inv.findMany.mock.calls[0][0].where.payeeId).toBe("pe1")
   })
 })

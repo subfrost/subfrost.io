@@ -5,7 +5,9 @@
 import prisma from "@/lib/prisma"
 import type {
   InvoiceRow, InvoiceStatus, PayeeRow, PayeeType, PaymentRow, PaymentSource,
+  PayeeProfile, PayeeUserSummary, PayeeKycSummary,
 } from "@/lib/financials/accounting/shapes"
+import { assemblePayeeProfile } from "@/lib/financials/accounting/shapes"
 
 export class AccountingError extends Error {}
 
@@ -228,4 +230,28 @@ export async function listLinkableUsers(): Promise<
     select: { id: true, name: true, email: true, avatarUrl: true, role: true },
   })
   return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, role: String(u.role) }))
+}
+
+export async function loadPayeeProfile(id: string): Promise<PayeeProfile | null> {
+  const row = await prisma.payee.findUnique({
+    where: { id },
+    include: {
+      kycIntake: { select: { id: true, customerName: true, status: true } },
+      user: { select: { id: true, name: true, email: true, avatarUrl: true, bio: true, twitter: true, status: true, role: true } },
+    },
+  })
+  if (!row) return null
+  const payee = mapPayee(row)
+  const user: PayeeUserSummary | null = row.user
+    ? {
+        id: row.user.id, name: row.user.name, email: row.user.email,
+        avatarUrl: row.user.avatarUrl, bio: row.user.bio, twitter: row.user.twitter,
+        status: row.user.status, role: String(row.user.role),
+      }
+    : null
+  const kyc: PayeeKycSummary | null = row.kycIntake
+    ? { id: row.kycIntake.id, customerName: row.kycIntake.customerName, status: String(row.kycIntake.status) }
+    : null
+  const [invoices, payments] = await Promise.all([listInvoices({ payeeId: id }), listPayments()])
+  return assemblePayeeProfile(payee, user, kyc, invoices, payments)
 }
