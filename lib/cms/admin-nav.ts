@@ -1,7 +1,7 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
-  ClipboardList, Settings, KeyRound, ScrollText, Webhook,
+  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@prisma/client"
@@ -31,6 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: "community", label: "Community", icon: Megaphone, items: [
+      { label: "Dashboard", href: "/admin/communities", icon: Network, privilege: "REFERRAL_VIEW" },
       { label: "FUEL", href: "/admin/fuel", icon: Fuel, privilege: "FUEL_VIEW" },
       { label: "Referral codes", href: "/admin/codes", icon: Ticket, privilege: "REFERRAL_VIEW" },
     ],
