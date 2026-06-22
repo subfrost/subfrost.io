@@ -732,3 +732,26 @@ model StripeApplication {
   updatedBy String
   updatedAt DateTime                @updatedAt
 }
+
+// SP-4: append-only-ish log of received Stripe webhook events. PII-free: only a
+// non-sensitive summary is stored; full detail lives in the Stripe dashboard.
+model StripeWebhookEvent {
+  id            String   @id                  // Stripe event id (evt_...) = natural PK → idempotency
+  type          String                        // e.g. "identity.verification_session.verified"
+  apiVersion    String?
+  stripeCreated DateTime                       // event.created
+  receivedAt    DateTime @default(now())
+  status        String   @default("received") // received | processed | ignored | failed
+  handled       Boolean  @default(false)       // did a domain handler act on it?
+  error         String?
+  objectType    String?                         // event.data.object.object e.g. "charge","payout"
+  objectId      String?
+  objectStatus  String?                         // object.status (non-PII)
+  amount        Int?                            // cents, when present
+  currency      String?
+  reason        String?                         // dispute / rejection reason (non-PII)
+
+  @@index([type])
+  @@index([receivedAt])
+  @@index([status])
+}
