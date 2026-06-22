@@ -18,7 +18,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
   const brand = (
     <div className="px-2">
       <div className="text-lg font-bold text-white">SUBFROST</div>
-      <div className="text-xs uppercase tracking-widest text-zinc-500">Editorial</div>
+      <div className="text-xs uppercase tracking-widest text-zinc-500">Admin</div>
     </div>
   )
 

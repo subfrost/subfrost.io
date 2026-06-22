@@ -1,7 +1,7 @@
 import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
-  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network,
+  ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@prisma/client"
@@ -24,8 +24,13 @@ export interface NavGroup {
 // leaf names the privilege that unlocks it; visibleNav() drops empty groups.
 export const NAV_GROUPS: NavGroup[] = [
   {
+    key: "overview", label: "Overview", icon: LayoutDashboard, items: [
+      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    ],
+  },
+  {
     key: "articles", label: "Articles", icon: FileText, items: [
-      { label: "All articles", href: "/admin", icon: FileText },
+      { label: "All articles", href: "/admin/articles", icon: FileText },
       { label: "New article", href: "/admin/articles/new", icon: PlusCircle },
     ],
   },
@@ -76,12 +81,13 @@ export function visibleNav(privileges: string[]): NavGroup[] {
     .filter((g) => g.items.length > 0)
 }
 
-/** Active-route matching. Exact match except the Articles list, which also stays
- *  active while editing an article (/admin/articles/[id]) but not on /new. */
+/** Active-route matching. Dashboard is exact /admin; the Articles list also
+ *  stays active while editing an article (/admin/articles/[id]) but not on /new. */
 export function isItemActive(href: string, pathname: string): boolean {
-  if (href === "/admin") {
+  if (href === "/admin") return pathname === "/admin"
+  if (href === "/admin/articles") {
     return (
-      pathname === "/admin" ||
+      pathname === "/admin/articles" ||
       (pathname.startsWith("/admin/articles/") && pathname !== "/admin/articles/new")
     )
   }

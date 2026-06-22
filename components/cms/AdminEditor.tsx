@@ -63,7 +63,7 @@ export function AdminEditor({ initial, canPublish }: { initial: EditorInitial; c
           zh: content.zh.title.trim() ? content.zh : undefined,
         },
       })
-      if (res.ok) { router.push("/admin"); router.refresh() } else setError(res.error)
+      if (res.ok) { router.push("/admin/articles"); router.refresh() } else setError(res.error)
     })
   }
 
@@ -71,7 +71,7 @@ export function AdminEditor({ initial, canPublish }: { initial: EditorInitial; c
     if (!initial.id || !confirm("Delete this article? This cannot be undone.")) return
     startTransition(async () => {
       const res = await deleteArticle(initial.id!)
-      if (res.ok) { router.push("/admin"); router.refresh() } else setError(res.error)
+      if (res.ok) { router.push("/admin/articles"); router.refresh() } else setError(res.error)
     })
   }
 

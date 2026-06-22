@@ -19,7 +19,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   if (!article) notFound()
 
   const canPublish = user.privileges.includes("PUBLISH_ARTICLES")
-  if (!canPublish && article.authorId !== user.id) redirect("/admin")
+  if (!canPublish && article.authorId !== user.id) redirect("/admin/articles")
 
   const tr = (loc: "en" | "zh") => {
     const t = article.translations.find((x) => x.locale === loc)
