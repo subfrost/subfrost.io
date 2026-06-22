@@ -45,6 +45,11 @@ export type AuditAction =
   | "stripe_card_control"
   | "stripe_dispute_evidence"
   | "stripe_refund_request"
+  | "accounting_payee_create"
+  | "accounting_invoice_create"
+  | "accounting_invoice_status"
+  | "accounting_payment_record"
+  | "accounting_payment_link"
 
 export async function audit(
   action: AuditAction,
