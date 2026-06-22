@@ -103,13 +103,13 @@ export default async function ArticlesIndex({
         ) : (
           <>
             {lead ? (
-              <section className="mt-10 grid gap-8 xl:grid-cols-[1.45fr_1fr] xl:items-start">
+              <section className={`mt-10 grid gap-8 ${latest.length > 0 ? "xl:grid-cols-[1.45fr_1fr] xl:items-start" : ""}`}>
                 <Link
                   href={`/articles/${lead.slug}`}
                   className="group overflow-hidden rounded-[18px] border p-4 sm:p-5"
                   style={{ borderColor: "var(--ed-hair)", background: "color-mix(in srgb, var(--ed-surface) 85%, transparent)" }}
                 >
-                  <div className="grid items-center gap-7 md:grid-cols-[1.15fr_1fr]">
+                  <div className={`grid items-center gap-7 ${latest.length > 0 ? "md:grid-cols-[1.15fr_1fr]" : "md:grid-cols-[1fr_1.1fr]"}`}>
                     {lead.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={lead.coverImage} alt="" className="h-[290px] w-full rounded-[14px] object-cover" />
@@ -139,11 +139,11 @@ export default async function ArticlesIndex({
                   </div>
                 </Link>
 
-                <aside className="rounded-[18px] border p-5 sm:p-6" style={{ borderColor: "var(--ed-hair)", background: "color-mix(in srgb, var(--ed-surface) 85%, transparent)" }}>
-                  <p className="ed-eyebrow mb-3">Recent Signals</p>
-                  <div className="space-y-5">
-                    {latest.length > 0 ? (
-                      latest.map((a) => (
+                {latest.length > 0 && (
+                  <aside className="rounded-[18px] border p-5 sm:p-6" style={{ borderColor: "var(--ed-hair)", background: "color-mix(in srgb, var(--ed-surface) 85%, transparent)" }}>
+                    <p className="ed-eyebrow mb-3">Recent Signals</p>
+                    <div className="space-y-5">
+                      {latest.map((a) => (
                         <Link key={a.slug} href={`/articles/${a.slug}`} className="group block border-b pb-4 last:border-b-0 last:pb-0" style={{ borderColor: "var(--ed-hair)" }}>
                           <h3 className="font-display text-[19px] leading-[1.25] transition-opacity group-hover:opacity-80" style={{ color: "var(--ed-ink)" }}>
                             {a.title}
@@ -152,14 +152,10 @@ export default async function ArticlesIndex({
                             {a.excerpt}
                           </p>
                         </Link>
-                      ))
-                    ) : (
-                      <p className="font-reading text-[15px]" style={{ color: "var(--ed-muted)" }}>
-                        More updates coming soon.
-                      </p>
-                    )}
-                  </div>
-                </aside>
+                      ))}
+                    </div>
+                  </aside>
+                )}
               </section>
             ) : null}
 
