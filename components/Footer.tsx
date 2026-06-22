@@ -106,7 +106,7 @@ const Footer: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="https://discord.gg/WNWUPtjRNS"
+                    href="https://discord.gg/qrWgJgNAUj"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent("social_discord_click", { event_category: "social", event_label: "footer" })}

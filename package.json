@@ -22,6 +22,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
+    "db:seed:articles:local": "node scripts/seed-local-mock-articles.cjs",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "setup:local": "pnpm docker:up && sleep 3 && pnpm db:push",

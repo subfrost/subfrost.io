@@ -431,6 +431,20 @@ model Revision {
   @@index([articleId, createdAt])
 }
 
+// Email subscribers for news/article updates.
+model ArticleSubscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  locale      Locale   @default(en)
+  source      String   @default("articles_page")
+  active      Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+  @@index([locale])
+}
+
 // Bearer keys for the admin upload API (POST /api/admin/articles).
 model ApiKey {
   id         String      @id @default(cuid())

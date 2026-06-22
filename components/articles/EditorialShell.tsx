@@ -20,7 +20,11 @@ export async function EditorialShell({ children }: { children: ReactNode }) {
       id="ed-root"
       data-ed-theme={theme}
       className={`${GeistSans.variable} ${GeistMono.variable} flex min-h-screen flex-col`}
-      style={{ background: "var(--ed-canvas)", color: "var(--ed-body)" }}
+      style={{
+        background:
+          "radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--ed-ice) 15%, transparent), transparent 62%), linear-gradient(180deg, color-mix(in srgb, var(--ed-band) 68%, var(--ed-canvas)) 0%, var(--ed-canvas) 34%, color-mix(in srgb, var(--ed-canvas) 88%, var(--ed-band)) 100%)",
+        color: "var(--ed-body)",
+      }}
     >
       <SiteHeader theme={theme} />
       <div className="flex-1">{children}</div>
