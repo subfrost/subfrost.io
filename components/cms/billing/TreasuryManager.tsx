@@ -16,7 +16,7 @@ import { TRANSFER_DIRECTIONS } from "@/lib/stripe/shapes"
 import { MoneyIntentQueue } from "@/components/cms/billing/MoneyIntentQueue"
 import type { MoneyIntentRow } from "@/lib/stripe/money"
 import type { TreasuryBalance, TreasuryTransaction } from "@/lib/stripe/shapes"
-import { SkeletonTable } from "@/components/cms/Skeleton"
+import { SkeletonStats, SkeletonList } from "@/components/cms/Skeleton"
 
 
 export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
@@ -131,7 +131,17 @@ export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
       }
     })
 
-  if (loading) return <SkeletonTable />
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <SkeletonStats count={3} className="sm:grid-cols-3" />
+        <SkeletonList rows={3} height="h-24" />
+      </div>
+    )
+  }
+
+  const totalAvailable = balances.reduce((s, b) => s + b.available, 0)
+  const totalPending = balances.reduce((s, b) => s + b.pending, 0)
 
   return (
     <div className="space-y-8">
@@ -144,74 +154,56 @@ export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
         </div>
       )}
 
+      {/* Summary */}
+      {balances.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <SummaryCard label="Total available" value={centsToDisplay(totalAvailable)} accent />
+          <SummaryCard label="Pending" value={centsToDisplay(totalPending)} />
+          <SummaryCard label="Accounts" value={String(balances.length)} />
+        </div>
+      )}
+
       {/* Balances */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Balances</h2>
+        <SectionTitle>Balances</SectionTitle>
         {balances.length === 0 ? (
-          <p className="text-sm text-zinc-500">No balances found.</p>
+          <EmptyState>No treasury balances yet.</EmptyState>
         ) : (
-          <ul className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {balances.map((b) => (
-              <li key={b.accountId} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-white">{b.nickname}</span>
-                  <span className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">
-                    {b.currency}
-                  </span>
+              <div key={b.accountId} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate font-medium text-white">{b.nickname}</span>
+                  <span className="shrink-0 rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">{b.currency}</span>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
-                  <span>
-                    <span className="text-zinc-600">Available: </span>
-                    {centsToDisplay(b.available)}
-                  </span>
-                  <span>
-                    <span className="text-zinc-600">Pending: </span>
-                    {centsToDisplay(b.pending)}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-zinc-600">{b.accountId}</p>
-              </li>
+                <div className="text-2xl font-semibold tabular-nums text-white">{centsToDisplay(b.available)}</div>
+                <div className="mt-1 text-xs text-zinc-500">{centsToDisplay(b.pending)} pending</div>
+                <div className="mt-3 truncate font-mono text-[10px] text-zinc-600" title={b.accountId}>{b.accountId}</div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
       {/* Transactions */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Transactions</h2>
+        <SectionTitle>Transactions</SectionTitle>
         {transactions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No transactions found.</p>
+          <EmptyState>No transactions yet.</EmptyState>
         ) : (
-          <ul className="space-y-3">
+          <div className="divide-y divide-zinc-800 overflow-hidden rounded-xl border border-zinc-800">
             {transactions.map((t) => (
-              <li key={t.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-white">{centsToDisplay(t.amount)}</span>
-                  <span className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">
-                    {t.type}
-                  </span>
-                  <span
-                    className={
-                      t.status === "posted"
-                        ? "rounded-md border border-green-700/50 bg-green-950/40 px-2 py-0.5 text-xs font-medium text-green-400"
-                        : t.status === "returned"
-                          ? "rounded-md border border-red-700/50 bg-red-950/40 px-2 py-0.5 text-xs font-medium text-red-400"
-                          : "rounded-md border border-amber-700/50 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-400"
-                    }
-                  >
-                    {t.status}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
-                  <span>
-                    <span className="text-zinc-600">Counterparty: </span>
-                    {t.counterparty}
-                  </span>
-                  <span className="text-zinc-600">{new Date(t.at).toLocaleString()}</span>
-                </div>
-              </li>
+              <div key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3 sm:p-4">
+                <span className="font-semibold tabular-nums text-white">{centsToDisplay(t.amount)}</span>
+                <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">{t.type}</span>
+                <TxStatusBadge status={t.status} />
+                <span className="ml-auto shrink-0 text-xs text-zinc-500">{new Date(t.at).toLocaleDateString()}</span>
+                <span className="w-full min-w-0 truncate text-xs text-zinc-500 sm:w-auto sm:basis-full">
+                  <span className="text-zinc-600">to </span>{t.counterparty}
+                </span>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
@@ -307,4 +299,35 @@ export function TreasuryManager({ canEdit }: { canEdit: boolean }) {
       </section>
     </div>
   )
+}
+
+function SummaryCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <div className="text-xs uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className={`mt-1 truncate text-xl font-semibold tabular-nums ${accent ? "text-emerald-300" : "text-white"}`}>{value}</div>
+    </div>
+  )
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">{children}</h2>
+}
+
+function EmptyState({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 px-4 py-8 text-center text-sm text-zinc-600">
+      {children}
+    </div>
+  )
+}
+
+function TxStatusBadge({ status }: { status: string }) {
+  const cls =
+    status === "posted"
+      ? "border-emerald-700/50 bg-emerald-950/40 text-emerald-300"
+      : status === "returned"
+        ? "border-red-700/50 bg-red-950/40 text-red-300"
+        : "border-amber-700/50 bg-amber-950/40 text-amber-300"
+  return <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${cls}`}>{status}</span>
 }

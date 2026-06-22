@@ -54,7 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Overview", href: "/admin/billing", icon: LayoutGrid, privilege: "billing.read" },
       { label: "Subscriptions", href: "/admin/billing/subscriptions", icon: Repeat, privilege: "billing.read" },
       { label: "Promo codes", href: "/admin/billing/promo", icon: Tag, privilege: "billing.read" },
-      { label: "Treasury", href: "/admin/billing/treasury", icon: Landmark, privilege: "billing.read" },
+      { label: "Treasury", href: "/admin/billing/treasury", icon: Landmark, privilege: "billing.treasury_view" },
       { label: "Issuing", href: "/admin/billing/issuing", icon: CreditCard, privilege: "billing.read" },
       { label: "Offramp", href: "/admin/billing/offramp", icon: ArrowLeftRight, privilege: "billing.read" },
       { label: "On-ramp", href: "/admin/billing/onramp", icon: ArrowDownToLine, privilege: "billing.read" },
