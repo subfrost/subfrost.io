@@ -4,13 +4,16 @@
  * source. Reads ALL columns (incl. timestamps) so the original data stays
  * recoverable even though the load only applies address/amount/note.
  *
- * Run from the repo root, with cloud-sql-proxy pointed at the bestary instance
- * (lithomantic-heaven-bestary:us-central1:subfrost-db) and FUEL_SOURCE_DATABASE_URL
- * set to the proxied source connection string:
- *
  *   npx tsx scripts/dump-fuel-allocations.ts [outfile]
  *
  * Read-only on the source.
+ *
+ * ⚠️ DOES NOT WORK against subfrost-db as deployed: that instance is PRIVATE-IP-ONLY,
+ * so a local cloud-sql-proxy cannot reach it ("instance does not have IP of type
+ * PUBLIC"). This script is kept for a reachable source (public IP, or run inside the
+ * VPC). The FUEL import (2026-06-21) was actually acquired via a server-side Cloud SQL
+ * export → GCS → CSV → JSON; see docs/superpowers/runbooks/legacy-data-import.md §1.
+ * It expects FUEL_SOURCE_DATABASE_URL pointing at a reachable proxied source.
  */
 import { mkdirSync, writeFileSync } from "fs"
 import { dirname } from "path"
