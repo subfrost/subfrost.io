@@ -21,16 +21,16 @@ function articleDate(value: string | null, locale: CmsLocale) {
 }
 
 // One card in the feed / author grid.
-export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePreview; locale?: CmsLocale; coverLabel?: string; coverVariant?: number | string }) {
+export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePreview; locale?: CmsLocale; coverVariant?: number | string }) {
   const tag = a.tags.map((item) => categoryLabel(item, locale)).find((item): item is string => Boolean(item))
   const href = locale === "zh" ? `/articles/${a.slug}?lang=zh` : `/articles/${a.slug}`
 
   return (
-    <Link href={href} className="ed-card">
+    <Link href={href} className="ed-card" prefetch={false}>
       <div className="ed-cover-frame">
         {a.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.coverImage} alt="" className="h-[220px] w-full object-contain sm:h-[300px] sm:object-cover" />
+          <img src={a.coverImage} alt="" loading="lazy" decoding="async" className="h-[220px] w-full object-contain sm:h-[300px] sm:object-cover" />
         ) : (
           <CoverArt className="h-[220px] sm:h-[300px]" variant={coverVariant ?? a.slug} />
         )}

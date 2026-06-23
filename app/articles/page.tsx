@@ -73,28 +73,22 @@ const articleCopy = {
     browseByTopic: "Browse By Topic",
     featured: "Featured",
     recentPosts: "Recent",
-    postsByTopic: "Posts By Topic",
     noMatching: "No matching updates found.",
     noTopicPosts: "No published posts in this topic yet.",
-    read: "Read",
     srTitle: "Subfrost blog",
     docsEyebrow: "Developer",
     docsSource: "Subfrost Docs",
-    discoverLabel: "Discover more",
   },
   zh: {
     articles: "全部",
     browseByTopic: "按主题浏览",
     featured: "精选",
     recentPosts: "最新",
-    postsByTopic: "按主题分类",
     noMatching: "没有找到匹配的更新。",
     noTopicPosts: "此主题暂无已发布文章。",
-    read: "阅读",
     srTitle: "Subfrost 更新",
     docsEyebrow: "开发者",
     docsSource: "Subfrost 文档",
-    discoverLabel: "查看更多",
   },
 } satisfies Record<CmsLocale, Record<string, string>>
 
@@ -181,23 +175,6 @@ function topicCoverOffset(topicId: string) {
   return 1
 }
 
-function TagPills({ article, locale }: { article: ArticlePreview; locale: CmsLocale }) {
-  const visibleTags = Array.from(new Set(article.tags.map((tag) => categoryLabel(tag, locale)).filter((tag): tag is string => Boolean(tag)))).slice(0, 2)
-  return (
-    <div className="flex flex-wrap gap-2">
-      {visibleTags.map((tag) => (
-        <span
-          key={tag}
-          className="font-display inline-flex h-7 items-center text-[14px] font-normal leading-none"
-          style={{ color: "var(--ed-accent)" }}
-        >
-          {tag}
-        </span>
-      ))}
-    </div>
-  )
-}
-
 function DocsBackfillCard({ doc, locale, copy, coverVariant }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en; coverVariant?: number | string }) {
   return (
     <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card">
@@ -276,7 +253,7 @@ export default async function ArticlesIndex({
                   key={topic.id}
                   href={topic.href}
                   data-topic-filter
-                  prefetch
+                  prefetch={false}
                   className="font-display inline-flex items-center text-[16px] font-normal leading-none"
                   style={{
                     color:
@@ -315,7 +292,7 @@ export default async function ArticlesIndex({
                   ))
                 ) : selectedInitialArticles.length > 0 ? (
                   selectedInitialArticles.map((a, index) => (
-                    <ArticleCard key={`${selectedTopic.id}-${a.slug}`} a={a} locale={locale} coverLabel={selectedTopic.title} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
+                    <ArticleCard key={`${selectedTopic.id}-${a.slug}`} a={a} locale={locale} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
                   ))
                 ) : (
                   <div className="font-reading text-[17px]" style={{ color: "var(--ed-muted)" }}>
@@ -343,13 +320,13 @@ export default async function ArticlesIndex({
               {lead ? (
                 <article>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
-                  <Link href={articleHref(lead.slug, locale)} className="ed-card">
+                  <Link href={articleHref(lead.slug, locale)} className="ed-card" prefetch={false}>
                     <div className="ed-cover-frame">
                       {lead.coverImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={lead.coverImage} alt="" className="h-[320px] w-full object-contain sm:h-[443px] sm:object-cover" />
+                        <img src={lead.coverImage} alt="" loading="eager" decoding="async" fetchPriority="high" className="h-[320px] w-full object-contain sm:h-[443px] sm:object-cover" />
                       ) : (
-                        <CoverArt className="h-[320px] sm:h-[443px]" variant={0} />
+                        <CoverArt className="h-[320px] sm:h-[443px]" priority sizes="(min-width: 1280px) 60vw, (min-width: 1024px) 58vw, 100vw" variant={0} />
                       )}
                     </div>
                     <div className="flex flex-1 flex-col pt-4">
@@ -379,6 +356,7 @@ export default async function ArticlesIndex({
                         key={a.slug}
                         href={articleHref(a.slug, locale)}
                         className="block"
+                        prefetch={false}
                       >
                         <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
                           {a.title}
@@ -431,7 +409,7 @@ export default async function ArticlesIndex({
                   {topic.articles.length > 0 ? (
                     <div className="grid gap-6 md:grid-cols-2">
                       {topic.articles.map((a, index) => (
-                        <ArticleCard key={`${topic.id}-${a.slug}`} a={a} locale={locale} coverLabel={topic.title} coverVariant={topicCoverOffset(topic.id) + index} />
+                        <ArticleCard key={`${topic.id}-${a.slug}`} a={a} locale={locale} coverVariant={topicCoverOffset(topic.id) + index} />
                       ))}
                     </div>
                   ) : topic.id === "docs" ? (
