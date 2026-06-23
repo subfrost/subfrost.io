@@ -176,6 +176,18 @@ spec:
                   name: subfrost-io-secrets
                   key: DOCUMENSO_WEBHOOK_SECRET
                   optional: true
+            # Anthropic Claude key for article translation (lib/cms/translate.ts:
+            # the editor's "Translate with Claude" button). Lives in a STANDALONE
+            # k8s Secret `anthropic-api-key` (created out-of-band, NOT the
+            # ESO-managed subfrost-io-secrets) so it never rides the atomic
+            # ExternalSecret sync. optional:true — absent => translationUnavailable()
+            # keeps the button disabled instead of blocking pod startup.
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic-api-key
+                  key: ANTHROPIC_API_KEY
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
