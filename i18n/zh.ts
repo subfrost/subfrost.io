@@ -158,6 +158,12 @@ const zh: Record<string, string> = {
   'footer.copyright': '© 2025 Subzero Research Inc. 版权所有。',
   'footer.disclaimer': '非财务建议。风险自负。',
 
+  // Metrics (dynamic state)
+  'metrics.calculating': '计算中…',
+
+  // Live page
+  'live.fallbackTitle': '直播',
+
   // Volume Modal
   'volume.title': 'SUBFROST 协议交易量',
   'volume.both': '全部',

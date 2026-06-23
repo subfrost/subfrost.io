@@ -11,6 +11,7 @@ import { LiveChat } from "@/components/stream/LiveChat"
 import { Button } from "@/components/ui/button"
 import { Maximize, MessageSquare, X } from "lucide-react"
 import { useFocus } from "@/hooks/use-focus"
+import { useTranslation } from "@/hooks/useTranslation"
 import type { CaptionLanguage, StreamStatusResponse } from "@/lib/stream-types"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -26,6 +27,7 @@ export default function LivePage() {
     { refreshInterval: 10_000 }
   )
 
+  const { t } = useTranslation()
   const focus = useFocus()
 
   const toggleFullscreen = useCallback(() => {
@@ -63,7 +65,7 @@ export default function LivePage() {
             <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
           </span>
           <h1 className="text-sm lg:text-lg font-semibold text-white truncate">
-            {session.title || "Live Stream"}
+            {session.title || t("live.fallbackTitle")}
           </h1>
         </div>
 

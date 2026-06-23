@@ -158,6 +158,12 @@ const en: Record<string, string> = {
   'footer.copyright': '© 2025 Subzero Research Inc. All rights reserved.',
   'footer.disclaimer': 'Not financial advice. Use at your own risk.',
 
+  // Metrics (dynamic state)
+  'metrics.calculating': 'Calculating...',
+
+  // Live page
+  'live.fallbackTitle': 'Live Stream',
+
   // Volume Modal
   'volume.title': 'SUBFROST Protocol Volumes',
   'volume.both': 'Both',
