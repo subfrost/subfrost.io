@@ -88,7 +88,7 @@ export default async function Image() {
                 color: "#071224",
               }}
             >
-              Subfrost
+              subfrost
             </div>
           </div>
         </div>
