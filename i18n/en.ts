@@ -33,6 +33,7 @@ const en: Record<string, string> = {
   'metrics.verify': 'Verify',
   'metrics.btcPrice': 'BTC Price',
   'metrics.refresh': 'Refresh metrics',
+  'metrics.calculating': 'Calculating...',
 
   // Section: Layer 0
   'about.title1': 'THE BITCOIN-NATIVE',
@@ -157,9 +158,6 @@ const en: Record<string, string> = {
   'footer.privacy': 'Privacy Policy',
   'footer.copyright': '© 2025 Subzero Research Inc. All rights reserved.',
   'footer.disclaimer': 'Not financial advice. Use at your own risk.',
-
-  // Metrics (dynamic state)
-  'metrics.calculating': 'Calculating...',
 
   // Live page
   'live.fallbackTitle': 'Live Stream',
