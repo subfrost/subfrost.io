@@ -60,7 +60,9 @@ Git owns the site shell and presentation:
 - Article index and reader layout/design: `app/articles/page.tsx`, `app/articles/[slug]/page.tsx`, `components/articles/*`, and the scoped editorial styles in `app/globals.css`.
 - Public taxonomy presentation, such as mapping CMS tags into visible nav buckets like Research, Protocol, and Docs.
 - The Docs topic on `/articles` includes git-managed outbound cards to `docs.subfrost.io` when no published CMS posts are tagged for Docs.
+- The `/developer` page is a git-managed developer gateway for docs, technical overview, API docs, app entry, protocol updates, and support. It does not replace `docs.subfrost.io`; deep docs remain external until that repo is available.
 - The `/articles` subscribe panel posts to `app/api/articles/subscribe` and stores records in the `ArticleSubscriber` table. Notification delivery is a separate workflow and is not implied by the public form.
+- Editorial language routing is git-managed. `/articles`, article readers, and author pages default to Chinese for CN/HK visitors or browsers with Chinese system language only when there is no explicit `?lang=` and no saved `subfrost_locale` cookie. Manual language toggles persist and must win over automatic detection.
 - SEO discovery routes are git-managed but read CMS data at runtime: `/sitemap.xml`, `/robots.txt`, and `/llms.txt`.
 - Netlify deploy previews use a small git-managed fallback article set only when CMS reads are unavailable, so design review remains possible without production CMS access.
 - Marketing/home page layout, stats boxes, reusable components, and non-editorial copy.
@@ -77,6 +79,7 @@ Before changing site design, read:
 - `brand/subfrost/README.md`: official brand assets, logo usage, palette, and typography notes
 - `app/globals.css`: editorial CSS variables and responsive rules
 - `components/articles/*`: current implementation patterns for header, footer, cards, filters, search, language, and theme controls
+- `app/developer/page.tsx`: developer gateway pattern for future docs-adjacent pages
 
 Core decisions:
 

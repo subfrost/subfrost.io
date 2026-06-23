@@ -1,6 +1,7 @@
 "use client"
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { rememberEditorialLocale } from "./localePreference"
 
 // The same single-glyph 文 translation button used across subfrost.io and
 // app.subfrost.io. Drives the reading language via the editorial `?lang=` SSR
@@ -18,6 +19,7 @@ export function LocaleToggle() {
     const next = isZh ? "en" : "zh"
     const p = new URLSearchParams(params.toString())
     p.set("lang", next)
+    rememberEditorialLocale(next)
     router.push(`${pathname}?${p.toString()}`, { scroll: false })
   }
 

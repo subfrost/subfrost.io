@@ -22,7 +22,7 @@ export function SiteHeader() {
       swap: "Swap",
       vaults: "Vaults",
       blog: "Blog",
-      try: "Launch App",
+      try: "Launch app",
       tryShort: "Launch",
       search: "Search articles",
       closeSearch: "Close search",
@@ -96,11 +96,11 @@ export function SiteHeader() {
     >
       <div className={`mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 ${scrolled ? "sm:px-5" : ""}`}>
         <div className="flex min-w-0 items-center gap-5">
-          <Link href="/" className="flex shrink-0 items-center" aria-label="Subfrost">
+          <Link href="/" className="flex shrink-0 items-center" aria-label="subfrost">
             <span className="relative block h-8 w-[148px]">
               <img
                 src="/brand/subfrost/Logos/svg/logotype/logotype_dark.svg"
-                alt="Subfrost"
+                alt="subfrost"
                 className="ed-logo-light h-full w-auto"
               />
               <img

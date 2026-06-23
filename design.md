@@ -47,6 +47,7 @@ Key implementation files:
 - Article index: `app/articles/page.tsx`
 - Article reader: `app/articles/[slug]/page.tsx`
 - Brand kit page: `app/brand/page.tsx`
+- Developer gateway: `app/developer/page.tsx`
 - Legal/support pages: `app/privacy/page.tsx`, `app/terms/page.tsx`, `app/support/page.tsx`
 - Article components: `components/articles/*`
 - Editorial CSS/tokens: `app/globals.css`
@@ -157,6 +158,25 @@ Do not:
 - Put cards inside cards.
 - Add all-caps section labels.
 - Make the page depend on CMS data.
+
+## Developer Gateway
+
+The `/developer` page is the git-managed front door for technical users. It is not the full docs system. Deep protocol references, API specifications, and long-form setup guides remain hosted on `docs.subfrost.io` until that repository is available.
+
+Purpose:
+
+- Give engineers and partners one polished starting point from the marketing site.
+- Route users quickly to docs, technical overview, API docs, app, protocol updates, and support.
+- Carry the same OpenAI-inspired editorial design language into developer surfaces.
+- Avoid duplicating source-of-truth protocol documentation in the marketing repo.
+
+Design rules:
+
+- Use the same `EditorialShell`, Geist typography, and image-card system as `/articles` and `/brand`.
+- Keep the page text-first and quiet. No heavy sidebars, boxes, product-marketing cards, or crypto jargon blocks.
+- Use image-led cards only for primary references. Secondary surfaces should be plain text links with small sideways arrows.
+- Every deep technical link must point to the canonical docs URL until docs ownership moves into this repo.
+- If the docs repo becomes available, redesign docs to match this page rather than inventing a separate docs aesthetic.
 
 ## Color System
 
@@ -584,6 +604,10 @@ Language state uses `?lang=zh`.
 
 Requirements:
 
+- Default URL is English.
+- Chinese URL uses `?lang=zh`.
+- First-time `/articles`, article reader, and author visits may default to Chinese when the visitor resolves from CN/HK infrastructure or the browser/system `Accept-Language` preference is Chinese.
+- Automatic language detection must never override an explicit `?lang=` or a saved `subfrost_locale` user preference.
 - Nav items translate.
 - Topic filters translate.
 - Footer columns translate.
@@ -591,6 +615,7 @@ Requirements:
 - Search copy translates.
 - Article links preserve language when moving from index to reader.
 - Toggling language must not scroll the user to the top.
+- Manual toggles must save the preference for future visits.
 - Footer language pill reflects active locale:
   - English / United States
   - 中文 / 中国
