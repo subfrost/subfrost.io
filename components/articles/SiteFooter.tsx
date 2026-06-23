@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Github, Globe2 } from "lucide-react"
+import { ArrowUpRight, Github, Globe2 } from "lucide-react"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
@@ -95,7 +95,10 @@ export function SiteFooter() {
                   className="font-display text-[14px] font-normal transition-opacity hover:opacity-65"
                   style={{ color: "var(--ed-ink)" }}
                 >
-                  {link.label}
+                  <span className="inline-flex items-baseline gap-1">
+                    <span>{link.label}</span>
+                    {link.href.startsWith("http") ? <ArrowUpRight className="relative top-[1px] h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" /> : null}
+                  </span>
                 </a>
               ))}
             </div>

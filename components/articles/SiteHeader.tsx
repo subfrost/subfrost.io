@@ -99,7 +99,7 @@ export function SiteHeader() {
           <Link href="/" className="flex shrink-0 items-center" aria-label="Subfrost">
             <span className="relative block h-8 w-[148px]">
               <img
-                src="/brand/subfrost/Logos/svg/logotype/logotype_light.svg"
+                src="/brand/subfrost/Logos/svg/logotype/logotype_black.svg"
                 alt="Subfrost"
                 className="ed-logo-light h-full w-auto"
               />

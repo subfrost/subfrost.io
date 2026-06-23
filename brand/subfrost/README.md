@@ -28,4 +28,5 @@ Implementation notes from the guidelines:
 
 Usage note:
 
-- For the articles header, use `logotype_light.svg` on light backgrounds and `logotype_white.svg` on black/dark backgrounds. The provided `logotype_dark.svg` uses Carbon text and is intended for a light surface, not black UI.
+- For the articles header, use `logotype_black.svg` on light backgrounds and `logotype_white.svg` on black/dark backgrounds. Do not filter, recolor, or distort the SVGs in CSS.
+- The `logotype_light.svg` export uses white type and is only appropriate on colored or dark surfaces. It should not be used on the white editorial header.

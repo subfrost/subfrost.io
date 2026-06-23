@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "reason": "Official SUBFROST brand kit specifies Geist, and the site redesign intentionally follows an OpenAI-style editorial typography system.",
+        "createdAt": "2026-06-23T03:47:55.005Z"
+      }
+    ]
+  }
+}
