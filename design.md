@@ -1,8 +1,8 @@
-# Subfrost Design Language
+# subfrost Design Language
 
 This is the operating design contract for `subfrost.io`. Treat the article redesign as the seed of the full site redesign: every future marketing, docs-adjacent, legal, support, and product-entry page should move toward this language unless a product surface has a stronger functional constraint.
 
-The standard is quiet, technical, premium, and fast. Subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
+The standard is quiet, technical, premium, and fast. subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
 
 Every design decision must pass this test:
 
@@ -58,12 +58,12 @@ Key implementation files:
 
 ## Design Thesis
 
-Subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
+subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
 
 The visual language is:
 
 - OpenAI-style editorial structure.
-- Subfrost brand assets and cold Bitcoin-native imagery.
+- subfrost brand assets and cold Bitcoin-native imagery.
 - Spacious, asymmetric layouts with a strong left edge.
 - Real content, not marketing filler.
 - Minimal controls that feel engineered, not styled.
@@ -79,6 +79,9 @@ Use the official marks. Do not redraw, filter, distort, recolor, letter-space, o
 
 Logo rules:
 
+- Preferred public wordmark casing is lowercase `subfrost`. This is the default for headers, footers, brand kit surfaces, social previews, and future marketing pages.
+- `SUBFROST` is allowed only where an existing official asset is all-caps, where legacy product/legal copy already uses all-caps, or where a constrained system field requires it.
+- Never use title-case `Subfrost` as a visual brand lockup. In prose, prefer lowercase `subfrost` for brand-led marketing copy and reserve `SUBFROST` for product/legal references already written that way.
 - Primary header mark is the official logotype.
 - On light/editorial surfaces, use the blue-snowflake logotype when available: `logotype_dark.svg` in the runtime brand folder.
 - On black/dark surfaces, use `logotype_light.svg`: the wordmark turns light, but the snowflake remains Glacial blue.
@@ -103,7 +106,7 @@ OG/unfurl:
 
 ## Brand Kit Page
 
-The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably Subfrost.
+The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably subfrost.
 
 Purpose:
 
@@ -520,7 +523,7 @@ Below article:
 
 ## Footer
 
-Footer follows OpenAI utility structure, adapted to Subfrost.
+Footer follows OpenAI utility structure, adapted to subfrost.
 
 Desktop:
 
@@ -592,7 +595,7 @@ Requirements:
   - English / United States
   - 中文 / 中国
 
-Do not localize the Subfrost brand name.
+Do not localize the subfrost brand name.
 
 ## Theme Behavior
 
@@ -637,13 +640,14 @@ Required:
 
 Metadata tone:
 
-- Use lowercase `subfrost` only in visual logo/unfurl lockups where requested.
-- Page titles may use normal brand casing.
+- Prefer lowercase `subfrost` in visible marketing metadata and visual unfurl lockups.
+- Use `SUBFROST` only where an existing product/legal page already uses that casing or when a platform field benefits from legacy all-caps recognition.
+- Do not use title-case `Subfrost` as the displayed brand name.
 - Keep descriptions search-friendly but not keyword-stuffed.
 
 Article index keywords should cover:
 
-- Subfrost
+- subfrost
 - Bitcoin DeFi
 - Bitcoin-native yield
 - frBTC
@@ -656,7 +660,7 @@ Article index keywords should cover:
 Minimum bar:
 
 - Keyboard-accessible nav, filters, search, language, theme, and subscribe.
-- Visible focus states that use Subfrost tokens, not browser-default orange.
+- Visible focus states that use subfrost tokens, not browser-default orange.
 - Adequate contrast in dark mode and light mode.
 - No text hidden by mobile browser chrome.
 - Tap targets large enough on mobile.

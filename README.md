@@ -1,6 +1,6 @@
-# Subfrost.io
+# subfrost.io
 
-Subfrost is a Next.js 16 application for Bitcoin/frBTC metrics, history, and live conference streaming, backed by Prisma/PostgreSQL, Redis caching, and an auxiliary media ingest server.
+subfrost is a Next.js 16 application for Bitcoin/frBTC metrics, history, and live conference streaming, backed by Prisma/PostgreSQL, Redis caching, and an auxiliary media ingest server.
 
 ## Tech Stack
 
@@ -82,6 +82,8 @@ Core decisions:
 
 - Use Geist across the editorial/product shell.
 - Use the official logotype, not ad hoc text, for the header.
+- Prefer lowercase `subfrost` as the public wordmark across marketing, footer, brand kit, and unfurl surfaces.
+- Use `SUBFROST` only for legacy product/legal copy or constrained system contexts that already rely on all-caps recognition. Do not introduce title-case `Subfrost` as a visual brand treatment.
 - Light mode uses `logotype_black.svg`; dark mode uses `logotype_white.svg`.
 - Keep the OpenAI-inspired editorial shape: white/black canvas, small image radii, minimal hover states, generous spacing, no decorative card chrome, no unnecessary borders.
 - Keep article content CMS-managed; only design and fallback preview data live in git.
