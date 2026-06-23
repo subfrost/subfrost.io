@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
 import { ArticleView } from "@/components/cms/ArticleView"
 import { PreviewActions } from "@/components/cms/PreviewActions"
+import { EditorialThemeScope } from "@/components/articles/EditorialThemeScope"
 
 export const dynamic = "force-dynamic"
 
@@ -36,7 +37,7 @@ export default async function PreviewArticlePage({
   if (!tr) notFound()
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Link href={`/admin/articles/${id}`} className="text-zinc-400 hover:text-white">← Edit</Link>
@@ -52,7 +53,7 @@ export default async function PreviewArticlePage({
         </div>
         <PreviewActions id={id} slug={article.slug} canPublish={canPublish} />
       </div>
-      <div className="bg-white">
+      <EditorialThemeScope className="flex-1">
         <ArticleView
           article={{
             title: tr.title,
@@ -63,7 +64,7 @@ export default async function PreviewArticlePage({
           }}
           locale={locale}
         />
-      </div>
+      </EditorialThemeScope>
     </div>
   )
 }
