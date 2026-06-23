@@ -90,14 +90,14 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
           {copy.subtitle}
         </p>
 
-        <form onSubmit={onSubmit} className={`flex w-full max-w-[390px] flex-col gap-3 sm:flex-row sm:items-center ${footer ? "mt-4" : "mx-auto mt-7"}`}>
+        <form onSubmit={onSubmit} className={`flex w-full flex-row items-center gap-3 ${footer ? "mt-4 max-w-[310px]" : "mx-auto mt-7 max-w-[390px]"}`}>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={copy.placeholder}
             autoComplete="email"
-            className={`ed-subscribe-input font-display w-full min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-8 text-[14px] sm:w-[185px]" : "h-12 text-[16px] sm:w-[245px]"}`}
+            className={`ed-subscribe-input font-display w-full min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-8 text-[14px]" : "h-12 text-[16px]"}`}
             style={{
               color: "var(--ed-ink)",
             }}

@@ -47,7 +47,8 @@ export const metadata: Metadata = {
     images: ['/Logo.png'],
   },
   icons: {
-    icon: '/Logo.png',
+    icon: '/subfrost-logomark.svg',
+    shortcut: '/subfrost-logomark.svg',
     apple: '/Logo.png',
   },
 }

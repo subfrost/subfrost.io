@@ -90,6 +90,18 @@ export default async function Image() {
             >
               subfrost
             </div>
+            <div
+              style={{
+                display: "flex",
+                marginTop: 18,
+                fontSize: 30,
+                lineHeight: 1.2,
+                fontWeight: 500,
+                color: "#51647f",
+              }}
+            >
+              Bitcoin&apos;s next-gen defi experience
+            </div>
           </div>
         </div>
       </div>
