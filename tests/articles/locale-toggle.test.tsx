@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, fireEvent } from "@testing-library/react"
+import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 
 const push = vi.fn()
 let search = ""
@@ -34,5 +35,13 @@ describe("LocaleToggle", () => {
     const { getByRole } = render(<LocaleToggle />)
     fireEvent.click(getByRole("button"))
     expect(push).toHaveBeenCalledWith("/articles/foo?lang=en", { scroll: false })
+  })
+
+  it("persists the locale cookie when toggling to zh", () => {
+    document.cookie = `${LOCALE_COOKIE}=; path=/; max-age=0`
+    search = ""
+    const { getByRole } = render(<LocaleToggle />)
+    fireEvent.click(getByRole("button"))
+    expect(document.cookie).toContain(`${LOCALE_COOKIE}=zh`)
   })
 })

@@ -33,6 +33,7 @@ const zh: Record<string, string> = {
   'metrics.verify': '验证',
   'metrics.btcPrice': 'BTC 价格',
   'metrics.refresh': '刷新指标',
+  'metrics.calculating': '计算中…',
 
   // Section: Layer 0
   'about.title1': '比特币原生',
@@ -157,6 +158,9 @@ const zh: Record<string, string> = {
   'footer.privacy': '隐私政策',
   'footer.copyright': '© 2025 Subzero Research Inc. 版权所有。',
   'footer.disclaimer': '非财务建议。风险自负。',
+
+  // Live page
+  'live.fallbackTitle': '直播',
 
   // Volume Modal
   'volume.title': 'SUBFROST 协议交易量',

@@ -1,9 +1,12 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import Script from "next/script"
+import { cookies } from "next/headers"
 import { cn } from "@/lib/utils"
 import "@/app/globals.css"
 import { LanguageProvider } from "@/context/LanguageContext"
+import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
+import { htmlLang, type Locale } from "@/lib/i18n/detect"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
@@ -67,13 +70,17 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(LOCALE_COOKIE)?.value
+  const initialLocale: Locale = raw === "zh" ? "zh" : "en"
+
   return (
-    <html lang="en">
+    <html lang={htmlLang(initialLocale)}>
       <head>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-0RV3B8BK4B" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
@@ -87,7 +94,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={cn("bg-background font-satoshi antialiased")}>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider initialLocale={initialLocale}>{children}</LanguageProvider>
       </body>
     </html>
   )

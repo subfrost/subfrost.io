@@ -268,7 +268,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
     {
       title: renderMultilineTitle('metrics.lifetimeTxValue'),
       value: getDisplayValue(lifetimeBtcTxValue),
-      linkText: lifetimeLoading ? 'Calculating...' : t('metrics.breakdown'),
+      linkText: lifetimeLoading ? t('metrics.calculating') : t('metrics.breakdown'),
       linkType: 'popover',
       linkDisabled: lifetimeLoading,
       popoverContent: (

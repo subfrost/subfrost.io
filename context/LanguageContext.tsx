@@ -1,6 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { setLocaleCookie, LOCALE_COOKIE } from '@/lib/i18n/cookie';
 
 export type Locale = 'en' | 'zh';
 
@@ -10,24 +12,31 @@ type LanguageContextType = {
   toggleLocale: () => void;
 };
 
-const STORAGE_KEY = 'subfrost_locale';
-
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('en');
+export function LanguageProvider({
+  children,
+  initialLocale = 'en',
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const router = useRouter();
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'zh') {
-      setLocaleState(stored);
-    }
-  }, []);
-
-  const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem(STORAGE_KEY, newLocale);
-  }, []);
+  const setLocale = useCallback(
+    (newLocale: Locale) => {
+      setLocaleState(newLocale);
+      setLocaleCookie(newLocale);
+      // Mirror into localStorage for backward compatibility (cookie is authoritative).
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(LOCALE_COOKIE, newLocale);
+      }
+      // Re-render server components (e.g. article pages) with the new locale.
+      router.refresh();
+    },
+    [router],
+  );
 
   const toggleLocale = useCallback(() => {
     setLocale(locale === 'en' ? 'zh' : 'en');
