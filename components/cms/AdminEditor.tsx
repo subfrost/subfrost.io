@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Markdown } from "@/lib/cms/markdown"
-import { saveArticle, deleteArticle } from "@/actions/cms/articles"
+import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
 import { Eye, Pencil, Trash2 } from "lucide-react"
 
 type Status = "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
@@ -28,10 +28,11 @@ export interface EditorInitial {
 
 const LOCALE_LABEL: Record<Locale, string> = { en: "English", zh: "中文" }
 
-export function AdminEditor({ initial, canPublish }: { initial: EditorInitial; canPublish: boolean }) {
+export function AdminEditor({ initial, canPublish, canTranslate }: { initial: EditorInitial; canPublish: boolean; canTranslate?: boolean }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [translating, setTranslating] = useState(false)
   const [activeLocale, setActiveLocale] = useState<Locale>(initial.primaryLocale)
   const [tab, setTab] = useState<"write" | "preview">("write")
 
@@ -65,6 +66,20 @@ export function AdminEditor({ initial, canPublish }: { initial: EditorInitial; c
       })
       if (res.ok) { router.push("/admin/articles"); router.refresh() } else setError(res.error)
     })
+  }
+
+  function onTranslate() {
+    if (!initial.id) return
+    const from = activeLocale
+    const to: Locale = from === "en" ? "zh" : "en"
+    if (content[to].title.trim() && !confirm(`Overwrite the ${LOCALE_LABEL[to]} translation with a new Claude translation?`)) return
+    setError(null); setTranslating(true)
+    translateArticleAction(initial.id, from, to)
+      .then((res) => {
+        if (res.ok) setContent((c) => ({ ...c, [to]: res.translation }))
+        else setError(res.error)
+      })
+      .finally(() => setTranslating(false))
   }
 
   function onDelete() {
@@ -133,6 +148,13 @@ export function AdminEditor({ initial, canPublish }: { initial: EditorInitial; c
           </div>
           {initial.status === "PUBLISHED" && canPublish && (
             <Button size="sm" variant="ghost" onClick={() => submit("ARCHIVED")} disabled={pending}>Unpublish</Button>
+          )}
+          {initial.id && (
+            <Button size="sm" variant="outline" onClick={onTranslate}
+              disabled={pending || translating || !canTranslate}
+              title={canTranslate ? "Translate the current language into the other with Claude" : "Claude translation isn't configured"}>
+              {translating ? "Translating…" : `Translate ${activeLocale === "en" ? "EN→中文" : "中文→EN"} with Claude`}
+            </Button>
           )}
           <div className="text-xs text-zinc-500">Status: <span className="text-zinc-300">{initial.status}</span></div>
         </div>
