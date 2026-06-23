@@ -529,6 +529,11 @@ div[data-netlify-deploy-id] {
   transform: scale(1.04);
   transform-origin: center;
 }
+.ed-cover-frame img.ed-cms-cover {
+  object-fit: contain;
+  transform: scale(1.08);
+  background: var(--ed-cover);
+}
 .ed-card > .ed-cover-frame {
   border-radius: 6px;
   box-shadow: none;

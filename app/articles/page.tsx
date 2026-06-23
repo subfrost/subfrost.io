@@ -5,6 +5,7 @@ import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
+import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
 import { ArrowRight } from "lucide-react"
@@ -76,7 +77,7 @@ const articleCopy = {
     recentPosts: "Recent",
     noMatching: "No matching updates found.",
     noTopicPosts: "No published posts in this topic yet.",
-    srTitle: "Subfrost blog",
+    srTitle: "Subfrost articles",
     docsEyebrow: "Developer",
     docsSource: "Subfrost Docs",
   },
@@ -322,13 +323,13 @@ export default async function ArticlesIndex({
                 <article>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
                   <Link href={articleHref(lead.slug, locale)} className="ed-card" prefetch={false}>
-                    <div className="ed-cover-frame">
-                      {lead.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={lead.coverImage} alt="" loading="eager" decoding="async" fetchPriority="high" className="h-[320px] w-full object-contain sm:h-[443px] sm:object-cover" />
-                      ) : (
-                        <CoverArt className="h-[320px] sm:h-[443px]" priority sizes="(min-width: 1280px) 60vw, (min-width: 1024px) 58vw, 100vw" variant={0} />
-                      )}
+                    <div className="ed-cover-frame aspect-[24/11]">
+                      <CmsCoverImage
+                        src={lead.coverImage}
+                        className="h-full w-full"
+                        fallbackVariant={0}
+                        priority
+                      />
                     </div>
                     <div className="flex flex-1 flex-col pt-4">
                       <h2
@@ -422,7 +423,7 @@ export default async function ArticlesIndex({
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-[8px] p-8" style={{ background: "color-mix(in srgb, var(--ed-surface) 54%, transparent)", color: "var(--ed-muted)" }}>
+                    <div className="flex min-h-[116px] items-center justify-center rounded-[8px] p-8 text-center" style={{ background: "color-mix(in srgb, var(--ed-surface) 54%, transparent)", color: "var(--ed-muted)" }}>
                       <p className="font-reading text-[15px]">{copy.noTopicPosts}</p>
                     </div>
                   )}
