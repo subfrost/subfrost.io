@@ -154,6 +154,28 @@ spec:
                   name: subfrost-io-secrets
                   key: GOLDRUSH_API_KEY
                   optional: true
+            # Documenso (e-sign document sender). Reuses the existing,
+            # already-working self-hosted instance at https://sign.subfrost.io
+            # via the secrets subfrost-admin created. Until present, the
+            # document sender runs in local mock mode (no real sends).
+            - name: DOCUMENSO_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: DOCUMENSO_API_URL
+                  optional: true
+            - name: DOCUMENSO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: DOCUMENSO_API_KEY
+                  optional: true
+            - name: DOCUMENSO_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: DOCUMENSO_WEBHOOK_SECRET
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
