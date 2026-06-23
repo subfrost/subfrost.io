@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { rolePrivileges, type Privilege, type Role } from "@/lib/cms/privileges"
 import { resolveCode } from "@/lib/cms/iam/registry"
 import { PrivilegePicker } from "@/components/cms/PrivilegePicker"
+import { PersonaQuickPick } from "@/components/cms/PersonaQuickPick"
 import { deviceLabel, relTime as sessRelTime, FingerprintBadge } from "@/components/cms/SessionsManager"
 import {
   provisionUser,
@@ -287,6 +288,7 @@ function AddUserModal({ assignableRoles, grantable, canManageRoles, onClose }: {
             {canManageRoles && (
               <div className="space-y-1.5">
                 <Label className="text-zinc-300">Privileges</Label>
+                <PersonaQuickPick value={privileges} onChange={setPrivileges} grantable={grantable} />
                 <PrivilegePicker value={privileges} onChange={setPrivileges} grantable={grantable} />
               </div>
             )}
@@ -356,6 +358,7 @@ function EditUserModal({ user, assignableRoles, grantable, canManageRoles, onClo
         {canManageRoles ? (
           <div className="space-y-1.5">
             <Label className="text-zinc-300">Privileges (beyond the {role} role bundle)</Label>
+            <PersonaQuickPick value={privileges} onChange={setPrivileges} grantable={grantable} />
             <PrivilegePicker value={privileges} onChange={setPrivileges} grantable={grantable} />
           </div>
         ) : (
