@@ -16,8 +16,12 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+      # Temporary in-place roll: the spot pool is request-saturated and at its max
+      # node count, so a surge pod (maxSurge:1) can't schedule. maxUnavailable:1 +
+      # maxSurge:0 retires an old pod first to free capacity for the new one.
+      # Revert to maxUnavailable:0 / maxSurge:1 once capacity allows.
+      maxUnavailable: 1
+      maxSurge: 0
   template:
     metadata:
       labels:
