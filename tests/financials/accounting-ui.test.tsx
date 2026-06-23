@@ -68,4 +68,26 @@ describe("AccountingManager", () => {
     const link = getByRole("link", { name: /Ada/ })
     expect(link.getAttribute("href")).toBe("/admin/financials/payees/pe1")
   })
+
+  it("Reports tab: shows periods, year granularity collapses, payee filter restricts", () => {
+    const inv = [
+      invoice({ id: "i1", ref: "INV-1", payeeId: "pe1", amountUsd: 1000, issuedAt: "2026-02-10T00:00:00.000Z", status: "PAID" }),
+      invoice({ id: "i2", ref: "INV-2", payeeId: "pe2", amountUsd: 500, issuedAt: "2026-05-01T00:00:00.000Z", status: "OPEN" }),
+    ]
+    const { getByText, getByRole, queryByText } = render(
+      <AccountingManager initial={ok({ payees: [payee({ id: "pe1", name: "Ada" }), payee({ id: "pe2", name: "Acme" })], invoices: inv })} />,
+    )
+    fireEvent.click(getByText("Reports"))
+    expect(getByText("2026-02")).toBeTruthy()
+    expect(getByText("2026-05")).toBeTruthy()
+
+    fireEvent.click(getByText("Year"))
+    expect(getByText("2026")).toBeTruthy()
+    expect(queryByText("2026-02")).toBeNull()
+
+    fireEvent.click(getByText("Month"))
+    fireEvent.change(getByRole("combobox"), { target: { value: "pe1" } }) // only the Feb (pe1) invoice
+    expect(getByText("2026-02")).toBeTruthy()
+    expect(queryByText("2026-05")).toBeNull()
+  })
 })

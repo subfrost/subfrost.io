@@ -139,7 +139,9 @@ export type PeriodGranularity = "month" | "quarter" | "year"
 export interface PeriodTotals {
   period: string // "2026-06" | "2026-Q2" | "2026"
   invoiceCount: number
-  totalUsd: number
+  issuedUsd: number // Σ amountUsd of invoices issued in the period (any status)
+  paidUsd: number // Σ amountUsd of those whose status === "PAID"
+  dieselPaid: number // Σ amountDiesel of payments linked to those invoices
 }
 
 export function periodKey(iso: string, g: PeriodGranularity): string {
@@ -150,17 +152,37 @@ export function periodKey(iso: string, g: PeriodGranularity): string {
   return `${y}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`
 }
 
-export function totalsByPeriod(invoices: InvoiceRow[], g: PeriodGranularity): PeriodTotals[] {
-  const acc = new Map<string, { invoiceCount: number; totalUsd: number }>()
+export function totalsByPeriod(
+  invoices: InvoiceRow[],
+  payments: PaymentRow[],
+  g: PeriodGranularity,
+): PeriodTotals[] {
+  const acc = new Map<string, { invoiceCount: number; issuedUsd: number; paidUsd: number; dieselPaid: number }>()
+  const invoicePeriod = new Map<string, string>() // invoiceId -> period key
   for (const i of invoices) {
     const k = periodKey(i.issuedAt, g)
-    const cur = acc.get(k) ?? { invoiceCount: 0, totalUsd: 0 }
+    invoicePeriod.set(i.id, k)
+    const cur = acc.get(k) ?? { invoiceCount: 0, issuedUsd: 0, paidUsd: 0, dieselPaid: 0 }
     cur.invoiceCount += 1
-    cur.totalUsd += i.amountUsd
+    cur.issuedUsd += i.amountUsd
+    if (i.status === "PAID") cur.paidUsd += i.amountUsd
     acc.set(k, cur)
   }
+  for (const p of payments) {
+    if (!p.invoiceId) continue
+    const k = invoicePeriod.get(p.invoiceId)
+    if (!k) continue
+    const cur = acc.get(k)
+    if (cur) cur.dieselPaid += p.amountDiesel
+  }
   return [...acc.entries()]
-    .map(([period, v]) => ({ period, invoiceCount: v.invoiceCount, totalUsd: round2(v.totalUsd) }))
+    .map(([period, v]) => ({
+      period,
+      invoiceCount: v.invoiceCount,
+      issuedUsd: round2(v.issuedUsd),
+      paidUsd: round2(v.paidUsd),
+      dieselPaid: round2(v.dieselPaid),
+    }))
     .sort((a, b) => (a.period < b.period ? 1 : -1)) // newest first
 }
 
@@ -194,6 +216,18 @@ export function toCsv(invoices: InvoiceRow[], payments: PaymentRow[], payees: Pa
       i.status, i.issuedAt.slice(0, 10), txids, String(paidDiesel), i.pdfUrl ?? "",
     ]
     lines.push(row.map((f) => csvEscape(f)).join(","))
+  }
+  return lines.join("\n")
+}
+
+const PERIOD_CSV_HEADER = ["Period", "Invoices", "Issued USD", "Paid USD", "DIESEL Paid"]
+
+export function periodReportCsv(rows: PeriodTotals[]): string {
+  const lines = [PERIOD_CSV_HEADER.join(",")]
+  for (const r of rows) {
+    lines.push(
+      [csvEscape(r.period), String(r.invoiceCount), String(r.issuedUsd), String(r.paidUsd), String(r.dieselPaid)].join(","),
+    )
   }
   return lines.join("\n")
 }
