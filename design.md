@@ -82,7 +82,7 @@ Logo rules:
 - Primary header mark is the official logotype.
 - On light/editorial surfaces, use the blue-snowflake logotype when available: `logotype_dark.svg` in the runtime brand folder.
 - On black/dark surfaces, use `logotype_light.svg`: the wordmark turns light, but the snowflake remains Glacial blue.
-- Use the standalone logomark for favicon, app icons, avatars, social thumbnails, and very tight placements.
+- Use the standalone logomark for favicon, app icons, avatars, social thumbnails, and very tight placements; favicon/apple icon files must be transparent PNG/SVG marks with no square, circle, or profile-card background.
 - Minimum logotype height is 32px unless the viewport physically cannot support it.
 - Preserve clear space around the mark. A practical rule is at least half the logo height on all sides.
 - Logo position must never shift when filters, search, language, or theme changes.

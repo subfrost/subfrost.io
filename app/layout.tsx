@@ -47,9 +47,15 @@ export const metadata: Metadata = {
     images: ['/Logo.png'],
   },
   icons: {
-    icon: '/brand/subfrost/Logos/svg/logomark/logomark.svg',
-    shortcut: '/brand/subfrost/Logos/svg/logomark/logomark.svg',
-    apple: '/brand/subfrost/Logos/pfp/pfp_light.png',
+    icon: [
+      { url: '/brand/subfrost/Logos/svg/logomark/logomark.svg', type: 'image/svg+xml' },
+      { url: '/brand/subfrost/Logos/favicon/logomark-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/subfrost/Logos/favicon/logomark-48.png', sizes: '48x48', type: 'image/png' },
+    ],
+    shortcut: '/brand/subfrost/Logos/favicon/logomark-32.png',
+    apple: [
+      { url: '/brand/subfrost/Logos/favicon/logomark-180.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
 }
 
