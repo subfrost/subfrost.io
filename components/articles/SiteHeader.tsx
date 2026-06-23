@@ -69,6 +69,15 @@ export function SiteHeader() {
     return () => window.removeEventListener("hashchange", onHashChange)
   }, [])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [mobileMenuOpen])
+
   function toggleSearch(event: MouseEvent<HTMLAnchorElement>) {
     if (!pathname?.startsWith("/articles")) return
     event.preventDefault()
@@ -160,37 +169,40 @@ export function SiteHeader() {
         </div>
       </div>
       <div
-        className={`sm:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          mobileMenuOpen ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0"
+        className={`fixed inset-x-0 bottom-0 top-16 z-40 sm:hidden overflow-y-auto transition-[opacity,transform,visibility] duration-300 ease-[cubic-bezier(0,0,0,1)] ${
+          mobileMenuOpen
+            ? "visible translate-y-0 opacity-100"
+            : "invisible -translate-y-2 opacity-0 pointer-events-none"
         }`}
         style={{ background: "var(--ed-canvas)" }}
       >
-        <div className="flex flex-col gap-5 px-4 pb-6 pt-2">
-          {navItems.map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`font-display text-[24px] font-normal leading-none ${
-                item.id === activeId ? "text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"
-              }`}
-            >
-              {item.label}
-            </a>
-          ))}
-          <div className="flex items-center justify-between pt-2">
+        <div className="flex min-h-full flex-col px-4 pb-10 pt-7">
+          <nav className="flex flex-col gap-4">
+            {navItems.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="font-display text-[42px] font-normal leading-[1.08] text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="my-10 h-px w-full bg-[color:var(--ed-hair)]" />
+
+          <a
+            href="https://app.subfrost.io/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="font-display inline-flex items-center gap-2 text-[38px] font-normal leading-none text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+          >
+            {copy.try}
+            <ArrowUpRight className="h-8 w-8" strokeWidth={2} />
+          </a>
+
+          <div className="mt-9 flex items-center text-[color:var(--ed-muted)]">
             <LocaleToggle />
-            <a
-              href="https://app.subfrost.io/"
-              className="font-display inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-medium"
-              style={{
-                background: "var(--ed-ink)",
-                color: "var(--ed-canvas)",
-              }}
-            >
-              {copy.try}
-              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </a>
           </div>
         </div>
       </div>
