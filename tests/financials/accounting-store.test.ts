@@ -6,7 +6,8 @@ vi.mock("@/lib/prisma", () => {
   const dieselPayment = { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() }
   const kycIntake = { findUnique: vi.fn(), findMany: vi.fn() }
   const user = { findUnique: vi.fn(), findMany: vi.fn() }
-  const client = { payee, invoice, dieselPayment, kycIntake, user }
+  const envelope = { findMany: vi.fn() }
+  const client = { payee, invoice, dieselPayment, kycIntake, user, envelope }
   return { prisma: client, default: client }
 })
 
@@ -287,6 +288,9 @@ describe("loadPayeeProfile", () => {
       { id: "p1", txid: "t", vout: null, amountDiesel: 5, recipientAddress: "bc1", paidAt: D("2026-02-02T00:00:00Z"), blockHeight: null, invoiceId: "i1", source: "MANUAL", createdAt: D("2026-02-02T00:00:00Z"), invoice: { ref: "INV-1" } },
       { id: "p2", txid: "u", vout: null, amountDiesel: 9, recipientAddress: "bc1", paidAt: D("2026-02-03T00:00:00Z"), blockHeight: null, invoiceId: null, source: "MANUAL", createdAt: D("2026-02-03T00:00:00Z"), invoice: null },
     ])
+    ;(prisma.envelope as unknown as Record<string, ReturnType<typeof vi.fn>>).findMany.mockResolvedValueOnce([
+      { id: "e1", subject: "Engagement letter", kind: "independent-reviewer-engagement", status: "completed", createdAt: D("2026-02-04T00:00:00Z"), completedAt: D("2026-02-05T00:00:00Z") },
+    ])
     const prof = await loadPayeeProfile("pe1")
     expect(prof).not.toBeNull()
     expect(prof!.user?.email).toBe("ada@x.io")
@@ -294,6 +298,7 @@ describe("loadPayeeProfile", () => {
     expect(prof!.payments.map((p) => p.id)).toEqual(["p1"]) // p2 unlinked → excluded
     expect(prof!.totals.totalUsd).toBe(100)
     expect(prof!.totals.totalDiesel).toBe(5)
+    expect(prof!.envelopes.map((e) => e.id)).toEqual(["e1"])
     expect(inv.findMany.mock.calls[0][0].where.payeeId).toBe("pe1")
   })
 })

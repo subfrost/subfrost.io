@@ -73,6 +73,9 @@ export const PRIVILEGES: PrivilegeDef[] = [
   // --- Compliance ---
   { code: "aml.read", label: "Compliance — view", description: "View KYC intakes, FinCEN filings, and MTL licensing records.", category: "compliance", implies: [] },
   { code: "aml.edit", label: "Compliance — edit", description: "Disposition KYC, draft/queue FinCEN filings, and manage MTL records.", category: "compliance", implies: ["aml.read"] },
+  { code: "documents.read", label: "Documents — view", description: "View the e-sign document inbox: envelopes, recipients, and signing status.", category: "compliance", implies: [] },
+  { code: "documents.write", label: "Documents — send", description: "Create and send envelopes for signature, void, resend, and link signed paperwork to payees.", category: "compliance", implies: ["documents.read"] },
+  { code: "compliance.reviews", label: "Reviewer links — manage", description: "Mint, list, and revoke delegated external-reviewer links to the compliance surfaces.", category: "compliance", implies: [] },
 
   // --- Billing ---
   { code: "billing.read", label: "Billing — view", description: "View Stripe subscriptions, promo codes, issuing, ramps, customers, and webhook events.", category: "billing", implies: [] },
@@ -179,10 +182,15 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/kyc": { view: "aml.read", edit: "aml.edit" },
   "/admin/fincen": { view: "aml.read", edit: "aml.edit" },
   "/admin/mtl": { view: "aml.read", edit: "aml.edit" },
+  "/admin/documents": { view: "documents.read", edit: "documents.write" },
+  "/admin/compliance/reviews": { view: "compliance.reviews", edit: "compliance.reviews" },
   "/admin/billing": { view: "billing.read", edit: "billing.edit" },
   "/admin/billing/treasury": { view: "billing.treasury_view", edit: "billing.edit" },
   "/admin/financials/treasury": { view: "financials.view" },
   "/admin/financials/accounting": { view: "financials.view" },
+  "/admin/financials/cap-table": { view: "financials.view" },
+  "/admin/financials/safes": { view: "financials.view" },
+  "/admin/financials/balance-sheet": { view: "financials.view" },
   "/admin/users": { view: "iam.list_users", edit: "iam.modify_user" },
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },
