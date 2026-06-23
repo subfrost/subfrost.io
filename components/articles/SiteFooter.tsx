@@ -2,9 +2,11 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Github, Globe2 } from "lucide-react"
+import DiscordIcon from "@/components/DiscordIcon"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
+import { rememberEditorialLocale } from "./localePreference"
 
 export function SiteFooter() {
   const router = useRouter()
@@ -20,7 +22,7 @@ export function SiteFooter() {
           {
             title: "开发者",
             links: [
-              { label: "文档", href: "https://docs.subfrost.io/" },
+              { label: "开发者入口", href: "/developer?lang=zh" },
               { label: "技术概览", href: "https://docs.subfrost.io/introduction/technical-overview" },
               { label: "API 文档", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
             ],
@@ -47,7 +49,7 @@ export function SiteFooter() {
           {
             title: "Developer",
             links: [
-              { label: "Docs", href: "https://docs.subfrost.io/" },
+              { label: "Developer", href: "/developer" },
               { label: "Technical overview", href: "https://docs.subfrost.io/introduction/technical-overview" },
               { label: "API docs", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
             ],
@@ -72,8 +74,10 @@ export function SiteFooter() {
         ]
 
   function toggleLocale() {
+    const nextLocale = isZh ? "en" : "zh"
     const params = new URLSearchParams(searchParams.toString())
-    params.set("lang", isZh ? "en" : "zh")
+    params.set("lang", nextLocale)
+    rememberEditorialLocale(nextLocale)
     router.push(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
@@ -112,6 +116,16 @@ export function SiteFooter() {
             style={{ color: "var(--ed-ink)" }}
           >
             <XIcon className="h-4 w-4" />
+          </a>
+          <a
+            href="https://discord.gg/qrWgJgNAUj"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Subfrost on Discord"
+            className="transition-opacity hover:opacity-65"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <DiscordIcon className="h-4 w-4" />
           </a>
           <a
             href="https://github.com/subfrost"

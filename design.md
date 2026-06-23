@@ -1,8 +1,8 @@
-# Subfrost Design Language
+# subfrost Design Language
 
 This is the operating design contract for `subfrost.io`. Treat the article redesign as the seed of the full site redesign: every future marketing, docs-adjacent, legal, support, and product-entry page should move toward this language unless a product surface has a stronger functional constraint.
 
-The standard is quiet, technical, premium, and fast. Subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
+The standard is quiet, technical, premium, and fast. subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
 
 Every design decision must pass this test:
 
@@ -47,6 +47,7 @@ Key implementation files:
 - Article index: `app/articles/page.tsx`
 - Article reader: `app/articles/[slug]/page.tsx`
 - Brand kit page: `app/brand/page.tsx`
+- Developer gateway: `app/developer/page.tsx`
 - Legal/support pages: `app/privacy/page.tsx`, `app/terms/page.tsx`, `app/support/page.tsx`
 - Article components: `components/articles/*`
 - Editorial CSS/tokens: `app/globals.css`
@@ -58,12 +59,12 @@ Key implementation files:
 
 ## Design Thesis
 
-Subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
+subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
 
 The visual language is:
 
 - OpenAI-style editorial structure.
-- Subfrost brand assets and cold Bitcoin-native imagery.
+- subfrost brand assets and cold Bitcoin-native imagery.
 - Spacious, asymmetric layouts with a strong left edge.
 - Real content, not marketing filler.
 - Minimal controls that feel engineered, not styled.
@@ -79,6 +80,9 @@ Use the official marks. Do not redraw, filter, distort, recolor, letter-space, o
 
 Logo rules:
 
+- Preferred public wordmark casing is lowercase `subfrost`. This is the default for headers, footers, brand kit surfaces, social previews, and future marketing pages.
+- `SUBFROST` is allowed only where an existing official asset is all-caps, where legacy product/legal copy already uses all-caps, or where a constrained system field requires it.
+- Never use title-case `Subfrost` as a visual brand lockup. In prose, prefer lowercase `subfrost` for brand-led marketing copy and reserve `SUBFROST` for product/legal references already written that way.
 - Primary header mark is the official logotype.
 - On light/editorial surfaces, use the blue-snowflake logotype when available: `logotype_dark.svg` in the runtime brand folder.
 - On black/dark surfaces, use `logotype_light.svg`: the wordmark turns light, but the snowflake remains Glacial blue.
@@ -103,7 +107,7 @@ OG/unfurl:
 
 ## Brand Kit Page
 
-The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably Subfrost.
+The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably subfrost.
 
 Purpose:
 
@@ -154,6 +158,25 @@ Do not:
 - Put cards inside cards.
 - Add all-caps section labels.
 - Make the page depend on CMS data.
+
+## Developer Gateway
+
+The `/developer` page is the git-managed front door for technical users. It is not the full docs system. Deep protocol references, API specifications, and long-form setup guides remain hosted on `docs.subfrost.io` until that repository is available.
+
+Purpose:
+
+- Give engineers and partners one polished starting point from the marketing site.
+- Route users quickly to docs, technical overview, API docs, app, protocol updates, and support.
+- Carry the same OpenAI-inspired editorial design language into developer surfaces.
+- Avoid duplicating source-of-truth protocol documentation in the marketing repo.
+
+Design rules:
+
+- Use the same `EditorialShell`, Geist typography, and image-card system as `/articles` and `/brand`.
+- Keep the page text-first and quiet. No heavy sidebars, boxes, product-marketing cards, or crypto jargon blocks.
+- Use image-led cards only for primary references. Secondary surfaces should be plain text links with small sideways arrows.
+- Every deep technical link must point to the canonical docs URL until docs ownership moves into this repo.
+- If the docs repo becomes available, redesign docs to match this page rather than inventing a separate docs aesthetic.
 
 ## Color System
 
@@ -482,6 +505,7 @@ Topic sections:
 - Right column contains article/doc cards.
 - Developer cards should visually match article cards, including image treatment.
 - Developer cards can link to existing docs pages until docs are redesigned.
+- When the docs repo becomes available, redesign docs around the same editorial system: OpenAI-like spacing, Geist typography, image-led hero moments only when useful, text-first navigation, no heavy sidebars, no boxed marketing cards, and direct Developer/API/Protocol pathways.
 - Remove standalone `Posts By Topic` label.
 
 Load more:
@@ -519,7 +543,7 @@ Below article:
 
 ## Footer
 
-Footer follows OpenAI utility structure, adapted to Subfrost.
+Footer follows OpenAI utility structure, adapted to subfrost.
 
 Desktop:
 
@@ -529,6 +553,7 @@ Desktop:
 - Links are text-first, no boxes.
 - Footer links are plain text, even when external.
 - Social icons use ink color in light mode and high-contrast white/off-white in dark mode.
+- Footer social row includes X, Discord, and GitHub in that order. Keep icons the same optical size and do not add labels, circles, borders, or hover color shifts.
 - Legal links should appear once. Do not duplicate Terms/Privacy in both columns and the copyright row.
 
 Mobile:
@@ -579,6 +604,10 @@ Language state uses `?lang=zh`.
 
 Requirements:
 
+- Default URL is English.
+- Chinese URL uses `?lang=zh`.
+- First-time `/articles`, article reader, and author visits may default to Chinese when the visitor resolves from CN/HK infrastructure or the browser/system `Accept-Language` preference is Chinese.
+- Automatic language detection must never override an explicit `?lang=` or a saved `subfrost_locale` user preference.
 - Nav items translate.
 - Topic filters translate.
 - Footer columns translate.
@@ -586,11 +615,12 @@ Requirements:
 - Search copy translates.
 - Article links preserve language when moving from index to reader.
 - Toggling language must not scroll the user to the top.
+- Manual toggles must save the preference for future visits.
 - Footer language pill reflects active locale:
   - English / United States
   - 中文 / 中国
 
-Do not localize the Subfrost brand name.
+Do not localize the subfrost brand name.
 
 ## Theme Behavior
 
@@ -635,13 +665,14 @@ Required:
 
 Metadata tone:
 
-- Use lowercase `subfrost` only in visual logo/unfurl lockups where requested.
-- Page titles may use normal brand casing.
+- Prefer lowercase `subfrost` in visible marketing metadata and visual unfurl lockups.
+- Use `SUBFROST` only where an existing product/legal page already uses that casing or when a platform field benefits from legacy all-caps recognition.
+- Do not use title-case `Subfrost` as the displayed brand name.
 - Keep descriptions search-friendly but not keyword-stuffed.
 
 Article index keywords should cover:
 
-- Subfrost
+- subfrost
 - Bitcoin DeFi
 - Bitcoin-native yield
 - frBTC
@@ -654,7 +685,7 @@ Article index keywords should cover:
 Minimum bar:
 
 - Keyboard-accessible nav, filters, search, language, theme, and subscribe.
-- Visible focus states that use Subfrost tokens, not browser-default orange.
+- Visible focus states that use subfrost tokens, not browser-default orange.
 - Adequate contrast in dark mode and light mode.
 - No text hidden by mobile browser chrome.
 - Tap targets large enough on mobile.
