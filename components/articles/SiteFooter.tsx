@@ -101,8 +101,8 @@ export function SiteFooter() {
           </div>
         ))}
       </div>
-      <div className="mx-auto grid max-w-[1440px] gap-6 px-5 py-8 text-[13px] sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto grid max-w-[1440px] justify-items-center gap-6 px-5 py-8 text-center text-[13px] sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:justify-items-stretch lg:text-left">
+        <div className="flex items-center justify-center gap-6 lg:justify-start">
           <a
             href="https://x.com/gabe_subfrost"
             target="_blank"
@@ -125,7 +125,7 @@ export function SiteFooter() {
           </a>
         </div>
 
-        <div className="font-display flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-center">
+        <div className="font-display flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
           <span>&copy; 2025 Subzero Research Inc.</span>
           <Link href="/terms" className="underline underline-offset-2 transition-opacity hover:opacity-65">
             {termsLabel}
@@ -135,7 +135,7 @@ export function SiteFooter() {
           </Link>
         </div>
 
-        <div className="font-display flex lg:justify-end">
+        <div className="font-display flex justify-center lg:justify-end">
           <button
             type="button"
             onClick={toggleLocale}
