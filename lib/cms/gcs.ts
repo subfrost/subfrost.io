@@ -75,3 +75,36 @@ export async function uploadPdf(
   })
   return { url: `https://storage.googleapis.com/${BUCKET}/${name}` }
 }
+
+// --- Private document objects (e-sign envelope PDFs) -----------------------
+// Signed legal contracts carry PII + signatures, so unlike invoice/avatar
+// uploads these are NOT given a public URL. The object name is stored in the
+// DB and the bytes are streamed back only through a privilege-gated route
+// (app/api/admin/documents/[id]/attachment). Max 25MB.
+
+const MAX_DOC_BYTES = 25 * 1024 * 1024
+
+/** Stores a private PDF under `documents/` at the given object name (no ACL
+ *  change → inherits the bucket's default, never returned as a public URL). */
+export async function uploadDocumentPdf(objectName: string, data: Buffer): Promise<void> {
+  if (data.byteLength > MAX_DOC_BYTES) {
+    throw new Error("Document PDF exceeds 25MB limit")
+  }
+  const file = storage().bucket(BUCKET).file(objectName)
+  await file.save(data, {
+    contentType: "application/pdf",
+    resumable: false,
+    metadata: { cacheControl: "private, max-age=0, no-store" },
+  })
+}
+
+/** Downloads a private object's bytes. Throws if it doesn't exist. */
+export async function downloadObject(objectName: string): Promise<Buffer> {
+  const [buf] = await storage().bucket(BUCKET).file(objectName).download()
+  return buf
+}
+
+export async function objectExists(objectName: string): Promise<boolean> {
+  const [exists] = await storage().bucket(BUCKET).file(objectName).exists()
+  return exists
+}

@@ -110,28 +110,41 @@ export interface PayeeKycSummary {
   status: string
 }
 
+/** Lightweight summary of a signed/ in-flight e-sign envelope tied to a payee —
+ *  powers the "legal paperwork they've signed" section of the payee profile. */
+export interface PayeeEnvelopeSummary {
+  id: string
+  subject: string
+  kind: string
+  status: string
+  createdAt: string // ISO
+  completedAt: string | null // ISO
+}
+
 export interface PayeeProfile {
   payee: PayeeRow
   user: PayeeUserSummary | null
   kyc: PayeeKycSummary | null
   invoices: InvoiceRow[]
   payments: PaymentRow[] // only those settling this payee's invoices
+  envelopes: PayeeEnvelopeSummary[] // legal paperwork tied to this payee
   totals: PayeeTotals
 }
 
 /** Pure profile assembler: filters `payments` to the ones tied to this payee's
- *  invoices, computes totals via totalsByPayee, and passes user/kyc through. */
+ *  invoices, computes totals via totalsByPayee, and passes user/kyc/envelopes through. */
 export function assemblePayeeProfile(
   payee: PayeeRow,
   user: PayeeUserSummary | null,
   kyc: PayeeKycSummary | null,
   invoices: InvoiceRow[],
   payments: PaymentRow[],
+  envelopes: PayeeEnvelopeSummary[] = [],
 ): PayeeProfile {
   const invoiceIds = new Set(invoices.map((i) => i.id))
   const own = payments.filter((p) => p.invoiceId !== null && invoiceIds.has(p.invoiceId))
   const totals = totalsByPayee([payee], invoices, own)[0]
-  return { payee, user, kyc, invoices, payments: own, totals }
+  return { payee, user, kyc, invoices, payments: own, envelopes, totals }
 }
 
 export type PeriodGranularity = "month" | "quarter" | "year"

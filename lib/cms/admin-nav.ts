@@ -2,6 +2,7 @@ import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
+  FileSignature, UserCheck, PieChart, Handshake, Scale,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -47,6 +48,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "aml.read" },
       { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "aml.read" },
       { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "aml.read" },
+      { label: "Documents", href: "/admin/documents", icon: FileSignature, privilege: "documents.read" },
+      { label: "Reviewer links", href: "/admin/compliance/reviews", icon: UserCheck, privilege: "compliance.reviews" },
     ],
   },
   {
@@ -67,6 +70,9 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "financials", label: "Financials", icon: Banknote, items: [
       { label: "Treasury", href: "/admin/financials/treasury", icon: Wallet, privilege: FINANCIALS_PRIVILEGE },
       { label: "Accounting", href: "/admin/financials/accounting", icon: ClipboardList, privilege: FINANCIALS_PRIVILEGE },
+      { label: "Cap table", href: "/admin/financials/cap-table", icon: PieChart, privilege: FINANCIALS_PRIVILEGE },
+      { label: "SAFEs & tokens", href: "/admin/financials/safes", icon: Handshake, privilege: FINANCIALS_PRIVILEGE },
+      { label: "Balance sheet", href: "/admin/financials/balance-sheet", icon: Scale, privilege: FINANCIALS_PRIVILEGE },
     ],
   },
   {
@@ -101,6 +107,9 @@ export function isItemActive(href: string, pathname: string): boolean {
   if (href === "/admin/articles/new") return pathname === "/admin/articles/new"
   if (href === "/admin/financials/accounting") {
     return pathname === "/admin/financials/accounting" || pathname.startsWith("/admin/financials/payees")
+  }
+  if (href === "/admin/documents") {
+    return pathname === "/admin/documents" || pathname.startsWith("/admin/documents/")
   }
   return pathname === href
 }

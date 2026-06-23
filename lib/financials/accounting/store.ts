@@ -271,6 +271,22 @@ export async function loadPayeeProfile(id: string): Promise<PayeeProfile | null>
   const kyc: PayeeKycSummary | null = row.kycIntake
     ? { id: row.kycIntake.id, customerName: row.kycIntake.customerName, status: String(row.kycIntake.status) }
     : null
-  const [invoices, payments] = await Promise.all([listInvoices({ payeeId: id }), listPayments()])
-  return assemblePayeeProfile(payee, user, kyc, invoices, payments)
+  const [invoices, payments, envelopeRows] = await Promise.all([
+    listInvoices({ payeeId: id }),
+    listPayments(),
+    prisma.envelope.findMany({
+      where: { payeeId: id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, subject: true, kind: true, status: true, createdAt: true, completedAt: true },
+    }),
+  ])
+  const envelopes = envelopeRows.map((e) => ({
+    id: e.id,
+    subject: e.subject,
+    kind: e.kind,
+    status: e.status,
+    createdAt: e.createdAt.toISOString(),
+    completedAt: e.completedAt?.toISOString() ?? null,
+  }))
+  return assemblePayeeProfile(payee, user, kyc, invoices, payments, envelopes)
 }

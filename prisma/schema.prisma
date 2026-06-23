@@ -252,15 +252,15 @@ enum Locale {
 }
 
 model User {
-  id             String      @id @default(cuid())
-  email          String      @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
   emailVerified  DateTime? // set when ownership confirmed (invite/verify flow)
   name           String?
   passwordHash   String
-  role           Role        @default(AUTHOR)
-  active         Boolean     @default(true)
+  role           Role      @default(AUTHOR)
+  active         Boolean   @default(true)
   // Extra capability grants beyond the role's default bundle.
-  privileges     String[]    @default([])
+  privileges     String[]  @default([])
   // Public author profile
   avatarUrl      String? // GCS URL
   bio            String?
@@ -269,10 +269,10 @@ model User {
   lastSeenAt     DateTime? // presence: last authenticated activity
   // Two-factor (TOTP)
   totpSecret     String? // base32 secret, present once enrollment starts
-  totpEnabled    Boolean     @default(false)
+  totpEnabled    Boolean   @default(false)
   totpVerifiedAt DateTime?
   // Bumped on password change / forced logout to invalidate all live sessions.
-  tokenVersion   Int         @default(0)
+  tokenVersion   Int       @default(0)
 
   articles      Article[]          @relation("AuthoredArticles")
   revisions     Revision[]
@@ -280,7 +280,8 @@ model User {
   sessions      Session[]
   recoveryCodes TotpRecoveryCode[]
   auditLogs     AuditLog[]         @relation("AuditActor")
-  payee Payee? @relation
+  payee         Payee?             @relation
+  reviewLinks   ReviewLink[]       @relation("ReviewLinkCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -292,20 +293,20 @@ model User {
 // a `jti` matching tokenHash; currentUser() rejects revoked/expired sessions so
 // "sign out everywhere" and password-change invalidation take effect immediately.
 model Session {
-  id         String   @id @default(cuid())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  tokenHash  String   @unique // sha-256 of the session jti
-  ip         String?
-  userAgent  String?
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  tokenHash      String   @unique // sha-256 of the session jti
+  ip             String?
+  userAgent      String?
   // TLS fingerprint (JA4) of the client, injected by the tlsd ingress as a
   // request header at TLS termination. Null until the fingerprint-capable
   // ingress fronts this app — degrades gracefully.
   tlsFingerprint String?
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())
-  expiresAt  DateTime
-  revoked    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  expiresAt      DateTime
+  revoked        Boolean  @default(false)
 
   @@index([userId])
   @@index([tokenHash])
@@ -417,13 +418,13 @@ model Revision {
 
 // Email subscribers for news/article updates.
 model ArticleSubscriber {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  locale      Locale   @default(en)
-  source      String   @default("articles_page")
-  active      Boolean  @default(true)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  locale       Locale   @default(en)
+  source       String   @default("articles_page")
+  active       Boolean  @default(true)
   subscribedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt    DateTime @updatedAt
 
   @@index([active])
   @@index([locale])
@@ -431,19 +432,19 @@ model ArticleSubscriber {
 
 // Bearer keys for the admin upload API (POST /api/admin/articles).
 model ApiKey {
-  id         String      @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
-  hashedKey  String      @unique // sha-256 of the token
+  hashedKey  String    @unique // sha-256 of the token
   prefix     String // first 8 chars, shown in UI for identification
   // Capability scopes for this key — always a subset of the owner's effective
   // privileges at mint time. The verifier caps the key's authority to this set.
-  scopes     String[]    @default([])
-  createdBy  User        @relation(fields: [userId], references: [id])
+  scopes     String[]  @default([])
+  createdBy  User      @relation(fields: [userId], references: [id])
   userId     String
   lastUsedAt DateTime?
   expiresAt  DateTime? // optional expiry
-  revoked    Boolean     @default(false)
-  createdAt  DateTime    @default(now())
+  revoked    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   @@index([hashedKey])
 }
@@ -627,7 +628,7 @@ enum MtlStatus {
 model MtlEntry {
   state         String    @id // 2-letter jurisdiction code (incl. DC)
   name          String
-  status        MtlStatus  @default(NOT_YET_NEEDED)
+  status        MtlStatus @default(NOT_YET_NEEDED)
   nextFilingDue String?
   portalUrl     String?
   notes         String?
@@ -654,10 +655,10 @@ enum StripeMoneyStatus {
 model StripeMoneyIntent {
   id           String            @id @default(cuid())
   kind         StripeMoneyKind
-  direction    String?           // "in" | "out" (ACH)
-  amount       Int               // cents
-  counterparty String?           // ACH
-  reference    String?           // chargeId/invoiceId (refund)
+  direction    String? // "in" | "out" (ACH)
+  amount       Int // cents
+  counterparty String? // ACH
+  reference    String? // chargeId/invoiceId (refund)
   memo         String?
   status       StripeMoneyStatus @default(QUEUED)
   requestedBy  String
@@ -669,7 +670,7 @@ model StripeMoneyIntent {
 // Low-risk overlays — layered onto reads only in seed mode (interactive demo).
 model StripeCardControl {
   cardId String   @id
-  state  String   // "active" | "paused" | "canceled"
+  state  String // "active" | "paused" | "canceled"
   by     String
   at     DateTime @default(now())
 }
@@ -692,7 +693,7 @@ model StripePromoCode {
   id             String          @id @default(cuid())
   code           String          @unique
   type           StripePromoType
-  value          Int             // percent or cents
+  value          Int // percent or cents
   maxRedemptions Int?
   expiresAt      DateTime?
   active         Boolean         @default(true)
@@ -703,7 +704,7 @@ model StripePromoCode {
 model StripeSubscriptionAction {
   id             String   @id @default(cuid())
   subscriptionId String
-  action         String   // "cancel" | "pause" | "resume" | "change_tier"
+  action         String // "cancel" | "pause" | "resume" | "change_tier"
   note           String?
   by             String
   at             DateTime @default(now())
@@ -720,7 +721,7 @@ enum StripeApplicationStatus {
 
 model StripeApplication {
   id        String                  @id @default(cuid())
-  product   String                  @unique  // "treasury" | "issuing" | "offramp"
+  product   String                  @unique // "treasury" | "issuing" | "offramp"
   status    StripeApplicationStatus @default(NOT_STARTED)
   notes     String?
   updatedBy String
@@ -730,20 +731,20 @@ model StripeApplication {
 // SP-4: append-only-ish log of received Stripe webhook events. PII-free: only a
 // non-sensitive summary is stored; full detail lives in the Stripe dashboard.
 model StripeWebhookEvent {
-  id            String   @id                  // Stripe event id (evt_...) = natural PK → idempotency
-  type          String                        // e.g. "identity.verification_session.verified"
+  id            String   @id // Stripe event id (evt_...) = natural PK → idempotency
+  type          String // e.g. "identity.verification_session.verified"
   apiVersion    String?
-  stripeCreated DateTime                       // event.created
+  stripeCreated DateTime // event.created
   receivedAt    DateTime @default(now())
   status        String   @default("received") // received | processed | ignored | failed
-  handled       Boolean  @default(false)       // did a domain handler act on it?
+  handled       Boolean  @default(false) // did a domain handler act on it?
   error         String?
-  objectType    String?                         // event.data.object.object e.g. "charge","payout"
+  objectType    String? // event.data.object.object e.g. "charge","payout"
   objectId      String?
-  objectStatus  String?                         // object.status (non-PII)
-  amount        Int?                            // cents, when present
+  objectStatus  String? // object.status (non-PII)
+  amount        Int? // cents, when present
   currency      String?
-  reason        String?                         // dispute / rejection reason (non-PII)
+  reason        String? // dispute / rejection reason (non-PII)
 
   @@index([type])
   @@index([receivedAt])
@@ -771,17 +772,18 @@ enum PaymentSource {
 }
 
 model Payee {
-  id          String     @id @default(cuid())
-  name        String
-  type        PayeeType  @default(PERSON)
-  kycIntakeId String? // optional link to a KYC'd identity (Stripe Identity)
-  kycIntake   KycIntake? @relation(fields: [kycIntakeId], references: [id])
-  notes       String?
+  id           String     @id @default(cuid())
+  name         String
+  type         PayeeType  @default(PERSON)
+  kycIntakeId  String? // optional link to a KYC'd identity (Stripe Identity)
+  kycIntake    KycIntake? @relation(fields: [kycIntakeId], references: [id])
+  notes        String?
   userId       String?    @unique // optional 1:1 link to a team-member User
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   agreementUrl String? // contract/agreement PDF (CMS_BUCKET)
-  createdAt   DateTime   @default(now())
-  invoices    Invoice[]
+  createdAt    DateTime   @default(now())
+  invoices     Invoice[]
+  envelopes    Envelope[] // e-sign envelopes (legal paperwork) tied to this payee
 
   @@index([name])
 }
@@ -819,4 +821,236 @@ model DieselPayment {
 
   @@unique([txid, vout]) // idempotent vs SP-2 ingestion
   @@index([invoiceId])
+}
+
+// ============================================
+// DOCUMENTS — e-sign envelopes (Documenso)
+// ============================================
+//
+// The document-sender / legal-contract surface ported from subfrost-admin.
+// `kind` + `status` hold the lowercase string vocabularies defined in
+// lib/esign/types.ts (the state machine is the source of truth, not Prisma
+// enums) — mirrors how FincenDraft stores zod-validated JSON. `recipients`,
+// `attachment`, and `fields` are JSON blobs matching the EnvelopeRecord shape.
+model Envelope {
+  id                   String    @id @default(cuid())
+  kind                 String // EnvelopeKind (lib/esign/types.ts)
+  subject              String
+  message              String?
+  status               String    @default("draft") // EnvelopeStatus
+  externalDocumentId   String? // Documenso document id (or LOCAL-<...> in mock mode)
+  recipients           Json // Recipient[]
+  attachment           Json? // DocumentAttachment (GCS object name, sha256, …)
+  fields               Json? // Field[] — drag-placed signature fields
+  signingOrderEnabled  Boolean   @default(false)
+  expiresAt            DateTime?
+  sentAt               DateTime?
+  completedAt          DateTime?
+  voidedAt             DateTime?
+  voidReason           String?
+  lastResendAt         DateTime?
+  fieldsAppliedAt      DateTime?
+  fieldsAppliedCount   Int       @default(0)
+  signedDocumentObject String? // GCS object name of the fully-signed PDF
+  appliedEventIds      String[]  @default([]) // bounded webhook-dedup window
+  notes                String?
+  // Optional link to the payee this paperwork belongs to — powers the
+  // "legal paperwork they've signed" section of the payee profile.
+  payeeId              String?
+  payee                Payee?    @relation(fields: [payeeId], references: [id], onDelete: SetNull)
+  createdBy            String // operator email
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status])
+  @@index([payeeId])
+  @@index([externalDocumentId])
+  @@index([createdAt])
+}
+
+// ============================================
+// COMPLIANCE — delegated external-reviewer links
+// ============================================
+//
+// A reviewer (no platform account) is handed a password-protected, scoped,
+// expiring URL. They authenticate at /compliance/review/<token> and get a
+// separate review-session cookie granting read-only access to the compliance
+// surfaces named by `scope`. Ported from subfrost-admin lib/reviews.ts.
+model ReviewLink {
+  id              String          @id @default(cuid())
+  token           String          @unique // the value in the URL
+  passwordHash    String // bcrypt
+  reviewerLabel   String
+  reviewerEmail   String?
+  scope           String // ReviewScope: compliance-full | fincen-only | kyc-only
+  notes           String?
+  createdByUserId String? // operator who minted the link (nullable so the link survives creator deletion)
+  createdBy       User?           @relation("ReviewLinkCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  revokedByUserId String?
+  sessions        ReviewSession[]
+
+  @@index([token])
+}
+
+model ReviewSession {
+  id           String     @id @default(cuid())
+  reviewLinkId String
+  reviewLink   ReviewLink @relation(fields: [reviewLinkId], references: [id], onDelete: Cascade)
+  tokenHash    String     @unique // sha-256 of the session cookie value
+  userAgent    String?
+  ipHash       String? // salted hash — never store raw IPs
+  createdAt    DateTime   @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  lastSeenAt   DateTime   @default(now())
+  pagesViewed  String[]   @default([])
+
+  @@index([reviewLinkId])
+  @@index([tokenHash])
+}
+
+// ============================================
+// FINANCIALS — equity / cap table (409A)
+// ============================================
+
+enum ShareClassType {
+  COMMON
+  PREFERRED
+}
+
+enum HolderType {
+  PERSON
+  ENTITY
+}
+
+// SAFEs, token agreements, notes — convertible / investment instruments. One
+// register with a type discriminator; SAFE-specific term fields are nullable for
+// non-SAFE types.
+enum InstrumentType {
+  SAFE
+  TOKEN_WARRANT
+  TOKEN_SIDE_LETTER
+  SAFT
+  CONVERTIBLE_NOTE
+  OTHER
+}
+
+enum InstrumentStatus {
+  OUTSTANDING
+  CONVERTED
+  CANCELLED
+}
+
+enum SafeKind {
+  POST_MONEY
+  PRE_MONEY
+}
+
+model ShareClass {
+  id               String         @id @default(cuid())
+  name             String // e.g. "Common Stock"
+  type             ShareClassType @default(COMMON)
+  authorizedShares Int
+  parValue         Float?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  holdings         ShareHolding[]
+
+  @@index([type])
+}
+
+model Shareholder {
+  id          String         @id @default(cuid())
+  name        String
+  type        HolderType     @default(PERSON)
+  email       String?
+  userId      String? // optional link to a team-member User (loose ref)
+  payeeId     String? // optional link to a Payee identity (loose ref)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  holdings    ShareHolding[]
+  instruments Instrument[]
+
+  @@index([name])
+}
+
+model ShareHolding {
+  id            String      @id @default(cuid())
+  shareholderId String
+  shareholder   Shareholder @relation(fields: [shareholderId], references: [id], onDelete: Cascade)
+  shareClassId  String
+  shareClass    ShareClass  @relation(fields: [shareClassId], references: [id])
+  shares        Int
+  issuedAt      DateTime
+  certificateNo String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([shareholderId])
+  @@index([shareClassId])
+}
+
+model Instrument {
+  id             String           @id @default(cuid())
+  type           InstrumentType   @default(SAFE)
+  status         InstrumentStatus @default(OUTSTANDING)
+  investorName   String
+  investorEntity String?
+  investorEmail  String?
+  shareholderId  String? // optional link to the investor's Shareholder identity
+  shareholder    Shareholder?     @relation(fields: [shareholderId], references: [id], onDelete: SetNull)
+  amountUsd      Float
+  signedAt       DateTime
+  // SAFE / note terms (null for token agreements)
+  safeKind       SafeKind?
+  valuationCap   Float?
+  discountRate   Float? // 0..1, e.g. 0.20
+  mfn            Boolean          @default(false)
+  proRata        Boolean          @default(false)
+  // convertible note terms
+  interestRate   Float?
+  maturityDate   DateTime?
+  // token agreement terms
+  tokenPct       Float? // % of token supply
+  tokenAmount    Float?
+  // binding-document linkage: an uploaded signed PDF and/or a linked e-sign
+  // Envelope (Documents system). envelopeId is a loose ref resolved on read.
+  pdfUrl         String?
+  envelopeId     String?
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([shareholderId])
+}
+
+// ============================================
+// FINANCIALS — balance sheet (manual GL line items)
+// ============================================
+//
+// Computed lines (treasury USD, open-invoice AR, outstanding SAFE proceeds,
+// issued common equity) are derived at render time. These rows are the manual
+// additions/overrides the operator enters to complete the statement.
+enum BalanceSheetSection {
+  ASSET
+  LIABILITY
+  EQUITY
+}
+
+model BalanceSheetItem {
+  id        String              @id @default(cuid())
+  section   BalanceSheetSection
+  label     String
+  amountUsd Float
+  sortOrder Int                 @default(0)
+  notes     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([section])
 }

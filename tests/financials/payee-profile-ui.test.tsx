@@ -16,6 +16,7 @@ const base: PayeeProfileData = {
   kyc: null,
   invoices: [],
   payments: [],
+  envelopes: [],
   totals: { payeeId: "pe1", payeeName: "Ada", invoiceCount: 0, totalUsd: 0, totalDiesel: 0 },
 }
 const users: LinkableUser[] = [{ id: "u1", name: "Ada Dev", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" }]

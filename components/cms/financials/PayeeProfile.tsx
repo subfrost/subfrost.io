@@ -24,7 +24,7 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
-  const { payee, user, kyc, invoices, payments, totals } = profile
+  const { payee, user, kyc, invoices, payments, envelopes, totals } = profile
 
   function run(patch: Patch, after?: () => void) {
     setError(null)
@@ -109,6 +109,29 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
                   <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
                   <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
                   <td className="text-zinc-300">{p.invoiceRef ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
+      <Section title={`Signed paperwork (${envelopes.length})`}>
+        {envelopes.length === 0 ? (
+          <Empty>
+            No e-sign documents linked to this payee.{" "}
+            <Link href="/admin/documents" className="text-sky-400 underline">Send one →</Link>
+          </Empty>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Document</th><th>Kind</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+              {envelopes.map((e) => (
+                <tr key={e.id} className="border-t border-zinc-900">
+                  <td className="py-2 text-zinc-200"><Link href={`/admin/documents/${e.id}`} className="text-sky-400 hover:underline">{e.subject}</Link></td>
+                  <td className="text-xs text-zinc-400">{e.kind}</td>
+                  <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${e.status === "completed" ? "bg-emerald-900/40 text-emerald-300" : e.status === "declined" || e.status === "voided" || e.status === "expired" ? "bg-red-900/40 text-red-300" : "bg-sky-900/40 text-sky-300"}`}>{e.status}</span></td>
+                  <td className="text-zinc-400">{e.createdAt.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
