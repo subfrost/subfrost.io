@@ -8,8 +8,8 @@ import {
   type AccountingOverviewResult,
 } from "@/actions/cms/accounting"
 import {
-  totalsByPayee, type InvoiceRow, type InvoiceStatus, type PayeeRow,
-  type PayeeType, type PaymentRow,
+  totalsByPayee, totalsByPeriod, periodReportCsv, type InvoiceRow, type InvoiceStatus,
+  type PayeeRow, type PayeeType, type PaymentRow, type PeriodGranularity,
 } from "@/lib/financials/accounting/shapes"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
@@ -23,7 +23,7 @@ const STATUS_STYLE: Record<InvoiceStatus, string> = {
   VOID: "bg-zinc-800 text-zinc-400",
 }
 
-type View = "invoices" | "payees" | "payments"
+type View = "invoices" | "payees" | "payments" | "reports"
 
 export function AccountingManager({ initial }: { initial: AccountingOverviewResult }) {
   const [result, setResult] = useState<AccountingOverviewResult>(initial)
@@ -99,7 +99,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        {(["invoices", "payees", "payments"] as View[]).map((v) => (
+        {(["invoices", "payees", "payments", "reports"] as View[]).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
@@ -229,6 +229,8 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
           </table>
         )
       ) : null}
+
+      {view === "reports" ? <ReportsView payees={payees} invoices={invoices} payments={payments} /> : null}
     </div>
   )
 }
@@ -292,6 +294,75 @@ function UnlinkedRow({ payment, openInvoices, onLink, disabled }: {
         {openInvoices.map((i) => <option key={i.id} value={i.id}>{i.ref} — {i.payeeName}</option>)}
       </select>
       <button disabled={disabled || !sel} onClick={() => onLink(sel)} className="rounded bg-sky-700 px-2 py-1 text-white disabled:opacity-40">Link</button>
+    </div>
+  )
+}
+
+function ReportsView({ payees, invoices, payments }: {
+  payees: PayeeRow[]; invoices: InvoiceRow[]; payments: PaymentRow[]
+}) {
+  const [granularity, setGranularity] = useState<PeriodGranularity>("month")
+  const [payeeId, setPayeeId] = useState("") // "" = all payees
+  const filtered = payeeId ? invoices.filter((i) => i.payeeId === payeeId) : invoices
+  const rows = totalsByPeriod(filtered, payments, granularity)
+
+  function exportReport() {
+    const blob = new Blob([periodReportCsv(rows)], { type: "text/csv" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `accounting-report-${granularity}${payeeId ? `-${payeeId}` : ""}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1">
+          {(["month", "quarter", "year"] as PeriodGranularity[]).map((g) => (
+            <button
+              key={g}
+              onClick={() => setGranularity(g)}
+              className={`rounded-md px-3 py-1.5 text-sm ${granularity === g ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"}`}
+            >
+              {g[0].toUpperCase() + g.slice(1)}
+            </button>
+          ))}
+        </div>
+        <select
+          value={payeeId}
+          onChange={(e) => setPayeeId(e.target.value)}
+          className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100"
+        >
+          <option value="">All payees</option>
+          {payees.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <div className="ml-auto"><Toolbtn onClick={exportReport}>Export CSV</Toolbtn></div>
+      </div>
+      {rows.length === 0 ? (
+        <Empty>No invoices to report.</Empty>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-zinc-500">
+              <th className="py-1.5">Period</th><th className="text-right">Invoices</th>
+              <th className="text-right">Issued (USD)</th><th className="text-right">Paid (USD)</th>
+              <th className="text-right">DIESEL Paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.period} className="border-t border-zinc-900">
+                <td className="py-2 font-mono text-zinc-300">{r.period}</td>
+                <td className="text-right text-zinc-300">{r.invoiceCount}</td>
+                <td className="text-right text-zinc-200">{usd(r.issuedUsd)}</td>
+                <td className="text-right text-zinc-200">{usd(r.paidUsd)}</td>
+                <td className="text-right text-zinc-200">{dsl(r.dieselPaid)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
