@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
+import { detectLocale, type Locale } from "@/lib/i18n/detect"
+import { LOCALE_COOKIE, LOCALE_MAX_AGE_SECONDS } from "@/lib/i18n/cookie"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -19,7 +21,30 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.next()
+  // Locale detection: on first visit (no cookie), pick en/zh from Accept-Language.
+  // Set it on the forwarded request (so the same SSR render can read it via
+  // cookies()) and on the response (so the browser persists it).
+  const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value
+  let detected: Locale | undefined
+  const requestHeaders = new Headers(request.headers)
+  if (existingLocale !== "en" && existingLocale !== "zh") {
+    detected = detectLocale(request.headers.get("accept-language"))
+    const priorCookie = request.headers.get("cookie")
+    requestHeaders.set(
+      "cookie",
+      priorCookie ? `${priorCookie}; ${LOCALE_COOKIE}=${detected}` : `${LOCALE_COOKIE}=${detected}`,
+    )
+  }
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+
+  if (detected) {
+    response.cookies.set(LOCALE_COOKIE, detected, {
+      path: "/",
+      maxAge: LOCALE_MAX_AGE_SECONDS,
+      sameSite: "lax",
+    })
+  }
 
   const isBroadcastPath = pathname.startsWith("/broadcast")
 
