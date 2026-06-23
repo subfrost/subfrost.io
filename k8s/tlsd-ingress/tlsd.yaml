@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: tlsd-config, namespace: tlsd-ingress }
+data:
+  tlsd.toml: |
+    [server]
+    drain_timeout_seconds = 30
+    metrics_bind = "0.0.0.0:9100"
+    forward_client_ip = true
+    forward_tls_fingerprint = true
+    tls_fingerprint_header = "X-TLS-JA4"
+    request_id_format = "ulid"
+    [[listener]]
+    name = "https-main"
+    bind = "0.0.0.0:8443"
+    cert = "/var/lib/tlsd/tls/tls.crt"
+    key  = "/var/lib/tlsd/tls/tls.key"
+    alpn = ["http/1.1"]
+    [[route]]
+    host = "subfrost.io"
+    backends = ["34.118.232.215:80"]
+    algorithm = "round-robin"
+    upstream_scheme = "http"
+    [[route]]
+    host = "tlsd-canary.subfrost.io"
+    backends = ["34.118.232.215:80"]
+    algorithm = "round-robin"
+    upstream_scheme = "http"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: nginx-redirect, namespace: tlsd-ingress }
+data:
+  default.conf: |
+    server {
+      listen 8080 default_server;
+      server_name _;
+      location / { return 301 https://$host$request_uri; }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: tlsd, namespace: tlsd-ingress, labels: { app.kubernetes.io/component: tlsd } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app.kubernetes.io/component: tlsd } }
+  template:
+    metadata: { labels: { app.kubernetes.io/component: tlsd } }
+    spec:
+      containers:
+        - name: tlsd
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:ja4fix-ab6a921-1913
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/tlsd/tlsd.toml"]
+          ports: [{ name: https, containerPort: 8443 }, { name: metrics, containerPort: 9100 }]
+          env: [{ name: RUST_LOG, value: "info,tlsd=info,tlsd_proxy=info" }]
+          volumeMounts:
+            - { name: tlsd-config, mountPath: /etc/tlsd, readOnly: true }
+            - { name: tls, mountPath: /var/lib/tlsd/tls, readOnly: true }
+          resources: { requests: { cpu: "150m", memory: "192Mi" }, limits: { cpu: "1", memory: "768Mi" } }
+          livenessProbe:  { httpGet: { path: /healthz, port: metrics }, initialDelaySeconds: 5, periodSeconds: 30 }
+          readinessProbe: { httpGet: { path: /healthz, port: metrics }, initialDelaySeconds: 2, periodSeconds: 10 }
+        - name: http-redirect
+          image: nginxinc/nginx-unprivileged:alpine
+          ports: [{ name: http, containerPort: 8080 }]
+          volumeMounts: [{ name: nginx-redirect, mountPath: /etc/nginx/conf.d, readOnly: true }]
+          resources: { requests: { cpu: "10m", memory: "16Mi" }, limits: { cpu: "100m", memory: "64Mi" } }
+          readinessProbe: { tcpSocket: { port: http }, initialDelaySeconds: 2, periodSeconds: 10 }
+      securityContext: { runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532 }
+      volumes:
+        - { name: tlsd-config, configMap: { name: tlsd-config, items: [{ key: tlsd.toml, path: tlsd.toml }] } }
+        - { name: nginx-redirect, configMap: { name: nginx-redirect } }
+        - { name: tls, secret: { secretName: tlsd-tls } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: tlsd, namespace: tlsd-ingress, labels: { app.kubernetes.io/component: tlsd } }
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  loadBalancerIP: 34.170.98.157
+  selector: { app.kubernetes.io/component: tlsd }
+  ports:
+    - { name: https, port: 443, targetPort: 8443, protocol: TCP }
+    - { name: http, port: 80, targetPort: 8080, protocol: TCP }
