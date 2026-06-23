@@ -103,8 +103,8 @@ export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem
           aria-label={locale === "zh" ? "搜索文章" : "Search updates"}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80"
           style={{
-            background: hasQuery ? "var(--ed-ink)" : "color-mix(in srgb, var(--ed-ink) 42%, transparent)",
-            color: "var(--ed-canvas)",
+            background: hasQuery ? "var(--ed-action-bg)" : "color-mix(in srgb, var(--ed-ink) 42%, transparent)",
+            color: hasQuery ? "var(--ed-action-fg)" : "var(--ed-canvas)",
           }}
         >
           <ArrowUp className="h-4 w-4" strokeWidth={2.4} />

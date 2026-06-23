@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowUpRight, Github, Globe2 } from "lucide-react"
+import { Github, Globe2 } from "lucide-react"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
@@ -37,6 +37,7 @@ export function SiteFooter() {
             title: "公司",
             links: [
               { label: "支持", href: "/support" },
+              { label: "品牌资源", href: "/brand?lang=zh" },
               { label: "服务条款", href: "/terms" },
               { label: "隐私政策", href: "/privacy" },
             ],
@@ -63,6 +64,7 @@ export function SiteFooter() {
             title: "Company",
             links: [
               { label: "Support", href: "/support" },
+              { label: "Brand kit", href: "/brand" },
               { label: "Terms", href: "/terms" },
               { label: "Privacy", href: "/privacy" },
             ],
@@ -92,10 +94,7 @@ export function SiteFooter() {
                   className="font-display text-[14px] font-normal transition-opacity hover:opacity-65"
                   style={{ color: "var(--ed-ink)" }}
                 >
-                  <span className="inline-flex items-baseline gap-1">
-                    <span>{link.label}</span>
-                    {link.href.startsWith("http") ? <ArrowUpRight className="relative top-[1px] h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" /> : null}
-                  </span>
+                  <span>{link.label}</span>
                 </a>
               ))}
             </div>

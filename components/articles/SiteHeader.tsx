@@ -46,7 +46,7 @@ export function SiteHeader() {
     { id: "vaults", label: copy.vaults, href: "https://app.subfrost.io/" },
     { id: "blog", label: copy.blog, href: articleHref },
   ]
-  const activeId = pathname?.startsWith("/articles") || pathname?.startsWith("/authors") ? "blog" : "markets"
+  const activeId = pathname?.startsWith("/articles") || pathname?.startsWith("/authors") ? "blog" : pathname === "/" ? "markets" : null
 
   useEffect(() => {
     const onScroll = () => {
@@ -99,12 +99,12 @@ export function SiteHeader() {
           <Link href="/" className="flex shrink-0 items-center" aria-label="Subfrost">
             <span className="relative block h-8 w-[148px]">
               <img
-                src="/brand/subfrost/Logos/svg/logotype/logotype_black.svg"
+                src="/brand/subfrost/Logos/svg/logotype/logotype_dark.svg"
                 alt="Subfrost"
                 className="ed-logo-light h-full w-auto"
               />
               <img
-                src="/brand/subfrost/Logos/svg/logotype/logotype_white.svg"
+                src="/brand/subfrost/Logos/svg/logotype/logotype_light.svg"
                 alt=""
                 aria-hidden="true"
                 className="ed-logo-dark absolute inset-0 h-full w-auto"
@@ -143,10 +143,11 @@ export function SiteHeader() {
           </span>
           <a
             href="https://app.subfrost.io/"
-            className="font-display inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[12px] font-medium sm:px-5 sm:text-[13px]"
+            className="font-display inline-flex h-9 items-center justify-center gap-1.5 rounded-[6px] border px-3 text-[12px] font-medium sm:px-5 sm:text-[13px]"
             style={{
-              background: "var(--ed-ink)",
-              color: "var(--ed-canvas)",
+              background: "var(--ed-action-bg)",
+              color: "var(--ed-action-fg)",
+              borderColor: "color-mix(in srgb, var(--ed-canvas) 12%, transparent)",
             }}
           >
             <span className="hidden sm:inline">{copy.try}</span>

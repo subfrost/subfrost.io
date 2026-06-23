@@ -226,6 +226,8 @@ div[data-netlify-deploy-id] {
   --ed-sans: var(--font-geist-sans), Arial, Helvetica, ui-sans-serif, sans-serif;
   --ed-canvas: #ffffff;
   --ed-ink: #0a1628;
+  --ed-carbon: #212121;
+  --ed-frost: #e9f0f7;
   --ed-body: #33455f;
   --ed-muted: #607792;
   --ed-hair: #d8e2ee;
@@ -240,6 +242,8 @@ div[data-netlify-deploy-id] {
   --ed-placeholder: color-mix(in srgb, var(--ed-ink) 35%, transparent);
   --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 25%, transparent);
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 42%, transparent);
+  --ed-action-bg: var(--ed-carbon);
+  --ed-action-fg: var(--ed-frost);
 }
 [data-ed-theme="dark"] {
   --ed-canvas: #000000;
@@ -258,6 +262,8 @@ div[data-netlify-deploy-id] {
   --ed-placeholder: color-mix(in srgb, var(--ed-ink) 48%, transparent);
   --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 62%, transparent);
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 62%, transparent);
+  --ed-action-bg: var(--ed-frost);
+  --ed-action-fg: var(--ed-carbon);
 }
 
 .font-display {

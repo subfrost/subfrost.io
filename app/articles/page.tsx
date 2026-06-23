@@ -7,7 +7,7 @@ import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -359,9 +359,9 @@ export default async function ArticlesIndex({
                         className="block"
                         prefetch={false}
                       >
-                        <h3 className="font-display inline-flex items-baseline gap-1.5 text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
+                        <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
                           <span>{a.title}</span>
-                          <ArrowUpRight className="relative top-[2px] h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                          <ArrowRight className="ml-1 inline-block h-3 w-3 align-baseline" strokeWidth={2} aria-hidden="true" />
                         </h3>
                         <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
                           <span style={{ color: "var(--ed-ink)" }}>
@@ -379,9 +379,9 @@ export default async function ArticlesIndex({
                         rel="noopener noreferrer"
                         className="block"
                       >
-                        <h3 className="font-display inline-flex items-baseline gap-1.5 text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
+                        <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
                           <span>{doc.title[locale]}</span>
-                          <ArrowUpRight className="relative top-[2px] h-3 w-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                          <ArrowRight className="ml-1 inline-block h-3 w-3 align-baseline" strokeWidth={2} aria-hidden="true" />
                         </h3>
                         <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
                           <span style={{ color: "var(--ed-ink)" }}>{copy.docsEyebrow}</span>

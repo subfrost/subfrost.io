@@ -90,14 +90,21 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
           {copy.subtitle}
         </p>
 
-        <form onSubmit={onSubmit} className={`flex flex-row items-center ${footer ? "mt-4 w-fit gap-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3"}`}>
+        <form
+          onSubmit={onSubmit}
+          className={`flex flex-row items-center rounded-[6px] border ${footer ? "mt-4 w-fit gap-2 px-3 py-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3 px-4 py-3"}`}
+          style={{
+            borderColor: "color-mix(in srgb, var(--ed-ink) 10%, transparent)",
+            background: "color-mix(in srgb, var(--ed-canvas) 92%, var(--ed-surface))",
+          }}
+        >
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={copy.placeholder}
             autoComplete="email"
-            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-8 w-[180px] text-[14px]" : "h-12 w-full text-[16px]"}`}
+            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-7 w-[170px] text-[14px]" : "h-8 w-full text-[16px]"}`}
             style={{
               color: "var(--ed-ink)",
             }}
@@ -107,10 +114,10 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
             type="submit"
             disabled={state === "loading"}
             aria-label={copy.cta}
-            className={`font-display inline-flex shrink-0 items-center justify-center rounded-full px-0 font-semibold transition-[background-color,opacity,transform] duration-300 ease-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-90 ${state === "success" ? "scale-100" : ""} ${footer ? "h-8 w-8 text-[14px]" : "h-9 w-9 text-[14px]"}`}
+            className={`font-display inline-flex shrink-0 items-center justify-center rounded-[6px] px-0 font-semibold transition-[background-color,opacity,transform] duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-90 ${state === "success" ? "scale-100" : ""} ${footer ? "h-8 w-8 text-[14px]" : "h-8 w-8 text-[14px]"}`}
             style={{
-              background: state === "success" ? "#16a34a" : hasEmail ? "var(--ed-ink)" : "var(--ed-button-muted)",
-              color: "var(--ed-canvas)",
+              background: state === "success" ? "#16a34a" : hasEmail ? "var(--ed-action-bg)" : "var(--ed-button-muted)",
+              color: state === "success" ? "#ffffff" : hasEmail ? "var(--ed-action-fg)" : "var(--ed-canvas)",
             }}
           >
             {state === "loading" ? (
