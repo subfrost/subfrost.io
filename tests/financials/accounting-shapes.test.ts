@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import {
-  summaryMetrics, totalsByPayee, totalsByPeriod, periodKey, csvEscape, toCsv, assemblePayeeProfile,
+  summaryMetrics, totalsByPayee, totalsByPeriod, periodKey, csvEscape, toCsv, assemblePayeeProfile, periodReportCsv,
   type InvoiceRow, type PaymentRow, type PayeeRow, type PayeeUserSummary,
 } from "@/lib/financials/accounting/shapes"
 
@@ -44,10 +44,35 @@ describe("periodKey / totalsByPeriod", () => {
     expect(periodKey("2026-05-20T00:00:00.000Z", "quarter")).toBe("2026-Q2")
     expect(periodKey("2026-05-20T00:00:00.000Z", "year")).toBe("2026")
   })
-  it("aggregates invoices by month, newest first", () => {
-    const rows = totalsByPeriod(invoices, "month")
+  it("aggregates issued/paid USD + DIESEL by month, newest first", () => {
+    const rows = totalsByPeriod(invoices, payments, "month")
     expect(rows.map((r) => r.period)).toEqual(["2026-05", "2026-02"])
-    expect(rows[0]).toEqual({ period: "2026-05", invoiceCount: 2, totalUsd: 2500 })
+    // 2026-05: i2 (OPEN $500) + i3 (PAID $2000); p2 (4 DIESEL → i3)
+    expect(rows[0]).toEqual({ period: "2026-05", invoiceCount: 2, issuedUsd: 2500, paidUsd: 2000, dieselPaid: 4 })
+    // 2026-02: i1 (PAID $1000); p1 (2 DIESEL → i1)
+    expect(rows[1]).toEqual({ period: "2026-02", invoiceCount: 1, issuedUsd: 1000, paidUsd: 1000, dieselPaid: 2 })
+  })
+  it("collapses to one row under year granularity", () => {
+    expect(totalsByPeriod(invoices, payments, "year")).toEqual([
+      { period: "2026", invoiceCount: 3, issuedUsd: 3500, paidUsd: 3000, dieselPaid: 6 },
+    ])
+  })
+  it("respects a pre-filtered payee set (other payees' DIESEL excluded)", () => {
+    const pe1 = invoices.filter((i) => i.payeeId === "pe1") // i1 (Feb, PAID, p1=2) + i2 (May, OPEN)
+    expect(totalsByPeriod(pe1, payments, "month")).toEqual([
+      { period: "2026-05", invoiceCount: 1, issuedUsd: 500, paidUsd: 0, dieselPaid: 0 },
+      { period: "2026-02", invoiceCount: 1, issuedUsd: 1000, paidUsd: 1000, dieselPaid: 2 },
+    ])
+  })
+})
+
+describe("periodReportCsv", () => {
+  it("emits a header + one row per period", () => {
+    const csv = periodReportCsv(totalsByPeriod(invoices, payments, "month"))
+    const lines = csv.split("\n")
+    expect(lines[0]).toBe("Period,Invoices,Issued USD,Paid USD,DIESEL Paid")
+    expect(lines).toHaveLength(3) // header + 2 periods
+    expect(lines[1]).toBe("2026-05,2,2500,2000,4")
   })
 })
 
