@@ -26,16 +26,11 @@ describe('middleware locale detection', () => {
     expect(res.cookies.get('subfrost_locale')?.value).toBe('en')
   })
 
-  // SKIPPED: vitest/happy-dom drops the `cookie` header when constructing
-  // NextRequest (Headers constructor treats `cookie` as a forbidden header in
-  // this environment), so req.cookies.get() always returns undefined and the
-  // "no-override" branch can't be exercised here. The implementation is correct
-  // and this case is covered by live verification (middleware receives real
-  // browser cookies; detectLocale is separately unit-tested in Task 1).
-  it.skip('does not override an existing cookie', async () => {
+  it('does not override an existing cookie', async () => {
     const req = new NextRequest('http://localhost/', {
-      headers: { 'accept-language': 'zh-CN', cookie: 'subfrost_locale=en' },
+      headers: { 'accept-language': 'zh-CN' },
     })
+    req.cookies.set('subfrost_locale', 'en')
     const res = await middleware(req)
     expect(res.cookies.get('subfrost_locale')).toBeUndefined()
   })
