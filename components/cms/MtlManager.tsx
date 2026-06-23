@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { listMtlAction, seedMtlAction, updateMtlAction } from "@/actions/cms/mtl"
-import { MTL_STATUSES, MTL_STATUS_LABELS } from "@/lib/mtl/schema"
+import { MTL_STATUSES, MTL_STATUS_LABELS, MTL_STATUS_CLS as STATUS_CLS } from "@/lib/mtl/schema"
 import type { MtlRow } from "@/lib/mtl/admin"
 import { SkeletonTable } from "@/components/cms/Skeleton"
+import { MtlStatusSummary } from "@/components/cms/MtlStatusSummary"
 
 interface RowState {
   status: string
@@ -22,15 +23,6 @@ function toRowState(r: MtlRow): RowState {
     portalUrl: r.portalUrl ?? "",
     notes: r.notes ?? "",
   }
-}
-
-const STATUS_CLS: Record<string, string> = {
-  AGENT_OF_STRIPE: "bg-blue-950/50 text-blue-300 border-blue-800/50",
-  REGISTERED: "bg-emerald-950/50 text-emerald-300 border-emerald-800/50",
-  FILED_PENDING: "bg-amber-950/50 text-amber-300 border-amber-800/50",
-  EXEMPT: "bg-zinc-800 text-zinc-400 border-zinc-700",
-  NOT_YET_NEEDED: "bg-zinc-800 text-zinc-500 border-zinc-700",
-  NEEDS_FILING: "bg-red-950/50 text-red-300 border-red-800/50",
 }
 
 function Badge({ label, cls }: { label: string; cls: string }) {
@@ -130,6 +122,7 @@ export function MtlManager({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div className="space-y-4">
+      <MtlStatusSummary entries={rows} />
       <div className="flex flex-wrap items-center gap-3">
         <Input
           value={search}
@@ -156,7 +149,7 @@ export function MtlManager({ canEdit }: { canEdit: boolean }) {
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm font-semibold text-white">{r.state}</span>
                 <span className="text-sm text-zinc-300">{r.name}</span>
-                <Badge label={statusLabel} cls={STATUS_CLS[draft.status] ?? "bg-zinc-800 text-zinc-400 border-zinc-700"} />
+                <Badge label={statusLabel} cls={STATUS_CLS[draft.status as keyof typeof STATUS_CLS] ?? "bg-zinc-800 text-zinc-400 border-zinc-700"} />
               </div>
 
               {canEdit ? (

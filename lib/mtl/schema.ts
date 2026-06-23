@@ -14,6 +14,17 @@ export const MTL_STATUS_LABELS: Record<MtlStatusValue, string> = {
   NEEDS_FILING: "Needs filing",
 }
 
+// Shared status → badge classes (single source of truth; consumed by MtlManager
+// and MtlStatusSummary).
+export const MTL_STATUS_CLS: Record<MtlStatusValue, string> = {
+  AGENT_OF_STRIPE: "bg-blue-950/50 text-blue-300 border-blue-800/50",
+  REGISTERED: "bg-emerald-950/50 text-emerald-300 border-emerald-800/50",
+  FILED_PENDING: "bg-amber-950/50 text-amber-300 border-amber-800/50",
+  EXEMPT: "bg-zinc-800 text-zinc-400 border-zinc-700",
+  NOT_YET_NEEDED: "bg-zinc-800 text-zinc-500 border-zinc-700",
+  NEEDS_FILING: "bg-red-950/50 text-red-300 border-red-800/50",
+}
+
 // Ported verbatim from subfrost-admin lib/mtl.ts STATE_NAMES (50 states + DC).
 export const STATE_SEED: { state: string; name: string }[] = [
   { state: "AL", name: "Alabama" },
@@ -76,3 +87,12 @@ export const MtlUpsertSchema = z.object({
   notes: z.string().optional(),
 })
 export type MtlUpsertInput = z.infer<typeof MtlUpsertSchema>
+
+/** Count entries per status. Every MTL_STATUSES key is present (0 when none);
+ *  an unknown status is still counted under its own key. Pure / DB-free. */
+export function mtlStatusCounts(entries: { status: string }[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const s of MTL_STATUSES) counts[s] = 0
+  for (const e of entries) counts[e.status] = (counts[e.status] ?? 0) + 1
+  return counts
+}
