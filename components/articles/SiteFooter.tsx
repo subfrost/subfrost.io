@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Github, Globe2 } from "lucide-react"
+import DiscordIcon from "@/components/DiscordIcon"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
@@ -112,6 +113,16 @@ export function SiteFooter() {
             style={{ color: "var(--ed-ink)" }}
           >
             <XIcon className="h-4 w-4" />
+          </a>
+          <a
+            href="https://discord.gg/qrWgJgNAUj"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Subfrost on Discord"
+            className="transition-opacity hover:opacity-65"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <DiscordIcon className="h-4 w-4" />
           </a>
           <a
             href="https://github.com/subfrost"

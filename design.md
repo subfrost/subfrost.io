@@ -482,6 +482,7 @@ Topic sections:
 - Right column contains article/doc cards.
 - Developer cards should visually match article cards, including image treatment.
 - Developer cards can link to existing docs pages until docs are redesigned.
+- When the docs repo becomes available, redesign docs around the same editorial system: OpenAI-like spacing, Geist typography, image-led hero moments only when useful, text-first navigation, no heavy sidebars, no boxed marketing cards, and direct Developer/API/Protocol pathways.
 - Remove standalone `Posts By Topic` label.
 
 Load more:
@@ -529,6 +530,7 @@ Desktop:
 - Links are text-first, no boxes.
 - Footer links are plain text, even when external.
 - Social icons use ink color in light mode and high-contrast white/off-white in dark mode.
+- Footer social row includes X, Discord, and GitHub in that order. Keep icons the same optical size and do not add labels, circles, borders, or hover color shifts.
 - Legal links should appear once. Do not duplicate Terms/Privacy in both columns and the copyright row.
 
 Mobile:
