@@ -43,10 +43,17 @@ out — **locale detection** and **site-wide coverage** — are the gaps.
 site architecturally) and audit/complete content coverage for the **key pages only**:
 
 - **In scope (content):** home + `StickyNav` + `Footer` (already use `t()`, audited and
-  completed) + small utility UI strings in `/live` and `/delete-account`.
+  completed) + small utility UI strings in `/live`.
 - **Out of scope (content):** `/terms`, `/privacy`, `/support` (long legal — excluded),
   `/brand`, `/conference` (large institutional — deferred; the architecture lets them be
   translated incrementally later, optionally via `lib/cms/translate.ts`).
+- **Deferred (amended 2026-06-23, post-implementation):** `/delete-account`. Originally
+  listed in-scope, but the audit found it is a server component holding ~7 strings of
+  legal-flavored account-deletion instructions (closer to `/terms` than to the home).
+  i18n-izing it cleanly requires extracting a `'use client'` subcomponent. Decision (Vitor):
+  defer on the record — the mechanism already lets it be translated incrementally later. The
+  page still renders English copy under a `zh-CN` `<html lang>` for a ZH visitor until then;
+  accepted as a known, traceable gap rather than a silent drop.
 
 No route-prefix refactor (`/en·/zh`), no `next-intl`, no schema/migration.
 
