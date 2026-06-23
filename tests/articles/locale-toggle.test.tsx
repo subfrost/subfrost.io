@@ -26,13 +26,13 @@ describe("LocaleToggle", () => {
     search = ""
     const { getByRole } = render(<LocaleToggle />)
     fireEvent.click(getByRole("button"))
-    expect(push).toHaveBeenCalledWith("/articles/foo?lang=zh")
+    expect(push).toHaveBeenCalledWith("/articles/foo?lang=zh", { scroll: false })
   })
 
   it("toggles zh→en by pushing ?lang=en", () => {
     search = "lang=zh"
     const { getByRole } = render(<LocaleToggle />)
     fireEvent.click(getByRole("button"))
-    expect(push).toHaveBeenCalledWith("/articles/foo?lang=en")
+    expect(push).toHaveBeenCalledWith("/articles/foo?lang=en", { scroll: false })
   })
 })

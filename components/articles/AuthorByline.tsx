@@ -1,6 +1,5 @@
-import { format } from "date-fns"
 import Link from "next/link"
-import type { AuthorProfile } from "@/lib/cms/articles"
+import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
 
 export function Avatar({ name, src, size = 40 }: { name: string; src: string | null; size?: number }) {
   return (
@@ -26,6 +25,7 @@ export function AuthorByline({
   size = 40,
   variant = "full",
   linkAuthor = true,
+  locale = "en",
 }: {
   author: AuthorProfile
   publishedAt: string | null
@@ -33,9 +33,11 @@ export function AuthorByline({
   size?: number
   variant?: "full" | "compact"
   linkAuthor?: boolean
+  locale?: CmsLocale
 }) {
+  const authorHref = locale === "zh" ? `/authors/${author.id}?lang=zh` : `/authors/${author.id}`
   const name = linkAuthor ? (
-    <Link href={`/authors/${author.id}`} className="font-medium hover:underline" style={{ color: "var(--ed-ink)" }}>
+    <Link href={authorHref} className="font-medium hover:underline" style={{ color: "var(--ed-ink)" }}>
       {author.name}
     </Link>
   ) : (
@@ -45,20 +47,24 @@ export function AuthorByline({
   )
 
   if (variant === "compact") {
-    const d = publishedAt ? format(new Date(publishedAt), "MMM d") : ""
+    const d = publishedAt
+      ? new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric" }).format(new Date(publishedAt))
+      : ""
     return (
       <div className="flex items-center gap-2.5">
         <Avatar name={author.name} src={author.avatarUrl} size={size} />
         <div className="font-reading text-[13px]" style={{ color: "var(--ed-muted)" }}>
           {name}
           {d ? ` · ${d}` : ""}
-          {readingMinutes ? ` · ${readingMinutes} min` : ""}
+          {readingMinutes ? ` · ${readingMinutes} ${locale === "zh" ? "分钟" : "min"}` : ""}
         </div>
       </div>
     )
   }
 
-  const dateStr = publishedAt ? format(new Date(publishedAt), "MMM d, yyyy") : ""
+  const dateStr = publishedAt
+    ? new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(publishedAt))
+    : ""
   return (
     <div className="flex items-center gap-3">
       <Avatar name={author.name} src={author.avatarUrl} size={size} />
@@ -66,7 +72,7 @@ export function AuthorByline({
         <div className="text-[15px]">{name}</div>
         <div className="font-reading text-[14px]" style={{ color: "var(--ed-muted)" }}>
           {dateStr}
-          {readingMinutes ? ` · ${readingMinutes} min read` : ""}
+          {readingMinutes ? ` · ${readingMinutes} ${locale === "zh" ? "分钟阅读" : "min read"}` : ""}
         </div>
       </div>
     </div>

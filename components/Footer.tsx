@@ -65,6 +65,15 @@ const Footer: React.FC = () => {
                   </a>
                 </li>
                 <li>
+                  <Link
+                    href="/articles"
+                    onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {t("footer.blog")}
+                  </Link>
+                </li>
+                <li>
                   <a
                     href="https://api.subfrost.io/docs"
                     target="_blank"

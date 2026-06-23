@@ -17,6 +17,7 @@ Subfrost is a Next.js 16 application for Bitcoin/frBTC metrics, history, and liv
 
 ```text
 app/                # Next.js routes and API endpoints
+brand/              # Client-provided brand kit and implementation notes
 components/         # Reusable React UI components
 lib/                # Data clients, blockchain utilities, sync services
 hooks/              # Client hooks for stream/chat/metrics state
@@ -24,6 +25,7 @@ prisma/             # Prisma schema and migration source of truth
 tests/              # API, library, and integration tests
 media-server/       # Separate WebSocket/HLS ingest server
 gcp/                # GCP setup and deploy scripts
+design.md           # Site-wide design direction based on the articles redesign
 ```
 
 ## Architecture
@@ -43,6 +45,78 @@ flowchart LR
   N --> J[/stream/* rewrite]
   J --> I
 ```
+
+## CMS vs Git-Managed Surfaces
+
+Article content is CMS-managed, not git-managed:
+
+- Public article pages (`/articles`, `/articles/[slug]`, `/authors/[id]`) read published records from Postgres via `lib/cms/articles.ts`.
+- Admin article operations live under `/admin` and `/admin/articles/*`.
+- The CMS owns article titles, excerpts, body markdown, EN/ZH translations, authors, tags, status, featured flags, and cover image URLs.
+- Local preview content comes from `pnpm db:seed:articles:local`; those mock records are development-only database data and should not be treated as source content.
+
+Git owns the site shell and presentation:
+
+- Article index and reader layout/design: `app/articles/page.tsx`, `app/articles/[slug]/page.tsx`, `components/articles/*`, and the scoped editorial styles in `app/globals.css`.
+- Public taxonomy presentation, such as mapping CMS tags into visible nav buckets like Research, Protocol, and Docs.
+- The Docs topic on `/articles` includes git-managed outbound cards to `docs.subfrost.io` when no published CMS posts are tagged for Docs.
+- The `/articles` subscribe panel posts to `app/api/articles/subscribe` and stores records in the `ArticleSubscriber` table. Notification delivery is a separate workflow and is not implied by the public form.
+- SEO discovery routes are git-managed but read CMS data at runtime: `/sitemap.xml`, `/robots.txt`, and `/llms.txt`.
+- Netlify deploy previews use a small git-managed fallback article set only when CMS reads are unavailable, so design review remains possible without production CMS access.
+- Marketing/home page layout, stats boxes, reusable components, and non-editorial copy.
+
+When updating editorial content, use the CMS. When updating structure, navigation, typography, responsive behavior, or visual design, change the repo and deploy through the normal git/Flux path.
+
+## Design Direction
+
+The `/articles` redesign is the current target design language for the broader `subfrost.io` site. Future site work should extend that system instead of creating one-off page styles.
+
+Before changing site design, read:
+
+- `design.md`: site-wide design principles, layout rules, interaction rules, SEO expectations, and QA checklist
+- `brand/subfrost/README.md`: official brand assets, logo usage, palette, and typography notes
+- `app/globals.css`: editorial CSS variables and responsive rules
+- `components/articles/*`: current implementation patterns for header, footer, cards, filters, search, language, and theme controls
+
+Core decisions:
+
+- Use Geist across the editorial/product shell.
+- Use the official logotype, not ad hoc text, for the header.
+- Light mode uses `logotype_black.svg`; dark mode uses `logotype_white.svg`.
+- Keep the OpenAI-inspired editorial shape: white/black canvas, small image radii, minimal hover states, generous spacing, no decorative card chrome, no unnecessary borders.
+- Keep article content CMS-managed; only design and fallback preview data live in git.
+
+## AI Agent Workflow
+
+This repo is prepared for AI-assisted design and engineering work. Agents should optimize for small, reviewable changes that preserve CMS ownership and keep the site visually consistent.
+
+Start here:
+
+1. Read this README.
+2. Read `design.md`.
+3. Read `brand/subfrost/README.md`.
+4. Inspect the files that own the surface being changed before editing.
+
+For design work:
+
+```bash
+pnpm install
+pnpm exec impeccable install
+pnpm impeccable
+```
+
+`pnpm exec impeccable install` installs/refreshes the local Impeccable design skills and hooks. `pnpm impeccable` runs a targeted design-quality scan against the articles surface, editorial components, global styles, and public brand assets. Use `pnpm impeccable:site` for broader site work.
+
+Before handoff:
+
+```bash
+pnpm exec tsc --noEmit
+pnpm test -- tests/articles
+pnpm build
+pnpm impeccable
+```
+
+Then complete a browser QA pass across desktop, tablet, and mobile. Check light/dark mode, EN/ZH, article index, filtered topic views, at least one article reader, console errors, image loading, layout shift, and public preview reachability when a review link is requested.
 
 ## Utilities and Core Modules
 
@@ -117,6 +191,23 @@ Or one command:
 pnpm setup:local
 ```
 
+If Docker Compose is not installed locally, start the required services directly:
+
+```bash
+docker run -d --name subfrost-postgres \
+  -e POSTGRES_USER=subfrost \
+  -e POSTGRES_PASSWORD=subfrost_dev_password \
+  -e POSTGRES_DB=subfrost \
+  -p 5432:5432 \
+  postgres:16-alpine
+
+docker run -d --name subfrost-redis \
+  -p 6379:6379 \
+  redis:7-alpine
+
+pnpm db:push
+```
+
 ### 4) Run the app
 
 ```bash
@@ -125,14 +216,33 @@ pnpm dev
 
 App runs at `http://localhost:3000`.
 
+### Article CMS preview data
+
+The public article index and reader pages depend on published CMS records. For local design and QA work:
+
+```bash
+pnpm db:seed:articles:local
+pnpm dev
+```
+
+Then open `http://localhost:3000/articles`.
+
+SEO endpoints to spot-check during article work:
+
+- `http://localhost:3000/sitemap.xml`
+- `http://localhost:3000/robots.txt`
+- `http://localhost:3000/llms.txt`
+
 ## Scripts
 
 ### Application
 
 - `pnpm dev`: start Next.js dev server
 - `pnpm build`: production build
+- `pnpm impeccable`: targeted Impeccable design scan for the articles surface
+- `pnpm impeccable:site`: broader Impeccable scan for full-site redesign work
 - `pnpm start`: run built app
-- `pnpm lint`: run Next.js lint
+- `pnpm lint`: currently needs migration off `next lint` for Next.js 16; use typecheck/build until the ESLint command is updated
 
 ### Tests
 

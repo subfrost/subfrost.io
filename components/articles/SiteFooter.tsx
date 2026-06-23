@@ -1,24 +1,149 @@
-import Link from "next/link"
-import { SnowflakeMark } from "./SnowflakeMark"
+"use client"
+
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Github, Globe2 } from "lucide-react"
+import XIcon from "@/components/XIcon"
+import { SubscribePanel } from "./SubscribePanel"
+import { ThemeToggle } from "./ThemeToggle"
 
 export function SiteFooter() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const locale = searchParams.get("lang") === "zh" ? "zh" : "en"
+  const isZh = locale === "zh"
+  const languageLabel = locale === "zh" ? "中文" : "English"
+  const regionLabel = locale === "zh" ? "中国" : "United States"
+  const columns =
+    locale === "zh"
+      ? [
+          {
+            title: "开发者",
+            links: [
+              { label: "文档", href: "https://docs.subfrost.io/" },
+              { label: "技术概览", href: "https://docs.subfrost.io/introduction/technical-overview" },
+              { label: "API 文档", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+            ],
+          },
+          {
+            title: "产品",
+            links: [
+              { label: "应用", href: "https://app.subfrost.io" },
+              { label: "市场", href: "/#markets" },
+              { label: "金库", href: "/#vaults" },
+            ],
+          },
+          {
+            title: "公司",
+            links: [
+              { label: "支持", href: "/support" },
+              { label: "品牌资源", href: "/brand?lang=zh" },
+              { label: "服务条款", href: "/terms" },
+              { label: "隐私政策", href: "/privacy" },
+            ],
+          },
+        ]
+      : [
+          {
+            title: "Developer",
+            links: [
+              { label: "Docs", href: "https://docs.subfrost.io/" },
+              { label: "Technical overview", href: "https://docs.subfrost.io/introduction/technical-overview" },
+              { label: "API docs", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+            ],
+          },
+          {
+            title: "Product",
+            links: [
+              { label: "App", href: "https://app.subfrost.io" },
+              { label: "Markets", href: "/#markets" },
+              { label: "Vaults", href: "/#vaults" },
+            ],
+          },
+          {
+            title: "Company",
+            links: [
+              { label: "Support", href: "/support" },
+              { label: "Brand kit", href: "/brand" },
+              { label: "Terms", href: "/terms" },
+              { label: "Privacy", href: "/privacy" },
+            ],
+          },
+        ]
+
+  function toggleLocale() {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("lang", isZh ? "en" : "zh")
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
   return (
-    <footer data-ed-theme="dark" className="mt-24" style={{ borderTop: "1px solid var(--ed-hair)", background: "var(--ed-nav)" }}>
-      <div className="mx-auto flex max-w-[1120px] flex-col gap-4 px-6 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-10">
-        <div className="flex items-center gap-2.5" style={{ color: "var(--ed-ink)" }}>
-          <SnowflakeMark size={22} className="text-[color:var(--ed-accent)]" />
-          <span className="font-display text-[17px] font-semibold tracking-[3px]">SUBFROST</span>
+    <footer className="mt-16" style={{ background: "var(--ed-canvas)", color: "var(--ed-ink)" }}>
+      <div className="mx-auto grid max-w-[1440px] gap-x-8 gap-y-10 px-5 pb-12 pt-8 sm:px-8 lg:grid-cols-4">
+        <SubscribePanel locale={locale} footer />
+        {columns.map((column) => (
+          <div key={column.title}>
+            <h3 className="font-display text-[14px] font-normal" style={{ color: "var(--ed-muted)" }}>
+              {column.title}
+            </h3>
+            <div className="mt-4 flex flex-col gap-4">
+              {column.links.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="font-display text-[14px] font-normal transition-opacity hover:opacity-65"
+                  style={{ color: "var(--ed-ink)" }}
+                >
+                  <span>{link.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mx-auto grid max-w-[1440px] justify-items-center gap-6 px-5 py-8 text-center text-[13px] sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:justify-items-stretch lg:text-left">
+        <div className="flex items-center justify-center gap-6 lg:justify-start">
+          <a
+            href="https://x.com/gabe_subfrost"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Subfrost on X"
+            className="transition-opacity hover:opacity-65"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <XIcon className="h-4 w-4" />
+          </a>
+          <a
+            href="https://github.com/subfrost"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Subfrost on GitHub"
+            className="transition-opacity hover:opacity-65"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <Github className="h-4 w-4" strokeWidth={2.2} />
+          </a>
         </div>
-        <p className="font-reading text-[14px]" style={{ color: "var(--ed-muted)" }}>
-          Research, releases, and field notes on Bitcoin-native settlement.
-        </p>
-        <div className="flex gap-6 text-[14px]">
-          <Link href="/articles" className="font-display transition-colors" style={{ color: "var(--ed-body)" }}>
-            Articles
-          </Link>
-          <Link href="/" className="font-display transition-colors" style={{ color: "var(--ed-body)" }}>
-            Home
-          </Link>
+
+        <div className="font-display flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+          <span>&copy; 2025 Subzero Research Inc.</span>
+        </div>
+
+        <div className="font-display flex items-center justify-center gap-2 lg:justify-end">
+          <button
+            type="button"
+            onClick={toggleLocale}
+            aria-label={`Switch to ${isZh ? "English" : "Chinese"}`}
+            className="inline-flex items-center gap-2 rounded-full px-4 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+            style={{
+              background: "color-mix(in srgb, var(--ed-ink) 7%, transparent)",
+            }}
+          >
+            <Globe2 className="h-3.5 w-3.5" />
+            <span>{languageLabel}</span>
+            <span style={{ color: "var(--ed-muted)" }}>{regionLabel}</span>
+          </button>
+          <ThemeToggle />
         </div>
       </div>
     </footer>

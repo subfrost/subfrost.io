@@ -1,38 +1,51 @@
 import Link from "next/link"
-import type { ArticlePreview } from "@/lib/cms/articles"
+import type { ArticlePreview, CmsLocale } from "@/lib/cms/articles"
 import { CoverArt } from "./CoverArt"
-import { AuthorByline } from "./AuthorByline"
+
+function categoryLabel(tag: { slug: string; name: string }, locale: CmsLocale) {
+  const value = tag.slug.toLowerCase()
+  if (value === "local-mock") return null
+  if (["operations", "ops", "protocol", "frbtc"].includes(value)) return locale === "zh" ? "协议" : "Protocol"
+  if (["product", "release", "releases", "docs", "documentation", "subfrost"].includes(value)) return locale === "zh" ? "开发者" : "Developer"
+  if (["research", "bitcoin", "alkanes"].includes(value)) return locale === "zh" ? "研究" : tag.name
+  return tag.name
+}
+
+function articleDate(value: string | null, locale: CmsLocale) {
+  if (!value) return ""
+  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value))
+}
 
 // One card in the feed / author grid.
-export function ArticleCard({ a }: { a: ArticlePreview }) {
-  const tag = a.tags[0]?.name
+export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePreview; locale?: CmsLocale; coverVariant?: number | string }) {
+  const tag = a.tags.map((item) => categoryLabel(item, locale)).find((item): item is string => Boolean(item))
+  const href = locale === "zh" ? `/articles/${a.slug}?lang=zh` : `/articles/${a.slug}`
+
   return (
-    <Link href={`/articles/${a.slug}`} className="ed-card group">
-      {a.coverImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={a.coverImage} alt="" className="h-[150px] w-full object-cover" />
-      ) : (
-        <CoverArt label={tag} className="h-[150px]" />
-      )}
-      <div className="flex flex-1 flex-col p-5">
-        {tag ? <div className="ed-eyebrow mb-2.5">{tag}</div> : null}
+    <Link href={href} className="ed-card" prefetch={false}>
+      <div className="ed-cover-frame">
+        {a.coverImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={a.coverImage} alt="" loading="lazy" decoding="async" className="h-[220px] w-full object-contain sm:h-[300px] sm:object-cover" />
+        ) : (
+          <CoverArt className="h-[220px] sm:h-[300px]" variant={coverVariant ?? a.slug} />
+        )}
+      </div>
+      <div className="flex flex-1 flex-col pt-4">
         <h3
-          className="font-display mb-2.5 text-[21px] font-semibold leading-[1.18] transition-opacity group-hover:opacity-80"
+          className="font-display text-balance text-[20px] font-normal leading-[1.28]"
           style={{ color: "var(--ed-ink)" }}
         >
           {a.title}
         </h3>
-        <p className="font-reading mb-4 line-clamp-3 flex-1 text-[15px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
-          {a.excerpt}
-        </p>
-        <AuthorByline
-          author={a.author}
-          publishedAt={a.publishedAt}
-          readingMinutes={a.readingMinutes}
-          size={28}
-          variant="compact"
-          linkAuthor={false}
-        />
+        <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
+          {tag ? <span style={{ color: "var(--ed-ink)" }}>{tag}</span> : null}
+          {a.publishedAt ? <span>{articleDate(a.publishedAt, locale)}</span> : null}
+        </div>
       </div>
     </Link>
   )

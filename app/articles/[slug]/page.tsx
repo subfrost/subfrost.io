@@ -1,13 +1,31 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
 import { Markdown } from "@/lib/cms/markdown"
-import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
-import { CoverArt } from "@/components/articles/CoverArt"
-import { ReadingProgress } from "@/components/articles/ReadingProgress"
+import { absoluteUrlForHost, articleUrl, authorUrl, shouldUseArticlePreviewFallback, siteName } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
+
+const articlePageCopy = {
+  en: {
+    article: "Article",
+    notFound: "Not found",
+  },
+  zh: {
+    article: "文章",
+    notFound: "未找到",
+  },
+} satisfies Record<CmsLocale, Record<string, string>>
+
+function categoryLabel(tag: { slug: string; name: string }, locale: CmsLocale) {
+  const value = tag.slug.toLowerCase()
+  if (value === "local-mock") return null
+  if (["operations", "ops", "protocol", "frbtc"].includes(value)) return locale === "zh" ? "协议" : "Protocol"
+  if (["product", "release", "releases", "docs", "documentation", "subfrost"].includes(value)) return locale === "zh" ? "开发者" : "Developer"
+  if (["research", "bitcoin", "alkanes"].includes(value)) return locale === "zh" ? "研究" : tag.name
+  return tag.name
+}
 
 export async function generateMetadata({
   params, searchParams,
@@ -17,12 +35,52 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const { lang } = await searchParams
-  const a = await getPublishedArticle(slug, lang === "zh" ? "zh" : "en")
-  if (!a) return { title: "Not found" }
+  const locale: CmsLocale = lang === "zh" ? "zh" : "en"
+  const requestHeaders = await headers()
+  const a = await getPublishedArticle(slug, locale, {
+    previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
+  }).catch(() => null)
+  if (!a) return { title: articlePageCopy[locale].notFound }
+  const url = articleUrl(slug, locale)
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
+  const proto = requestHeaders.get("x-forwarded-proto")
+  const image = a.coverImage ? absoluteUrlForHost(a.coverImage, host, proto) : absoluteUrlForHost("/articles/opengraph-image", host, proto)
+  const imageMeta = a.coverImage
+    ? { url: image, alt: a.title }
+    : { url: image, width: 1200, height: 630, alt: a.title, type: "image/png" }
+  const tagNames = a.tags.map((tag) => categoryLabel(tag, locale)).filter((tag): tag is string => Boolean(tag))
   return {
     title: `${a.title} — SUBFROST`,
     description: a.excerpt,
-    openGraph: { title: a.title, description: a.excerpt, type: "article", images: a.coverImage ? [a.coverImage] : undefined },
+    alternates: {
+      canonical: url,
+      languages: {
+        en: articleUrl(slug),
+        ...(a.availableLocales.includes("zh") ? { zh: articleUrl(slug, "zh") } : {}),
+        "x-default": articleUrl(slug),
+      },
+    },
+    authors: [{ name: a.author.name, url: authorUrl(a.author.id, locale) }],
+    keywords: ["SUBFROST", ...tagNames, "Bitcoin", "Bitcoin DeFi", "frBTC"],
+    openGraph: {
+      title: a.title,
+      description: a.excerpt,
+      type: "article",
+      url,
+      siteName,
+      publishedTime: a.publishedAt ?? undefined,
+      modifiedTime: a.updatedAt ?? undefined,
+      authors: [a.author.name],
+      tags: tagNames,
+      images: [imageMeta],
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: a.title,
+      description: a.excerpt,
+      images: [{ url: image, alt: a.title }],
+    },
   }
 }
 
@@ -35,66 +93,72 @@ export default async function ArticlePage({
   const { slug } = await params
   const { lang } = await searchParams
   const locale: CmsLocale = lang === "zh" ? "zh" : "en"
-  const a = await getPublishedArticle(slug, locale)
+  const copy = articlePageCopy[locale]
+  const requestHeaders = await headers()
+  const a = await getPublishedArticle(slug, locale, {
+    previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
+  }).catch(() => null)
   if (!a) notFound()
+  const primaryTag = a.tags.map((tag) => categoryLabel(tag, locale)).find((tag): tag is string => Boolean(tag)) ?? copy.article
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: a.title,
+    description: a.excerpt,
+    image: a.coverImage ? [a.coverImage] : undefined,
+    datePublished: a.publishedAt ?? undefined,
+    dateModified: a.updatedAt ?? a.publishedAt ?? undefined,
+    inLanguage: locale === "zh" ? "zh-CN" : "en-US",
+    mainEntityOfPage: articleUrl(slug, locale),
+    author: {
+      "@type": "Person",
+      name: a.author.name,
+      url: authorUrl(a.author.id, locale),
+    },
+    publisher: {
+      "@type": "Organization",
+      name: siteName,
+      url: "https://subfrost.io",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://subfrost.io/Logo.png",
+      },
+    },
+    keywords: a.tags.map((tag) => categoryLabel(tag, locale)).filter(Boolean).join(", "),
+  }
 
   return (
     <>
-      <ReadingProgress />
-      <article className="mx-auto max-w-[720px] px-6 pb-16 pt-14">
-        <div className="mb-3.5">
-          <div className="ed-eyebrow">{a.tags[0]?.name ?? "Article"}</div>
-        </div>
-
-        <h1
-          className="font-display text-[34px] font-semibold leading-[1.08] sm:text-[52px]"
-          style={{ color: "var(--ed-ink)" }}
-        >
-          {a.title}
-        </h1>
-
-        {a.excerpt ? (
-          <p className="font-reading mt-4 text-[20px] leading-[1.5] sm:text-[21px]" style={{ color: "var(--ed-muted)" }}>
-            {a.excerpt}
-          </p>
-        ) : null}
-
-        <div className="mt-7 border-b pb-6" style={{ borderColor: "var(--ed-hair)" }}>
-          <AuthorByline author={a.author} publishedAt={a.publishedAt} readingMinutes={a.readingMinutes} size={48} />
-        </div>
-
-        {a.coverImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.coverImage} alt="" className="my-8 h-[330px] w-full rounded-[14px] object-cover" />
-        ) : (
-          <CoverArt label={a.tags[0]?.name} className="my-8 h-[330px] rounded-[14px]" />
-        )}
-
-        <Markdown variant="article">{a.body}</Markdown>
-
-        {a.author.bio ? (
-          <div
-            className="mt-14 flex items-start gap-4 rounded-[14px] border p-5"
-            style={{ borderColor: "var(--ed-hair)" }}
-          >
-            <Avatar name={a.author.name} src={a.author.avatarUrl} size={48} />
-            <div>
-              <div className="text-[11px] uppercase tracking-[1.5px]" style={{ color: "var(--ed-muted)" }}>
-                Written by
-              </div>
-              <Link
-                href={`/authors/${a.author.id}`}
-                className="font-reading text-[18px] font-medium hover:underline"
-                style={{ color: "var(--ed-ink)" }}
-              >
-                {a.author.name}
-              </Link>
-              <p className="font-reading mt-0.5 text-[14px]" style={{ color: "var(--ed-muted)" }}>
-                {a.author.bio}
-              </p>
-            </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <article className="mx-auto px-6 pb-20 pt-24 sm:px-8 lg:pt-28">
+        <header className="mx-auto max-w-[920px] text-center">
+          <div className="font-display mb-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
+            {a.publishedAt ? (
+              <span>{new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(a.publishedAt))}</span>
+            ) : null}
+            <span>{primaryTag}</span>
           </div>
-        ) : null}
+
+          <h1
+            className="font-display mx-auto max-w-[920px] text-balance text-[38px] font-medium leading-[1.02] sm:text-[56px] lg:text-[64px]"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            {a.title}
+          </h1>
+
+          {a.excerpt ? (
+            <p className="font-display mx-auto mt-7 max-w-[620px] text-[17px] leading-[1.55]" style={{ color: "var(--ed-ink)" }}>
+              {a.excerpt}
+            </p>
+          ) : null}
+        </header>
+
+        <div className="mx-auto mt-24 max-w-[680px]">
+          <Markdown variant="article">{a.body}</Markdown>
+        </div>
       </article>
     </>
   )

@@ -4,6 +4,7 @@ const en: Record<string, string> = {
   'hero.apiDocs': 'API DOCS',
   'hero.docsMobile': 'DOCS',
   'hero.officialDocs': 'OFFICIAL DOCS',
+  'hero.blog': 'BLOG',
   'hero.launchApp': 'LAUNCH APP',
   'hero.comingSoon': 'Coming Soon!',
 
@@ -21,6 +22,7 @@ const en: Record<string, string> = {
   'nav.app': 'App',
   'nav.teamPartners': 'Team',
   'nav.docs': 'Docs',
+  'nav.blog': 'Blog',
   'nav.apiLogin': 'API Login',
 
   // Metrics
@@ -140,6 +142,7 @@ const en: Record<string, string> = {
   'footer.product': 'Product',
   'footer.launchApp': 'Launch App',
   'footer.documentation': 'Documentation',
+  'footer.blog': 'Blog',
   'footer.apiReference': 'API Reference',
   'footer.apiLogin': 'API Login',
   'footer.community': 'Community',

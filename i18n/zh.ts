@@ -4,6 +4,7 @@ const zh: Record<string, string> = {
   'hero.apiDocs': 'API 文档',
   'hero.docsMobile': '文档',
   'hero.officialDocs': '官方文档',
+  'hero.blog': '博客',
   'hero.launchApp': '启动应用',
   'hero.comingSoon': '即将推出！',
 
@@ -21,6 +22,7 @@ const zh: Record<string, string> = {
   'nav.app': '应用',
   'nav.teamPartners': '团队',
   'nav.docs': '文档',
+  'nav.blog': '博客',
   'nav.apiLogin': 'API 登录',
 
   // Metrics
@@ -140,6 +142,7 @@ const zh: Record<string, string> = {
   'footer.product': '产品',
   'footer.launchApp': '启动应用',
   'footer.documentation': '文档',
+  'footer.blog': '博客',
   'footer.apiReference': 'API 参考',
   'footer.apiLogin': 'API 登录',
   'footer.community': '社区',

@@ -21,7 +21,7 @@ module.exports = {
         '2px': '2px',
       },
       fontFamily: {
-        satoshi: ["Satoshi", "sans-serif"],
+        satoshi: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         "2xs": "0.7rem",

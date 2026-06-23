@@ -82,6 +82,13 @@ export default function StickyNav() {
           {/* Right CTA Buttons */}
           <div className="ml-auto flex items-center gap-4 flex-shrink-0">
             <a
+              href="/articles"
+              onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "sticky_nav" })}
+              className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
+            >
+              <StableText textKey="nav.blog" />
+            </a>
+            <a
               href="https://docs.subfrost.io/"
               target="_blank"
               rel="noopener noreferrer"
