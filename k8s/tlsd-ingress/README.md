@@ -22,7 +22,19 @@ Cloudflare must stay **grey-cloud (DNS-only)** on the apex — if it were proxie
 ## What's here
 
 - `tlsd.yaml` — ConfigMaps (`tlsd-config` + nginx `:80→:443` redirect),
-  2-replica Deployment, LoadBalancer Service (`:443`, `:80`).
+  **DaemonSet** (one tlsd per node), LoadBalancer Service (`:443`, `:80`).
+  - **Why a DaemonSet:** the Service uses `externalTrafficPolicy: Local` to
+    preserve the real client IP (needed for the IP-based login rate-limiter +
+    audit — `Cluster` would SNAT it away). The GCP L4 LB fans connections out
+    to all nodes and `Local` drops any that land on a node with no local tlsd
+    pod. A DaemonSet puts a pod on every node, so there are no pod-less nodes
+    and no drops. CPU requests are deliberately tiny (`10m`/`5m`) so one fits
+    on every node of a CPU-saturated cluster (requests gate scheduling, not
+    runtime — the limit stays high).
+  - tlsd runs the TLS handshake **per-connection in a spawned task** (see
+    pyrosec/tlsfetch PR #2, `stalled_handshake_does_not_block_other_clients`).
+    An earlier inline-handshake accept loop serialized handshakes and caused
+    ~50% TLS-connect failures under concurrent page loads.
 - Image: `us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:<tag>`
   built from the `tlsfetch` repo via `cloudbuild-tlsd-io.yaml` (prebuilt-binary
   path: `cargo build --release -p tlsd --features wasm` first). The JA4-capture
