@@ -39,6 +39,7 @@ div[data-netlify-deploy-id] {
 @layer base {
   html {
     scrollbar-gutter: stable;
+    background: #ffffff;
   }
 
   :root {
@@ -136,10 +137,22 @@ div[data-netlify-deploy-id] {
   }
   body {
     @apply bg-background text-foreground;
+    background: #ffffff;
   }
   html,
   body {
     height: 100%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html,
+    body {
+      background: #000000;
+    }
+
+    body:has(#ed-root) {
+      background: #000000 !important;
+    }
   }
 }
 
@@ -254,23 +267,45 @@ div[data-netlify-deploy-id] {
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 42%, transparent);
 }
 [data-ed-theme="dark"] {
-  --ed-canvas: #0a1628;
-  --ed-ink: #eaf2ff;
-  --ed-body: #aebdd6;
-  --ed-muted: #8194b0;
-  --ed-hair: #1d3050;
-  --ed-accent: #7fb2ff;
+  --ed-canvas: #000000;
+  --ed-ink: #f5f5f5;
+  --ed-body: #d4d4d4;
+  --ed-muted: #8a8a8a;
+  --ed-hair: #262626;
+  --ed-accent: #e8e8e8;
   --ed-ice: #5b9cff;
   --ed-flare: #ff6a4d;
-  --ed-nav: #06101f;
-  --ed-surface: #0e2138;
+  --ed-nav: #000000;
+  --ed-surface: #050505;
   --ed-cover: #16335a;
   --ed-cover-2: #1f4a82;
-  --ed-band: #0e2138;
+  --ed-band: #050505;
   --ed-logo-filter: invert(1);
   --ed-placeholder: color-mix(in srgb, var(--ed-ink) 48%, transparent);
   --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 62%, transparent);
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 62%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-ed-theme] {
+    --ed-canvas: #000000;
+    --ed-ink: #f5f5f5;
+    --ed-body: #d4d4d4;
+    --ed-muted: #8a8a8a;
+    --ed-hair: #262626;
+    --ed-accent: #e8e8e8;
+    --ed-ice: #5b9cff;
+    --ed-flare: #ff6a4d;
+    --ed-nav: #000000;
+    --ed-surface: #050505;
+    --ed-cover: #16335a;
+    --ed-cover-2: #1f4a82;
+    --ed-band: #050505;
+    --ed-logo-filter: invert(1);
+    --ed-placeholder: color-mix(in srgb, var(--ed-ink) 48%, transparent);
+    --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 62%, transparent);
+    --ed-button-muted: color-mix(in srgb, var(--ed-ink) 62%, transparent);
+  }
 }
 
 .font-display {

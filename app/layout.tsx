@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import Script from "next/script"
 import { cn } from "@/lib/utils"
 import "@/app/globals.css"
@@ -51,6 +51,14 @@ export const metadata: Metadata = {
     shortcut: '/subfrost-logomark.svg',
     apple: '/Logo.png',
   },
+}
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 }
 
 export default function RootLayout({
