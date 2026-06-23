@@ -11,6 +11,10 @@ vi.mock("@/actions/cms/accounting", () => ({
   exportLedgerCsvAction: vi.fn(),
 }))
 
+vi.mock("@/components/cms/financials/PeriodReportChart", () => ({
+  PeriodReportChart: () => null,
+}))
+
 import { AccountingManager } from "@/components/cms/financials/AccountingManager"
 import type { AccountingOverviewResult } from "@/actions/cms/accounting"
 import type { InvoiceRow, PayeeRow, PaymentRow } from "@/lib/financials/accounting/shapes"

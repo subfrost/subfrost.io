@@ -11,6 +11,7 @@ import {
   totalsByPayee, totalsByPeriod, periodReportCsv, type InvoiceRow, type InvoiceStatus,
   type PayeeRow, type PayeeType, type PaymentRow, type PeriodGranularity,
 } from "@/lib/financials/accounting/shapes"
+import { PeriodReportChart } from "@/components/cms/financials/PeriodReportChart"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
@@ -339,6 +340,7 @@ function ReportsView({ payees, invoices, payments }: {
         </select>
         <div className="ml-auto"><Toolbtn onClick={exportReport}>Export CSV</Toolbtn></div>
       </div>
+      <PeriodReportChart rows={rows} />
       {rows.length === 0 ? (
         <Empty>No invoices to report.</Empty>
       ) : (
