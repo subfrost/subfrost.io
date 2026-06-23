@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
+import { resolveArticleLocale } from "@/lib/i18n/resolve"
+import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 import { ArticleView, categoryLabel } from "@/components/cms/ArticleView"
 import { absoluteUrlForHost, articleUrl, authorUrl, shouldUseArticlePreviewFallback, siteName } from "@/lib/seo"
 
@@ -26,7 +28,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const { lang } = await searchParams
-  const locale: CmsLocale = lang === "zh" ? "zh" : "en"
+  const cookieStore = await cookies()
+  const locale: CmsLocale = resolveArticleLocale(lang, cookieStore.get(LOCALE_COOKIE)?.value)
   const requestHeaders = await headers()
   const a = await getPublishedArticle(slug, locale, {
     previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
@@ -83,7 +86,8 @@ export default async function ArticlePage({
 }) {
   const { slug } = await params
   const { lang } = await searchParams
-  const locale: CmsLocale = lang === "zh" ? "zh" : "en"
+  const cookieStore = await cookies()
+  const locale: CmsLocale = resolveArticleLocale(lang, cookieStore.get(LOCALE_COOKIE)?.value)
   const copy = articlePageCopy[locale]
   const requestHeaders = await headers()
   const a = await getPublishedArticle(slug, locale, {
