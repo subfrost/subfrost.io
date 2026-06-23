@@ -35,6 +35,38 @@ function revalidateArticle(slug: string) {
   revalidatePath(`/articles/${slug}`)
 }
 
+// One-button publish from the preview: flip the article to PUBLISHED keeping its
+// existing slug/fields. upsertArticle downgrades PUBLISHED→REVIEW server-side when
+// the actor lacks articles.publish, so "Submit for review" is handled there too.
+export async function publishArticleAction(id: string): Promise<ActionResult> {
+  const user = await currentUser()
+  if (!user) return { ok: false, error: "Not authenticated" }
+  const article = await prisma.article.findUnique({ where: { id }, include: { tags: true } })
+  if (!article) return { ok: false, error: "Article not found" }
+  if (!user.privileges.includes("articles.edit_any") && article.authorId !== user.id) {
+    return { ok: false, error: "Not allowed" }
+  }
+  const translations = await prisma.articleTranslation.findMany({ where: { articleId: id } })
+  const res = await upsertArticle(
+    { id: user.id, privileges: user.privileges },
+    {
+      id,
+      slug: article.slug,
+      coverImage: article.coverImage ?? "",
+      tags: article.tags.map((t) => t.name),
+      featured: article.featured,
+      primaryLocale: article.primaryLocale as "en" | "zh",
+      status: "PUBLISHED",
+      translations: {
+        en: translations.find((t) => t.locale === "en") ?? undefined,
+        zh: translations.find((t) => t.locale === "zh") ?? undefined,
+      },
+    },
+  )
+  if (res.ok) revalidateArticle(res.slug)
+  return res
+}
+
 export type TranslateResult =
   | { ok: true; translation: TranslationContent }
   | { ok: false; error: string; unavailable?: boolean }

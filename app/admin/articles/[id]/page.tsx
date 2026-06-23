@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
@@ -30,7 +31,13 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-white">Edit article</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Edit article</h1>
+        <Link href={`/admin/articles/${article.id}/preview`} target="_blank"
+          className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:border-sky-700 hover:text-white">
+          Preview ↗
+        </Link>
+      </div>
       <AdminEditor
         canPublish={canPublish}
         canTranslate={canTranslate}
