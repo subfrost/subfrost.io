@@ -59,8 +59,8 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "iam.manage_sessions", label: "Manage sessions & devices", description: "View any user's active sessions and the devices/TLS fingerprints they're signed in from, and revoke them.", category: "iam", implies: ["iam.list_users"] },
 
   // --- Articles ---
-  { code: "articles.write", label: "Write articles", description: "Create and edit your own article drafts and submit them for review.", category: "articles", implies: [] },
-  { code: "articles.edit_any", label: "Edit any article", description: "Edit or delete articles authored by anyone.", category: "articles", implies: ["articles.write"] },
+  { code: "articles.write", label: "Articles editor", description: "Create and edit only your own article drafts and submit them for review.", category: "articles", implies: [] },
+  { code: "articles.edit_any", label: "Articles superuser", description: "Manage, edit, and delete any author's articles.", category: "articles", implies: ["articles.write"] },
   { code: "articles.publish", label: "Publish & feature", description: "Publish, unpublish, and feature articles on the homepage.", category: "articles", implies: ["articles.write"] },
   { code: "articles.edit_bio", label: "Edit public profile", description: "Maintain your public author byline — bio, avatar, and social handle.", category: "articles", implies: [] },
 

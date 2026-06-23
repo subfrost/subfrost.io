@@ -16,6 +16,15 @@ describe("IAM registry", () => {
     expect(new Set(ALL_CODES).size).toBe(ALL_CODES.length) // unique
   })
 
+  it("expresses the two article tiers (editor vs superuser) with stable codes", () => {
+    const editor = privilegeDef("articles.write")
+    const superuser = privilegeDef("articles.edit_any")
+    expect(editor?.label).toBe("Articles editor")
+    expect(superuser?.label).toBe("Articles superuser")
+    // superuser still implies the base write capability (enforcement unchanged)
+    expect(superuser?.implies).toContain("articles.write")
+  })
+
   it("implies references only resolve to real codes", () => {
     for (const p of PRIVILEGES) {
       for (const dep of p.implies) expect(privilegeDef(dep)).toBeTruthy()
