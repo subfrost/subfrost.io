@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ArrowUpRight, Github, Globe2 } from "lucide-react"
 import XIcon from "@/components/XIcon"
@@ -15,8 +14,6 @@ export function SiteFooter() {
   const isZh = locale === "zh"
   const languageLabel = locale === "zh" ? "中文" : "English"
   const regionLabel = locale === "zh" ? "中国" : "United States"
-  const termsLabel = locale === "zh" ? "服务条款" : "Terms"
-  const privacyLabel = locale === "zh" ? "隐私政策" : "Privacy"
   const columns =
     locale === "zh"
       ? [
@@ -131,12 +128,6 @@ export function SiteFooter() {
 
         <div className="font-display flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
           <span>&copy; 2025 Subzero Research Inc.</span>
-          <Link href="/terms" className="underline underline-offset-2 transition-opacity hover:opacity-65">
-            {termsLabel}
-          </Link>
-          <Link href="/privacy" className="underline underline-offset-2 transition-opacity hover:opacity-65">
-            {privacyLabel}
-          </Link>
         </div>
 
         <div className="font-display flex items-center justify-center gap-2 lg:justify-end">
