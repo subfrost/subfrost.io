@@ -126,7 +126,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
         {message && state !== "success" ? (
           <p
             className="font-reading mt-3 text-[14px]"
-            style={{ color: state === "success" ? "var(--ed-accent)" : "#c73c28" }}
+            style={{ color: "#c73c28" }}
           >
             {message}
           </p>

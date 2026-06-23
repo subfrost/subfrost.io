@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Github, Globe2 } from "lucide-react"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
+import { ThemeToggle } from "./ThemeToggle"
 
 export function SiteFooter() {
   const router = useRouter()
@@ -135,17 +136,21 @@ export function SiteFooter() {
           </Link>
         </div>
 
-        <div className="font-display flex justify-center lg:justify-end">
+        <div className="font-display flex items-center justify-center gap-2 lg:justify-end">
           <button
             type="button"
             onClick={toggleLocale}
             aria-label={`Switch to ${isZh ? "English" : "Chinese"}`}
-            className="inline-flex items-center gap-2 rounded-full bg-black/[0.04] px-4 py-2 outline-none transition-colors hover:bg-black/[0.07] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+            className="inline-flex items-center gap-2 rounded-full px-4 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+            style={{
+              background: "color-mix(in srgb, var(--ed-ink) 7%, transparent)",
+            }}
           >
             <Globe2 className="h-3.5 w-3.5" />
             <span>{languageLabel}</span>
             <span style={{ color: "var(--ed-muted)" }}>{regionLabel}</span>
           </button>
+          <ThemeToggle />
         </div>
       </div>
     </footer>

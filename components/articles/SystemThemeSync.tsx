@@ -2,17 +2,31 @@
 
 import { useEffect } from "react"
 
+const STORAGE_KEY = "subfrost:editorial-theme"
+
+type EditorialTheme = "light" | "dark"
+
+function getStoredTheme(): EditorialTheme | null {
+  const value = window.localStorage.getItem(STORAGE_KEY)
+  return value === "dark" || value === "light" ? value : null
+}
+
 export function SystemThemeSync() {
   useEffect(() => {
     const query = window.matchMedia("(prefers-color-scheme: dark)")
     const apply = () => {
+      const storedTheme = getStoredTheme()
       const root = document.getElementById("ed-root")
-      if (root) root.dataset.edTheme = query.matches ? "dark" : "light"
+      if (root) root.dataset.edTheme = storedTheme ?? (query.matches ? "dark" : "light")
     }
 
     apply()
     query.addEventListener("change", apply)
-    return () => query.removeEventListener("change", apply)
+    window.addEventListener("ed-theme-change", apply)
+    return () => {
+      query.removeEventListener("change", apply)
+      window.removeEventListener("ed-theme-change", apply)
+    }
   }, [])
 
   return null

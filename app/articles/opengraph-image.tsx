@@ -10,7 +10,7 @@ export const size = {
 export const contentType = "image/png"
 
 async function getLogomarkDataUrl() {
-  const logoData = await readFile(join(process.cwd(), "public", "subfrost-logomark.svg"))
+  const logoData = await readFile(join(process.cwd(), "public", "brand", "subfrost", "Logos", "svg", "logomark", "logomark.svg"))
   return `data:image/svg+xml;base64,${logoData.toString("base64")}`
 }
 

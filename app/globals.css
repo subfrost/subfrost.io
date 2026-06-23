@@ -261,7 +261,6 @@ div[data-netlify-deploy-id] {
   --ed-cover: #11294a;
   --ed-cover-2: #1a3c66;
   --ed-band: #e5edf7;
-  --ed-logo-filter: none;
   --ed-placeholder: color-mix(in srgb, var(--ed-ink) 35%, transparent);
   --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 25%, transparent);
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 42%, transparent);
@@ -280,32 +279,9 @@ div[data-netlify-deploy-id] {
   --ed-cover: #16335a;
   --ed-cover-2: #1f4a82;
   --ed-band: #050505;
-  --ed-logo-filter: invert(1);
   --ed-placeholder: color-mix(in srgb, var(--ed-ink) 48%, transparent);
   --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 62%, transparent);
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 62%, transparent);
-}
-
-@media (prefers-color-scheme: dark) {
-  [data-ed-theme] {
-    --ed-canvas: #000000;
-    --ed-ink: #f5f5f5;
-    --ed-body: #d4d4d4;
-    --ed-muted: #8a8a8a;
-    --ed-hair: #262626;
-    --ed-accent: #e8e8e8;
-    --ed-ice: #5b9cff;
-    --ed-flare: #ff6a4d;
-    --ed-nav: #000000;
-    --ed-surface: #050505;
-    --ed-cover: #16335a;
-    --ed-cover-2: #1f4a82;
-    --ed-band: #050505;
-    --ed-logo-filter: invert(1);
-    --ed-placeholder: color-mix(in srgb, var(--ed-ink) 48%, transparent);
-    --ed-placeholder-focus: color-mix(in srgb, var(--ed-ink) 62%, transparent);
-    --ed-button-muted: color-mix(in srgb, var(--ed-ink) 62%, transparent);
-  }
 }
 
 .font-display {
@@ -314,6 +290,18 @@ div[data-netlify-deploy-id] {
 }
 .font-reading {
   font-family: var(--ed-sans);
+}
+
+[data-ed-theme] .ed-logo-dark {
+  display: none;
+}
+
+[data-ed-theme="dark"] .ed-logo-light {
+  display: none;
+}
+
+[data-ed-theme="dark"] .ed-logo-dark {
+  display: block;
 }
 
 [data-ed-theme] [data-topic-filter],

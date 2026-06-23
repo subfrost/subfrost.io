@@ -97,12 +97,19 @@ export function SiteHeader() {
       <div className={`mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 ${scrolled ? "sm:px-5" : ""}`}>
         <div className="flex min-w-0 items-center gap-5">
           <Link href="/" className="flex shrink-0 items-center" aria-label="Subfrost">
-            <img
-              src="/subfrost-logotype-black.svg"
-              alt="Subfrost"
-              className="h-[30px] w-auto sm:h-[28px]"
-              style={{ filter: "var(--ed-logo-filter)" }}
-            />
+            <span className="relative block h-8 w-[148px]">
+              <img
+                src="/brand/subfrost/Logos/svg/logotype/logotype_light.svg"
+                alt="Subfrost"
+                className="ed-logo-light h-full w-auto"
+              />
+              <img
+                src="/brand/subfrost/Logos/svg/logotype/logotype_white.svg"
+                alt=""
+                aria-hidden="true"
+                className="ed-logo-dark absolute inset-0 h-full w-auto"
+              />
+            </span>
           </Link>
           <nav className="hidden items-center gap-6 text-[14px] sm:flex">
             {navItems.map((item) => (
