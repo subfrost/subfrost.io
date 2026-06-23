@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import Image from "next/image"
-import GlobalStyles from "@/components/GlobalStyles"
-import InfoSection from "@/components/InfoSection"
+import { StaticPage } from "@/components/articles/StaticPage"
 
 export const metadata: Metadata = {
   title: "Terms of Service | SUBFROST",
@@ -23,30 +21,11 @@ export const metadata: Metadata = {
 
 export default function TermsOfServicePage() {
   return (
-    <main className="relative">
-      <GlobalStyles />
-      <InfoSection>
-        <div className="mx-auto max-w-3xl">
-          {/* Header */}
-          <header className="mb-12 border-b border-slate-300/20 pb-8">
-            <Link href="/" className="mb-8 inline-flex items-center">
-              <Image
-                src="/brand/subfrost-wordmark.svg"
-                alt="SUBFROST"
-                width={180}
-                height={24}
-                priority
-                className="h-8 w-auto hover:opacity-80 sf-wordmark"
-              />
-            </Link>
-            <h1 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter md:text-4xl">
-              Terms of Service
-            </h1>
-            <p className="mt-3 text-sm text-gray-400">Last updated: June 19, 2026</p>
-          </header>
-
-          {/* Body */}
-          <article className="space-y-8 leading-relaxed text-gray-300">
+    <StaticPage
+      title="Terms of Service"
+      description="The terms that govern SUBFROST's self-custodial wallet, optional product features, and related services."
+      updated="June 19, 2026"
+    >
             <p>
               These Terms of Service (&ldquo;Terms&rdquo;) govern your use of SUBFROST, a
               self-custodial Bitcoin and alkanes wallet provided by Subzero Research Inc.
@@ -59,7 +38,7 @@ export default function TermsOfServicePage() {
               <h2 className="mb-3 text-xl font-bold text-white">1. Acceptance of terms</h2>
               <p>
                 By downloading, installing, or using the Services, you agree to these Terms and to our{" "}
-                <Link href="/privacy" className="text-blue-300 underline hover:opacity-80">
+                <Link href="/privacy">
                   Privacy Policy
                 </Link>
                 . If you do not agree, do not use the Services.
@@ -98,7 +77,7 @@ export default function TermsOfServicePage() {
                 identity-verification partner (Stripe) and requires identity verification (KYC/AML) and
                 acceptance of any additional partner terms. Information collected for these features is
                 described in our{" "}
-                <Link href="/privacy" className="text-blue-300 underline hover:opacity-80">
+                <Link href="/privacy">
                   Privacy Policy
                 </Link>
                 . If you do not use a given feature, its terms and data collection do not apply to you.
@@ -172,26 +151,15 @@ export default function TermsOfServicePage() {
                 Subzero Research Inc. —{" "}
                 <a
                   href="mailto:support@subfrost.io"
-                  className="text-blue-300 underline hover:opacity-80"
                 >
                   support@subfrost.io
                 </a>{" "}
                 —{" "}
-                <a href="https://subfrost.io" className="text-blue-300 underline hover:opacity-80">
+                <a href="https://subfrost.io">
                   https://subfrost.io
                 </a>
               </p>
             </section>
-          </article>
-
-          {/* Footer */}
-          <footer className="mt-16 border-t border-slate-300/20 pt-8">
-            <Link href="/" className="text-sm text-blue-300 underline hover:opacity-80">
-              ← Back to subfrost.io
-            </Link>
-          </footer>
-        </div>
-      </InfoSection>
-    </main>
+    </StaticPage>
   )
 }

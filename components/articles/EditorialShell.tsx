@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Suspense } from "react"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { SiteHeader } from "./SiteHeader"
@@ -21,9 +22,13 @@ export async function EditorialShell({ children }: { children: ReactNode }) {
       }}
     >
       <SystemThemeSync />
-      <SiteHeader />
+      <Suspense fallback={null}>
+        <SiteHeader />
+      </Suspense>
       <div className="flex-1">{children}</div>
-      <SiteFooter />
+      <Suspense fallback={null}>
+        <SiteFooter />
+      </Suspense>
     </div>
   )
 }

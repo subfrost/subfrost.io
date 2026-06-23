@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.cdnfonts.com; " +
       "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://www.google-analytics.com https://analytics.google.com wss://media.subfrost.io https://stream.subfrost.io https://storage.googleapis.com; " +
+      "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.google.com wss://media.subfrost.io https://stream.subfrost.io https://storage.googleapis.com; " +
       "media-src 'self' https://stream.subfrost.io blob:; " +
       "worker-src 'self' blob:; " +
       "frame-src 'self';",

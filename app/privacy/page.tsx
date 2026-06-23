@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import Image from "next/image"
-import GlobalStyles from "@/components/GlobalStyles"
-import InfoSection from "@/components/InfoSection"
+import { StaticPage } from "@/components/articles/StaticPage"
 
 export const metadata: Metadata = {
   title: "Privacy Policy | SUBFROST",
@@ -23,30 +21,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="relative">
-      <GlobalStyles />
-      <InfoSection>
-        <div className="mx-auto max-w-3xl">
-          {/* Header */}
-          <header className="mb-12 border-b border-slate-300/20 pb-8">
-            <Link href="/" className="mb-8 inline-flex items-center">
-              <Image
-                src="/brand/subfrost-wordmark.svg"
-                alt="SUBFROST"
-                width={180}
-                height={24}
-                priority
-                className="h-8 w-auto hover:opacity-80 sf-wordmark"
-              />
-            </Link>
-            <h1 className="text-3xl font-bold uppercase tracking-wider text-white snow-title-no-filter md:text-4xl">
-              Privacy Policy
-            </h1>
-            <p className="mt-3 text-sm text-gray-400">Last updated: June 19, 2026</p>
-          </header>
-
-          {/* Body */}
-          <article className="space-y-8 leading-relaxed text-gray-300">
+    <StaticPage
+      title="Privacy Policy"
+      description="How SUBFROST handles wallet data, optional product features, and privacy across extension and mobile apps."
+      updated="June 19, 2026"
+    >
             <p>
               SUBFROST is a self-custodial Bitcoin and alkanes wallet from Subzero Research Inc.,
               available as a browser extension and as mobile apps for iOS and Android. This policy
@@ -233,7 +212,7 @@ export default function PrivacyPolicyPage() {
                 Self-custodial wallet data lives on your device and is removed when you uninstall the
                 app or extension. If you use SUBFROST Pay, you can request deletion of your Pay account
                 and associated data at{" "}
-                <Link href="/delete-account" className="text-blue-300 underline hover:opacity-80">
+                <Link href="/delete-account">
                   subfrost.io/delete-account
                 </Link>{" "}
                 or by contacting us. Identity-verification (KYC/AML) records associated with SUBFROST
@@ -264,26 +243,15 @@ export default function PrivacyPolicyPage() {
                 Subzero Research Inc. —{" "}
                 <a
                   href="mailto:support@subfrost.io"
-                  className="text-blue-300 underline hover:opacity-80"
                 >
                   support@subfrost.io
                 </a>{" "}
                 —{" "}
-                <a href="https://subfrost.io" className="text-blue-300 underline hover:opacity-80">
+                <a href="https://subfrost.io">
                   https://subfrost.io
                 </a>
               </p>
             </section>
-          </article>
-
-          {/* Footer */}
-          <footer className="mt-16 border-t border-slate-300/20 pt-8">
-            <Link href="/" className="text-sm text-blue-300 underline hover:opacity-80">
-              ← Back to subfrost.io
-            </Link>
-          </footer>
-        </div>
-      </InfoSection>
-    </main>
+    </StaticPage>
   )
 }
