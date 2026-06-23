@@ -99,6 +99,9 @@ export function isItemActive(href: string, pathname: string): boolean {
     )
   }
   if (href === "/admin/articles/new") return pathname === "/admin/articles/new"
+  if (href === "/admin/financials/accounting") {
+    return pathname === "/admin/financials/accounting" || pathname.startsWith("/admin/financials/payees")
+  }
   return pathname === href
 }
 

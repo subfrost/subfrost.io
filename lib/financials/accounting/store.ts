@@ -5,17 +5,21 @@
 import prisma from "@/lib/prisma"
 import type {
   InvoiceRow, InvoiceStatus, PayeeRow, PayeeType, PaymentRow, PaymentSource,
+  PayeeProfile, PayeeUserSummary, PayeeKycSummary,
 } from "@/lib/financials/accounting/shapes"
+import { assemblePayeeProfile } from "@/lib/financials/accounting/shapes"
 
 export class AccountingError extends Error {}
 
 function mapPayee(r: {
   id: string; name: string; type: string; kycIntakeId: string | null
-  notes: string | null; createdAt: Date; kycIntake?: { customerName: string } | null
+  notes: string | null; userId: string | null; agreementUrl: string | null
+  createdAt: Date; kycIntake?: { customerName: string } | null
 }): PayeeRow {
   return {
     id: r.id, name: r.name, type: r.type as PayeeType, kycIntakeId: r.kycIntakeId,
     kycCustomerName: r.kycIntake?.customerName ?? null, notes: r.notes,
+    userId: r.userId, agreementUrl: r.agreementUrl,
     createdAt: r.createdAt.toISOString(),
   }
 }
@@ -176,4 +180,97 @@ export async function linkPayment(paymentId: string, invoiceId: string): Promise
     include: { invoice: { select: { ref: true } } },
   })
   return mapPayment(row)
+}
+
+export async function updatePayee(id: string, patch: {
+  name?: string; type?: PayeeType; notes?: string | null
+  kycIntakeId?: string | null; userId?: string | null; agreementUrl?: string | null
+}): Promise<PayeeRow> {
+  const existing = await prisma.payee.findUnique({ where: { id } })
+  if (!existing) throw new AccountingError("Payee not found")
+
+  const data: Record<string, unknown> = {}
+  if ("name" in patch) {
+    const name = (patch.name ?? "").trim()
+    if (!name) throw new AccountingError("Payee name is required")
+    data.name = name
+  }
+  if ("type" in patch) data.type = patch.type
+  if ("notes" in patch) data.notes = patch.notes?.trim() || null
+  if ("agreementUrl" in patch) data.agreementUrl = patch.agreementUrl || null
+  if ("kycIntakeId" in patch) {
+    if (patch.kycIntakeId) {
+      const k = await prisma.kycIntake.findUnique({ where: { id: patch.kycIntakeId } })
+      if (!k) throw new AccountingError("KYC intake not found")
+    }
+    data.kycIntakeId = patch.kycIntakeId || null
+  }
+  if ("userId" in patch) {
+    if (patch.userId) {
+      const u = await prisma.user.findUnique({ where: { id: patch.userId } })
+      if (!u) throw new AccountingError("User not found")
+      const taken = await prisma.payee.findUnique({ where: { userId: patch.userId } })
+      if (taken && taken.id !== id) throw new AccountingError("That user is already linked to another payee")
+    }
+    data.userId = patch.userId || null
+  }
+
+  try {
+    const row = await prisma.payee.update({
+      where: { id }, data, include: { kycIntake: { select: { customerName: true } } },
+    })
+    return mapPayee(row)
+  } catch (e) {
+    // The userId @unique can still collide under a concurrent link (the pre-check
+    // above is best-effort). Map the Prisma unique-violation to a friendly error.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+      throw new AccountingError("That user is already linked to another payee")
+    }
+    throw e
+  }
+}
+
+export async function listLinkableUsers(): Promise<
+  { id: string; name: string | null; email: string; avatarUrl: string | null; role: string }[]
+> {
+  const rows = await prisma.user.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, avatarUrl: true, role: true },
+  })
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, role: String(u.role) }))
+}
+
+export async function listLinkableKycIntakes(): Promise<
+  { id: string; customerName: string; status: string }[]
+> {
+  const rows = await prisma.kycIntake.findMany({
+    orderBy: { submittedAt: "desc" },
+    select: { id: true, customerName: true, status: true },
+  })
+  return rows.map((k) => ({ id: k.id, customerName: k.customerName, status: String(k.status) }))
+}
+
+export async function loadPayeeProfile(id: string): Promise<PayeeProfile | null> {
+  const row = await prisma.payee.findUnique({
+    where: { id },
+    include: {
+      kycIntake: { select: { id: true, customerName: true, status: true } },
+      user: { select: { id: true, name: true, email: true, avatarUrl: true, bio: true, twitter: true, status: true, role: true } },
+    },
+  })
+  if (!row) return null
+  const payee = mapPayee(row)
+  const user: PayeeUserSummary | null = row.user
+    ? {
+        id: row.user.id, name: row.user.name, email: row.user.email,
+        avatarUrl: row.user.avatarUrl, bio: row.user.bio, twitter: row.user.twitter,
+        status: row.user.status, role: String(row.user.role),
+      }
+    : null
+  const kyc: PayeeKycSummary | null = row.kycIntake
+    ? { id: row.kycIntake.id, customerName: row.kycIntake.customerName, status: String(row.kycIntake.status) }
+    : null
+  const [invoices, payments] = await Promise.all([listInvoices({ payeeId: id }), listPayments()])
+  return assemblePayeeProfile(payee, user, kyc, invoices, payments)
 }

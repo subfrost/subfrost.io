@@ -1,22 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/prisma", () => {
-  const payee = { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn() }
+  const payee = { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() }
   const invoice = { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() }
   const dieselPayment = { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() }
-  const client = { payee, invoice, dieselPayment }
+  const kycIntake = { findUnique: vi.fn(), findMany: vi.fn() }
+  const user = { findUnique: vi.fn(), findMany: vi.fn() }
+  const client = { payee, invoice, dieselPayment, kycIntake, user }
   return { prisma: client, default: client }
 })
 
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
   listPayees, listPayments, listUnlinkedPayments, recordPayment, updateInvoiceStatus,
+  updatePayee, listLinkableUsers, listLinkableKycIntakes, loadPayeeProfile,
 } from "@/lib/financials/accounting/store"
 import prisma from "@/lib/prisma"
 
 const pe = prisma.payee as unknown as Record<string, ReturnType<typeof vi.fn>>
 const inv = prisma.invoice as unknown as Record<string, ReturnType<typeof vi.fn>>
 const pay = prisma.dieselPayment as unknown as Record<string, ReturnType<typeof vi.fn>>
+const kyc = prisma.kycIntake as unknown as Record<string, ReturnType<typeof vi.fn>>
+const usr = prisma.user as unknown as Record<string, ReturnType<typeof vi.fn>>
 
 const D = (s: string) => new Date(s)
 beforeEach(() => vi.clearAllMocks())
@@ -24,11 +29,11 @@ beforeEach(() => vi.clearAllMocks())
 describe("listPayees", () => {
   it("maps rows and resolves kycCustomerName", async () => {
     pe.findMany.mockResolvedValueOnce([
-      { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, createdAt: D("2026-01-01T00:00:00Z"), kycIntake: { customerName: "Ada L" } },
+      { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, userId: "u1", agreementUrl: "https://x/a.pdf", createdAt: D("2026-01-01T00:00:00Z"), kycIntake: { customerName: "Ada L" } },
     ])
     const rows = await listPayees()
     expect(pe.findMany).toHaveBeenCalledWith({ orderBy: { name: "asc" }, include: { kycIntake: { select: { customerName: true } } } })
-    expect(rows[0]).toEqual({ id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada L", notes: null, createdAt: "2026-01-01T00:00:00.000Z" })
+    expect(rows[0]).toEqual({ id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada L", notes: null, userId: "u1", agreementUrl: "https://x/a.pdf", createdAt: "2026-01-01T00:00:00.000Z" })
   })
 })
 
@@ -38,10 +43,11 @@ describe("createPayee", () => {
     expect(pe.create).not.toHaveBeenCalled()
   })
   it("trims and creates", async () => {
-    pe.create.mockResolvedValueOnce({ id: "pe2", name: "Acme", type: "ORG", kycIntakeId: null, notes: null, createdAt: D("2026-01-02T00:00:00Z"), kycIntake: null })
+    pe.create.mockResolvedValueOnce({ id: "pe2", name: "Acme", type: "ORG", kycIntakeId: null, notes: null, userId: null, agreementUrl: null, createdAt: D("2026-01-02T00:00:00Z"), kycIntake: null })
     const row = await createPayee({ name: " Acme ", type: "ORG" })
     expect(pe.create.mock.calls[0][0].data).toMatchObject({ name: "Acme", type: "ORG", kycIntakeId: null, notes: null })
     expect(row.kycCustomerName).toBeNull()
+    expect(row.userId).toBeNull()
   })
 })
 
@@ -158,5 +164,136 @@ describe("listUnlinkedPayments", () => {
     pay.findMany.mockResolvedValueOnce([])
     await listUnlinkedPayments()
     expect(pay.findMany.mock.calls[0][0].where).toEqual({ invoiceId: null })
+  })
+})
+
+describe("updatePayee", () => {
+  const baseRow = { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, notes: null, userId: null, agreementUrl: null, createdAt: D("2026-01-01T00:00:00Z"), kycIntake: null }
+
+  it("throws when the payee does not exist", async () => {
+    pe.findUnique.mockResolvedValueOnce(null)
+    await expect(updatePayee("nope", { name: "x" })).rejects.toBeInstanceOf(AccountingError)
+  })
+
+  it("rejects an empty name when name is in the patch", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    await expect(updatePayee("pe1", { name: "   " })).rejects.toBeInstanceOf(AccountingError)
+    expect(pe.update).not.toHaveBeenCalled()
+  })
+
+  it("writes only the keys present in the patch (notes cleared with null)", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    pe.update.mockResolvedValueOnce({ ...baseRow, notes: null })
+    await updatePayee("pe1", { notes: null })
+    expect(pe.update.mock.calls[0][0].data).toEqual({ notes: null })
+  })
+
+  it("verifies a linked user exists and is not taken, then sets userId", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow) // the target payee
+    usr.findUnique.mockResolvedValueOnce({ id: "u1" })
+    pe.findUnique.mockResolvedValueOnce(null) // no other payee holds u1
+    pe.update.mockResolvedValueOnce({ ...baseRow, userId: "u1" })
+    const row = await updatePayee("pe1", { userId: "u1" })
+    expect(pe.update.mock.calls[0][0].data).toEqual({ userId: "u1" })
+    expect(row.userId).toBe("u1")
+  })
+
+  it("rejects linking a user already tied to another payee", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    usr.findUnique.mockResolvedValueOnce({ id: "u1" })
+    pe.findUnique.mockResolvedValueOnce({ id: "peOTHER" }) // u1 already linked
+    await expect(updatePayee("pe1", { userId: "u1" })).rejects.toBeInstanceOf(AccountingError)
+    expect(pe.update).not.toHaveBeenCalled()
+  })
+
+  it("unlinks a user with explicit null without touching prisma.user", async () => {
+    pe.findUnique.mockResolvedValueOnce({ ...baseRow, userId: "u1" })
+    pe.update.mockResolvedValueOnce({ ...baseRow, userId: null })
+    await updatePayee("pe1", { userId: null })
+    expect(usr.findUnique).not.toHaveBeenCalled()
+    expect(pe.update.mock.calls[0][0].data).toEqual({ userId: null })
+  })
+
+  it("clears agreementUrl with explicit null", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    pe.update.mockResolvedValueOnce({ ...baseRow, agreementUrl: null })
+    await updatePayee("pe1", { agreementUrl: null })
+    expect(pe.update.mock.calls[0][0].data).toEqual({ agreementUrl: null })
+  })
+
+  it("clears kycIntakeId with explicit null without verifying the intake", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    pe.update.mockResolvedValueOnce({ ...baseRow, kycIntakeId: null })
+    await updatePayee("pe1", { kycIntakeId: null })
+    expect(kyc.findUnique).not.toHaveBeenCalled()
+    expect(pe.update.mock.calls[0][0].data).toEqual({ kycIntakeId: null })
+  })
+
+  it("rejects a kycIntakeId that does not exist", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow)
+    kyc.findUnique.mockResolvedValueOnce(null)
+    await expect(updatePayee("pe1", { kycIntakeId: "missing" })).rejects.toBeInstanceOf(AccountingError)
+    expect(pe.update).not.toHaveBeenCalled()
+  })
+
+  it("maps a Prisma P2002 unique violation on update to AccountingError", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow) // target payee
+    usr.findUnique.mockResolvedValueOnce({ id: "u1" }) // user exists
+    pe.findUnique.mockResolvedValueOnce(null) // pre-check sees no holder
+    pe.update.mockRejectedValueOnce({ code: "P2002" }) // race: DB unique fires
+    await expect(updatePayee("pe1", { userId: "u1" })).rejects.toBeInstanceOf(AccountingError)
+  })
+})
+
+describe("listLinkableKycIntakes", () => {
+  it("returns intakes mapped to {id,customerName,status} with status stringified", async () => {
+    kyc.findMany.mockResolvedValueOnce([
+      { id: "k1", customerName: "Ada L", status: "APPROVED" },
+    ])
+    const rows = await listLinkableKycIntakes()
+    expect(kyc.findMany).toHaveBeenCalledWith({ orderBy: { submittedAt: "desc" }, select: { id: true, customerName: true, status: true } })
+    expect(rows[0]).toEqual({ id: "k1", customerName: "Ada L", status: "APPROVED" })
+  })
+})
+
+describe("listLinkableUsers", () => {
+  it("returns active users mapped to {id,name,email,avatarUrl,role}", async () => {
+    usr.findMany.mockResolvedValueOnce([
+      { id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" },
+    ])
+    const rows = await listLinkableUsers()
+    expect(usr.findMany).toHaveBeenCalledWith({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, email: true, avatarUrl: true, role: true } })
+    expect(rows[0]).toEqual({ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" })
+  })
+})
+
+describe("loadPayeeProfile", () => {
+  it("returns null when the payee is missing", async () => {
+    pe.findUnique.mockResolvedValueOnce(null)
+    expect(await loadPayeeProfile("nope")).toBeNull()
+  })
+
+  it("shapes payee + user + kyc and assembles invoices/payments/totals", async () => {
+    pe.findUnique.mockResolvedValueOnce({
+      id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", notes: null, userId: "u1", agreementUrl: null,
+      createdAt: D("2026-01-01T00:00:00Z"),
+      kycIntake: { id: "k1", customerName: "Ada L", status: "APPROVED" },
+      user: { id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, bio: "math", twitter: null, status: null, role: "AUTHOR" },
+    })
+    inv.findMany.mockResolvedValueOnce([
+      { id: "i1", ref: "INV-1", payeeId: "pe1", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: D("2026-02-01T00:00:00Z"), status: "PAID", pdfUrl: null, createdAt: D("2026-02-01T00:00:00Z"), payee: { name: "Ada" } },
+    ])
+    pay.findMany.mockResolvedValueOnce([
+      { id: "p1", txid: "t", vout: null, amountDiesel: 5, recipientAddress: "bc1", paidAt: D("2026-02-02T00:00:00Z"), blockHeight: null, invoiceId: "i1", source: "MANUAL", createdAt: D("2026-02-02T00:00:00Z"), invoice: { ref: "INV-1" } },
+      { id: "p2", txid: "u", vout: null, amountDiesel: 9, recipientAddress: "bc1", paidAt: D("2026-02-03T00:00:00Z"), blockHeight: null, invoiceId: null, source: "MANUAL", createdAt: D("2026-02-03T00:00:00Z"), invoice: null },
+    ])
+    const prof = await loadPayeeProfile("pe1")
+    expect(prof).not.toBeNull()
+    expect(prof!.user?.email).toBe("ada@x.io")
+    expect(prof!.kyc).toEqual({ id: "k1", customerName: "Ada L", status: "APPROVED" })
+    expect(prof!.payments.map((p) => p.id)).toEqual(["p1"]) // p2 unlinked → excluded
+    expect(prof!.totals.totalUsd).toBe(100)
+    expect(prof!.totals.totalDiesel).toBe(5)
+    expect(inv.findMany.mock.calls[0][0].where.payeeId).toBe("pe1")
   })
 })

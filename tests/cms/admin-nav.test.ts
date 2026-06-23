@@ -63,4 +63,9 @@ describe("isItemActive", () => {
     expect(isItemActive("/admin/billing", "/admin/billing/treasury")).toBe(false)
     expect(isItemActive("/admin/billing/treasury", "/admin/billing/treasury")).toBe(true)
   })
+  it("keeps Accounting active on a payee profile route", () => {
+    expect(isItemActive("/admin/financials/accounting", "/admin/financials/payees/abc123")).toBe(true)
+    expect(isItemActive("/admin/financials/accounting", "/admin/financials/accounting")).toBe(true)
+    expect(isItemActive("/admin/financials/treasury", "/admin/financials/payees/abc123")).toBe(false)
+  })
 })

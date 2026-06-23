@@ -46,6 +46,7 @@ export type AuditAction =
   | "stripe_dispute_evidence"
   | "stripe_refund_request"
   | "accounting_payee_create"
+  | "accounting_payee_update"
   | "accounting_invoice_create"
   | "accounting_invoice_status"
   | "accounting_payment_record"

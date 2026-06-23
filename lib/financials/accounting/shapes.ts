@@ -12,6 +12,8 @@ export interface PayeeRow {
   kycIntakeId: string | null
   kycCustomerName: string | null // resolved from the linked KycIntake, when any
   notes: string | null
+  userId: string | null
+  agreementUrl: string | null
   createdAt: string // ISO
 }
 
@@ -89,6 +91,47 @@ export function totalsByPayee(
     const totalDiesel = round2(dieselByPayee.get(pe.id) ?? 0)
     return { payeeId: pe.id, payeeName: pe.name, invoiceCount: own.length, totalUsd, totalDiesel }
   })
+}
+
+export interface PayeeUserSummary {
+  id: string
+  name: string | null
+  email: string
+  avatarUrl: string | null
+  bio: string | null
+  twitter: string | null
+  status: string | null
+  role: string
+}
+
+export interface PayeeKycSummary {
+  id: string
+  customerName: string
+  status: string
+}
+
+export interface PayeeProfile {
+  payee: PayeeRow
+  user: PayeeUserSummary | null
+  kyc: PayeeKycSummary | null
+  invoices: InvoiceRow[]
+  payments: PaymentRow[] // only those settling this payee's invoices
+  totals: PayeeTotals
+}
+
+/** Pure profile assembler: filters `payments` to the ones tied to this payee's
+ *  invoices, computes totals via totalsByPayee, and passes user/kyc through. */
+export function assemblePayeeProfile(
+  payee: PayeeRow,
+  user: PayeeUserSummary | null,
+  kyc: PayeeKycSummary | null,
+  invoices: InvoiceRow[],
+  payments: PaymentRow[],
+): PayeeProfile {
+  const invoiceIds = new Set(invoices.map((i) => i.id))
+  const own = payments.filter((p) => p.invoiceId !== null && invoiceIds.has(p.invoiceId))
+  const totals = totalsByPayee([payee], invoices, own)[0]
+  return { payee, user, kyc, invoices, payments: own, totals }
 }
 
 export type PeriodGranularity = "month" | "quarter" | "year"

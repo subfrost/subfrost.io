@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, cleanup } from "@testing-library/react"
+import { render, cleanup, fireEvent } from "@testing-library/react"
 
 vi.mock("@/actions/cms/accounting", () => ({
   accountingOverviewAction: vi.fn(),
@@ -16,7 +16,7 @@ import type { AccountingOverviewResult } from "@/actions/cms/accounting"
 import type { InvoiceRow, PayeeRow, PaymentRow } from "@/lib/financials/accounting/shapes"
 
 const payee = (over: Partial<PayeeRow> = {}): PayeeRow => ({
-  id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: null, createdAt: "2026-01-01T00:00:00.000Z", ...over,
+  id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z", ...over,
 })
 const invoice = (over: Partial<InvoiceRow> = {}): InvoiceRow => ({
   id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "OPEN", pdfUrl: null, createdAt: "2026-02-01T00:00:00.000Z", ...over,
@@ -61,5 +61,11 @@ describe("AccountingManager", () => {
     )
     expect(getByText("PAID")).toBeTruthy()
     expect(getAllByText("KYC").length).toBeGreaterThan(0)
+  })
+  it("links a payee name to its profile in the Payees tab", () => {
+    const { getByText, getByRole } = render(<AccountingManager initial={ok({ payees: [payee()] })} />)
+    fireEvent.click(getByText("Payees"))
+    const link = getByRole("link", { name: /Ada/ })
+    expect(link.getAttribute("href")).toBe("/admin/financials/payees/pe1")
   })
 })

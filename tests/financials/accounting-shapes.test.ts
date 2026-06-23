@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest"
 import {
-  summaryMetrics, totalsByPayee, totalsByPeriod, periodKey, csvEscape, toCsv,
-  type InvoiceRow, type PaymentRow, type PayeeRow,
+  summaryMetrics, totalsByPayee, totalsByPeriod, periodKey, csvEscape, toCsv, assemblePayeeProfile,
+  type InvoiceRow, type PaymentRow, type PayeeRow, type PayeeUserSummary,
 } from "@/lib/financials/accounting/shapes"
 
 const payees: PayeeRow[] = [
-  { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada Lovelace", notes: null, createdAt: "2026-01-01T00:00:00.000Z" },
-  { id: "pe2", name: "Acme, Inc", type: "ORG", kycIntakeId: null, kycCustomerName: null, notes: null, createdAt: "2026-01-01T00:00:00.000Z" },
+  { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: "k1", kycCustomerName: "Ada Lovelace", notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
+  { id: "pe2", name: "Acme, Inc", type: "ORG", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
 ]
 const invoices: InvoiceRow[] = [
   { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "work", amountUsd: 1000, amountDiesel: 2, issuedAt: "2026-02-10T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-10T00:00:00.000Z" },
@@ -75,5 +75,25 @@ describe("toCsv", () => {
     expect(acme).toContain('"Acme, Inc"')
     expect(acme).toContain("txb")
     expect(acme).toContain("2026-05-20")
+  })
+})
+
+describe("assemblePayeeProfile", () => {
+  const user: PayeeUserSummary = { id: "u1", name: "Ada Lovelace", email: "ada@x.io", avatarUrl: null, bio: "math", twitter: null, status: null, role: "AUTHOR" }
+
+  it("keeps only payments tied to the payee's invoices and totals them", () => {
+    // pe1 owns i1 (PAID, $1000, paid 2 DIESEL via p1) and i2 (OPEN, $500). p2/p3 belong elsewhere/unlinked.
+    const prof = assemblePayeeProfile(payees[0], user, null, invoices.filter((i) => i.payeeId === "pe1"), payments)
+    expect(prof.payments.map((p) => p.id)).toEqual(["p1"])
+    expect(prof.totals).toEqual({ payeeId: "pe1", payeeName: "Ada", invoiceCount: 2, totalUsd: 1000, totalDiesel: 2 })
+    expect(prof.user).toBe(user)
+    expect(prof.kyc).toBeNull()
+  })
+
+  it("handles a payee with no invoices/payments", () => {
+    const prof = assemblePayeeProfile(payees[1], null, { id: "k9", customerName: "Acme", status: "APPROVED" }, [], payments)
+    expect(prof.payments).toEqual([])
+    expect(prof.totals).toEqual({ payeeId: "pe2", payeeName: "Acme, Inc", invoiceCount: 0, totalUsd: 0, totalDiesel: 0 })
+    expect(prof.kyc?.status).toBe("APPROVED")
   })
 })
