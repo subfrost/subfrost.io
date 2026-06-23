@@ -1,7 +1,9 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
 import { AdminEditor } from "@/components/cms/AdminEditor"
+import { translationUnavailable } from "@/lib/cms/translate"
 
 export const dynamic = "force-dynamic"
 
@@ -20,6 +22,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
 
   const canPublish = user.privileges.includes("articles.publish")
   if (!canPublish && article.authorId !== user.id) redirect("/admin/articles")
+  const canTranslate = !translationUnavailable()
 
   const tr = (loc: "en" | "zh") => {
     const t = article.translations.find((x) => x.locale === loc)
@@ -28,9 +31,16 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-white">Edit article</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Edit article</h1>
+        <Link href={`/admin/articles/${article.id}/preview`} target="_blank"
+          className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:border-sky-700 hover:text-white">
+          Preview ↗
+        </Link>
+      </div>
       <AdminEditor
         canPublish={canPublish}
+        canTranslate={canTranslate}
         initial={{
           id: article.id,
           slug: article.slug,

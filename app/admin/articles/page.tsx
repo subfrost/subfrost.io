@@ -64,6 +64,7 @@ export default async function ArticlesList() {
                       {primary?.title ?? a.slug}
                     </Link>
                     {a.featured && <span className="ml-2 rounded-full border border-sky-700/60 px-2 py-0.5 text-xs text-sky-300">Featured</span>}
+                    <Link href={`/admin/articles/${a.id}/preview`} target="_blank" className="ml-2 text-xs text-zinc-500 hover:text-sky-300">Preview ↗</Link>
                   </td>
                   <td className="px-4 py-3 uppercase text-zinc-400">{a.translations.map((t) => t.locale).join(" / ") || "—"}</td>
                   <td className="px-4 py-3">
