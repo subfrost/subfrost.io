@@ -8,7 +8,7 @@ vi.mock("@/actions/cms/accounting", () => ({
 
 import { PayeeProfile } from "@/components/cms/financials/PayeeProfile"
 import type { PayeeProfile as PayeeProfileData } from "@/lib/financials/accounting/shapes"
-import type { LinkableUser } from "@/actions/cms/accounting"
+import type { LinkableUser, LinkableKycIntake } from "@/actions/cms/accounting"
 
 const base: PayeeProfileData = {
   payee: { id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: "vip", userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
@@ -24,7 +24,7 @@ beforeEach(() => cleanup())
 
 describe("PayeeProfile", () => {
   it("renders the payee name and the link-user control when unlinked", () => {
-    const { getByText, getByRole } = render(<PayeeProfile profile={base} linkableUsers={users} />)
+    const { getByText, getByRole } = render(<PayeeProfile profile={base} linkableUsers={users} linkableKycIntakes={[]} />)
     expect(getByText("Ada")).toBeTruthy()
     expect(getByText(/Link to a team member/i)).toBeTruthy()
     expect(getByRole("link", { name: /Back to Accounting/i })).toBeTruthy()
@@ -32,14 +32,26 @@ describe("PayeeProfile", () => {
 
   it("shows the linked user's details when linked", () => {
     const linked: PayeeProfileData = { ...base, user: { id: "u1", name: "Ada Dev", email: "ada@x.io", avatarUrl: null, bio: "math", twitter: null, status: null, role: "AUTHOR" } }
-    const { getByText } = render(<PayeeProfile profile={linked} linkableUsers={users} />)
+    const { getByText } = render(<PayeeProfile profile={linked} linkableUsers={users} linkableKycIntakes={[]} />)
     expect(getByText("Ada Dev")).toBeTruthy()
     expect(getByText(/Unlink/i)).toBeTruthy()
   })
 
   it("reveals the edit form when Edit is clicked", () => {
-    const { getByText } = render(<PayeeProfile profile={base} linkableUsers={users} />)
+    const { getByText } = render(<PayeeProfile profile={base} linkableUsers={users} linkableKycIntakes={[]} />)
     fireEvent.click(getByText("Edit"))
     expect(getByText("Save")).toBeTruthy()
+  })
+
+  it("shows the KYC link control when no KYC is linked", () => {
+    const { getByText } = render(<PayeeProfile profile={base} linkableUsers={users} linkableKycIntakes={[]} />)
+    expect(getByText(/Link a KYC identity/i)).toBeTruthy()
+  })
+
+  it("shows the linked KYC and an unlink control when linked", () => {
+    const linked = { ...base, kyc: { id: "k1", customerName: "Ada L", status: "APPROVED" } }
+    const { getByText } = render(<PayeeProfile profile={linked} linkableUsers={users} linkableKycIntakes={[]} />)
+    expect(getByText("Ada L")).toBeTruthy()
+    expect(getByText(/Unlink KYC/i)).toBeTruthy()
   })
 })

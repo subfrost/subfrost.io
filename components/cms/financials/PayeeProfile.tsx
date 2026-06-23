@@ -2,8 +2,8 @@
 
 import { useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, Pencil, Link2, Unlink, FileText } from "lucide-react"
-import { payeeProfileAction, updatePayeeAction, type LinkableUser } from "@/actions/cms/accounting"
+import { ArrowLeft, Pencil, Link2, Unlink, FileText, ShieldCheck } from "lucide-react"
+import { payeeProfileAction, updatePayeeAction, type LinkableUser, type LinkableKycIntake } from "@/actions/cms/accounting"
 import type { InvoiceStatus, PayeeProfile as PayeeProfileData, PayeeType } from "@/lib/financials/accounting/shapes"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
@@ -19,7 +19,7 @@ const STATUS_STYLE: Record<InvoiceStatus, string> = {
 
 type Patch = Parameters<typeof updatePayeeAction>[1]
 
-export function PayeeProfile({ profile: initial, linkableUsers }: { profile: PayeeProfileData; linkableUsers: LinkableUser[] }) {
+export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntakes }: { profile: PayeeProfileData; linkableUsers: LinkableUser[]; linkableKycIntakes: LinkableKycIntake[] }) {
   const [profile, setProfile] = useState(initial)
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,6 +62,9 @@ export function PayeeProfile({ profile: initial, linkableUsers }: { profile: Pay
 
       <UserCard user={user} linkableUsers={linkableUsers} disabled={pending}
         onLink={(userId) => run({ userId })} onUnlink={() => run({ userId: null })} />
+
+      <KycCard kyc={kyc} linkableKycIntakes={linkableKycIntakes} disabled={pending}
+        onLink={(kycIntakeId) => run({ kycIntakeId })} onUnlink={() => run({ kycIntakeId: null })} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric label="Invoices" value={String(totals.invoiceCount)} />
@@ -168,6 +171,35 @@ function UserCard({ user, linkableUsers, onLink, onUnlink, disabled }: {
       <select value={sel} onChange={(e) => setSel(e.target.value)} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100">
         <option value="">Select a user…</option>
         {linkableUsers.map((u) => <option key={u.id} value={u.id}>{(u.name ?? u.email)} ({u.email})</option>)}
+      </select>
+      <button disabled={disabled || !sel} onClick={() => onLink(sel)} className="rounded bg-sky-700 px-2 py-1 text-sm text-white disabled:opacity-40">Link</button>
+    </div>
+  )
+}
+
+function KycCard({ kyc, linkableKycIntakes, onLink, onUnlink, disabled }: {
+  kyc: PayeeProfileData["kyc"]; linkableKycIntakes: LinkableKycIntake[]
+  onLink: (id: string) => void; onUnlink: () => void; disabled: boolean
+}) {
+  const [sel, setSel] = useState("")
+  if (kyc) {
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+        <div className="flex items-center gap-2 text-sm">
+          <ShieldCheck size={14} className="text-emerald-400" />
+          <span className="text-zinc-200">{kyc.customerName}</span>
+          <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">{kyc.status}</span>
+        </div>
+        <button disabled={disabled} onClick={onUnlink} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-red-300 disabled:opacity-40"><Unlink size={12} /> Unlink KYC</button>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-zinc-800 p-4">
+      <span className="inline-flex items-center gap-1 text-sm text-zinc-400"><ShieldCheck size={13} /> Link a KYC identity:</span>
+      <select value={sel} onChange={(e) => setSel(e.target.value)} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100">
+        <option value="">Select a KYC intake…</option>
+        {linkableKycIntakes.map((k) => <option key={k.id} value={k.id}>{k.customerName} ({k.status})</option>)}
       </select>
       <button disabled={disabled || !sel} onClick={() => onLink(sel)} className="rounded bg-sky-700 px-2 py-1 text-sm text-white disabled:opacity-40">Link</button>
     </div>

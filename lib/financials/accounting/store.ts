@@ -215,10 +215,19 @@ export async function updatePayee(id: string, patch: {
     data.userId = patch.userId || null
   }
 
-  const row = await prisma.payee.update({
-    where: { id }, data, include: { kycIntake: { select: { customerName: true } } },
-  })
-  return mapPayee(row)
+  try {
+    const row = await prisma.payee.update({
+      where: { id }, data, include: { kycIntake: { select: { customerName: true } } },
+    })
+    return mapPayee(row)
+  } catch (e) {
+    // The userId @unique can still collide under a concurrent link (the pre-check
+    // above is best-effort). Map the Prisma unique-violation to a friendly error.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+      throw new AccountingError("That user is already linked to another payee")
+    }
+    throw e
+  }
 }
 
 export async function listLinkableUsers(): Promise<
@@ -230,6 +239,16 @@ export async function listLinkableUsers(): Promise<
     select: { id: true, name: true, email: true, avatarUrl: true, role: true },
   })
   return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, role: String(u.role) }))
+}
+
+export async function listLinkableKycIntakes(): Promise<
+  { id: string; customerName: string; status: string }[]
+> {
+  const rows = await prisma.kycIntake.findMany({
+    orderBy: { submittedAt: "desc" },
+    select: { id: true, customerName: true, status: true },
+  })
+  return rows.map((k) => ({ id: k.id, customerName: k.customerName, status: String(k.status) }))
 }
 
 export async function loadPayeeProfile(id: string): Promise<PayeeProfile | null> {

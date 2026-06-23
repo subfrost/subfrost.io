@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
-import { payeeProfileAction, listLinkableUsersAction } from "@/actions/cms/accounting"
+import { payeeProfileAction, listLinkableUsersAction, listLinkableKycIntakesAction } from "@/actions/cms/accounting"
 import { PayeeProfile } from "@/components/cms/financials/PayeeProfile"
 
 export const dynamic = "force-dynamic"
@@ -18,8 +18,9 @@ export default async function PayeeProfilePage({ params }: { params: Promise<{ i
     redirect("/admin")
   }
 
-  const usersRes = await listLinkableUsersAction()
+  const [usersRes, kycRes] = await Promise.all([listLinkableUsersAction(), listLinkableKycIntakesAction()])
   const users = usersRes.ok ? usersRes.users : []
+  const kycIntakes = kycRes.ok ? kycRes.intakes : []
 
-  return <PayeeProfile profile={res.profile} linkableUsers={users} />
+  return <PayeeProfile profile={res.profile} linkableUsers={users} linkableKycIntakes={kycIntakes} />
 }

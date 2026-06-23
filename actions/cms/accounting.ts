@@ -8,7 +8,7 @@ import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
   listPayees, listPayments, recordPayment, updateInvoiceStatus,
-  loadPayeeProfile, updatePayee, listLinkableUsers,
+  loadPayeeProfile, updatePayee, listLinkableUsers, listLinkableKycIntakes,
 } from "@/lib/financials/accounting/store"
 import {
   summaryMetrics, toCsv, type InvoiceRow, type InvoiceStatus, type PayeeRow,
@@ -178,4 +178,15 @@ export async function listLinkableUsersAction(): Promise<LinkableUsersResult> {
   const g = await gate()
   if (!g.ok) return { ok: false, error: "unauthorized" }
   return { ok: true, users: await listLinkableUsers() }
+}
+
+export type LinkableKycIntake = { id: string; customerName: string; status: string }
+export type LinkableKycIntakesResult =
+  | { ok: true; intakes: LinkableKycIntake[] }
+  | { ok: false; error: "unauthorized" }
+
+export async function listLinkableKycIntakesAction(): Promise<LinkableKycIntakesResult> {
+  const g = await gate()
+  if (!g.ok) return { ok: false, error: "unauthorized" }
+  return { ok: true, intakes: await listLinkableKycIntakes() }
 }

@@ -17,12 +17,13 @@ vi.mock("@/lib/financials/accounting/store", () => ({
   loadPayeeProfile: vi.fn(),
   updatePayee: vi.fn(),
   listLinkableUsers: vi.fn(),
+  listLinkableKycIntakes: vi.fn(),
 }))
 
 import {
   accountingOverviewAction, createInvoiceAction, createPayeeAction,
   exportLedgerCsvAction, linkPaymentAction, recordPaymentAction, updateInvoiceStatusAction,
-  payeeProfileAction, updatePayeeAction, listLinkableUsersAction,
+  payeeProfileAction, updatePayeeAction, listLinkableUsersAction, listLinkableKycIntakesAction,
 } from "@/actions/cms/accounting"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import { currentUser } from "@/lib/cms/authz"
@@ -198,5 +199,18 @@ describe("listLinkableUsersAction", () => {
     vi.mocked(store.listLinkableUsers).mockResolvedValue([{ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" }])
     const r = await listLinkableUsersAction()
     expect(r).toEqual({ ok: true, users: [{ id: "u1", name: "Ada", email: "ada@x.io", avatarUrl: null, role: "AUTHOR" }] })
+  })
+})
+
+describe("listLinkableKycIntakesAction", () => {
+  it("rejects a caller without the privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValue(asUser([]))
+    expect(await listLinkableKycIntakesAction()).toEqual({ ok: false, error: "unauthorized" })
+    expect(store.listLinkableKycIntakes).not.toHaveBeenCalled()
+  })
+  it("returns the intakes", async () => {
+    vi.mocked(store.listLinkableKycIntakes).mockResolvedValue([{ id: "k1", customerName: "Ada L", status: "APPROVED" }])
+    const r = await listLinkableKycIntakesAction()
+    expect(r).toEqual({ ok: true, intakes: [{ id: "k1", customerName: "Ada L", status: "APPROVED" }] })
   })
 })

@@ -4,7 +4,7 @@ vi.mock("@/lib/prisma", () => {
   const payee = { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() }
   const invoice = { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() }
   const dieselPayment = { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() }
-  const kycIntake = { findUnique: vi.fn() }
+  const kycIntake = { findUnique: vi.fn(), findMany: vi.fn() }
   const user = { findUnique: vi.fn(), findMany: vi.fn() }
   const client = { payee, invoice, dieselPayment, kycIntake, user }
   return { prisma: client, default: client }
@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => {
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
   listPayees, listPayments, listUnlinkedPayments, recordPayment, updateInvoiceStatus,
-  updatePayee, listLinkableUsers, loadPayeeProfile,
+  updatePayee, listLinkableUsers, listLinkableKycIntakes, loadPayeeProfile,
 } from "@/lib/financials/accounting/store"
 import prisma from "@/lib/prisma"
 
@@ -234,6 +234,25 @@ describe("updatePayee", () => {
     kyc.findUnique.mockResolvedValueOnce(null)
     await expect(updatePayee("pe1", { kycIntakeId: "missing" })).rejects.toBeInstanceOf(AccountingError)
     expect(pe.update).not.toHaveBeenCalled()
+  })
+
+  it("maps a Prisma P2002 unique violation on update to AccountingError", async () => {
+    pe.findUnique.mockResolvedValueOnce(baseRow) // target payee
+    usr.findUnique.mockResolvedValueOnce({ id: "u1" }) // user exists
+    pe.findUnique.mockResolvedValueOnce(null) // pre-check sees no holder
+    pe.update.mockRejectedValueOnce({ code: "P2002" }) // race: DB unique fires
+    await expect(updatePayee("pe1", { userId: "u1" })).rejects.toBeInstanceOf(AccountingError)
+  })
+})
+
+describe("listLinkableKycIntakes", () => {
+  it("returns intakes mapped to {id,customerName,status} with status stringified", async () => {
+    kyc.findMany.mockResolvedValueOnce([
+      { id: "k1", customerName: "Ada L", status: "APPROVED" },
+    ])
+    const rows = await listLinkableKycIntakes()
+    expect(kyc.findMany).toHaveBeenCalledWith({ orderBy: { submittedAt: "desc" }, select: { id: true, customerName: true, status: true } })
+    expect(rows[0]).toEqual({ id: "k1", customerName: "Ada L", status: "APPROVED" })
   })
 })
 
