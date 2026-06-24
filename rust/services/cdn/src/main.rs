@@ -153,33 +153,42 @@ async fn route(
         ));
     }
 
-    if let Some(obj) = strip(path, "/alkanes/") {
-        return Ok(proxy(state, &cfg.assets_bucket, obj, headers, base_headers()).await);
+    // Object key = full URL path minus the leading '/', matching the Go
+    // cdn-server (objectPath := TrimPrefix(r.URL.Path, "/")): the
+    // /alkanes|docs|media|releases|snapshots/* routes KEEP their first
+    // segment as the GCS object key (e.g. /alkanes/mainnet/0-0.png ->
+    // object "alkanes/mainnet/0-0.png"). Only /raw/ and /secure/ strip
+    // their prefix. `strip(..).is_some()` is reused purely to detect a
+    // non-empty remainder after the prefix; the object passed is `full`.
+    let full = &path[1..]; // path always begins with '/' here
+
+    if strip(path, "/alkanes/").is_some() {
+        return Ok(proxy(state, &cfg.assets_bucket, full, headers, base_headers()).await);
     }
-    if let Some(obj) = strip(path, "/docs/") {
-        return Ok(handle_docs(state, obj, query, headers).await);
+    if strip(path, "/docs/").is_some() {
+        return Ok(handle_docs(state, full, query, headers).await);
     }
-    if let Some(obj) = strip(path, "/media/") {
-        return Ok(proxy(state, &cfg.cdn_bucket, obj, headers, base_headers()).await);
+    if strip(path, "/media/").is_some() {
+        return Ok(proxy(state, &cfg.cdn_bucket, full, headers, base_headers()).await);
     }
-    if let Some(obj) = strip(path, "/releases/") {
+    if strip(path, "/releases/").is_some() {
         // Force a download with a filename matching the last segment.
         let mut extra = base_headers();
-        if let Some(name) = obj.rsplit('/').next().filter(|s| !s.is_empty()) {
+        if let Some(name) = full.rsplit('/').next().filter(|s| !s.is_empty()) {
             if let Ok(v) =
                 HeaderValue::from_str(&format!("attachment; filename=\"{name}\""))
             {
                 extra.push((header::CONTENT_DISPOSITION, v));
             }
         }
-        return Ok(proxy(state, &cfg.cdn_bucket, obj, headers, extra).await);
+        return Ok(proxy(state, &cfg.cdn_bucket, full, headers, extra).await);
     }
     if let Some(obj) = strip(path, "/raw/") {
         // /raw/docs/foo.md -> docs/foo.md, always raw.
         return Ok(proxy(state, &cfg.cdn_bucket, obj, headers, base_headers()).await);
     }
-    if let Some(obj) = strip(path, "/snapshots/") {
-        return Ok(handle_snapshots(&cfg.cdn_bucket, obj));
+    if strip(path, "/snapshots/").is_some() {
+        return Ok(handle_snapshots(&cfg.cdn_bucket, full));
     }
     if let Some(obj) = strip(path, "/secure/") {
         return Ok(handle_secure(state, obj, query, headers).await);

@@ -88,6 +88,10 @@ spec:
               memory: 256Mi
           securityContext:
             runAsNonRoot: true
+            # distroless "nonroot" is non-numeric; pin the UID/GID so the
+            # kubelet can verify runAsNonRoot (else CreateContainerConfigError).
+            runAsUser: 65532
+            runAsGroup: 65532
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
