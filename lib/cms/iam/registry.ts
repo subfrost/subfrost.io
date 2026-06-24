@@ -33,6 +33,7 @@ export type CategoryKey =
   | "billing"
   | "financials"
   | "files"
+  | "marketing"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -47,6 +48,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "billing", label: "Billing" },
   { key: "financials", label: "Financials" },
   { key: "files", label: "Documents" },
+  { key: "marketing", label: "Marketing" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -90,6 +92,9 @@ export const PRIVILEGES: PrivilegeDef[] = [
   // --- Documents (file manager) ---
   { code: "files.read", label: "Documents — view", description: "Browse and download files and folders in the document archive.", category: "files", implies: [] },
   { code: "files.edit", label: "Documents — manage", description: "Upload, rename, move, delete files and folders, and edit their metadata.", category: "files", implies: ["files.read"] },
+
+  // --- Marketing ---
+  { code: "marketing.view", label: "Marketing — view", description: "View and capture protocol marketing snapshots.", category: "marketing", implies: [] },
 
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
@@ -200,4 +205,5 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/users": { view: "iam.list_users", edit: "iam.modify_user" },
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },
+  "/admin/marketing/snapshots": { view: "marketing.view" },
 }

@@ -2,7 +2,7 @@ import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
-  FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen,
+  FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -46,6 +46,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Dashboard", href: "/admin/communities", icon: Network, privilege: "referral.read" },
       { label: "FUEL", href: "/admin/fuel", icon: Fuel, privilege: "fuel.read" },
       { label: "Referral codes", href: "/admin/codes", icon: Ticket, privilege: "referral.read" },
+    ],
+  },
+  {
+    key: "marketing", label: "Marketing", icon: LineChart, items: [
+      { label: "Protocol snapshots", href: "/admin/marketing/snapshots", icon: Camera, privilege: "marketing.view" },
     ],
   },
   {
