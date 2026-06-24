@@ -76,6 +76,8 @@ export type AuditAction =
   | "equity_instrument_delete"
   | "balance_sheet_item_upsert"
   | "balance_sheet_item_delete"
+  | "file_upload"
+  | "file_delete"
   | "marketing_snapshot_create"
   | "marketing_snapshot_delete"
 
