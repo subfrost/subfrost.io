@@ -1,0 +1,115 @@
+# SCAFFOLD — one-shot re-index Job. Pulls the verified ES dump tarball from
+# GCS, applies each index's mapping, then bulk-loads its data into the new
+# Elasticsearch. Run AFTER es-bootstrap (templates/ILM in place) and BEFORE
+# (or concurrently with) cutting traffic over — see TELEMETRY_MIGRATION_PLAN.md.
+#
+# Dump layout (verified, 12 indices, 94,612 docs):
+#   gs://subfrost-docs/es-dumps/es-dump-20260624-161825.tar.gz
+#   └── <index>.mapping.json   e.g. {"subfrost-cdn-2026.06.23":{"mappings":{...}}}
+#   └── <index>.data.ndjson    ES search-hit lines: {"_index","_id","_score","_source":{...}}
+#
+# IMPORTANT: the .data.ndjson lines are full search hits, NOT bulk format.
+# The loader below transforms each line into a bulk action+doc pair, reusing
+# the original _index + _id so the load is idempotent (re-running overwrites,
+# never duplicates).
+#
+# The index templates (applied by es-bootstrap) drive settings/ILM on the
+# recreated indices. We still PUT each dump mapping first so any per-index
+# mapping quirk (the legacy text+.keyword headers shape) is preserved; the
+# template only governs NEW daily indices going forward.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: es-reindex-from-dump
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: es-reindex
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 172800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: es-reindex
+    spec:
+      restartPolicy: OnFailure
+      # GCS read needs auth. Use Workload Identity: bind this KSA to a GSA
+      # with roles/storage.objectViewer on gs://subfrost-cdn-bucket.
+      # TODO: create the KSA + WI binding (see plan §"Re-index Job IAM").
+      serviceAccountName: telemetry-reindex
+      containers:
+        - name: reindex
+          # google/cloud-sdk gives us `gcloud storage`/`gsutil` + curl + jq.
+          image: google/cloud-sdk:slim
+          env:
+            - name: ES_URL
+              value: "http://elasticsearch.telemetry.svc.cluster.local:9200"
+            - name: DUMP_GCS_URI
+              value: "gs://subfrost-docs/es-dumps/es-dump-20260624-161825.tar.gz"
+          command:
+            - bash
+            - -c
+            - |
+              set -euo pipefail
+              command -v jq >/dev/null || apt-get update -qq && apt-get install -y -qq jq
+
+              WORK=/work
+              mkdir -p "$WORK"
+              echo "[1/4] downloading dump $DUMP_GCS_URI"
+              gcloud storage cp "$DUMP_GCS_URI" "$WORK/es-dump.tar.gz"
+
+              echo "[2/4] extracting"
+              tar -xzf "$WORK/es-dump.tar.gz" -C "$WORK"
+              # The tarball may contain the files at top level OR under a
+              # dir; normalize by finding the *.mapping.json files.
+              cd "$(dirname "$(find "$WORK" -name '*.mapping.json' | head -1)")"
+
+              echo "[3/4] waiting for ES"
+              until curl -fsS "$ES_URL/_cluster/health?wait_for_status=yellow&timeout=5s" >/dev/null; do sleep 3; done
+
+              echo "[4/4] recreating indices + bulk-loading"
+              for m in *.mapping.json; do
+                idx="${m%.mapping.json}"
+                data="${idx}.data.ndjson"
+                echo "  --- $idx ---"
+
+                # Recreate the index with its dumped mapping. The dump wraps
+                # the mapping under the index name: {"<idx>":{"mappings":{...}}}.
+                # Extract just the mappings object for the create body.
+                mappings="$(jq -c ".[\"$idx\"].mappings" "$m")"
+                # Delete-then-create so re-runs start clean. ILM/template
+                # settings apply automatically by index_patterns match.
+                curl -fsS -X DELETE "$ES_URL/$idx" >/dev/null 2>&1 || true
+                curl -fsS -X PUT "$ES_URL/$idx" \
+                  -H 'Content-Type: application/json' \
+                  -d "{\"mappings\": $mappings}" >/dev/null
+                echo "    created $idx"
+
+                if [[ -f "$data" ]]; then
+                  # Transform search-hit NDJSON → bulk NDJSON, preserving _id
+                  # so the load is idempotent. Stream in 5k-doc chunks to
+                  # bound request size; _bulk wants action+source line pairs.
+                  jq -c '. as $h
+                         | {index: {_index: $h._index, _id: $h._id}}, $h._source' \
+                       "$data" \
+                    | split -l 10000 - "$WORK/bulk_${idx}_"
+                  for chunk in "$WORK"/bulk_${idx}_*; do
+                    curl -fsS -X POST "$ES_URL/_bulk" \
+                      -H 'Content-Type: application/x-ndjson' \
+                      --data-binary "@$chunk" \
+                      | jq -e 'if .errors then ("bulk errors in '"$idx"'" | halt_error(1)) else "ok" end' >/dev/null
+                    rm -f "$chunk"
+                  done
+                  curl -fsS -X POST "$ES_URL/$idx/_refresh" >/dev/null
+                  cnt="$(curl -fsS "$ES_URL/$idx/_count" | jq .count)"
+                  echo "    loaded $idx ($cnt docs)"
+                fi
+              done
+
+              echo "re-index complete; total docs:"
+              curl -fsS "$ES_URL/subfrost-cdn-*,subfrost-diagnostics-*/_count" | jq .count
+          volumeMounts:
+            - { name: work, mountPath: /work }
+      volumes:
+        - name: work
+          emptyDir: { sizeLimit: 4Gi }
