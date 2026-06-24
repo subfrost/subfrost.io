@@ -43,22 +43,22 @@ export function PreviewModal({ file, onClose }: { file: FileView; onClose: () =>
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onClick={onClose}>
-      <div className="my-6 flex w-full max-w-4xl flex-col rounded-xl border border-zinc-800 bg-zinc-900" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-black/70 p-0 sm:items-start sm:p-4" onClick={onClose}>
+      <div className="flex min-h-full w-full flex-col border-zinc-800 bg-zinc-900 sm:my-6 sm:min-h-0 sm:max-w-4xl sm:rounded-xl sm:border" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3 sm:static">
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-white">{file.name}</div>
             <div className="text-xs text-zinc-500">{file.mimeType || "unknown"} · {humanSize(file.size)}</div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button size="sm" variant="outline" disabled={downloading} onClick={download}>
+            <Button size="sm" variant="outline" className="h-10 sm:h-9" disabled={downloading} onClick={download}>
               {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download
             </Button>
-            <Button size="sm" variant="ghost" onClick={onClose}><X size={16} /></Button>
+            <Button size="sm" variant="ghost" aria-label="Close preview" className="h-10 w-10 p-0 sm:h-9 sm:w-9" onClick={onClose}><X size={18} /></Button>
           </div>
         </div>
 
-        <div className="max-h-[75vh] overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 sm:max-h-[75vh] sm:flex-none">
           {error && <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">{error}</div>}
           {!error && !url && <div className="flex items-center gap-2 py-12 text-sm text-zinc-500"><Loader2 size={16} className="animate-spin" /> Loading preview…</div>}
 
