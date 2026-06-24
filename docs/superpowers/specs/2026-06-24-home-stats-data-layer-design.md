@@ -1,28 +1,45 @@
-# Home stats data layer — SSR-from-cache + unified /api/stats — design
+# Home stats data layer — durable store + SSR + unified /api/stats — design
 
 **Date:** 2026-06-24
 **Repo:** `subfrost.io` (Next.js 16 App Router, Prisma/Postgres, Redis, GKE/Flux)
 **Branch:** `feat/home-stats-data-layer`
-**Status:** approved (brainstorm 2026-06-24)
+**Status:** approved (brainstorm 2026-06-24, revised after the #96 overlap + the durable-store decision)
 
 ## Context & goal
 
 The subfrost.io home renders its high-level metrics **client-side** via 7 separate SWR
 fetches (`components/MetricsBoxes.tsx`), and the whole page (`app/page.tsx`) is a
-`"use client"` component. Next.js still server-renders that tree to HTML, but **with no
-server-side data** — so the metrics SSR as `'...'` placeholders and only fill in after
-hydration + 7 successful round-trips. Result: a slow/blank first load and an intermittent
-"lifetime tx value" that briefly shows a number summed from a partial set (loaded parts
-counted, not-yet-loaded counted as 0), then corrects on refresh.
+`"use client"` component. Next.js server-renders that tree to HTML but **with no server-side
+data** — so the metrics SSR as `'...'` placeholders and only fill in after hydration + 7
+round-trips. Result: a slow/blank first load and an intermittent "lifetime tx value" that
+briefly shows a number summed from a partial set, then corrects.
 
-Per flex's direction: **serve the entire set of statistics in one API call, rendered SSR
-from cache at the nextjs layer** so the page always shows data on first paint — aligned
-with how `/articles` is server-rendered. flex also wants a **ticker marquee** of 5 live
-data points (BTC/USD, BTC block height, metashrew block height, BTC/DIESEL, BTC/FIRE).
+Per flex/gabe's direction, crystallized by Vitor: the home's data should **always populate
+instantly, even on a user's first visit** — never a slow first load, never a blank card,
+never a live fetch in the request path. flex also wants a **ticker marquee** of 5 live data
+points (BTC/USD, BTC block height, metashrew block height, DIESEL, FIRE).
 
-**This front builds the data layer + SSR, not the marquee visual.** The marquee's visual
-design is owned by Elon Moist (coinyeezy) and will be a separate PR; it will consume the
-`/api/stats` payload this front produces. Vitor handles implementing the data side.
+The key architectural decision (this revision): the SSR source is a **durable
+last-known-good store in Postgres**, not a TTL cache. A TTL Redis cache (the prior plan) goes
+cold on eviction/restart/post-deploy and the in-memory fallback is per-pod and starts empty —
+so "first visit after a deploy" would blank. A durable DB row, kept fresh by the existing
+warmer and read at SSR, is **never cold** (survives restarts/deploys/Redis outages),
+**shared** across pods, and **last-known-good** (a failed upstream fetch leaves the previous
+value rather than nulling it).
+
+### Division of labour (coordinated with Elon/coinyeezy, PR #96)
+
+PR #96 (`codex/homepage-market-data`) rebuilt the home with its own data layer
+(`/api/homepage` envelope + inline fetchers), removed the metric cards, and added a marquee
+(`HeroMarketTicker`) that consumed `/api/homepage`. To avoid two competing data layers and a
+hard `app/page.tsx` conflict, the split is:
+
+- **Data + the 3 metric cards = us** (this front): the durable store, `/api/stats`, the SSR
+  shell, and `MetricsBoxes` (cards kept, fixed to SSR-instant). Our DIESEL/FIRE source is the
+  canonical ESPO candle (USD), matching subfrost-app.
+- **Marquee visual + editorial layout = Elon**: his marquee consumes our `/api/stats`; he
+  drops `/api/homepage` and keeps the 3 cards. The home is **cards + marquee**, not
+  marquee-only.
 
 ## Global constraints
 
@@ -32,10 +49,11 @@ design is owned by Elon Moist (coinyeezy) and will be a separate PR; it will con
   Kustomization (the Kustomization reconcile only re-applies the last-fetched revision).
 - **Gates:** `npx tsc --noEmit` 0 · `CI=true npx vitest run` green · `npx next build` 0
   (benign Windows `EINVAL` copy warnings on the standalone trace).
-- **Reuse the existing cache + warmer model:** Redis via `lib/redis.ts` (`cacheGet`/
-  `cacheSet`), TTL `2100`s (35 min), warmed by `app/api/prefetch/route.ts` (Cloud Scheduler
-  every 25 min). `/api/stats` and the SSR read **only the cache** — never the live cascade
-  in the request path.
+- **Request path never calls the live cascade.** `/api/stats` and the SSR page read **only**
+  the durable store (one Postgres query). All live RPC/ESPO fetches happen only in
+  `app/api/prefetch/route.ts` (Cloud Scheduler, every 25 min).
+- **Schema change is additive** (a new model, no edits to existing models), applied by the
+  repo's `prisma db push` init container; `npx prisma generate` locally is the type gate.
 - **RPC:** `mainnet.subfrost.io/v4/subfrost` (JSON-RPC POST) — `lib/rpc-client.ts`
   `subfrostRpc(method, params, timeoutMs)`. mempool.space times out from the server (do not
   use it). zod v3, pnpm, Windows + Git Bash.
@@ -43,117 +61,154 @@ design is owned by Elon Moist (coinyeezy) and will be a separate PR; it will con
 ## Architecture
 
 ```
-Cloud Scheduler ─▶ /api/prefetch ─▶ RPC + ESPO ─▶ Redis (all keys warm, every 25 min)
+Cloud Scheduler ─▶ /api/prefetch ─▶ RPC + ESPO ──┬─▶ Redis (legacy keys, TTL)  [old per-metric routes]
+   (every 25 min)                                 └─▶ HomeStat table (DURABLE, last-known-good)  ◀── new
+                                                       (upsert per key, only on a successful fetch)
 
-Browser GET /  ─▶ app/page.tsx (server)  ─▶ getStatsFromCache(Redis)  ─▶ initialStats
+Browser GET /  ─▶ app/page.tsx (server) ─▶ getStats(DB) ─▶ initialStats
                                           └▶ <SWRConfig fallback={{ '/api/stats': initialStats }}>
-                                               └▶ <HomeClient>  (current "use client" body)
-                                                    └▶ MetricsBoxes  ─▶ useSWR('/api/stats')
-                                                         (first render = SSR data, no flicker;
-                                                          revalidate in background every 15 min)
+                                               └▶ <HomeClient> (current "use client" body)
+                                                    ├▶ MetricsBoxes (3 cards) ─▶ useSWR('/api/stats')
+                                                    └▶ marquee (Elon, later) ─▶ consumes /api/stats
 
-GET /api/stats ─▶ getStatsFromCache(Redis)  (single response: all metrics + marquee)
-Marquee (Elon, later) ─▶ consumes /api/stats
+GET /api/stats ─▶ getStats(DB)   (one response: metrics + marquee; never cold, never live in-path)
 ```
 
 ## Components
 
-### 1. `lib/stats.ts` (new) — `getStatsFromCache()`
-The single cache-assembly function, used by both `/api/stats` and the SSR page. Reads all
-stat keys from Redis (one batched read where possible) and returns a typed `HomeStats`:
+### 1. Durable store — `HomeStat` model + `lib/stats-store.ts` (new)
 
-- `metrics`: the existing 6 — `alkanesBtcLocked`, `brc20BtcLocked`, `alkanesCirculating`,
-  `brc20Circulating`, `alkanesTotalUnwraps`, `brc20TotalUnwraps` (each `number | null`),
-  plus `btcPrice: number | null`.
-- `marquee`: `btcUsd` (= btcPrice), `btcHeight: number | null`, `metashrewHeight: number | null`,
-  `dieselPrice: number | null`, `firePrice: number | null`.
-- `updatedAt`: newest source timestamp (for staleness display, optional).
+Prisma model (additive):
 
-Missing/cold key → `null` for that field (never throws, never calls the live cascade). Pure
-over an injected cache reader so it is unit-testable without Redis.
+```prisma
+model HomeStat {
+  key       String   @id      // "alkanes-btc-locked", "btc-price", "btc-height", "diesel-price", ...
+  value     Json               // same per-key value shape the warmer already produces
+  updatedAt DateTime @updatedAt
+}
+```
 
-### 2. `app/api/stats/route.ts` (new)
-`GET` → `NextResponse.json(await getStatsFromCache())`. One call returns the full set. No
-auth (public, same as the existing metric routes). The existing per-metric routes
-(`/api/alkanes-btc-locked`, …) **stay** (backward-compatible; the warmer still writes their
-keys, which `getStatsFromCache` reads) — this front does not remove them.
+- One row per stat key; latest value only (no history — the existing snapshot models cover
+  history). `value` is `Json` for flexibility (reuses the shapes already cached).
+- `lib/stats-store.ts`:
+  - `storeSet(key: string, value: unknown): Promise<void>` — `prisma.homeStat.upsert`.
+  - `storeGetAll(): Promise<Record<string, unknown>>` — one `findMany`, keyed by `key`.
+- **Last-known-good is automatic:** `storeSet` is called only on the success path of each
+  warmer step, so a failed fetch never overwrites the row.
 
-### 3. SSR-from-cache: `app/page.tsx` → server shell + `components/HomeClient.tsx`
-- The current 420-line `"use client"` body of `app/page.tsx` moves verbatim into a new
-  `components/HomeClient.tsx` (keeps `"use client"`), accepting an `initialStats: HomeStats`
-  prop.
-- `app/page.tsx` becomes a thin **server component**: `const initialStats = await
-  getStatsFromCache()`, then renders `<HomeClient initialStats={initialStats} />` wrapped in
-  `<SWRConfig value={{ fallback: { '/api/stats': initialStats } }}>`. `export const dynamic
-  = "force-dynamic"` (reads request-time cache, same as `/articles`).
-- Net behavior change: the home is SSR'd **with data** in the HTML, so first paint shows the
-  metrics immediately.
+### 2. `lib/stats.ts` (new) — `getStats()` + `HomeStats`
 
-### 4. `components/MetricsBoxes.tsx` — 7 SWR calls → 1
-- Replace the per-metric `useMetric(...)` + per-endpoint `useSWR(...)` calls with a single
+The single assembly function, used by both `/api/stats` and the SSR page. Reads the durable
+store once (`storeGetAll`) and returns a typed `HomeStats`:
+
+- `metrics` (the 3 cards): `alkanesBtcLocked`, `brc20BtcLocked`, `alkanesBtcLockedAddress`,
+  `brc20BtcLockedAddress`, `alkanesCirculating`, `brc20Circulating`, `alkanesTotalUnwraps`,
+  `brc20TotalUnwraps`, `btcPrice` (each `number | null`, addresses `string | null`).
+- `marquee` (Elon): `btcUsd` (= btcPrice), `btcHeight`, `metashrewHeight`, `dieselUsd`,
+  `fireUsd` (each `number | null`).
+- `updatedAt?: string` — newest row `updatedAt` (optional, for staleness display).
+
+Missing/cold key → `null` for that field (never throws, never calls the live cascade). The
+numeric/string coercion uses `numOrNull` / `strOrNull` guards so a malformed `value` degrades
+to `null`. Decoupled from Prisma via `storeGetAll` so it is unit-testable with a mocked store.
+
+### 3. `app/api/stats/route.ts` (new)
+
+`GET` → `NextResponse.json(await getStats())`. One call returns the full set. Public (same as
+the existing metric routes). The per-metric routes (`/api/alkanes-btc-locked`, …) **stay**
+(backward-compatible — they still read their Redis keys, which the warmer still writes).
+
+### 4. SSR-from-store: `app/page.tsx` → server shell + `components/HomeClient.tsx`
+
+- The current `"use client"` body of `app/page.tsx` moves verbatim into a new
+  `components/HomeClient.tsx` (keeps `"use client"`), accepting `initialStats: HomeStats`.
+- `app/page.tsx` becomes a thin **server component**: `const initialStats = await getStats()`,
+  then renders `<HomeClient initialStats={initialStats} />` wrapped in
+  `<SWRConfig value={{ fallback: { '/api/stats': initialStats } }}>`.
+  `export const dynamic = "force-dynamic"` (request-time read, like `/articles`).
+- Net: the home is SSR'd **with data** in the HTML → first paint shows the metrics.
+
+### 5. `components/MetricsBoxes.tsx` — 7 SWR calls → 1 (cards kept)
+
+- Replace the per-metric `useMetric(...)` / per-endpoint `useSWR(...)` calls with a single
   `useSWR<HomeStats>('/api/stats', fetcher)` (the SSR fallback provides the first value).
-- Derive the displayed values from the one `stats` object (same formatting/USD-toggle logic).
+- Derive the 3 cards' values from the one `stats` object (same formatting / USD-toggle logic).
 - **Loading-correctness:** compute the "Lifetime Tx Value" (and any derived total) only when
-  **all** its inputs are non-null; if any is null (cold cache), show `<LoadingDots />` for
-  that card — never a sum that treats a missing part as 0. The BTC/USD toggle reads
-  `stats.metrics.btcPrice`.
-- The `useMetric` hook and the per-metric route imports are no longer used by MetricsBoxes
-  (leave the routes; remove the now-dead `useMetric` usage from this component).
+  **all** its inputs are non-null; if any is null, show `<LoadingDots />` for that card —
+  never a sum that treats a missing part as 0. The BTC/USD toggle reads `stats.metrics.btcPrice`.
+- The `useMetric` hook / per-metric route imports are no longer used by MetricsBoxes (leave
+  the routes; remove the dead usage from this component).
 
-### 5. New data sources (the 2 heights + 2 AMM prices)
-- `lib/rpc-client.ts`: add `getBtcHeight()` → `subfrostRpc<number>('esplora_blocks:tip:height',
-  [])`; `getMetashrewHeight()` → `subfrostRpc<string|number>('metashrew_height', [])` (returns
-  a numeric height; metashrew returns it as a string — coerce to number).
-- `lib/espo-price.ts` (new): `getEspoUsdPrice(tokenId)` → ESPO `ammdata.get_candles` →
-  parse `candle.close` (scaled USD), mirroring `subfrost-app/queries/account.ts:684-725`
-  (`parseEspoScaledUsd`). Used for DIESEL and FIRE. **To pin in the plan:** the ESPO endpoint
-  URL for the server (subfrost-app proxies `/api/rpc/<network>/espo`; confirm the subfrost.io
-  server's ESPO base), the DIESEL and FIRE alkane token-ids, and whether the marquee wants
-  USD or BTC-denominated (default: USD price, like the wallet; a BTC-denominated value can be
-  derived as `usd / btcUsd` if needed).
+### 6. New data sources (the 2 heights + 2 AMM prices)
 
-### 6. `app/api/prefetch/route.ts` — warm the new keys
-Add to the `Promise.allSettled` batch: `btc-height`, `metashrew-height`, `diesel-price`,
-`fire-price` (BTC/USD already warmed as `btc-price`). Each `run(key, fn)` fetches via the new
-libs and `cacheSet`s with the existing `CACHE_TTL`. So `/api/stats` always serves warm.
+- `lib/rpc-client.ts`: `getBtcHeight()` → `subfrostRpc<number|string>('esplora_blocks:tip:height', [])`
+  → `Number`; `getMetashrewHeight()` → `subfrostRpc<number|string>('metashrew_height', [])`
+  → `Number` (metashrew returns a string).
+- `lib/espo-price.ts` (new): `getEspoUsdPrice(pool, fetchImpl?)` → POST
+  `https://api.alkanode.com/rpc` method `ammdata.get_candles`, params **object**
+  `{ pool, timeframe:'10m', side:'base', limit:1, page:1 }`; pool `'2:0-usd'` (DIESEL) /
+  `'2:77623-usd'` (FIRE); USD = `Number(result.candles[0].close) / 1e16` (mirrors subfrost-app
+  `parseEspoScaledUsd`). DIESEL ≈ $70, FIRE ≈ $55. (alkanode `/rpc` wants params as an object;
+  the subfrost gateway has no `ammdata.*`; `oyl.alkanode.com/rpc` = 404 — use `api.alkanode.com/rpc`.)
 
-## Error handling / cold-cache
+### 7. `app/api/prefetch/route.ts` — warm Redis + the durable store
 
-- Request path (`/api/stats`, SSR) never calls the live cascade — only cache reads. A cold or
-  failed key surfaces as `null`; the client SWR revalidates `/api/stats` in the background and
-  the server-side warmer repopulates within its cycle.
-- `getStatsFromCache` is total (no throw): a Redis read error for one key yields `null` for
+Each existing `run(key, fn)` step, plus 4 new ones (`btc-height`, `metashrew-height`,
+`diesel-price`, `fire-price`), writes **both** on success:
+`cacheSet(key, value, CACHE_TTL)` (existing Redis, for the legacy routes) **and**
+`storeSet(key, value)` (new durable upsert). Both inside the `try`, so a failed fetch writes
+neither and the durable row keeps its last-known-good value. (BTC/USD is already warmed as
+`btc-price`.)
+
+## Marquee contract (what Elon consumes)
+
+`/api/stats` → `HomeStats`. The marquee reads `marquee.{btcUsd, btcHeight, metashrewHeight,
+dieselUsd, fireUsd}`. DIESEL/FIRE are exposed in **USD** (canonical ESPO close) plus `btcUsd`
+— a BTC-denominated ratio (e.g. BTC/DIESEL) is derivable client-side as `btcUsd / dieselUsd`,
+so the visual owns the denomination without us changing the data source.
+
+## Error handling / cold-start
+
+- Request path (`/api/stats`, SSR) only reads the durable store — a cold/absent key surfaces
+  as `null`; the client SWR revalidates `/api/stats` in the background and the warmer
+  repopulates within its cycle.
+- `getStats` is total (no throw): a store read error or a malformed `value` yields `null` for
   that field, not a 500.
-- **Out of scope (future):** a durable "last-known-good" key (TTL-less) so SSR always has a
-  value even after a long warmer outage. The warmer (25 min) + TTL (35 min) covers the normal
-  case; note it but don't build it now.
+- **First deploy** (empty table): fields are `null` until the first warm; run `/api/prefetch`
+  once post-deploy (already in the live verification). Thereafter durable — survives restarts,
+  deploys, Redis outages, and TTL expiry (there is no TTL on the store).
 
 ## Out of scope
 
-- The **marquee visual** (Elon Moist / coinyeezy) — this front only exposes the data in
-  `/api/stats`.
-- Removing the per-metric routes (kept for backward-compat).
-- `/articles` SEO/meta-at-publish work flex mentioned (separate front).
-- Durable last-known-good store.
+- The **marquee visual** (Elon Moist / coinyeezy) — this front only exposes the data.
+- Removing the per-metric routes (kept for backward-compat) or the Redis keys (the legacy
+  routes still read them).
+- The home editorial rebuild / layout (Elon's #96).
+- `/articles` SEO/meta-at-publish (separate front).
 
 ## Testing
 
-- `lib/stats.ts` `getStatsFromCache`: assembles the full payload from a mocked cache reader;
-  a missing key yields `null` for that field (no throw). Unit.
-- `app/api/stats/route.ts`: `GET` returns the assembled payload (mocked `getStatsFromCache`).
-- `components/MetricsBoxes.tsx`: renders values from an injected `/api/stats` fallback without
-  a loading flash; the lifetime card shows `<LoadingDots />` when any input is null and the
-  full sum when all are present. Component test (happy-dom + SWRConfig fallback).
+- `lib/stats-store.ts`: `storeSet` upserts; `storeGetAll` returns a key→value map (mocked
+  Prisma). Unit.
+- `lib/stats.ts` `getStats`: assembles the full payload from a mocked `storeGetAll`; a missing
+  key yields `null` for that field; a malformed `value` yields `null` (no throw). Unit.
+- `app/api/stats/route.ts`: `GET` returns the assembled payload (mocked `getStats`).
+- `components/MetricsBoxes.tsx`: renders the 3 cards from an injected `/api/stats` fallback
+  without a loading flash; the lifetime card shows `<LoadingDots />` when any input is null and
+  the full sum when all are present. Component test (happy-dom + SWRConfig fallback).
 - `lib/rpc-client.ts` `getBtcHeight`/`getMetashrewHeight`: query the right RPC method (mocked
-  fetch); metashrew string height coerces to number.
-- `lib/espo-price.ts`: parses `candle.close` to a USD number (mocked ESPO response).
+  fetch); the metashrew string height coerces to a number.
+- `lib/espo-price.ts`: POSTs `ammdata.get_candles` with the right pool/params and parses
+  `candle.close / 1e16`; throws when no candle is returned (mocked fetch).
 - Gates: `tsc` 0 · `vitest` green · `next build` 0.
 
 ## Verification (live, post-deploy)
 
-1. `curl https://subfrost.io/api/stats` returns one JSON with all metrics + the marquee
-   block, fast (~0.5s, cache).
-2. `view-source` of `https://subfrost.io/` shows the metric values **in the SSR HTML** (not
-   `'...'`), i.e. data on first paint.
-3. The "Lifetime Tx Value" no longer flickers to a lower number then corrects — it shows the
-   complete value or a clean loading state.
+1. Run `/api/prefetch` once (or wait for the scheduler) to populate the durable rows.
+2. `curl https://subfrost.io/api/stats` → one JSON with all metrics + the marquee block,
+   fast (~0.5s, single DB read), heights + diesel/fire USD present.
+3. `view-source` of `https://subfrost.io/` shows the metric values **in the SSR HTML** (not
+   `'...'`) — data on first paint.
+4. The "Lifetime Tx Value" no longer flickers to a lower number then corrects.
+5. Restart a pod (or after a deploy) and load the home cold — the cards still paint with data
+   immediately (durable store, not a cold cache).
