@@ -101,6 +101,14 @@ spec:
               value: "1"
             - name: CMS_BUCKET
               value: "subfrost-cms"
+            # TLS-fingerprint telemetry sink. The /api/fp beacon (app/api/fp/route.ts)
+            # fire-and-forgets per-request JA4/JA3 access events here, into today's
+            # subfrost-cdn-<date> index. This is the new in-cluster ES in the
+            # `telemetry` namespace (security disabled, cross-namespace ClusterIP
+            # DNS); it replaces the old fp-server→rabbitmq→sink capture path. The
+            # value below is also the route's default, so this is belt-and-braces.
+            - name: TELEMETRY_ES_URL
+              value: "http://elasticsearch.telemetry.svc.cluster.local:9200"
             - name: AUTH_SECRET
               valueFrom:
                 secretKeyRef:

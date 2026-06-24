@@ -60,7 +60,7 @@ export function FolderPicker({
     return (
       <div>
         <div
-          className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-sm ${
+          className={`flex items-center gap-1 rounded-md px-2 py-2.5 text-sm sm:py-1.5 ${
             disabled ? "opacity-40" : "cursor-pointer hover:bg-zinc-800/60"
           } ${selected === folder.id ? "bg-sky-950/50 text-sky-200" : "text-zinc-300"}`}
           style={{ paddingLeft: depth * 14 + 8 }}
@@ -68,7 +68,8 @@ export function FolderPicker({
         >
           <button
             type="button"
-            className="shrink-0 text-zinc-500 hover:text-zinc-300"
+            aria-label="Toggle folder"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-zinc-500 hover:text-zinc-300 sm:h-auto sm:w-auto"
             onClick={(e) => { e.stopPropagation(); toggle(key, folder.id) }}
           >
             {n?.loading ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} className={n?.open ? "rotate-90 transition" : "transition"} />}
@@ -83,13 +84,13 @@ export function FolderPicker({
 
   const root = nodes["__root__"]
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={onClose}>
-      <div className="my-8 w-full max-w-md space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-start sm:p-4" onClick={onClose}>
+      <div className="my-0 max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-900 p-5 sm:my-8 sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="text-sm font-semibold text-white">{title}</div>
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/40 p-1">
+        <div className="max-h-[55vh] overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/40 p-1 sm:max-h-[50vh]">
           <div
-            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+            className={`flex items-center gap-2 rounded-md px-2 py-2.5 text-sm sm:py-1.5 ${
               selected === null ? "bg-sky-950/50 text-sky-200" : "cursor-pointer text-zinc-300 hover:bg-zinc-800/60"
             }`}
             onClick={() => setSelected(null)}
@@ -102,8 +103,8 @@ export function FolderPicker({
           {root?.children.map((c) => <Row key={c.id} folder={c} depth={1} />)}
         </div>
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={() => onPick(selected)} disabled={selected === currentParentId}>Move here</Button>
+          <Button size="sm" variant="ghost" className="h-10 sm:h-9" onClick={onClose}>Cancel</Button>
+          <Button size="sm" className="h-10 sm:h-9" onClick={() => onPick(selected)} disabled={selected === currentParentId}>Move here</Button>
         </div>
       </div>
     </div>

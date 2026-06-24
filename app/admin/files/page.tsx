@@ -20,8 +20,8 @@ export default async function FilesPage({
   const res = await listFolderAction(folderId)
 
   return (
-    <div>
-      <h1 className="mb-2 text-2xl font-bold text-white">Documents</h1>
+    <div className="min-w-0">
+      <h1 className="mb-2 text-xl font-bold text-white sm:text-2xl">Documents</h1>
       <p className="mb-6 text-sm text-zinc-500">
         Browse, upload, and organize files in the shared document archive.
       </p>
