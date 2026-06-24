@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { ArticlePreview, CmsLocale } from "@/lib/cms/articles"
-import { CoverArt } from "./CoverArt"
+import { CmsCoverImage } from "./CmsCoverImage"
 
 function categoryLabel(tag: { slug: string; name: string }, locale: CmsLocale) {
   const value = tag.slug.toLowerCase()
@@ -27,13 +27,8 @@ export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePrev
 
   return (
     <Link href={href} className="ed-card" prefetch={false}>
-      <div className="ed-cover-frame">
-        {a.coverImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.coverImage} alt="" loading="lazy" decoding="async" className="h-[220px] w-full object-contain sm:h-[300px] sm:object-cover" />
-        ) : (
-          <CoverArt className="h-[220px] sm:h-[300px]" variant={coverVariant ?? a.slug} />
-        )}
+      <div className="ed-cover-frame aspect-[24/11]">
+        <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant ?? a.slug} />
       </div>
       <div className="flex flex-1 flex-col pt-4">
         <h3

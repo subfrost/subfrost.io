@@ -314,7 +314,7 @@ Rules:
 
 Navigation:
 
-- Desktop nav items: Markets, Swap, Vaults, Blog.
+- Desktop nav items: Markets, Swap, Vaults, Articles.
 - Chinese mode localizes menu items.
 - Active item uses `--ed-ink`.
 - Inactive items use `--ed-muted`.

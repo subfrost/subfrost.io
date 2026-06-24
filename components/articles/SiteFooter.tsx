@@ -23,8 +23,8 @@ export function SiteFooter() {
             title: "开发者",
             links: [
               { label: "开发者入口", href: "/developer?lang=zh" },
-              { label: "技术概览", href: "https://docs.subfrost.io/introduction/technical-overview" },
-              { label: "API 文档", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+              { label: "技术概览", href: "/docs/introduction/technical-overview?lang=zh" },
+              { label: "API 文档", href: "/docs/introduction/api-docs?lang=zh" },
             ],
           },
           {
@@ -38,10 +38,10 @@ export function SiteFooter() {
           {
             title: "公司",
             links: [
-              { label: "支持", href: "/support" },
+              { label: "支持", href: "/support?lang=zh" },
               { label: "品牌资源", href: "/brand?lang=zh" },
-              { label: "服务条款", href: "/terms" },
-              { label: "隐私政策", href: "/privacy" },
+              { label: "服务条款", href: "/terms?lang=zh" },
+              { label: "隐私政策", href: "/privacy?lang=zh" },
             ],
           },
         ]
@@ -50,8 +50,8 @@ export function SiteFooter() {
             title: "Developer",
             links: [
               { label: "Developer", href: "/developer" },
-              { label: "Technical overview", href: "https://docs.subfrost.io/introduction/technical-overview" },
-              { label: "API docs", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+              { label: "Technical overview", href: "/docs/introduction/technical-overview" },
+              { label: "API docs", href: "/docs/introduction/api-docs" },
             ],
           },
           {

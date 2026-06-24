@@ -33,7 +33,7 @@ export default function LatestArticles() {
     <div id="articles" className="pt-10">
       <div className="text-center mb-8">
         <h3 className="text-3xl md:text-4xl font-semibold text-white snow-title-no-filter mb-4">
-          From the Subfrost blog
+          From subfrost articles
         </h3>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
           Research, releases, and field notes from the team.

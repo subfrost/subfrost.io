@@ -17,8 +17,8 @@ export async function GET() {
 ## Core Links
 
 - [Website](${siteUrl})
-- [Blog](${absoluteUrl("/articles")}): Research, protocol notes, product updates, and documentation links.
-- [Docs](https://docs.subfrost.io/): Technical references and setup paths.
+- [Articles](${absoluteUrl("/articles")}): Research, protocol notes, product updates, and documentation links.
+- [Docs](${absoluteUrl("/docs")}): Technical references, setup paths, product guides, token docs, and networking references.
 - [App](https://app.subfrost.io/): Live SUBFROST application.
 - [Support](${absoluteUrl("/support")}): Product and account support.
 

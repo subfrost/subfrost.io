@@ -130,6 +130,16 @@ div[data-netlify-deploy-id] {
       background: #000000 !important;
     }
   }
+
+  html:has(#ed-root[data-ed-theme="dark"]),
+  body:has(#ed-root[data-ed-theme="dark"]) {
+    background: #000000 !important;
+  }
+
+  html:has(#ed-root[data-ed-theme="light"]),
+  body:has(#ed-root[data-ed-theme="light"]) {
+    background: #ffffff !important;
+  }
 }
 
 /* Dark scrollbars for internal containers (not the main page scrollbar) */
@@ -388,6 +398,7 @@ div[data-netlify-deploy-id] {
   color: #e6ecf7;
   border-radius: 6px;
   padding: 18px 20px;
+  max-width: 100%;
   overflow-x: auto;
   font-size: 14.5px;
   line-height: 1.6;
@@ -528,6 +539,11 @@ div[data-netlify-deploy-id] {
   display: block;
   transform: scale(1.04);
   transform-origin: center;
+}
+.ed-cover-frame img.ed-cms-cover {
+  object-fit: contain;
+  transform: scale(1.08);
+  background: var(--ed-cover);
 }
 .ed-card > .ed-cover-frame {
   border-radius: 6px;

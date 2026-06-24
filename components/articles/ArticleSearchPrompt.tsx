@@ -49,7 +49,7 @@ export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem
     const normalized = query.trim().toLowerCase()
 
     if (!normalized) {
-      setMessage(locale === "zh" ? "输入一个主题来查找相关文章。" : "Enter a topic to find a related update.")
+      setMessage(locale === "zh" ? "输入一个主题来查找相关文章。" : "Enter a topic to find a related article.")
       return
     }
 
@@ -63,7 +63,7 @@ export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem
       .sort((a, b) => b.score - a.score)[0]
 
     if (!match) {
-      setMessage(locale === "zh" ? "没有找到匹配的文章。" : "No matching updates found.")
+      setMessage(locale === "zh" ? "没有找到匹配的文章。" : "No matching articles found.")
       return
     }
 
@@ -100,7 +100,7 @@ export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem
         />
         <button
           type="submit"
-          aria-label={locale === "zh" ? "搜索文章" : "Search updates"}
+          aria-label={locale === "zh" ? "搜索文章" : "Search articles"}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80"
           style={{
             background: hasQuery ? "var(--ed-action-bg)" : "color-mix(in srgb, var(--ed-ink) 42%, transparent)",

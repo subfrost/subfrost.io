@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
+import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,57 +42,91 @@ export default function AdminLoginPage() {
     else { setError(res.error); setLoading(false) }
   }
 
-  const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
+  const inputCls =
+    "h-12 rounded-[6px] border-[#d9e3ec] bg-white text-[#07111f] placeholder:text-[#8a9bab] focus-visible:ring-[#a7c6dc]"
+  const buttonCls =
+    "h-12 rounded-[6px] bg-[#07111f] text-white hover:bg-[#07111f] hover:text-white"
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8">
-        <div className="mb-6 text-center">
-          <div className="text-xl font-bold text-white">SUBFROST</div>
-          <div className="text-xs uppercase tracking-widest text-zinc-500">Admin</div>
-        </div>
+    <div className="grid min-h-screen bg-[#f7fafc] text-[#07111f] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+      <section className="flex min-h-screen items-center px-6 py-10 sm:px-10 lg:px-16">
+        <div className="w-full max-w-[420px]">
+          <a href="/" className="mb-20 inline-flex items-center" aria-label="subfrost home">
+            <Image
+              src="/brand/subfrost/Logos/svg/logotype/logotype_black.svg"
+              width={156}
+              height={32}
+              alt="subfrost"
+              priority
+              className="h-8 w-auto"
+            />
+          </a>
+          <div className="mb-9">
+            <p className="mb-3 text-[15px] font-medium text-[#5f7690]">Admin</p>
+            <h1 className="text-[48px] font-normal leading-none tracking-[-0.02em]">Sign in</h1>
+            <p className="mt-5 max-w-[340px] text-[17px] leading-[1.5] text-[#455a72]">
+              Manage articles, users, billing, and protocol operations from one private console.
+            </p>
+          </div>
 
-        {step === "credentials" ? (
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-zinc-300">Email</Label>
-              <Input id="email" type="email" autoComplete="username" value={email}
-                onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-zinc-300">Password</Label>
-              <Input id="password" type="password" autoComplete="current-password" value={password}
-                onChange={(e) => setPassword(e.target.value)} required className={inputCls} />
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
-            <a href="/admin/forgot-password" className="block text-center text-xs text-zinc-500 hover:text-zinc-300">
-              Forgot password?
-            </a>
-          </form>
-        ) : (
-          <form onSubmit={onVerify} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="code" className="text-zinc-300">
-                {useRecovery ? "Recovery code" : "Authenticator code"}
-              </Label>
-              <Input id="code" inputMode={useRecovery ? "text" : "numeric"} autoFocus autoComplete="one-time-code"
-                value={code} onChange={(e) => setCode(e.target.value)} required
-                placeholder={useRecovery ? "XXXXXXXX" : "123456"} className={`${inputCls} tracking-widest`} />
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Verifying…" : "Verify"}
-            </Button>
-            <button type="button" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null) }}
-              className="block w-full text-center text-xs text-zinc-500 hover:text-zinc-300">
-              {useRecovery ? "Use an authenticator code instead" : "Use a recovery code instead"}
-            </button>
-          </form>
-        )}
-      </div>
+          <div>
+            {step === "credentials" ? (
+              <form onSubmit={onSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[#455a72]">Email</Label>
+                  <Input id="email" type="email" autoComplete="username" value={email}
+                    onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-[#455a72]">Password</Label>
+                  <Input id="password" type="password" autoComplete="current-password" value={password}
+                    onChange={(e) => setPassword(e.target.value)} required className={inputCls} />
+                </div>
+                {error && <p className="text-sm text-[#b8321a]">{error}</p>}
+                <Button type="submit" disabled={loading} className={`w-full ${buttonCls}`}>
+                  {loading ? "Signing in..." : "Sign in"}
+                </Button>
+                <a href="/admin/forgot-password" className="inline-flex items-center gap-1 text-[14px] text-[#5f7690]">
+                  Forgot password
+                  <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
+                </a>
+              </form>
+            ) : (
+              <form onSubmit={onVerify} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="code" className="text-[#455a72]">
+                    {useRecovery ? "Recovery code" : "Authenticator code"}
+                  </Label>
+                  <Input id="code" inputMode={useRecovery ? "text" : "numeric"} autoFocus autoComplete="one-time-code"
+                    value={code} onChange={(e) => setCode(e.target.value)} required
+                    placeholder={useRecovery ? "XXXXXXXX" : "123456"} className={`${inputCls} tracking-widest`} />
+                </div>
+                {error && <p className="text-sm text-[#b8321a]">{error}</p>}
+                <Button type="submit" disabled={loading} className={`w-full ${buttonCls}`}>
+                  {loading ? "Verifying..." : "Verify"}
+                </Button>
+                <button type="button" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null) }}
+                  className="text-[14px] text-[#5f7690]">
+                  {useRecovery ? "Use an authenticator code instead" : "Use a recovery code instead"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+      <aside className="hidden min-h-screen overflow-hidden bg-[#07111f] p-8 lg:block">
+        <div className="relative h-full overflow-hidden rounded-[6px]">
+          <Image
+            src="/brand/subfrost/Graphics/jpeg/ice_bg.jpg"
+            alt=""
+            fill
+            sizes="50vw"
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-[#07111f]/25" />
+        </div>
+      </aside>
     </div>
   )
 }

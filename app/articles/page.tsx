@@ -5,6 +5,7 @@ import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
+import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
 import { ArrowRight } from "lucide-react"
@@ -18,11 +19,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await searchParams
   const locale: CmsLocale = lang === "zh" ? "zh" : "en"
-  const title = locale === "zh" ? "Subfrost 文章、研究与协议更新" : "Subfrost articles, research, and protocol updates"
+  const title = locale === "zh" ? "subfrost 文章、研究与协议更新" : "subfrost articles, research, and protocol updates"
   const description =
     locale === "zh"
-      ? "阅读 Subfrost 关于比特币原生收益、frBTC、协议设计、产品发布与技术文档的最新文章。"
-      : "Read Subfrost research, protocol notes, product updates, and documentation for Bitcoin-native yield, frBTC, and Bitcoin DeFi infrastructure."
+      ? "阅读 subfrost 关于比特币原生收益、frBTC、协议设计、产品发布与技术文档的最新文章。"
+      : "Read subfrost research, protocol notes, product updates, and documentation for Bitcoin-native yield, frBTC, and Bitcoin DeFi infrastructure."
   const url = absoluteUrl(locale === "zh" ? "/articles?lang=zh" : "/articles")
   const requestHeaders = await headers()
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
@@ -45,18 +46,18 @@ export async function generateMetadata({
       description,
       type: "website",
       url,
-      siteName: "Subfrost",
-      images: [{ url: image, width: 1200, height: 630, alt: "Subfrost articles", type: "image/png" }],
+      siteName: "subfrost",
+      images: [{ url: image, width: 1200, height: 630, alt: "subfrost articles", type: "image/png" }],
       locale: locale === "zh" ? "zh_CN" : "en_US",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [{ url: image, alt: "Subfrost articles" }],
+      images: [{ url: image, alt: "subfrost articles" }],
     },
     keywords: [
-      "Subfrost",
+      "subfrost",
       "Bitcoin DeFi",
       "Bitcoin native yield",
       "frBTC",
@@ -71,25 +72,25 @@ export async function generateMetadata({
 const articleCopy = {
   en: {
     articles: "All",
-    browseByTopic: "Browse By Topic",
+    browseByTopic: "Browse by topic",
     featured: "Featured",
     recentPosts: "Recent",
-    noMatching: "No matching updates found.",
+    noMatching: "No matching articles found.",
     noTopicPosts: "No published posts in this topic yet.",
-    srTitle: "Subfrost blog",
+    srTitle: "subfrost articles",
     docsEyebrow: "Developer",
-    docsSource: "Subfrost Docs",
+    docsSource: "subfrost docs",
   },
   zh: {
     articles: "全部",
     browseByTopic: "按主题浏览",
     featured: "精选",
     recentPosts: "最新",
-    noMatching: "没有找到匹配的更新。",
+    noMatching: "没有找到匹配的文章。",
     noTopicPosts: "此主题暂无已发布文章。",
-    srTitle: "Subfrost 更新",
+    srTitle: "subfrost 文章",
     docsEyebrow: "开发者",
-    docsSource: "Subfrost 文档",
+    docsSource: "subfrost 文档",
   },
 } satisfies Record<CmsLocale, Record<string, string>>
 
@@ -116,22 +117,22 @@ const topicDefinitions = [
 
 const docsBackfill = [
   {
-    title: { en: "Subfrost Overview", zh: "Subfrost 概览" },
-    href: "https://docs.subfrost.io/",
+    title: { en: "subfrost overview", zh: "subfrost 概览" },
+    href: "/docs",
     excerpt: { en: "Bitcoin DeFi needs new rails for native BTC to power advanced L1 applications.", zh: "比特币 DeFi 需要新的原生 BTC 轨道，用来支撑更高级的 L1 应用。" },
   },
   {
     title: { en: "Technical Overview", zh: "技术概览" },
-    href: "https://docs.subfrost.io/introduction/technical-overview",
+    href: "/docs/introduction/technical-overview",
     excerpt: {
-      en: "How Subfrost operates as Layer-0 infrastructure, using fraud proofs and ZK circuits to verify system integrity.",
-      zh: "Subfrost 如何作为 Layer-0 基础设施运行，并使用欺诈证明与 ZK 电路验证系统完整性。",
+      en: "How subfrost operates as Layer-0 infrastructure, using fraud proofs and ZK circuits to verify system integrity.",
+      zh: "subfrost 如何作为 Layer-0 基础设施运行，并使用欺诈证明与 ZK 电路验证系统完整性。",
     },
   },
   {
-    title: { en: "Subfrost API Docs", zh: "Subfrost API 文档" },
-    href: "https://docs.subfrost.io/introduction/subfrost-api-docs",
-    excerpt: { en: "The entry point for Subfrost API documentation and Bitcoin-native app development paths.", zh: "Subfrost API 文档入口，以及构建比特币原生应用的开发路径。" },
+    title: { en: "subfrost API docs", zh: "subfrost API 文档" },
+    href: "/docs/introduction/api-docs",
+    excerpt: { en: "The entry point for subfrost API documentation and Bitcoin-native app development paths.", zh: "subfrost API 文档入口，以及构建比特币原生应用的开发路径。" },
   },
 ]
 
@@ -322,13 +323,13 @@ export default async function ArticlesIndex({
                 <article>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
                   <Link href={articleHref(lead.slug, locale)} className="ed-card" prefetch={false}>
-                    <div className="ed-cover-frame">
-                      {lead.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={lead.coverImage} alt="" loading="eager" decoding="async" fetchPriority="high" className="h-[320px] w-full object-contain sm:h-[443px] sm:object-cover" />
-                      ) : (
-                        <CoverArt className="h-[320px] sm:h-[443px]" priority sizes="(min-width: 1280px) 60vw, (min-width: 1024px) 58vw, 100vw" variant={0} />
-                      )}
+                    <div className="ed-cover-frame aspect-[24/11]">
+                      <CmsCoverImage
+                        src={lead.coverImage}
+                        className="h-full w-full"
+                        fallbackVariant={0}
+                        priority
+                      />
                     </div>
                     <div className="flex flex-1 flex-col pt-4">
                       <h2
@@ -422,7 +423,7 @@ export default async function ArticlesIndex({
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-[8px] p-8" style={{ background: "color-mix(in srgb, var(--ed-surface) 54%, transparent)", color: "var(--ed-muted)" }}>
+                    <div className="flex min-h-[116px] items-center justify-center rounded-[8px] p-8 text-center" style={{ background: "color-mix(in srgb, var(--ed-surface) 54%, transparent)", color: "var(--ed-muted)" }}>
                       <p className="font-reading text-[15px]">{copy.noTopicPosts}</p>
                     </div>
                   )}

@@ -223,6 +223,31 @@ function previewArticle(slug: string, locale: CmsLocale): ArticleFull | null {
   }
 }
 
+async function remotePreviewPreviews(opts: {
+  limit?: number
+  tag?: string
+  featured?: boolean
+  locale?: CmsLocale
+} = {}): Promise<ArticlePreview[] | null> {
+  const apiUrl = process.env.ARTICLE_PREVIEW_API_URL
+  if (!apiUrl) return null
+
+  try {
+    const url = new URL(apiUrl)
+    url.searchParams.set("limit", String(Math.min(Math.max(opts.limit ?? 20, 1), 50)))
+    url.searchParams.set("locale", opts.locale ?? "en")
+    if (opts.tag) url.searchParams.set("tag", opts.tag)
+    if (opts.featured) url.searchParams.set("featured", "true")
+
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { articles?: ArticlePreview[] }
+    return Array.isArray(data.articles) ? data.articles : null
+  } catch {
+    return null
+  }
+}
+
 function toPreview(a: ArticleRow, want: CmsLocale): ArticlePreview | null {
   const t = chooseTranslation(a.translations, a.primaryLocale, want)
   if (!t) return null
@@ -255,7 +280,7 @@ export async function getPublishedPreviews(opts: {
   previewFallback?: boolean
 } = {}): Promise<ArticlePreview[]> {
   const { limit = 20, tag, featured, locale = "en", previewFallback = false } = opts
-  if (usePreviewFallback(previewFallback)) return previewPreviews(opts)
+  if (usePreviewFallback(previewFallback)) return (await remotePreviewPreviews(opts)) ?? previewPreviews(opts)
 
   try {
     const rows = (await prisma.article.findMany({

@@ -232,6 +232,35 @@ pnpm dev
 
 Then open `http://localhost:3000/articles`.
 
+To preview the production CMS article feed locally without production database access, set:
+
+```bash
+ARTICLE_PREVIEW_API_URL="https://subfrost.io/api/articles"
+pnpm dev
+```
+
+Localhost normally uses fallback article data so deploy previews stay reviewable without CMS access. `ARTICLE_PREVIEW_API_URL` overrides that fallback with the public production article API and is useful for checking real cover-image behavior inside the local design system.
+
+### Article cover image guidance
+
+CMS article covers should be uploaded as editorial thumbnails, not full-width hero lockups.
+
+Recommended upload specs:
+
+- **Aspect ratio:** `24:11` preferred for article covers. The current production CMS banner is `1440 x 660`, and the article index is tuned around that shape.
+- **Minimum size:** `1200 x 550`.
+- **High quality target:** `1920 x 880` when the source image is detailed and clean.
+- **File type:** JPG/WebP for photographic or rendered frost imagery; PNG only when transparency or sharp logo artwork is required.
+- **Safe area:** keep logos, wordmarks, and important text away from the outer 8% on every side. The frontend preserves the full CMS cover with `object-fit: contain`, but small screens and social previews can still compress edge detail.
+- **Avoid:** text-heavy graphics, full-width brand banners, tiny logos near edges, hard borders baked into the image, screenshots with UI chrome, and images that only work uncropped.
+
+Frontend behavior:
+
+- Article cards and featured articles use a `24:11` frame and preserve the full CMS cover.
+- Broken or missing CMS images fall back to the git-managed frost cover art.
+- The lead image loads eagerly; lower article images lazy-load.
+- The layout preserves stable image dimensions to prevent jumpy page loads.
+
 SEO endpoints to spot-check during article work:
 
 - `http://localhost:3000/sitemap.xml`

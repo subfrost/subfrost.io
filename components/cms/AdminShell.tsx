@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Menu, X } from "lucide-react"
 import { AdminNav } from "@/components/cms/AdminNav"
 import { UserMenu } from "@/components/cms/UserMenu"
@@ -16,39 +17,46 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
   const [open, setOpen] = useState(false)
 
   const brand = (
-    <div className="px-2">
-      <div className="text-lg font-bold text-white">SUBFROST</div>
-      <div className="text-xs uppercase tracking-widest text-zinc-500">Admin</div>
-    </div>
+    <a href="/admin" className="block px-2" aria-label="subfrost admin">
+      <Image
+        src="/brand/subfrost/Logos/svg/logotype/logotype_light.svg"
+        width={148}
+        height={30}
+        alt="subfrost"
+        className="h-7 w-auto"
+        priority
+      />
+      <div className="mt-3 text-[13px] font-normal text-[#7f93aa]">Admin</div>
+    </a>
   )
 
   const body = (onNavigate?: () => void) => (
     <>
       <AdminNav privileges={user.privileges} onNavigate={onNavigate} />
-      <div className="mt-4 border-t border-zinc-800 pt-4">
+      <div className="mt-5 border-t border-white/10 pt-5">
         <UserMenu name={user.name} email={user.email} role={user.role} />
       </div>
     </>
   )
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="flex h-screen overflow-hidden bg-[#07111f] text-[#e9f0f7]">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 flex-col border-r border-zinc-800 bg-zinc-900/40 p-4 md:flex">
-        <div className="mb-6">{brand}</div>
+      <aside className="hidden w-[272px] flex-col border-r border-white/10 bg-[#07111f] p-5 md:flex">
+        <div className="mb-8">{brand}</div>
         {body()}
       </aside>
 
       {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-zinc-800 bg-zinc-900 p-4">
-            <div className="mb-6 flex items-center justify-between">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
+          <aside className="absolute left-0 top-0 flex h-full w-[292px] flex-col border-r border-white/10 bg-[#07111f] p-5">
+            <div className="mb-8 flex items-start justify-between">
               {brand}
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                className="rounded-[6px] p-1 text-[#a7b6c8] outline-none focus-visible:ring-2 focus-visible:ring-[#a7c6dc]"
                 aria-label="Close menu"
               >
                 <X size={18} />
@@ -61,17 +69,24 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-900/40 px-4 py-3 md:hidden">
+        <header className="flex items-center gap-3 border-b border-white/10 bg-[#07111f] px-4 py-4 md:hidden">
           <button
             onClick={() => setOpen(true)}
-            className="rounded-md p-1 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            className="rounded-[6px] p-1 text-[#a7b6c8] outline-none focus-visible:ring-2 focus-visible:ring-[#a7c6dc]"
             aria-label="Open menu"
           >
             <Menu size={20} />
           </button>
-          <span className="font-bold text-white">SUBFROST</span>
+          <Image
+            src="/brand/subfrost/Logos/svg/logotype/logotype_light.svg"
+            width={132}
+            height={28}
+            alt="subfrost"
+            className="h-7 w-auto"
+            priority
+          />
         </header>
-        <main className="flex-1 overflow-y-auto p-5 md:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-[#f7fafc] p-5 text-[#07111f] md:p-8">{children}</main>
       </div>
     </div>
   )

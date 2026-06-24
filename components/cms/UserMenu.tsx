@@ -41,12 +41,12 @@ export function UserMenu({
   }, [open])
 
   const itemCls =
-    "flex items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"
+    "flex items-center gap-2 rounded-[6px] px-2 py-2 text-sm text-[#d7e1eb] outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#a7c6dc]"
 
   return (
     <div ref={ref} className="relative">
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-full rounded-md border border-zinc-800 bg-zinc-900 p-1 shadow-lg">
+        <div className="absolute bottom-full left-0 mb-2 w-full rounded-[6px] border border-white/10 bg-[#0b1726] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
           <Link href="/admin/profile" onClick={() => setOpen(false)} className={itemCls}>
             <UserCircle size={16} /> My profile
           </Link>
@@ -56,7 +56,7 @@ export function UserMenu({
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              className="flex w-full items-center gap-2 rounded-[6px] px-2 py-2 text-sm text-[#93a6bb] outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#a7c6dc]"
             >
               <LogOut size={16} /> Sign out
             </button>
@@ -68,16 +68,16 @@ export function UserMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-zinc-800"
+        className="flex w-full items-center gap-3 rounded-[6px] px-2 py-2 text-left outline-none transition-colors hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[#a7c6dc]"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-xs font-medium text-zinc-200">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xs font-medium text-[#e9f0f7]">
           {initials(name, email)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-sm text-zinc-200">{name ?? email}</span>
-          <span className="block text-xs uppercase tracking-wide text-zinc-500">{role}</span>
+          <span className="block truncate text-sm text-[#e9f0f7]">{name ?? email}</span>
+          <span className="block text-xs text-[#7f93aa]">{role}</span>
         </span>
-        <ChevronUp size={15} className="ml-auto text-zinc-500" />
+        <ChevronUp size={15} className="ml-auto text-[#667b92]" />
       </button>
     </div>
   )

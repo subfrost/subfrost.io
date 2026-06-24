@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
+import { ArrowRight, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { CoverArt } from "@/components/articles/CoverArt"
 
 type Locale = "en" | "zh"
 
-const docsUrl = "https://docs.subfrost.io/"
-const technicalUrl = "https://docs.subfrost.io/introduction/technical-overview"
-const apiUrl = "https://docs.subfrost.io/introduction/subfrost-api-docs"
+const docsUrl = "/docs"
+const technicalUrl = "/docs/introduction/technical-overview"
+const apiUrl = "/docs/introduction/api-docs"
 const appUrl = "https://app.subfrost.io/"
 
 export async function generateMetadata({
@@ -59,24 +60,24 @@ const copy = {
     nav: [
       { label: "Overview", href: "#overview" },
       { label: "Docs", href: docsUrl },
-      { label: "API", href: apiUrl },
+      { label: "API docs", href: apiUrl },
       { label: "Support", href: "/support" },
     ],
     heroKicker: "Start here",
     heroTitle: "Bitcoin-native infrastructure, documented clearly.",
     heroBody:
-      "This page is the git-managed developer front door. Deep references remain hosted in the docs system so protocol content can evolve without bloating the marketing site.",
+      "This page is the git-managed developer front door. The docs now live in this repo so protocol, product, and integration material can share one designed system.",
     docsTitle: "Core references",
     docsBody: "Primary paths for engineers, partners, and protocol reviewers.",
     protocolTitle: "Protocol surfaces",
     protocolBody: "The current product surface is split between the live app, technical docs, and protocol updates.",
     supportTitle: "Need access?",
-    supportBody: "Use support for account, docs, or product access issues while the full developer docs redesign is staged.",
+    supportBody: "Use support for account, docs, or product access issues.",
     cards: [
       {
         title: "Docs",
         body: "Product guides, setup paths, and protocol references.",
-        meta: "docs.subfrost.io",
+        meta: "subfrost docs",
         href: docsUrl,
         variant: 3,
       },
@@ -96,7 +97,7 @@ const copy = {
       },
     ],
     surfaces: [
-      { title: "Launch app", meta: "Live product", href: appUrl },
+      { title: "Launch App", meta: "Live product", href: appUrl },
       { title: "Protocol updates", meta: "Research and releases", href: "/articles?topic=protocol" },
       { title: "Support", meta: "Access and product help", href: "/support" },
     ],
@@ -113,18 +114,18 @@ const copy = {
     heroKicker: "从这里开始",
     heroTitle: "面向比特币原生基础设施的清晰文档入口。",
     heroBody:
-      "这个页面是 git 管理的开发者入口。深度技术参考仍然托管在文档系统中，便于协议内容独立演进。",
+      "这个页面是 git 管理的开发者入口。文档现在由此仓库承载，让协议、产品与集成资料共享统一设计系统。",
     docsTitle: "核心参考",
     docsBody: "面向工程师、合作伙伴与协议评审的主要路径。",
     protocolTitle: "协议入口",
     protocolBody: "当前产品入口分布在实时应用、技术文档与协议更新中。",
     supportTitle: "需要访问权限？",
-    supportBody: "在完整开发者文档重设计推进期间，可通过支持页面处理账户、文档或产品访问问题。",
+    supportBody: "如遇账户、文档或产品访问问题，可通过支持页面联系团队。",
     cards: [
       {
         title: "文档",
         body: "产品指南、设置路径与协议参考。",
-        meta: "docs.subfrost.io",
+        meta: "subfrost 文档",
         href: docsUrl,
         variant: 3,
       },
@@ -166,8 +167,19 @@ const copy = {
   surfaces: Array<{ title: string; meta: string; href: string }>
 }>
 
-function SmallArrow() {
-  return <span aria-hidden="true" className="ml-1 inline-block translate-y-[-1px]">→</span>
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href)
+}
+
+function LinkArrow({ external }: { external: boolean }) {
+  const Icon = external ? ArrowUpRight : ArrowRight
+  return (
+    <Icon
+      aria-hidden="true"
+      className="ml-1 inline-block h-[0.82em] w-[0.82em] translate-y-[-0.08em]"
+      strokeWidth={2}
+    />
+  )
 }
 
 export default async function DeveloperPage({
@@ -193,9 +205,16 @@ export default async function DeveloperPage({
               </p>
               <nav className="mt-9 flex flex-wrap gap-x-7 gap-y-3">
                 {t.nav.map((item) => (
-                  <a key={item.href} href={item.href} className="font-display text-[17px]" style={{ color: "var(--ed-muted)" }}>
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target={isExternalHref(item.href) ? "_blank" : undefined}
+                    rel={isExternalHref(item.href) ? "noopener noreferrer" : undefined}
+                    className="font-display inline-flex items-center text-[17px]"
+                    style={{ color: "var(--ed-muted)" }}
+                  >
                     {item.label}
-                    {item.href !== "#overview" ? <SmallArrow /> : null}
+                    {item.href !== "#overview" ? <LinkArrow external={isExternalHref(item.href)} /> : null}
                   </a>
                 ))}
               </nav>
@@ -237,12 +256,18 @@ export default async function DeveloperPage({
             </div>
             <div className="grid gap-9 md:grid-cols-3">
               {t.cards.map((card) => (
-                <a key={card.href} href={card.href} className="ed-card">
+                <a
+                  key={card.href}
+                  href={card.href}
+                  target={isExternalHref(card.href) ? "_blank" : undefined}
+                  rel={isExternalHref(card.href) ? "noopener noreferrer" : undefined}
+                  className="ed-card"
+                >
                   <CoverArt variant={card.variant} sizes="(min-width: 768px) 28vw, 100vw" className="ed-cover-frame aspect-[4/3]" />
                   <div className="pt-5">
                     <h3 className="font-display text-[22px] font-normal leading-tight" style={{ color: "var(--ed-ink)" }}>
                       {card.title}
-                      <SmallArrow />
+                      <LinkArrow external={isExternalHref(card.href)} />
                     </h3>
                     <p className="font-display mt-3 text-[15px] leading-[1.48]" style={{ color: "var(--ed-body)" }}>
                       {card.body}
@@ -269,10 +294,16 @@ export default async function DeveloperPage({
             </div>
             <div className="grid gap-7 md:grid-cols-3">
               {t.surfaces.map((surface) => (
-                <a key={surface.href} href={surface.href} className="group block">
+                <a
+                  key={surface.href}
+                  href={surface.href}
+                  target={isExternalHref(surface.href) ? "_blank" : undefined}
+                  rel={isExternalHref(surface.href) ? "noopener noreferrer" : undefined}
+                  className="group block"
+                >
                   <h3 className="font-display text-[24px] font-normal leading-tight" style={{ color: "var(--ed-ink)" }}>
                     {surface.title}
-                    <SmallArrow />
+                    <LinkArrow external={isExternalHref(surface.href)} />
                   </h3>
                   <p className="font-display mt-3 text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
                     {surface.meta}
@@ -294,7 +325,7 @@ export default async function DeveloperPage({
               </p>
               <a href={locale === "zh" ? "/support?lang=zh" : "/support"} className="font-display mt-6 inline-flex text-[16px] font-medium" style={{ color: "var(--ed-ink)" }}>
                 {locale === "zh" ? "支持" : "Support"}
-                <SmallArrow />
+                <LinkArrow external={false} />
               </a>
             </div>
           </div>
