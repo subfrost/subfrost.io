@@ -26,6 +26,11 @@ data:
     backends = ["34.118.232.215:80"]
     algorithm = "round-robin"
     upstream_scheme = "http"
+    [[route]]
+    host = "cdn.subfrost.io"
+    backends = ["34.118.232.76:80"]
+    algorithm = "round-robin"
+    upstream_scheme = "http"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -38,18 +43,25 @@ data:
       location / { return 301 https://$host$request_uri; }
     }
 ---
+# tlsd runs as a DaemonSet (one pod per node): the LB Service uses
+# externalTrafficPolicy: Local, so every node that can receive LB traffic
+# needs a local tlsd pod or that node's traffic is dropped. The tolerate-all
+# toleration keeps a pod on every node regardless of taints. This MUST stay a
+# DaemonSet — a Deployment (fixed replica count) would leave some nodes
+# without a local pod and black-hole their share of LB traffic.
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata: { name: tlsd, namespace: tlsd-ingress, labels: { app.kubernetes.io/component: tlsd } }
 spec:
-  replicas: 2
   selector: { matchLabels: { app.kubernetes.io/component: tlsd } }
+  updateStrategy: { type: RollingUpdate, rollingUpdate: { maxUnavailable: 1 } }
   template:
     metadata: { labels: { app.kubernetes.io/component: tlsd } }
     spec:
+      tolerations: [{ operator: Exists }]
       containers:
         - name: tlsd
-          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:ja4fix-ab6a921-1913
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:ja4cc-58962f2-1742
           imagePullPolicy: IfNotPresent
           args: ["--config", "/etc/tlsd/tlsd.toml"]
           ports: [{ name: https, containerPort: 8443 }, { name: metrics, containerPort: 9100 }]
