@@ -29,6 +29,7 @@ import {
 import { fetchAlkanesCirculating } from '@/lib/alkanes-circulating';
 import { getVolumeStats, getVolumeCandles } from '@/lib/volume-data';
 import { getEspoUsdPrice, DIESEL_POOL, FIRE_POOL } from '@/lib/espo-price';
+import { notifyPendingArticles } from '@/lib/cms/article-notify';
 
 const CACHE_TTL = 2100; // 35 minutes
 const FRBTC_CONTRACT_ADDRESS = '0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337';
@@ -160,6 +161,10 @@ export async function GET(request: NextRequest) {
     run('volume-stats-brc20', async () => {
       const stats = await getVolumeStats('brc20');
       await cacheSet('volume-stats-brc20', stats, CACHE_TTL);
+    }),
+
+    run('notify-pending', async () => {
+      await notifyPendingArticles();
     }),
 
     // Volume candles — all interval × cumulative × source combinations
