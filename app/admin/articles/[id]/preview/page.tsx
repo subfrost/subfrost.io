@@ -53,7 +53,7 @@ export default async function PreviewArticlePage({
         </div>
         <PreviewActions id={id} slug={article.slug} canPublish={canPublish} />
       </div>
-      <EditorialThemeScope className="flex-1">
+      <EditorialThemeScope className="flex-1" followSystemTheme>
         <ArticleView
           article={{
             title: tr.title,

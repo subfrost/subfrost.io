@@ -24,6 +24,8 @@ describe("EditorialThemeScope", () => {
     // Editorial canvas background (white in light) — fixes the "blank/white" display.
     expect(scope!.getAttribute("style") ?? "").toContain("var(--ed-canvas)")
     expect(scope).toHaveTextContent("article body")
+    // default scope is deterministic light — no reader theme sync mounted
+    expect(container.querySelector("#ed-root")).toBeNull()
   })
 
   it("appends the caller's className alongside the font variables", () => {
@@ -35,5 +37,27 @@ describe("EditorialThemeScope", () => {
     const scope = container.querySelector("[data-ed-theme]") as HTMLElement
     expect(scope.className).toContain("flex-1")
     expect(scope.className).toContain("__geist_sans")
+  })
+
+  it("opts into reader theme sync (id=ed-root) when followSystemTheme", () => {
+    // SystemThemeSync reads window.matchMedia on mount.
+    window.matchMedia = ((q: string) => ({
+      matches: false,
+      media: q,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+    const { container } = render(
+      <EditorialThemeScope followSystemTheme>
+        <p>x</p>
+      </EditorialThemeScope>,
+    )
+    const root = container.querySelector("#ed-root")
+    expect(root).not.toBeNull()
+    expect(root!.getAttribute("data-ed-theme")).toBe("light")
   })
 })
