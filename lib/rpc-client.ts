@@ -199,13 +199,12 @@ export async function getAddressTxsChain(address: string, lastSeenTxid: string):
  * This is useful for addresses with many UTXOs that exceed RPC limits
  */
 export async function getAddressStats(address: string): Promise<AddressStats> {
-  const response = await fetch(`https://mempool.space/api/address/${address}`, {
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch address stats: ${response.status}`);
-  }
-  return response.json();
+  // Sourced from the Subfrost RPC `esplora_address` method (same chain_stats
+  // shape mempool.space returns) — NOT mempool.space, which times out from our
+  // server environment (the same reason /api/btc-price moved off it in Jun 2026).
+  // The SUBFROST custody address is large, so this can take ~15s — a generous
+  // timeout is fine because the result is kept off the hot path by the cache.
+  return subfrostRpc<AddressStats>('esplora_address', [address], 25_000);
 }
 
 // ============================================================================
