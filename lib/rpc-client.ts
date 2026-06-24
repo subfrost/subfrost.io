@@ -207,6 +207,18 @@ export async function getAddressStats(address: string): Promise<AddressStats> {
   return subfrostRpc<AddressStats>('esplora_address', [address], 25_000);
 }
 
+/** Current Bitcoin tip height from the Subfrost RPC esplora index. */
+export async function getBtcHeight(): Promise<number> {
+  const result = await subfrostRpc<number | string>('esplora_blocks:tip:height', [], 10_000);
+  return Number(result);
+}
+
+/** Current metashrew indexer height (returned as a string by the node). */
+export async function getMetashrewHeight(): Promise<number> {
+  const result = await subfrostRpc<number | string>('metashrew_height', [], 10_000);
+  return Number(result);
+}
+
 // ============================================================================
 // Alkanes Methods
 // ============================================================================
