@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import { getAuthorProfile, getAuthorArticles, type CmsLocale } from "@/lib/cms/articles"
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { authorUrl, shouldUseArticlePreviewFallback } from "@/lib/seo"
+import FollowAuthorButton from "@/components/articles/FollowAuthorButton"
 
 export const dynamic = "force-dynamic"
 
@@ -140,6 +141,9 @@ export default async function AuthorPage({
                 {author.articleCount === 1 ? copy.articleSingular : copy.articlePlural}
               </span>
               <span>{copy.joined} {author.joinedYear}</span>
+            </div>
+            <div className="mt-5">
+              <FollowAuthorButton authorId={author.id} authorName={author.name ?? (locale === "zh" ? "作者" : "this author")} locale={locale} />
             </div>
           </div>
         </div>

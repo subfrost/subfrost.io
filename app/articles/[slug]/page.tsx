@@ -5,6 +5,8 @@ import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
 import { resolveArticleLocale } from "@/lib/i18n/resolve"
 import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 import { ArticleView, categoryLabel } from "@/components/cms/ArticleView"
+import { SubscribePanel } from "@/components/articles/SubscribePanel"
+import FollowAuthorButton from "@/components/articles/FollowAuthorButton"
 import { absoluteUrlForHost, articleUrl, authorUrl, shouldUseArticlePreviewFallback, siteName } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
@@ -131,6 +133,12 @@ export default async function ArticlePage({
         article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags }}
         locale={locale}
       />
+      <div className="mx-auto flex max-w-[680px] justify-center px-6 pb-2 sm:px-8">
+        <FollowAuthorButton authorId={a.author.id} authorName={a.author.name ?? (locale === "zh" ? "作者" : "this author")} locale={locale} />
+      </div>
+      <div className="mx-auto max-w-[680px] px-6 pb-20 sm:px-8">
+        <SubscribePanel locale={locale} />
+      </div>
     </>
   )
 }

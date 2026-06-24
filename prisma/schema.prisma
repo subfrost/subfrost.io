@@ -283,14 +283,15 @@ model User {
   // Bumped on password change / forced logout to invalidate all live sessions.
   tokenVersion   Int       @default(0)
 
-  articles      Article[]          @relation("AuthoredArticles")
-  revisions     Revision[]
-  apiKeys       ApiKey[]
-  sessions      Session[]
-  recoveryCodes TotpRecoveryCode[]
-  auditLogs     AuditLog[]         @relation("AuditActor")
-  payee         Payee?             @relation
-  reviewLinks   ReviewLink[]       @relation("ReviewLinkCreator")
+  articles        Article[]            @relation("AuthoredArticles")
+  revisions       Revision[]
+  apiKeys         ApiKey[]
+  sessions        Session[]
+  recoveryCodes   TotpRecoveryCode[]
+  auditLogs       AuditLog[]           @relation("AuditActor")
+  payee           Payee?               @relation
+  reviewLinks     ReviewLink[]         @relation("ReviewLinkCreator")
+  authorFollowers AuthorSubscription[] @relation("AuthorFollowers")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -379,6 +380,7 @@ model Article {
   revisions    Revision[]
 
   publishedAt DateTime?
+  notifiedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -428,16 +430,32 @@ model Revision {
 
 // Email subscribers for news/article updates.
 model ArticleSubscriber {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  locale       Locale   @default(en)
-  source       String   @default("articles_page")
-  active       Boolean  @default(true)
-  subscribedAt DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(cuid())
+  email            String   @unique
+  locale           Locale   @default(en)
+  source           String   @default("articles_page")
+  active           Boolean  @default(true)
+  subscribedAt     DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  unsubscribeToken String   @unique @default(cuid())
 
   @@index([active])
   @@index([locale])
+}
+
+model AuthorSubscription {
+  id               String   @id @default(cuid())
+  email            String
+  author           User     @relation("AuthorFollowers", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId         String
+  locale           Locale   @default(en)
+  active           Boolean  @default(true)
+  unsubscribeToken String   @unique @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([email, authorId])
+  @@index([authorId, active])
 }
 
 // Bearer keys for the admin upload API (POST /api/admin/articles).

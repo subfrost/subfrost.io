@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { z } from "zod"
-import { subscribeGlobal } from "@/lib/cms/article-subscribe"
+import { followAuthor } from "@/lib/cms/article-subscribe"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const bodySchema = z.object({
   email: z.string().trim().email(),
+  authorId: z.string().trim().min(1),
   locale: z.enum(["en", "zh"]).optional().default("en"),
-  source: z.string().trim().min(1).max(120).optional().default("articles_page"),
 })
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   let raw: unknown
   try {
     raw = await req.json()
@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 })
   }
-  const { id } = await subscribeGlobal(parsed.data.email, parsed.data.locale, parsed.data.source)
-  return NextResponse.json({ ok: true, message: "Subscribed", id }, { status: 201 })
+  const result = await followAuthor(parsed.data.email, parsed.data.authorId, parsed.data.locale)
+  if (!result.ok) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
+  }
+  return NextResponse.json({ ok: true, message: "Following" }, { status: 201 })
 }
