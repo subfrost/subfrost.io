@@ -136,13 +136,13 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
     <div className="space-y-4">
       {/* Breadcrumb + toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
-          <button className="text-zinc-300 hover:text-white disabled:opacity-50" disabled={busy} onClick={() => navigate(null)}>Root</button>
+        <nav className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-sm">
+          <button className="rounded px-1 py-1.5 text-zinc-300 hover:text-white disabled:opacity-50" disabled={busy} onClick={() => navigate(null)}>Root</button>
           {view.breadcrumb.map((c, i) => (
-            <span key={c.id} className="flex items-center gap-1 text-zinc-500">
-              <ChevronRight size={14} />
+            <span key={c.id} className="flex min-w-0 items-center gap-1 text-zinc-500">
+              <ChevronRight size={14} className="shrink-0" />
               <button
-                className={`truncate hover:text-white disabled:opacity-50 ${i === view.breadcrumb.length - 1 ? "text-white" : "text-zinc-300"}`}
+                className={`max-w-[12rem] truncate rounded px-1 py-1.5 hover:text-white disabled:opacity-50 ${i === view.breadcrumb.length - 1 ? "text-white" : "text-zinc-300"}`}
                 disabled={busy}
                 onClick={() => navigate(c.id)}
               >
@@ -154,11 +154,11 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
         </nav>
 
         {canEdit && (
-          <div className="flex shrink-0 items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setError(null); setNewFolder(true) }}>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" className="h-10 flex-1 sm:h-9 sm:flex-none" onClick={() => { setError(null); setNewFolder(true) }}>
               <FolderPlus size={15} /> New folder
             </Button>
-            <Button size="sm" onClick={() => fileInput.current?.click()}>
+            <Button size="sm" className="h-10 flex-1 sm:h-9 sm:flex-none" onClick={() => fileInput.current?.click()}>
               <Upload size={15} /> Upload
             </Button>
             <input
@@ -215,73 +215,123 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
           )}
 
           {isEmpty ? (
-            <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+            <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
               <Folder size={28} className="text-zinc-700" />
               <p className="text-sm text-zinc-500">This folder is empty.</p>
-              {canEdit && <p className="text-xs text-zinc-600">Drag files here or use the Upload button.</p>}
+              {canEdit && (
+                <>
+                  <p className="hidden text-xs text-zinc-600 sm:block">Drag files here or use the Upload button.</p>
+                  <Button size="sm" className="h-10" onClick={() => fileInput.current?.click()}>
+                    <Upload size={15} /> Upload files
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
-                  <tr>
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3 hidden sm:table-cell">Type</th>
-                    <th className="px-4 py-3 hidden sm:table-cell">Size</th>
-                    <th className="px-4 py-3 hidden md:table-cell">Modified</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {view.folders.map((f) => (
-                    <tr key={f.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
-                      <td className="px-4 py-3">
-                        <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => navigate(f.id)}>
-                          <Folder size={18} className="shrink-0 text-amber-400/80" />
-                          <span className="truncate">{f.name}</span>
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">Folder</td>
-                      <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">—</td>
-                      <td className="px-4 py-3 hidden text-zinc-500 md:table-cell" title={new Date(f.createdAt).toLocaleString()}>{relTime(f.createdAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        {canEdit && (
+            <>
+              {/* Mobile: card list */}
+              <ul className="divide-y divide-zinc-800 sm:hidden">
+                {view.folders.map((f) => (
+                  <li key={f.id} className="flex items-center gap-2 px-3 py-2.5">
+                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => navigate(f.id)}>
+                      <Folder size={20} className="shrink-0 text-amber-400/80" />
+                      <span className="min-w-0">
+                        <span className="block truncate">{f.name}</span>
+                        <span className="block text-xs text-zinc-500">Folder · {relTime(f.createdAt)}</span>
+                      </span>
+                    </button>
+                    {canEdit && (
+                      <div className="flex shrink-0 items-center">
+                        <IconBtn title="Rename" onClick={() => setRenaming({ kind: "folder", id: f.id, name: f.name })}><Pencil size={16} /></IconBtn>
+                        <IconBtn title="Move" onClick={() => setMoving({ kind: "folder", id: f.id, name: f.name, currentParent: f.parentId })}><FolderInput size={16} /></IconBtn>
+                        <IconBtn title="Delete" danger onClick={() => doDeleteFolder(f)}><Trash2 size={16} /></IconBtn>
+                      </div>
+                    )}
+                  </li>
+                ))}
+                {view.files.map((f) => (
+                  <li key={f.id} className="flex items-center gap-2 px-3 py-2.5">
+                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => setPreview(f)}>
+                      <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{f.name}</span>
+                        <span className="block truncate text-xs text-zinc-500">{typeLabel(f.mimeType, f.name)} · {humanSize(f.size)} · {relTime(f.updatedAt)}</span>
+                      </span>
+                    </button>
+                    <div className="flex shrink-0 items-center">
+                      <IconBtn title="Details" onClick={() => setDetails(f)}><Info size={16} /></IconBtn>
+                      <IconBtn title="Download" onClick={async () => { const r = await getFileUrlAction(f.id, true); if (r.ok) window.open(r.url, "_blank", "noopener"); else setError(r.error) }}><Download size={16} /></IconBtn>
+                      {canEdit && (
+                        <IconBtn title="Delete" danger onClick={() => doDeleteFile(f)}><Trash2 size={16} /></IconBtn>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Tablet/desktop: table */}
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
+                    <tr>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3 hidden sm:table-cell">Type</th>
+                      <th className="px-4 py-3 hidden sm:table-cell">Size</th>
+                      <th className="px-4 py-3 hidden md:table-cell">Modified</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {view.folders.map((f) => (
+                      <tr key={f.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
+                        <td className="px-4 py-3">
+                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => navigate(f.id)}>
+                            <Folder size={18} className="shrink-0 text-amber-400/80" />
+                            <span className="truncate">{f.name}</span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">Folder</td>
+                        <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">—</td>
+                        <td className="px-4 py-3 hidden text-zinc-500 md:table-cell" title={new Date(f.createdAt).toLocaleString()}>{relTime(f.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          {canEdit && (
+                            <div className="flex justify-end gap-1">
+                              <IconBtn title="Rename" onClick={() => setRenaming({ kind: "folder", id: f.id, name: f.name })}><Pencil size={14} /></IconBtn>
+                              <IconBtn title="Move" onClick={() => setMoving({ kind: "folder", id: f.id, name: f.name, currentParent: f.parentId })}><FolderInput size={14} /></IconBtn>
+                              <IconBtn title="Delete" danger onClick={() => doDeleteFolder(f)}><Trash2 size={14} /></IconBtn>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {view.files.map((f) => (
+                      <tr key={f.id} className={`border-t border-zinc-800 hover:bg-zinc-900/40 ${details?.id === f.id ? "bg-zinc-900/60" : ""}`}>
+                        <td className="px-4 py-3">
+                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => setPreview(f)}>
+                            <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
+                            <span className="truncate">{f.name}</span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">{typeLabel(f.mimeType, f.name)}</td>
+                        <td className="px-4 py-3 hidden text-zinc-400 sm:table-cell">{humanSize(f.size)}</td>
+                        <td className="px-4 py-3 hidden text-zinc-500 md:table-cell" title={new Date(f.updatedAt).toLocaleString()}>{relTime(f.updatedAt)}</td>
+                        <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-1">
-                            <IconBtn title="Rename" onClick={() => setRenaming({ kind: "folder", id: f.id, name: f.name })}><Pencil size={14} /></IconBtn>
-                            <IconBtn title="Move" onClick={() => setMoving({ kind: "folder", id: f.id, name: f.name, currentParent: f.parentId })}><FolderInput size={14} /></IconBtn>
-                            <IconBtn title="Delete" danger onClick={() => doDeleteFolder(f)}><Trash2 size={14} /></IconBtn>
+                            <IconBtn title="Details" onClick={() => setDetails(f)}><Info size={14} /></IconBtn>
+                            <IconBtn title="Download" onClick={async () => { const r = await getFileUrlAction(f.id, true); if (r.ok) window.open(r.url, "_blank", "noopener"); else setError(r.error) }}><Download size={14} /></IconBtn>
+                            {canEdit && <>
+                              <IconBtn title="Rename" onClick={() => setRenaming({ kind: "file", id: f.id, name: f.name })}><Pencil size={14} /></IconBtn>
+                              <IconBtn title="Move" onClick={() => setMoving({ kind: "file", id: f.id, name: f.name, currentParent: f.folderId })}><FolderInput size={14} /></IconBtn>
+                              <IconBtn title="Delete" danger onClick={() => doDeleteFile(f)}><Trash2 size={14} /></IconBtn>
+                            </>}
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {view.files.map((f) => (
-                    <tr key={f.id} className={`border-t border-zinc-800 hover:bg-zinc-900/40 ${details?.id === f.id ? "bg-zinc-900/60" : ""}`}>
-                      <td className="px-4 py-3">
-                        <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => setPreview(f)}>
-                          <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
-                          <span className="truncate">{f.name}</span>
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">{typeLabel(f.mimeType, f.name)}</td>
-                      <td className="px-4 py-3 hidden text-zinc-400 sm:table-cell">{humanSize(f.size)}</td>
-                      <td className="px-4 py-3 hidden text-zinc-500 md:table-cell" title={new Date(f.updatedAt).toLocaleString()}>{relTime(f.updatedAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <IconBtn title="Details" onClick={() => setDetails(f)}><Info size={14} /></IconBtn>
-                          <IconBtn title="Download" onClick={async () => { const r = await getFileUrlAction(f.id, true); if (r.ok) window.open(r.url, "_blank", "noopener"); else setError(r.error) }}><Download size={14} /></IconBtn>
-                          {canEdit && <>
-                            <IconBtn title="Rename" onClick={() => setRenaming({ kind: "file", id: f.id, name: f.name })}><Pencil size={14} /></IconBtn>
-                            <IconBtn title="Move" onClick={() => setMoving({ kind: "file", id: f.id, name: f.name, currentParent: f.folderId })}><FolderInput size={14} /></IconBtn>
-                            <IconBtn title="Delete" danger onClick={() => doDeleteFile(f)}><Trash2 size={14} /></IconBtn>
-                          </>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
@@ -292,6 +342,8 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
             onClose={() => setDetails(null)}
             onSaved={(f) => { setDetails(f); setNotice("Details saved"); void refresh() }}
             onError={setError}
+            onRename={() => setRenaming({ kind: "file", id: details.id, name: details.name })}
+            onMove={() => setMoving({ kind: "file", id: details.id, name: details.name, currentParent: details.folderId })}
           />
         )}
       </div>
@@ -344,8 +396,9 @@ function IconBtn({ children, title, onClick, danger }: { children: React.ReactNo
   return (
     <button
       title={title}
+      aria-label={title}
       onClick={onClick}
-      className={`rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 ${danger ? "hover:text-red-400" : "hover:text-zinc-100"}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 sm:h-auto sm:w-auto sm:p-1.5 ${danger ? "hover:text-red-400" : "hover:text-zinc-100"}`}
     >
       {children}
     </button>
@@ -374,8 +427,8 @@ function NewFolderModal({ parentId, onClose, onCreated, onError }: {
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-950 text-zinc-100 border-zinc-700" />
         </div>
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="ghost" type="button" onClick={onClose}>Cancel</Button>
-          <Button size="sm" type="submit" disabled={pending || !name.trim()}>{pending && <Loader2 size={14} className="animate-spin" />} Create</Button>
+          <Button size="sm" variant="ghost" type="button" className="h-10 sm:h-9" onClick={onClose}>Cancel</Button>
+          <Button size="sm" type="submit" className="h-10 sm:h-9" disabled={pending || !name.trim()}>{pending && <Loader2 size={14} className="animate-spin" />} Create</Button>
         </div>
       </form>
     </Modal>
@@ -407,8 +460,8 @@ function RenameModal({ item, onClose, onSaved, onError }: {
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-950 text-zinc-100 border-zinc-700" />
         </div>
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="ghost" type="button" onClick={onClose}>Cancel</Button>
-          <Button size="sm" type="submit" disabled={pending || !name.trim() || name === item.name}>{pending && <Loader2 size={14} className="animate-spin" />} Save</Button>
+          <Button size="sm" variant="ghost" type="button" className="h-10 sm:h-9" onClick={onClose}>Cancel</Button>
+          <Button size="sm" type="submit" className="h-10 sm:h-9" disabled={pending || !name.trim() || name === item.name}>{pending && <Loader2 size={14} className="animate-spin" />} Save</Button>
         </div>
       </form>
     </Modal>
@@ -417,8 +470,8 @@ function RenameModal({ item, onClose, onSaved, onError }: {
 
 function Modal({ title, icon, onClose, children }: { title: string; icon?: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={onClose}>
-      <div className="my-12 w-full max-w-sm space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-start sm:p-4" onClick={onClose}>
+      <div className="my-0 max-h-[90vh] w-full max-w-sm space-y-4 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-900 p-5 sm:my-12 sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 text-sm font-semibold text-white">{icon} {title}</div>
         {children}
       </div>
