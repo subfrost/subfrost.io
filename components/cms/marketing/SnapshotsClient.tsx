@@ -95,7 +95,7 @@ export function SnapshotsClient({ snapshots, articles }: { snapshots: SnapshotRo
           <tbody>
             {snapshots.map((s) => (
               <tr key={s.id} className="border-t border-zinc-800 text-zinc-300">
-                <td className="py-2">{s.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
+                <td className="py-2">{new Date(s.createdAt).toISOString().slice(0, 16).replace("T", " ")}</td>
                 <td><Link href={`/admin/marketing/snapshots/${s.id}`} className="text-sky-300 hover:underline">{s.label}</Link></td>
                 <td>{s.context}</td>
                 <td>{fmtInt(s.payload.tokens.diesel.holders)}</td>
