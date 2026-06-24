@@ -29,5 +29,15 @@ describe('POST /api/articles/follow', () => {
     vi.mocked(followAuthor).mockResolvedValueOnce({ ok: false, error: 'Unknown author' })
     const res = await POST(req({ email: 'a@x.com', authorId: 'nope', locale: 'en' }))
     expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ ok: false, error: 'Unknown author' })
+  })
+
+  it('400 on invalid JSON', async () => {
+    const r = new Request('http://t/api/articles/follow', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{bad json',
+    }) as never
+    const res = await POST(r)
+    expect(res.status).toBe(400)
+    expect(followAuthor).not.toHaveBeenCalled()
   })
 })
