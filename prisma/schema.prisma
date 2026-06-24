@@ -53,6 +53,15 @@ model FrbtcSupplySnapshot {
   @@index([createdAt])
 }
 
+// Durable last-known-good store for the home stat set. One row per stat key;
+// latest value only. Written by /api/prefetch (only on a successful fetch) and
+// read at SSR + /api/stats so the home always paints with data, even cold.
+model HomeStat {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 // Stores wrap transaction history
 model WrapTransaction {
   id          String  @id @default(cuid())

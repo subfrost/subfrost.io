@@ -40,8 +40,9 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+import type { HomeStats } from '@/lib/stats';
 import {
   Popover,
   PopoverContent,
@@ -49,7 +50,6 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useMetric } from '@/hooks/use-metric';
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface MetricsBoxesProps {
@@ -73,83 +73,39 @@ const formatBtcValue = (value: number) => {
   return value.toFixed(4);
 };
 
-const AnimatedCountUp = ({ target, loading }: { target: number; loading: boolean }) => {
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    let animationFrame = 0;
-    let startTime: number | null = null;
-    const startingValue = value;
-    const duration = loading ? 1800 : 900;
-
-    const step = (timestamp: number) => {
-      if (startTime === null) {
-        startTime = timestamp;
-      }
-
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - (1 - progress) ** 3;
-      const nextValue = startingValue + (target - startingValue) * eased;
-      setValue(nextValue);
-
-      if (progress < 1) {
-        animationFrame = window.requestAnimationFrame(step);
-      }
-    };
-
-    animationFrame = window.requestAnimationFrame(step);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-    };
-  }, [target, loading]);
-
-  return <>{formatBtcValue(value)}</>;
-};
-
-const METRIC_ENDPOINTS = [
-  '/api/alkanes-btc-locked',
-  '/api/brc20-btc-locked',
-  '/api/alkanes-circulating',
-  '/api/brc20-circulating',
-  '/api/alkanes-total-unwraps',
-  '/api/brc20-total-unwraps',
-  '/api/btc-price',
-];
-
 const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState('BTC');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { mutate } = useSWRConfig();
+  const { data: stats } = useSWR<HomeStats>('/api/stats', fetcher, { refreshInterval: 900000 });
+  const m = stats?.metrics;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      await Promise.all(METRIC_ENDPOINTS.map((endpoint) => mutate(endpoint)));
-    } finally {
-      setIsRefreshing(false);
-    }
+    try { await mutate('/api/stats'); } finally { setIsRefreshing(false); }
   };
 
-  const alkanesBtcLocked = useMetric('/api/alkanes-btc-locked', 'btcLocked');
-  const brc20BtcLockedValue = useMetric('/api/brc20-btc-locked', 'btcLocked');
-  const alkanesCirculatingFrbtc = useMetric('/api/alkanes-circulating', 'circulatingBtc');
-  const brc20CirculatingFrbtc = useMetric('/api/brc20-circulating', 'circulatingBtc');
-  const alkanesTotalUnwraps = useMetric('/api/alkanes-total-unwraps', 'totalUnwrapsBtc');
-  const brc20TotalUnwraps = useMetric('/api/brc20-total-unwraps', 'totalUnwrapsBtc');
+  const num = (v: number | null | undefined): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const sumOrNull = (...vals: (number | null)[]): number | null =>
+    vals.every((v) => v !== null) ? (vals as number[]).reduce((a, b) => a + b, 0) : null;
 
-  // Fetch addresses from the btc-locked endpoints
-  const { data: alkanesBtcLockedData } = useSWR('/api/alkanes-btc-locked', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
-  const { data: brc20BtcLockedData } = useSWR('/api/brc20-btc-locked', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
+  const combinedBtcLockedVal = sumOrNull(num(m?.alkanesBtcLocked), num(m?.brc20BtcLocked));
+  const combinedFrbtcSupplyVal = sumOrNull(num(m?.alkanesCirculating), num(m?.brc20Circulating));
+  const lifetimeVal = sumOrNull(
+    num(m?.alkanesTotalUnwraps), num(m?.brc20TotalUnwraps),
+    num(m?.alkanesCirculating), num(m?.brc20Circulating),
+  );
 
-  const { data: btcPriceData, error: btcPriceError } = useSWR('/api/btc-price', fetcher, {
-    refreshInterval: 900000, // 15 minutes
-  });
+  const combinedBtcLocked: number | React.ReactNode = combinedBtcLockedVal ?? <LoadingDots />;
+  const combinedFrbtcSupply: number | React.ReactNode = combinedFrbtcSupplyVal ?? <LoadingDots />;
+  const lifetimeLoading = lifetimeVal === null;
+  const lifetimeBtcTxValue: number | React.ReactNode =
+    lifetimeVal !== null ? lifetimeVal : <LoadingDots />;
+
+  const btcPrice = num(m?.btcPrice);
+  const alkanesAddress = m?.alkanesBtcLockedAddress ?? '';
+  const brc20Address = m?.brc20BtcLockedAddress ?? '';
 
   const formatUsd = (value: number) => {
     const abs = Math.abs(value);
@@ -169,53 +125,19 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   };
 
   const getDisplayValue = (btcValue: number | string | React.ReactNode): string | React.ReactNode => {
-    if (typeof btcValue !== 'number') {
-      return btcValue;
-    }
+    if (typeof btcValue !== 'number') return btcValue;
     if (currency === 'USD') {
-      if (btcPriceError || !btcPriceData) return <LoadingDots />;
-      return formatUsd(btcValue * btcPriceData.btcPrice);
+      if (btcPrice === null) return <LoadingDots />;
+      return formatUsd(btcValue * btcPrice);
     }
     return btcValue >= 10 ? btcValue.toFixed(3) : btcValue.toFixed(4);
   };
-
-  // Address values
-  const alkanesAddress = alkanesBtcLockedData?.address ?? '';
-  const brc20Address = brc20BtcLockedData?.address ?? '';
 
   // Helper to shorten address for display
   const shortenAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.slice(0, 4)}..${addr.slice(-3)}`;
   };
-
-  // BRC2.0 values
-  const brc20BtcLocked = typeof brc20BtcLockedValue === 'number' ? brc20BtcLockedValue : 0;
-  const brc20Circulating = typeof brc20CirculatingFrbtc === 'number' ? brc20CirculatingFrbtc : 0;
-
-  const lifetimeParts = [alkanesTotalUnwraps, brc20TotalUnwraps, alkanesCirculatingFrbtc, brc20CirculatingFrbtc];
-  const lifetimeLoading = lifetimeParts.some((value) => value === '...');
-  const lifetimeTarget = lifetimeParts.reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
-
-  // Lifetime BTC Tx Value = alkanes unwraps + brc20 unwraps + frbtc issued (alkanes) + frbtc issued (brc20)
-  const toNum = (v: unknown) => typeof v === 'number' ? v : 0;
-  const lifetimeBtcTxValue: number | React.ReactNode = (
-    lifetimeLoading
-      ? <AnimatedCountUp target={lifetimeTarget} loading={lifetimeLoading} />
-      : formatBtcValue(toNum(alkanesTotalUnwraps) + toNum(brc20TotalUnwraps) + toNum(alkanesCirculatingFrbtc) + toNum(brc20CirculatingFrbtc))
-  );
-
-  // Combined totals (Alkanes + BRC2.0)
-  const combinedFrbtcSupply: number | React.ReactNode = (
-    typeof alkanesCirculatingFrbtc !== 'number' || typeof brc20CirculatingFrbtc !== 'number'
-      ? <LoadingDots />
-      : alkanesCirculatingFrbtc + brc20Circulating
-  );
-  const combinedBtcLocked: number | React.ReactNode = (
-    typeof alkanesBtcLocked !== 'number' || typeof brc20BtcLockedValue !== 'number'
-      ? <LoadingDots />
-      : alkanesBtcLocked + brc20BtcLocked
-  );
 
   const renderMultilineTitle = (key: string) => {
     const value = t(key);
@@ -248,8 +170,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesCirculatingFrbtc === 'number' ? alkanesCirculatingFrbtc.toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
-          <p>BRC20: {brc20Circulating.toFixed(5)} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
+          <p>Alkanes: {num(m?.alkanesCirculating) !== null ? (m!.alkanesCirculating as number).toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
+          <p>BRC20: {num(m?.brc20Circulating) !== null ? (m!.brc20Circulating as number).toFixed(5) : '...'} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
         </div>
       )
     },
@@ -260,8 +182,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       linkType: 'popover',
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesBtcLocked === 'number' ? alkanesBtcLocked.toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(alkanesAddress)}</a>}</p>
-          <p>BRC20: {brc20BtcLocked.toFixed(5)} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(brc20Address)}</a>}</p>
+          <p>Alkanes: {num(m?.alkanesBtcLocked) !== null ? (m!.alkanesBtcLocked as number).toFixed(5) : '...'} {alkanesAddress && <a href={`https://mempool.space/address/${alkanesAddress}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(alkanesAddress)}</a>}</p>
+          <p>BRC20: {num(m?.brc20BtcLocked) !== null ? (m!.brc20BtcLocked as number).toFixed(5) : '...'} {brc20Address && <a href={`https://mempool.space/address/${brc20Address}`} target="_blank" rel="noopener noreferrer" className="underline">{shortenAddress(brc20Address)}</a>}</p>
         </div>
       )
     },
@@ -273,8 +195,8 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
       linkDisabled: lifetimeLoading,
       popoverContent: (
         <div className="flex flex-col gap-2 text-sm text-[hsl(var(--brand-blue))]">
-          <p>Alkanes: {typeof alkanesTotalUnwraps === 'number' && typeof alkanesCirculatingFrbtc === 'number' ? (alkanesTotalUnwraps + alkanesCirculatingFrbtc).toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
-          <p>BRC20: {typeof brc20TotalUnwraps === 'number' && typeof brc20CirculatingFrbtc === 'number' ? (brc20TotalUnwraps + brc20Circulating).toFixed(5) : '...'} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
+          <p>Alkanes: {num(m?.alkanesTotalUnwraps) !== null && num(m?.alkanesCirculating) !== null ? ((m!.alkanesTotalUnwraps as number) + (m!.alkanesCirculating as number)).toFixed(5) : '...'} <a href="https://espo.sh/alkane/32:0" target="_blank" rel="noopener noreferrer" className="underline">frBTC</a></p>
+          <p>BRC20: {num(m?.brc20TotalUnwraps) !== null && num(m?.brc20Circulating) !== null ? ((m!.brc20TotalUnwraps as number) + (m!.brc20Circulating as number)).toFixed(5) : '...'} <a href="https://explorer.brc20.build/token/0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337" target="_blank" rel="noopener noreferrer" className="underline">fr-BTC</a></p>
         </div>
       )
     },
@@ -346,7 +268,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
           </div>
           {currency === 'USD' && (
             <div className="absolute top-full mt-1 text-center text-[hsl(var(--brand-blue))] text-[0.6rem]">
-              {t('metrics.btcPrice')}: {btcPriceData?.btcPrice ? `$${Math.round(btcPriceData.btcPrice).toLocaleString('en-US')}` : '...'}
+              {t('metrics.btcPrice')}: {btcPrice !== null ? `$${Math.round(btcPrice).toLocaleString('en-US')}` : '...'}
             </div>
           )}
         </div>
