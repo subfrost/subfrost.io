@@ -2,7 +2,7 @@ import {
   FileText, PlusCircle, Megaphone, Fuel, Ticket, ShieldCheck, MapPin,
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
-  FileSignature, UserCheck, PieChart, Handshake, Scale,
+  FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -37,6 +37,11 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "documents", label: "Documents", icon: FolderOpen, items: [
+      { label: "Documents", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
+    ],
+  },
+  {
     key: "community", label: "Community", icon: Megaphone, items: [
       { label: "Dashboard", href: "/admin/communities", icon: Network, privilege: "referral.read" },
       { label: "FUEL", href: "/admin/fuel", icon: Fuel, privilege: "fuel.read" },
@@ -48,7 +53,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "aml.read" },
       { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "aml.read" },
       { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "aml.read" },
-      { label: "Documents", href: "/admin/documents", icon: FileSignature, privilege: "documents.read" },
+      { label: "E-Sign", href: "/admin/documents", icon: FileSignature, privilege: "documents.read" },
       { label: "Reviewer links", href: "/admin/compliance/reviews", icon: UserCheck, privilege: "compliance.reviews" },
     ],
   },

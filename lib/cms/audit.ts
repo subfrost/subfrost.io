@@ -76,6 +76,8 @@ export type AuditAction =
   | "equity_instrument_delete"
   | "balance_sheet_item_upsert"
   | "balance_sheet_item_delete"
+  | "file_upload"
+  | "file_delete"
 
 export async function audit(
   action: AuditAction,

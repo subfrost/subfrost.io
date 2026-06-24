@@ -292,6 +292,8 @@ model User {
   payee           Payee?               @relation
   reviewLinks     ReviewLink[]         @relation("ReviewLinkCreator")
   authorFollowers AuthorSubscription[] @relation("AuthorFollowers")
+  folders         Folder[]             @relation("FolderCreator")
+  driveFiles      DriveFile[]          @relation("FileCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -475,6 +477,50 @@ model ApiKey {
   createdAt  DateTime  @default(now())
 
   @@index([hashedKey])
+}
+
+// ============================================
+// FILE MANAGER ("Documents" — a gdrive-like archive backed by GCS, private
+// bucket subfrost-docs. Folders form a tree; files reference an immutable GCS
+// object keyed by file id, so rename/move are metadata-only. Bytes are served
+// via short-lived signed URLs (later: cdn.subfrost.io/secure/*).
+// ============================================
+
+model Folder {
+  id          String   @id @default(cuid())
+  name        String
+  parentId    String?
+  parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Folder[] @relation("FolderTree")
+  files       DriveFile[]
+  createdById String?
+  createdBy   User?    @relation("FolderCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // unique name within a parent (root = parentId null)
+  @@unique([parentId, name])
+  @@index([parentId])
+}
+
+model DriveFile {
+  id          String   @id @default(cuid())
+  name        String
+  folderId    String?
+  folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  // Object key in the subfrost-docs bucket (stable across rename/move).
+  gcsObject   String   @unique
+  mimeType    String
+  size        BigInt
+  metadata    Json     @default("{}")
+  tags        String[] @default([])
+  createdById String?
+  createdBy   User?    @relation("FileCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([folderId, name])
+  @@index([folderId])
 }
 
 // ============================================

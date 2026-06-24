@@ -32,6 +32,7 @@ export type CategoryKey =
   | "compliance"
   | "billing"
   | "financials"
+  | "files"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -45,6 +46,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "compliance", label: "Compliance" },
   { key: "billing", label: "Billing" },
   { key: "financials", label: "Financials" },
+  { key: "files", label: "Documents" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -84,6 +86,10 @@ export const PRIVILEGES: PrivilegeDef[] = [
 
   // --- Financials (409A) ---
   { code: "financials.view", label: "Financials — view", description: "View the treasury holdings and the DIESEL accounting ledger for the 409A. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "financials", implies: [] },
+
+  // --- Documents (file manager) ---
+  { code: "files.read", label: "Documents — view", description: "Browse and download files and folders in the document archive.", category: "files", implies: [] },
+  { code: "files.edit", label: "Documents — manage", description: "Upload, rename, move, delete files and folders, and edit their metadata.", category: "files", implies: ["files.read"] },
 
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
