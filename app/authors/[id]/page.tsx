@@ -143,7 +143,7 @@ export default async function AuthorPage({
               <span>{copy.joined} {author.joinedYear}</span>
             </div>
             <div className="mt-5">
-              <FollowAuthorButton authorId={author.id} authorName={author.name ?? "this author"} locale={locale} />
+              <FollowAuthorButton authorId={author.id} authorName={author.name ?? (locale === "zh" ? "作者" : "this author")} locale={locale} />
             </div>
           </div>
         </div>

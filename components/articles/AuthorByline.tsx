@@ -1,6 +1,5 @@
 import Link from "next/link"
 import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
-import FollowAuthorButton from "@/components/articles/FollowAuthorButton"
 
 export function Avatar({ name, src, size = 40 }: { name: string; src: string | null; size?: number }) {
   return (
@@ -67,7 +66,7 @@ export function AuthorByline({
     ? new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(publishedAt))
     : ""
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex items-center gap-3">
       <Avatar name={author.name} src={author.avatarUrl} size={size} />
       <div className="leading-tight">
         <div className="text-[15px]">{name}</div>
@@ -76,7 +75,6 @@ export function AuthorByline({
           {readingMinutes ? ` · ${readingMinutes} ${locale === "zh" ? "分钟阅读" : "min read"}` : ""}
         </div>
       </div>
-      <FollowAuthorButton authorId={author.id} authorName={author.name ?? "this author"} locale={locale} />
     </div>
   )
 }
