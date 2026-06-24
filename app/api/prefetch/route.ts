@@ -18,13 +18,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cacheSet } from '@/lib/redis';
+import { storeSet } from '@/lib/stats-store';
 import {
   getAlkanesBtcLocked,
   getBrc20BtcLocked,
   getBrc20TotalSupply,
+  getBtcHeight,
+  getMetashrewHeight,
 } from '@/lib/rpc-client';
 import { fetchAlkanesCirculating } from '@/lib/alkanes-circulating';
 import { getVolumeStats, getVolumeCandles } from '@/lib/volume-data';
+import { getEspoUsdPrice, DIESEL_POOL, FIRE_POOL } from '@/lib/espo-price';
 
 const CACHE_TTL = 2100; // 35 minutes
 const FRBTC_CONTRACT_ADDRESS = '0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337';
@@ -61,6 +65,7 @@ export async function GET(request: NextRequest) {
         address: data.address,
         timestamp: Date.now(),
       }, CACHE_TTL);
+      await storeSet('alkanes-btc-locked', { btcLocked: data.btcLocked, address: data.address });
     }),
 
     run('brc20-btc-locked', async () => {
@@ -72,11 +77,13 @@ export async function GET(request: NextRequest) {
         address: data.address,
         timestamp: Date.now(),
       }, CACHE_TTL);
+      await storeSet('brc20-btc-locked', { btcLocked: data.btcLocked, address: data.address });
     }),
 
     run('alkanes-circulating', async () => {
       const result = await fetchAlkanesCirculating();
       await cacheSet('alkanes-circulating', result, CACHE_TTL);
+      await storeSet('alkanes-circulating', { circulatingBtc: result.circulatingBtc });
     }),
 
     run('brc20-circulating', async () => {
@@ -87,11 +94,8 @@ export async function GET(request: NextRequest) {
         contractAddress: FRBTC_CONTRACT_ADDRESS,
         timestamp: Date.now(),
       }, CACHE_TTL);
+      await storeSet('brc20-circulating', { circulatingBtc: data.totalSupplyBtc });
     }),
-
-    // total-unwraps (alkanes + brc20) are now derived from volume-stats-both
-    // (warmed below), so the dedicated /api/*-total-unwraps routes self-populate
-    // instantly from that cache — no mempool.space pagination needed here.
 
     run('btc-price', async () => {
       // Subfrost subpricer (Uniswap V3 WBTC/USDC) — see app/api/btc-price/route.ts
@@ -105,6 +109,41 @@ export async function GET(request: NextRequest) {
       const usd = typeof data.usd === 'number' ? data.usd : Number(data?.bitcoin?.usd);
       if (!usd || !Number.isFinite(usd)) throw new Error('subpricer returned no usd price');
       await cacheSet('btc-price', { btcPrice: usd }, CACHE_TTL);
+      await storeSet('btc-price', { btcPrice: usd });
+    }),
+
+    run('alkanes-total-unwraps', async () => {
+      const stats = await getVolumeStats('alkanes');
+      await storeSet('alkanes-total-unwraps', { totalUnwrapsBtc: Number(stats.unwrap_volume_sats || '0') / 1e8 });
+    }),
+
+    run('brc20-total-unwraps', async () => {
+      const stats = await getVolumeStats('brc20');
+      await storeSet('brc20-total-unwraps', { totalUnwrapsBtc: Number(stats.unwrap_volume_sats || '0') / 1e8 });
+    }),
+
+    run('btc-height', async () => {
+      const height = await getBtcHeight();
+      await cacheSet('btc-height', { height }, CACHE_TTL);
+      await storeSet('btc-height', { height });
+    }),
+
+    run('metashrew-height', async () => {
+      const height = await getMetashrewHeight();
+      await cacheSet('metashrew-height', { height }, CACHE_TTL);
+      await storeSet('metashrew-height', { height });
+    }),
+
+    run('diesel-price', async () => {
+      const usd = await getEspoUsdPrice(DIESEL_POOL);
+      await cacheSet('diesel-price', { usd }, CACHE_TTL);
+      await storeSet('diesel-price', { usd });
+    }),
+
+    run('fire-price', async () => {
+      const usd = await getEspoUsdPrice(FIRE_POOL);
+      await cacheSet('fire-price', { usd }, CACHE_TTL);
+      await storeSet('fire-price', { usd });
     }),
 
     // Volume stats — all 3 sources
