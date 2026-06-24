@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PRIVILEGE_LABELS, type Privilege } from "@/lib/cms/privileges"
-import { createApiKey, revokeApiKey } from "@/actions/cms/apikeys"
+import { createApiKey, revokeApiKey, createMyApiKey, revokeMyApiKey } from "@/actions/cms/apikeys"
 
 export interface KeyRow {
   id: string
@@ -24,10 +24,14 @@ export function ApiKeysManager({
   keys,
   grantableScopes,
   showOwner,
+  variant = "admin",
 }: {
   keys: KeyRow[]
   grantableScopes: Privilege[]
   showOwner: boolean
+  /** "self" = personal CLI keys in the profile (any user, own privileges);
+   *  "admin" = the org-wide /admin/api-keys console. */
+  variant?: "admin" | "self"
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -36,12 +40,13 @@ export function ApiKeysManager({
   const [expiresInDays, setExpiresInDays] = useState("")
   const [newToken, setNewToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const self = variant === "self"
 
   function onCreate(e: React.FormEvent) {
     e.preventDefault(); setError(null); setNewToken(null)
     const days = expiresInDays ? Number(expiresInDays) : undefined
     startTransition(async () => {
-      const res = await createApiKey(name, scopes, days)
+      const res = self ? await createMyApiKey(name, scopes, days) : await createApiKey(name, scopes, days)
       if (res.ok) { setNewToken(res.token); setName(""); setScopes([]); setExpiresInDays(""); router.refresh() }
       else setError(res.error)
     })
@@ -51,11 +56,24 @@ export function ApiKeysManager({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <p className="text-sm text-zinc-400">
-        Use a key as <code className="text-zinc-200">Authorization: Bearer &lt;token&gt;</code> when POSTing
-        markdown to <code className="text-zinc-200">/api/admin/articles</code>. A key&apos;s power is capped to its
-        scopes (an unscoped key inherits your privileges).
-      </p>
+      {self ? (
+        <div className="space-y-2 text-sm text-zinc-400">
+          <p>
+            Create a personal key for the <code className="text-zinc-200">subfrost</code> CLI. It authenticates as
+            you against <code className="text-zinc-200">/api/v1/*</code> and is capped to its scopes — an unscoped
+            key inherits your current privileges, and a key can never do more than you can.
+          </p>
+          <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-black/40 p-3 text-xs text-zinc-300">{`export SUBFROST_API_KEY=sk_...
+subfrost users list`}</pre>
+        </div>
+      ) : (
+        <p className="text-sm text-zinc-400">
+          Use a key as <code className="text-zinc-200">Authorization: Bearer &lt;token&gt;</code> against the
+          REST API (<code className="text-zinc-200">/api/v1/*</code>, or markdown upload to{" "}
+          <code className="text-zinc-200">/api/admin/articles</code>). A key&apos;s power is capped to its scopes
+          (an unscoped key inherits the owner&apos;s privileges).
+        </p>
+      )}
 
       <form onSubmit={onCreate} className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -124,7 +142,7 @@ export function ApiKeysManager({
                 <td className="px-4 py-3 text-right">
                   {!k.revoked && (
                     <Button size="sm" variant="ghost" disabled={pending}
-                      onClick={() => startTransition(async () => { await revokeApiKey(k.id); router.refresh() })}>
+                      onClick={() => startTransition(async () => { await (self ? revokeMyApiKey(k.id) : revokeApiKey(k.id)); router.refresh() })}>
                       Revoke
                     </Button>
                   )}
