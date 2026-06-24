@@ -4,6 +4,11 @@ import { effectivePrivileges, type Privilege, type Role } from "@/lib/cms/privil
 
 export interface KeyActor {
   id: string
+  email: string
+  name: string | null
+  /** Owner's role — needed for role-rank ("outranking") checks in the REST API
+   *  (user + session management) that mirror the webapp's server actions. */
+  role: Role
   /** The key's effective privileges: its scopes ∩ the owner's current
    *  privileges. An unscoped key (no scopes) inherits the owner's full set. */
   privileges: Privilege[]
@@ -36,5 +41,12 @@ export async function actorFromBearer(authHeader: string | null): Promise<KeyAct
       ? ownerPrivileges
       : key.scopes.filter((s) => ownerPrivileges.includes(s))
 
-  return { id: key.userId, privileges, keyId: key.id }
+  return {
+    id: key.userId,
+    email: key.createdBy.email,
+    name: key.createdBy.name,
+    role: key.createdBy.role as Role,
+    privileges,
+    keyId: key.id,
+  }
 }
