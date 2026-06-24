@@ -5,7 +5,9 @@ import { ProfileForm } from "@/components/cms/ProfileForm"
 import { ChangePasswordForm } from "@/components/cms/ChangePasswordForm"
 import { TwoFactorManager } from "@/components/cms/TwoFactorManager"
 import { SessionsManager } from "@/components/cms/SessionsManager"
+import { ApiKeysManager } from "@/components/cms/ApiKeysManager"
 import { listMySessions } from "@/actions/cms/sessions"
+import { listMyApiKeys } from "@/actions/cms/apikeys"
 import { remainingRecoveryCodes } from "@/actions/cms/totp"
 
 export const dynamic = "force-dynamic"
@@ -17,6 +19,7 @@ export default async function ProfilePage() {
   if (!user) redirect("/admin/login")
 
   const recoveryRemaining = user.totpEnabled ? await remainingRecoveryCodes() : 0
+  const myKeys = (await listMyApiKeys()).map((k) => ({ ...k, ownerEmail: null }))
   const sessions = (await listMySessions()).map((s) => ({
     id: s.id,
     ip: s.ip,
@@ -50,6 +53,13 @@ export default async function ProfilePage() {
         <ChangePasswordForm />
         <TwoFactorManager enabled={user.totpEnabled} recoveryRemaining={recoveryRemaining} />
         <SessionsManager sessions={sessions} />
+      </div>
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-lg font-semibold text-white">API keys &amp; CLI</h2>
+          <p className="text-sm text-zinc-500">Personal keys for the <code className="text-zinc-300">subfrost</code> CLI and the REST API.</p>
+        </div>
+        <ApiKeysManager variant="self" keys={myKeys} grantableScopes={me.privileges} showOwner={false} />
       </div>
     </div>
   )
