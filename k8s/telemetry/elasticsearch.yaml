@@ -1,0 +1,138 @@
+# SCAFFOLD — single-node Elasticsearch StatefulSet for the subfrost-io
+# telemetry stack. Ports the old `cdn-telemetry` cluster's ES (which was a
+# Helm chart statefulset in ns `telemetry`) to a self-contained, Flux-
+# friendly manifest so the whole stack lives in this repo. If you prefer
+# the Helm/ECK route, replace this file with a HelmRelease (see
+# TELEMETRY_MIGRATION_PLAN.md §"ES deployment options") — the Service
+# contract (svc/elasticsearch:9200) is what the sink + fpctl depend on.
+#
+# Sizing rationale (see plan): 94,612 docs / 12 indices / ~60 MB primary
+# data today, low write rate (one ingress' worth of access events). A
+# single node with 2Gi heap (4Gi container) and a 20Gi PVC is generous
+# headroom for 30d ILM retention. Scale to a 3-node statefulset only if
+# write volume or query concurrency grows.
+#
+# TODO(security): this scaffold runs with xpack.security DISABLED for
+# simplicity (matches the old single-tenant in-cluster ES reached only via
+# ClusterIP + port-forward). Before prod, EITHER keep it ClusterIP-only
+# (no Ingress, no LB — current intent) OR enable xpack.security + TLS and
+# wire credentials through ESO (see external-secrets.yaml).
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: elasticsearch
+spec:
+  # ClusterIP only — ES is never exposed outside the cluster. Access is via
+  # `kubectl -n telemetry port-forward svc/elasticsearch 9200:9200` (fpctl)
+  # or in-cluster DNS (the sink + re-index Job).
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+      protocol: TCP
+    - name: transport
+      port: 9300
+      targetPort: 9300
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-headless
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: elasticsearch
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: elasticsearch
+  ports:
+    - name: transport
+      port: 9300
+      targetPort: 9300
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: elasticsearch
+spec:
+  serviceName: elasticsearch-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: elasticsearch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: elasticsearch
+    spec:
+      # Schedule onto the spot pool — same cost posture as the rest of the
+      # subfrost-io cluster (per CLOUDBUILD.md: "new cluster, runs cheap on
+      # spot VMs"). ES tolerates spot pre-emption fine at replicas=1 because
+      # the PVC survives the pod; on reschedule it recovers from disk.
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      securityContext:
+        fsGroup: 1000
+      # ES needs vm.max_map_count >= 262144. GKE COS nodes default lower;
+      # set it via a privileged init container (node-level sysctl).
+      initContainers:
+        - name: sysctl
+          image: busybox:1.36
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+      containers:
+        - name: elasticsearch
+          # TODO: pin a specific 8.x patch (e.g. 8.14.3). The old dump's
+          # mappings are 8.x-shaped (dynamic=strict, ip type, ILM) — stay on
+          # the same major to avoid mapping-migration surprises on re-index.
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+          ports:
+            - { name: http, containerPort: 9200 }
+            - { name: transport, containerPort: 9300 }
+          env:
+            - { name: discovery.type, value: single-node }
+            - { name: xpack.security.enabled, value: "false" }
+            - { name: ES_JAVA_OPTS, value: "-Xms1g -Xmx1g" }
+            - { name: cluster.name, value: subfrost-telemetry }
+            - { name: bootstrap.memory_lock, value: "false" }
+          resources:
+            requests: { cpu: "250m", memory: "1280Mi" }
+            limits:   { cpu: "1", memory: "1792Mi" }
+          readinessProbe:
+            httpGet: { path: "/_cluster/health?local=true", port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: transport }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          volumeMounts:
+            - { name: data, mountPath: /usr/share/elasticsearch/data }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # TODO: set storageClassName to the cluster's SSD class if desired
+        # (e.g. premium-rwo). Omitted => cluster default.
+        resources:
+          requests:
+            storage: 10Gi

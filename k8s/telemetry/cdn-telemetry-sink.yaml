@@ -1,0 +1,62 @@
+# SCAFFOLD — cdn-telemetry-sink Deployment. Ports the existing Go binary
+# (subfrost-cdn/services/cdn-telemetry-sink) UNCHANGED; only the image
+# registry + env wiring move into this repo's Flux tree.
+#
+# Image: built by Cloud Build into this project's Artifact Registry. Either
+#   (a) add a cloudbuild config under this repo that vendors the sink
+#       source, OR
+#   (b) keep building from subfrost-cdn and reference that image here.
+# See TELEMETRY_MIGRATION_PLAN.md §"Image build" for the recommendation.
+#
+# Consumes RabbitMQ exchange subfrost.cdn.access (queue subfrost.cdn.access.q,
+# rk access.#) and bulk-indexes into ES subfrost-cdn-* / subfrost-diagnostics-*.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdn-telemetry-sink
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: cdn-telemetry-sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: cdn-telemetry-sink
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: cdn-telemetry-sink
+    spec:
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      containers:
+        - name: cdn-telemetry-sink
+          # TODO: replace with the real Artifact Registry image once built.
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/cdn-telemetry-sink:latest
+          imagePullPolicy: Always
+          env:
+            # In-cluster broker + ES. RABBITMQ_URL carries creds, so source
+            # it from the ESO-synced secret rather than inlining.
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef: { name: telemetry-secrets, key: rabbitmq_url }
+            - name: ELASTICSEARCH_URL
+              value: "http://elasticsearch.telemetry.svc.cluster.local:9200"
+            - { name: TELEMETRY_EXCHANGE, value: "subfrost.cdn.access" }
+            - { name: TELEMETRY_QUEUE,    value: "subfrost.cdn.access.q" }
+            - { name: TELEMETRY_ROUTING_KEY, value: "access.#" }
+            - { name: ES_INDEX_BASE,   value: "subfrost-cdn" }
+            - { name: DIAG_INDEX_BASE, value: "subfrost-diagnostics" }
+            - { name: BULK_BATCH,      value: "500" }
+            - { name: BULK_INTERVAL_MS, value: "5000" }
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+          # No HTTP server in the sink — it's a pure AMQP→ES pump. Use a
+          # process-liveness exec probe instead of httpGet.
+          # TODO: add a /healthz to the sink binary if k8s probing is wanted.

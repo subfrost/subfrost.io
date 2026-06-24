@@ -1,0 +1,91 @@
+# SCAFFOLD — minimal single-node RabbitMQ broker for the telemetry bus.
+#
+# In the old cdn-telemetry cluster, fp-server published access/diagnostics
+# events to exchange `subfrost.cdn.access` and cdn-telemetry-sink consumed
+# them. We keep that AMQP seam in the new world so the sink code ports
+# UNCHANGED. The producer side, however, changes:
+#   * mobile diagnostics (`access.diag.crash`) still need a producer — the
+#     subfrost-mobile-api proxy must publish here (or to fp-server if kept).
+#   * fingerprint access events: see TELEMETRY_MIGRATION_PLAN.md — tlsd
+#     does NOT currently publish to AMQP (it only injects X-TLS-JA4 headers
+#     into the upstream request), so a small producer is needed (Option A:
+#     tiny sidecar/handler in the Next.js app that forwards X-TLS-* to this
+#     exchange; Option B: keep fp-server at x.subfrost.io as the producer).
+#
+# TODO(decision): if the only remaining AMQP producer is mobile diagnostics
+# and fingerprint events come straight from tlsd via a direct-to-ES writer,
+# RabbitMQ + the sink can be dropped entirely (see plan §"Do we still need
+# RabbitMQ?"). This manifest exists so the lift-and-shift path works on day
+# one; revisit before committing to long-term ops.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: rabbitmq
+  ports:
+    - { name: amqp,    port: 5672, targetPort: 5672 }
+    - { name: mgmt,    port: 15672, targetPort: 15672 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: rabbitmq
+    spec:
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          ports:
+            - { name: amqp, containerPort: 5672 }
+            - { name: mgmt, containerPort: 15672 }
+          env:
+            # TODO: pull credentials from ESO (Secret Manager) instead of
+            # the default guest/guest. The sink reads RABBITMQ_URL from a
+            # secret already (see cdn-telemetry-sink.yaml).
+            - { name: RABBITMQ_DEFAULT_USER, value: "telemetry" }
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef: { name: telemetry-secrets, key: rabbitmq_password }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "512Mi" }
+          readinessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/rabbitmq }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

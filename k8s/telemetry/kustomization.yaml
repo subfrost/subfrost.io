@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# SCAFFOLD — telemetry stack overlay. Standalone (NOT referenced by
+# ../kustomization.yaml, which forces namespace: subfrost). Like
+# tlsd-ingress, this lives in its own `telemetry` namespace and should get
+# a dedicated Flux Kustomization.
+#
+# Apply ordering matters (Flux: split into Kustomizations with dependsOn, or
+# rely on the bootstrap/reindex Jobs' own ES-readiness wait loops):
+#   1. namespace, serviceaccount, external-secrets
+#   2. elasticsearch (+ rabbitmq if keeping the AMQP path)
+#   3. es-bootstrap Job (templates + ILM)
+#   4. es-reindex-from-dump Job (one-shot; remove after a successful load)
+#   5. cdn-telemetry-sink Deployment
+namespace: telemetry
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - external-secrets.yaml
+  - elasticsearch.yaml
+  - index-template-configmap.yaml
+  - es-bootstrap-job.yaml
+  - rabbitmq.yaml
+  - cdn-telemetry-sink.yaml
+  # One-shot; comment out (or delete) once the dump has been loaded so Flux
+  # doesn't try to recreate a completed Job on every reconcile.
+  - reindex-job.yaml

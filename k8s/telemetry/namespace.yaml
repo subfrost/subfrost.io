@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: telemetry
+  labels:
+    app.kubernetes.io/part-of: subfrost-io
+    app.kubernetes.io/component: telemetry
+# SCAFFOLD — dedicated namespace for the migrated fingerprint/telemetry
+# stack (Elasticsearch + cdn-telemetry-sink + re-index Job). Kept separate
+# from `subfrost` (the Next.js app) and `tlsd-ingress` so ES storage,
+# quotas, and RBAC are isolated. Matches the old cluster's `telemetry` ns
+# name so fpctl docs (`kubectl -n telemetry port-forward svc/elasticsearch`)
+# keep working unchanged.
