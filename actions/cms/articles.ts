@@ -95,15 +95,19 @@ export async function translateArticleAction(articleId: string, from: Locale, to
 
   let out: TranslationContent
   try {
-    out = await translate({ title: sourceRow.title, excerpt: sourceRow.excerpt, body: sourceRow.body }, from, to)
+    out = await translate(
+      { title: sourceRow.title, excerpt: sourceRow.excerpt, body: sourceRow.body, sources: sourceRow.sources },
+      from,
+      to,
+    )
   } catch {
     return { ok: false, error: "Translation failed" }
   }
 
   await prisma.articleTranslation.upsert({
     where: { articleId_locale: { articleId, locale: to } },
-    update: { title: out.title, excerpt: out.excerpt, body: out.body },
-    create: { articleId, locale: to, title: out.title, excerpt: out.excerpt, body: out.body },
+    update: { title: out.title, excerpt: out.excerpt, body: out.body, sources: out.sources },
+    create: { articleId, locale: to, title: out.title, excerpt: out.excerpt, body: out.body, sources: out.sources },
   })
   await prisma.revision.create({ data: { articleId, locale: to, title: out.title, body: out.body, editorId: user.id } })
   return { ok: true, translation: out }

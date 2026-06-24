@@ -37,7 +37,7 @@ export default async function PreviewArticlePage({
   if (!tr) notFound()
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="-m-5 flex min-h-full flex-col md:-m-8">
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Link href={`/admin/articles/${id}`} className="text-zinc-400 hover:text-white">← Edit</Link>
@@ -59,6 +59,7 @@ export default async function PreviewArticlePage({
             title: tr.title,
             excerpt: tr.excerpt,
             body: tr.body,
+            sources: tr.sources,
             publishedAt: article.publishedAt ? article.publishedAt.toISOString() : null,
             tags: article.tags,
           }}

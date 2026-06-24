@@ -7,7 +7,7 @@ import { translationUnavailable } from "@/lib/cms/translate"
 
 export const dynamic = "force-dynamic"
 
-const empty = { title: "", excerpt: "", body: "" }
+const empty = { title: "", excerpt: "", body: "", sources: "" }
 
 export default async function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -26,7 +26,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
 
   const tr = (loc: "en" | "zh") => {
     const t = article.translations.find((x) => x.locale === loc)
-    return t ? { title: t.title, excerpt: t.excerpt, body: t.body } : empty
+    return t ? { title: t.title, excerpt: t.excerpt, body: t.body, sources: t.sources } : empty
   }
 
   return (

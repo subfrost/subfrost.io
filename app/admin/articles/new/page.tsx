@@ -4,7 +4,7 @@ import { AdminEditor } from "@/components/cms/AdminEditor"
 
 export const dynamic = "force-dynamic"
 
-const empty = { title: "", excerpt: "", body: "" }
+const empty = { title: "", excerpt: "", body: "", sources: "" }
 
 export default async function NewArticlePage() {
   const user = await currentUser()

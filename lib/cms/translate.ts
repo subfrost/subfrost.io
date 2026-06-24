@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema"
 
 export type Locale = "en" | "zh"
-export interface TranslationContent { title: string; excerpt: string; body: string }
+export interface TranslationContent { title: string; excerpt: string; body: string; sources: string }
 
 export const TRANSLATE_MODEL = "claude-opus-4-8"
 export const LOCALE_NAME: Record<Locale, string> = {
@@ -18,8 +18,9 @@ const TRANSLATION_SCHEMA = {
     title: { type: "string" },
     excerpt: { type: "string" },
     body: { type: "string" },
+    sources: { type: "string" },
   },
-  required: ["title", "excerpt", "body"],
+  required: ["title", "excerpt", "body", "sources"],
   additionalProperties: false,
 } as const
 
@@ -32,10 +33,11 @@ export function buildTranslationRequest(
   const system =
     `You are a professional translator for a Bitcoin/DeFi publication. ` +
     `Translate the article from ${LOCALE_NAME[from]} to ${LOCALE_NAME[to]}. ` +
-    `The body is Markdown — preserve its structure exactly: headings, lists, blockquotes, links, and fenced code blocks. ` +
+    `The body and sources are Markdown — preserve their structure exactly: headings, lists, blockquotes, links, and fenced code blocks. ` +
     `Do not translate code, URLs, or proper nouns / ticker symbols (e.g. SUBFROST, frBTC, DIESEL, Bitcoin). ` +
-    `Keep the author's tone. Return only the translated title, excerpt, and body.`
-  const userText = `TITLE:\n${source.title}\n\nEXCERPT:\n${source.excerpt}\n\nBODY (Markdown):\n${source.body}`
+    `Translate the sources line too (e.g. the word "Sources"), but keep citation names, URLs, and issue numbers intact. ` +
+    `Keep the author's tone. Return only the translated title, excerpt, body, and sources.`
+  const userText = `TITLE:\n${source.title}\n\nEXCERPT:\n${source.excerpt}\n\nBODY (Markdown):\n${source.body}\n\nSOURCES (Markdown):\n${source.sources}`
   return { system, userText }
 }
 

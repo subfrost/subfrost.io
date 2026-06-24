@@ -7,6 +7,7 @@ const translationSchema = z.object({
   title: z.string().max(200).optional().default(""),
   excerpt: z.string().max(400).optional().default(""),
   body: z.string().optional().default(""),
+  sources: z.string().optional().default(""),
 })
 
 export const articleInputSchema = z.object({
@@ -42,10 +43,10 @@ async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
 }
 
 function collect(t: z.infer<typeof articleInputSchema>["translations"]) {
-  const out: { locale: "en" | "zh"; title: string; excerpt: string; body: string }[] = []
+  const out: { locale: "en" | "zh"; title: string; excerpt: string; body: string; sources: string }[] = []
   for (const loc of ["en", "zh"] as const) {
     const tr = t[loc]
-    if (tr && tr.title.trim()) out.push({ locale: loc, title: tr.title, excerpt: tr.excerpt, body: tr.body })
+    if (tr && tr.title.trim()) out.push({ locale: loc, title: tr.title, excerpt: tr.excerpt, body: tr.body, sources: tr.sources })
   }
   return out
 }
@@ -97,8 +98,8 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
       for (const t of translations) {
         await tx.articleTranslation.upsert({
           where: { articleId_locale: { articleId: existing.id, locale: t.locale } },
-          update: { title: t.title, excerpt: t.excerpt, body: t.body },
-          create: { articleId: existing.id, locale: t.locale, title: t.title, excerpt: t.excerpt, body: t.body },
+          update: { title: t.title, excerpt: t.excerpt, body: t.body, sources: t.sources },
+          create: { articleId: existing.id, locale: t.locale, title: t.title, excerpt: t.excerpt, body: t.body, sources: t.sources },
         })
         await tx.revision.create({ data: { articleId: existing.id, locale: t.locale, title: t.title, body: t.body, editorId: actor.id } })
       }
