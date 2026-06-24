@@ -44,11 +44,16 @@ describe("translateArticleAction", () => {
     vi.mocked(currentUser).mockResolvedValueOnce(asUser(["articles.write"]))
     vi.mocked(prisma.article.findUnique as never as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: "a1", authorId: "u1" })
     vi.mocked(translationUnavailable).mockReturnValueOnce(false)
-    vi.mocked(prisma.articleTranslation.findUnique as never as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ title: "Hi", excerpt: "x", body: "# H" })
-    vi.mocked(translate).mockResolvedValueOnce({ title: "你好", excerpt: "x", body: "# H" })
+    vi.mocked(prisma.articleTranslation.findUnique as never as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ title: "Hi", excerpt: "x", body: "# H", sources: "BBSW #29" })
+    vi.mocked(translate).mockResolvedValueOnce({ title: "你好", excerpt: "x", body: "# H", sources: "BBSW #29" })
     const res = await translateArticleAction("a1", "en", "zh")
     expect(res.ok).toBe(true)
-    expect(prisma.articleTranslation.upsert).toHaveBeenCalledTimes(1)
+    expect(translate).toHaveBeenCalledWith(
+      expect.objectContaining({ sources: "BBSW #29" }), "en", "zh",
+    )
+    const upsertArg = vi.mocked(prisma.articleTranslation.upsert as never as ReturnType<typeof vi.fn>).mock.calls[0][0] as { create: { sources: string }; update: { sources: string } }
+    expect(upsertArg.create.sources).toBe("BBSW #29")
+    expect(upsertArg.update.sources).toBe("BBSW #29")
     expect(prisma.revision.create).toHaveBeenCalledTimes(1)
     if (res.ok) expect(res.translation.title).toBe("你好")
   })

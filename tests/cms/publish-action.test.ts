@@ -38,4 +38,16 @@ describe("publishArticleAction", () => {
     expect(arg.status).toBe("PUBLISHED")
     expect(arg.slug).toBe("my-post")
   })
+
+  it("preserves sources when publishing from preview", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(asUser(["articles.publish"]))
+    fn(prisma.article.findUnique).mockResolvedValueOnce({
+      id: "a1", slug: "my-post", coverImage: null, featured: false, primaryLocale: "en", authorId: "u1", tags: [],
+    })
+    fn(prisma.articleTranslation.findMany).mockResolvedValueOnce([{ locale: "en", title: "T", excerpt: "", body: "B", sources: "BBSW #29" }])
+    fn(upsertArticle).mockResolvedValueOnce({ ok: true, slug: "my-post", id: "a1" })
+    await publishArticleAction("a1")
+    const arg = vi.mocked(upsertArticle).mock.calls[0][1] as { translations: { en?: { sources?: string } } }
+    expect(arg.translations.en?.sources).toBe("BBSW #29")
+  })
 })

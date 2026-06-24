@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest"
 import { buildTranslationRequest, translationUnavailable, LOCALE_NAME } from "@/lib/cms/translate"
 
 describe("buildTranslationRequest", () => {
-  const src = { title: "Hello", excerpt: "Intro", body: "# Heading\n\n- item\n\n`code`" }
+  const src = { title: "Hello", excerpt: "Intro", body: "# Heading\n\n- item\n\n`code`", sources: "[BBSW](https://x.io), Issue #29" }
   it("names both languages and asks to preserve Markdown", () => {
     const { system, userText } = buildTranslationRequest(src, "en", "zh")
     expect(system).toContain(LOCALE_NAME.en)
@@ -10,6 +10,11 @@ describe("buildTranslationRequest", () => {
     expect(system.toLowerCase()).toContain("markdown")
     expect(userText).toContain("Hello")
     expect(userText).toContain("# Heading")
+  })
+  it("includes the sources in the payload and asks to translate them", () => {
+    const { system, userText } = buildTranslationRequest(src, "en", "zh")
+    expect(userText).toContain("[BBSW](https://x.io), Issue #29")
+    expect(system.toLowerCase()).toContain("source")
   })
 })
 

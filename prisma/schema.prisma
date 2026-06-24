@@ -387,6 +387,7 @@ model ArticleTranslation {
   title     String
   excerpt   String   @default("")
   body      String   @default("") // Markdown
+  sources   String   @default("") // Markdown attribution, rendered as a separate section
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
