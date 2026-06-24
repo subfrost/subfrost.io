@@ -5,6 +5,7 @@ import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
+import { SubscribePanel } from "@/components/articles/SubscribePanel"
 import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
@@ -273,6 +274,10 @@ export default async function ArticlesIndex({
       </section>
 
       <ArticleSearchPrompt articles={articles} locale={locale} />
+
+      <div className="mx-auto max-w-[1440px] px-6 sm:px-8">
+        <SubscribePanel locale={locale} />
+      </div>
 
       <div className="mx-auto max-w-[1440px] px-6 pt-4 sm:px-8 sm:pt-5">
         {articles.length === 0 ? (
