@@ -5,6 +5,7 @@ export interface ArticleViewData {
   title: string
   excerpt: string
   body: string
+  sources?: string
   publishedAt: string | null
   tags: { slug: string; name: string }[]
 }
@@ -53,6 +54,13 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
       <div className="mx-auto mt-24 max-w-[680px]">
         <Markdown variant="article">{article.body}</Markdown>
       </div>
+
+      {(article.sources ?? "").trim() ? (
+        <aside className="ed-sources">
+          <div className="ed-sources-label">{locale === "zh" ? "来源" : "Sources"}</div>
+          <Markdown variant="article">{article.sources as string}</Markdown>
+        </aside>
+      ) : null}
     </article>
   )
 }

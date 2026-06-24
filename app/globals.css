@@ -399,6 +399,31 @@ div[data-netlify-deploy-id] {
   font-size: inherit;
 }
 
+.ed-sources {
+  margin: 56px auto 0;
+  max-width: 680px;
+  padding-top: 22px;
+  border-top: 1px solid var(--ed-hair);
+}
+.ed-sources .ed-sources-label {
+  font-family: var(--ed-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ed-muted);
+  margin-bottom: 8px;
+}
+.ed-sources .ed-article-prose,
+.ed-sources .ed-article-prose p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ed-muted);
+}
+.ed-sources .ed-article-prose a {
+  color: var(--ed-accent);
+}
+
 .ed-static-prose {
   font-family: var(--ed-sans);
   color: var(--ed-body);
