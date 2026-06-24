@@ -32,9 +32,10 @@ export interface ArticlePreview {
 
 export interface ArticleFull extends ArticlePreview {
   body: string
+  sources: string
 }
 
-type TranslationRow = { locale: string; title: string; excerpt: string; body: string }
+type TranslationRow = { locale: string; title: string; excerpt: string; body: string; sources?: string }
 
 function chooseTranslation(
   translations: TranslationRow[],
@@ -57,7 +58,7 @@ const baseSelect = {
   primaryLocale: true,
   author: { select: { id: true, name: true, email: true, avatarUrl: true, bio: true, twitter: true } },
   tags: { select: { slug: true, name: true } },
-  translations: { select: { locale: true, title: true, excerpt: true, body: true } },
+  translations: { select: { locale: true, title: true, excerpt: true, body: true, sources: true } },
 } as const
 
 type ArticleRow = {
@@ -220,6 +221,7 @@ function previewArticle(slug: string, locale: CmsLocale): ArticleFull | null {
   return {
     ...previewArticleToPreview(article, locale),
     body: translation.body,
+    sources: translation.sources ?? "",
   }
 }
 
@@ -419,7 +421,7 @@ export async function getPublishedArticle(
     const t = chooseTranslation(a.translations, a.primaryLocale, locale)
     const preview = toPreview(a, locale)
     if (!t || !preview) return null
-    return { ...preview, body: t.body }
+    return { ...preview, body: t.body, sources: t.sources ?? "" }
   } catch {
     if (usePreviewFallback(previewFallback)) return previewArticle(slug, locale)
     throw new Error("Unable to load published article")
