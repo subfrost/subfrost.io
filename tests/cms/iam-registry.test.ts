@@ -63,3 +63,14 @@ describe("IAM registry", () => {
     expect(VIEW_GATES["/admin/fuel"].edit).toBe("fuel.edit")
   })
 })
+
+describe("marketing privilege", () => {
+  it("registers marketing.view in the marketing category", () => {
+    expect(ALL_CODES).toContain("marketing.view")
+    expect(CATEGORIES.some((c) => c.key === "marketing")).toBe(true)
+  })
+  it("expands to itself (no implied deps) and gates the snapshots route", () => {
+    expect(expand(["marketing.view"])).toEqual(["marketing.view"])
+    expect(VIEW_GATES["/admin/marketing/snapshots"]).toEqual({ view: "marketing.view" })
+  })
+})

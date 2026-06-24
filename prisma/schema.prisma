@@ -291,7 +291,8 @@ model User {
   auditLogs       AuditLog[]           @relation("AuditActor")
   payee           Payee?               @relation
   reviewLinks     ReviewLink[]         @relation("ReviewLinkCreator")
-  authorFollowers AuthorSubscription[] @relation("AuthorFollowers")
+  authorFollowers    AuthorSubscription[] @relation("AuthorFollowers")
+  marketingSnapshots MarketingSnapshot[]  @relation("SnapshotCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -375,9 +376,10 @@ model Article {
 
   author       User                 @relation("AuthoredArticles", fields: [authorId], references: [id])
   authorId     String
-  tags         Tag[]                @relation("ArticleTags")
-  translations ArticleTranslation[]
-  revisions    Revision[]
+  tags               Tag[]                @relation("ArticleTags")
+  translations       ArticleTranslation[]
+  revisions          Revision[]
+  marketingSnapshots MarketingSnapshot[]
 
   publishedAt DateTime?
   notifiedAt  DateTime?
@@ -456,6 +458,25 @@ model AuthorSubscription {
 
   @@unique([email, authorId])
   @@index([authorId, active])
+}
+
+// Point-in-time capture of protocol + token marketing metrics. payload holds the
+// full SnapshotPayload (lib/marketing/types.ts); opaque JSON so new metrics need
+// no migration. Captured on demand from /admin/marketing/snapshots.
+model MarketingSnapshot {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("SnapshotCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  label       String
+  context     String   @default("GENERAL") // GENERAL | X_POST | ARTICLE
+  refUrl      String?
+  articleId   String?
+  article     Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  note        String?
+  payload     Json
+
+  @@index([createdAt])
 }
 
 // Bearer keys for the admin upload API (POST /api/admin/articles).
