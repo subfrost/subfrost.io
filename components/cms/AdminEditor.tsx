@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Markdown } from "@/lib/cms/markdown"
+import { insertAtCursor, replaceFirst } from "@/lib/cms/markdown-insert"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
 import { Eye, Pencil, Trash2 } from "lucide-react"
 
@@ -46,6 +48,69 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
   const cur = content[activeLocale]
   function setCur(patch: Partial<LocaleContent>) {
     setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], ...patch } }))
+  }
+
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [uploads, setUploads] = useState(0)
+
+  function imageFilesFrom(items: DataTransferItemList | null, files: FileList | null): File[] {
+    const out: File[] = []
+    if (items) {
+      for (const it of Array.from(items)) {
+        if (it.kind === "file" && it.type.startsWith("image/")) {
+          const f = it.getAsFile()
+          if (f) out.push(f)
+        }
+      }
+    }
+    if (out.length === 0 && files) {
+      for (const f of Array.from(files)) if (f.type.startsWith("image/")) out.push(f)
+    }
+    return out
+  }
+
+  async function uploadFileIntoBody(file: File, atCursor: boolean) {
+    const token = `![enviando…](#upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)})`
+    // Insert placeholder via a functional update so concurrent uploads don't clobber.
+    setContent((c) => {
+      const body = c[activeLocale].body
+      if (atCursor) {
+        const el = bodyRef.current
+        const start = el?.selectionStart ?? body.length
+        const end = el?.selectionEnd ?? body.length
+        return { ...c, [activeLocale]: { ...c[activeLocale], body: insertAtCursor(body, start, end, token).text } }
+      }
+      const sep = body.length === 0 || body.endsWith("\n") ? "" : "\n"
+      return { ...c, [activeLocale]: { ...c[activeLocale], body: body + sep + token } }
+    })
+    setUploads((n) => n + 1)
+    try {
+      const url = await uploadInlineImage(file)
+      setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], body: replaceFirst(c[activeLocale].body, token, `![](${url})`) } }))
+    } catch (e) {
+      setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], body: replaceFirst(c[activeLocale].body, token, "") } }))
+      setError(e instanceof Error ? e.message : "Upload failed")
+    } finally {
+      setUploads((n) => n - 1)
+    }
+  }
+
+  async function uploadFilesIntoBody(files: File[]) {
+    for (let i = 0; i < files.length; i++) await uploadFileIntoBody(files[i], i === 0)
+  }
+
+  function onBodyPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const imgs = imageFilesFrom(e.clipboardData.items, e.clipboardData.files)
+    if (imgs.length === 0) return
+    e.preventDefault()
+    void uploadFilesIntoBody(imgs)
+  }
+
+  function onBodyDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    const imgs = imageFilesFrom(e.dataTransfer.items, e.dataTransfer.files)
+    if (imgs.length === 0) return
+    e.preventDefault()
+    void uploadFilesIntoBody(imgs)
   }
 
   function submit(status: Status) {
@@ -125,13 +190,15 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
             </div>
           </div>
           {tab === "write" ? (
-            <Textarea value={cur.body} onChange={(e) => setCur({ body: e.target.value })} rows={24}
-              placeholder="# Heading&#10;&#10;Write in Markdown…" className="bg-zinc-900 font-mono text-sm text-zinc-100 border-zinc-700" />
+            <Textarea ref={bodyRef} value={cur.body} onChange={(e) => setCur({ body: e.target.value })} rows={24}
+              onPaste={onBodyPaste} onDrop={onBodyDrop}
+              placeholder="# Heading&#10;&#10;Paste or drag an image, or write Markdown…" className="bg-zinc-900 font-mono text-sm text-zinc-100 border-zinc-700" />
           ) : (
             <div className="min-h-[36rem] rounded-md border border-zinc-800 bg-white p-6">
               {cur.body.trim() ? <Markdown variant="article">{cur.body}</Markdown> : <p className="text-zinc-400">Nothing to preview.</p>}
             </div>
           )}
+          {uploads > 0 && <p className="text-xs text-sky-400">Enviando imagem…</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -148,13 +215,13 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
         <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <div className="text-sm font-medium text-zinc-300">Publish</div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => submit("DRAFT")} disabled={pending}>Save draft</Button>
+            <Button size="sm" variant="outline" onClick={() => submit("DRAFT")} disabled={pending || uploads > 0}>Save draft</Button>
             {canPublish
-              ? <Button size="sm" onClick={() => submit("PUBLISHED")} disabled={pending}>Publish</Button>
-              : <Button size="sm" onClick={() => submit("REVIEW")} disabled={pending}>Submit for review</Button>}
+              ? <Button size="sm" onClick={() => submit("PUBLISHED")} disabled={pending || uploads > 0}>Publish</Button>
+              : <Button size="sm" onClick={() => submit("REVIEW")} disabled={pending || uploads > 0}>Submit for review</Button>}
           </div>
           {initial.status === "PUBLISHED" && canPublish && (
-            <Button size="sm" variant="ghost" onClick={() => submit("ARCHIVED")} disabled={pending}>Unpublish</Button>
+            <Button size="sm" variant="ghost" onClick={() => submit("ARCHIVED")} disabled={pending || uploads > 0}>Unpublish</Button>
           )}
           {initial.id && (
             <Button size="sm" variant="outline" onClick={onTranslate}
