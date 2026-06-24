@@ -101,7 +101,7 @@ const MetricsBoxes: React.FC<MetricsBoxesProps> = ({ onPartnershipsClick }) => {
   const combinedFrbtcSupply: number | React.ReactNode = combinedFrbtcSupplyVal ?? <LoadingDots />;
   const lifetimeLoading = lifetimeVal === null;
   const lifetimeBtcTxValue: number | React.ReactNode =
-    lifetimeVal !== null ? formatBtcValue(lifetimeVal) : <LoadingDots />;
+    lifetimeVal !== null ? lifetimeVal : <LoadingDots />;
 
   const btcPrice = num(m?.btcPrice);
   const alkanesAddress = m?.alkanesBtcLockedAddress ?? '';
