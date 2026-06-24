@@ -1,0 +1,47 @@
+# subfrost-cdn-wasm — the Rust wasip2 port of cdn.subfrost.io.
+#
+# This crate opts OUT of the parent `rust/` workspace: it ONLY builds
+# for `wasm32-wasip2` (a reactor component exporting
+# wasi:http/incoming-handler) and would fail under the workspace's
+# native default target. Build it standalone:
+#
+#   cd rust/crates/subfrost-cdn-wasm
+#   cargo build --target wasm32-wasip2 --release
+#
+# Output: target/wasm32-wasip2/release/subfrost_cdn_wasm.wasm
+# This .wasm is what tlsd loads via `[server.app_modules]` and routes
+# dispatch to via `app_id = "subfrost_cdn"`.
+[workspace]
+
+[package]
+name = "subfrost-cdn-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+description = "wasip2 component port of cdn.subfrost.io: GCS object proxy + autoindex + markdown render + /secure HMAC auth, served as a wasi:http/incoming-handler under tlsd."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# wit-bindgen guest macros — generates Rust bindings for the
+# wasi:http/proxy world (incoming-handler export + outgoing-handler
+# import for outbound GCS fetches) at compile time.
+wit-bindgen = "0.36"
+
+# Constant-time compare for the HMAC token verification (/secure).
+subtle = { version = "2", default-features = false }
+# HMAC-SHA256 for /secure token verification.
+hmac = { version = "0.12", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+# Hex/base64url decode of the token signature.
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+
+[profile.release]
+# Small wasm output. opt-level "s" + lto keeps the component lean for
+# embedding in a ConfigMap (base64) the way push_proxy / pair_bridge
+# are mounted in subkube's tlsd-ingress.
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1

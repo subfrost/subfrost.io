@@ -1,0 +1,94 @@
+# subfrost-cdn — the Rust container port of the Go cdn-server.
+# Fronts two GCS buckets; tlsd routes host cdn.subfrost.io to this
+# Service (see tlsd-route.md). GCS auth is the GKE metadata-server access
+# token via Workload Identity (serviceaccount.yaml) — no SA key in the pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subfrost-cdn
+  namespace: subfrost
+  labels:
+    app: subfrost-cdn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: subfrost-cdn
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: subfrost-cdn
+    spec:
+      serviceAccountName: subfrost-cdn
+      # Schedule onto the cheap spot node pool, same as the main app.
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      tolerations:
+        - key: cloud.google.com/gke-spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: subfrost-cdn
+      containers:
+        - name: cdn
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-cdn
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: GCS_BUCKET
+              value: "alkane-assets-bucket"
+            - name: CDN_BUCKET
+              value: "subfrost-cdn-bucket"
+            - name: RUST_LOG
+              value: "subfrost_cdn=info,tower_http=info"
+            # Shared HMAC key for /secure/* tokens. optional:true so an
+            # unsynced secret can't block startup — absent => /secure 401s
+            # (fail closed), every other route keeps serving.
+            - name: SECURE_HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-cdn-secrets
+                  key: SECURE_HMAC_KEY
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

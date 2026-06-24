@@ -1,0 +1,54 @@
+# subfrost-cdn — the Rust container port of cdn.subfrost.io.
+#
+# A standalone axum HTTP server that replaces the Go cdn-server. It
+# proxies two GCS buckets, renders markdown, 302-redirects large
+# snapshots, and gates /secure/* with a short-lived HMAC token.
+#
+# Build:   cargo build --release --bin subfrost-cdn
+# Run:     ./target/release/subfrost-cdn   (listens on :8080)
+#
+# GCS auth: the GKE metadata-server access token (Workload Identity).
+# No SA key material in the container; the token is fetched over HTTP
+# from the metadata server and cached until ~60s before expiry.
+[package]
+name = "subfrost-cdn"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "subfrost-cdn"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+bytes = { workspace = true }
+
+# Outbound HTTP to the GKE metadata server + GCS JSON API. rustls so the
+# distroless image needs no system OpenSSL; stream so multi-GB bodies
+# pump through without buffering.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "http2", "json"] }
+futures = { workspace = true }
+
+# /secure HMAC-SHA256 token verification (constant-time compare).
+hmac = { workspace = true }
+sha2 = { workspace = true }
+subtle = "2"
+base64 = { workspace = true }
+hex = { workspace = true }
+
+# Markdown -> HTML for /docs/*.md (pure-Rust, GFM).
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }

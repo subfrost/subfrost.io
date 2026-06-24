@@ -5,6 +5,7 @@ members = [
     "crates/subfrost-meet-wallet-verify",
     "crates/subfrost-meet-session",
     "services/meet-api",
+    "services/cdn",
 ]
 
 [workspace.package]
