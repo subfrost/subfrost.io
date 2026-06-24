@@ -15,19 +15,19 @@ const blockComplete = (b: SnapshotTokenBlock): boolean =>
 
 export async function captureSnapshot(): Promise<SnapshotPayload> {
   const [stats, diesel, fire, frbtc] = await Promise.all([
-    getStats(),
+    getStats().catch(() => null),
     getAlkaneDetails(DIESEL_ID),
     getAlkaneDetails(FIRE_ID),
     getAlkaneDetails(FRBTC_ID),
   ])
 
   const protocol = {
-    totalBtcLocked: sum(stats.metrics.alkanesBtcLocked, stats.metrics.brc20BtcLocked),
-    alkanesBtcLocked: stats.metrics.alkanesBtcLocked,
-    brc20BtcLocked: stats.metrics.brc20BtcLocked,
-    btcUsd: stats.marquee.btcUsd,
-    btcHeight: stats.marquee.btcHeight,
-    metashrewHeight: stats.marquee.metashrewHeight,
+    totalBtcLocked: sum(stats?.metrics.alkanesBtcLocked ?? null, stats?.metrics.brc20BtcLocked ?? null),
+    alkanesBtcLocked: stats?.metrics.alkanesBtcLocked ?? null,
+    brc20BtcLocked: stats?.metrics.brc20BtcLocked ?? null,
+    btcUsd: stats?.marquee.btcUsd ?? null,
+    btcHeight: stats?.marquee.btcHeight ?? null,
+    metashrewHeight: stats?.marquee.metashrewHeight ?? null,
     source: "store" as const,
   }
 
@@ -40,7 +40,7 @@ export async function captureSnapshot(): Promise<SnapshotPayload> {
     capturedAt: new Date().toISOString(),
     protocol,
     tokens,
-    ratios: { btcDiesel: stats.marquee.btcDieselRatio, btcFire: stats.marquee.btcFireRatio },
+    ratios: { btcDiesel: stats?.marquee.btcDieselRatio ?? null, btcFire: stats?.marquee.btcFireRatio ?? null },
     partial,
   }
 }
