@@ -12,7 +12,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react"
 
 type Status = "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
 type Locale = "en" | "zh"
-interface LocaleContent { title: string; excerpt: string; body: string }
+interface LocaleContent { title: string; excerpt: string; body: string; sources: string }
 
 export interface EditorInitial {
   id?: string
@@ -132,6 +132,13 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
               {cur.body.trim() ? <Markdown variant="article">{cur.body}</Markdown> : <p className="text-zinc-400">Nothing to preview.</p>}
             </div>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-zinc-300">Sources (Markdown · optional)</Label>
+          <Textarea value={cur.sources} onChange={(e) => setCur({ sources: e.target.value })} rows={3}
+            placeholder="e.g. Bitcoin Block Space Weekly, Issue #29 — shown as a separate section at the end"
+            className="bg-zinc-900 font-mono text-sm text-zinc-100 border-zinc-700" />
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

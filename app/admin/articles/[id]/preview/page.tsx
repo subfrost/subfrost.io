@@ -59,6 +59,7 @@ export default async function PreviewArticlePage({
             title: tr.title,
             excerpt: tr.excerpt,
             body: tr.body,
+            sources: tr.sources,
             publishedAt: article.publishedAt ? article.publishedAt.toISOString() : null,
             tags: article.tags,
           }}

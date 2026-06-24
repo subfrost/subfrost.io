@@ -128,7 +128,7 @@ export default async function ArticlePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <ArticleView
-        article={{ title: a.title, excerpt: a.excerpt, body: a.body, publishedAt: a.publishedAt, tags: a.tags }}
+        article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags }}
         locale={locale}
       />
     </>
