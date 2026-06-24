@@ -1,0 +1,124 @@
+# SCAFFOLD — ES index templates + ILM policies, ported verbatim from
+# subfrost-cdn/services/cdn-telemetry-sink/{es-template,es-template-diagnostics,
+# ilm-policy,ilm-policy-diagnostics}.json. In the old world deploy.sh PUT
+# these into ES with curl; here we ship them as a ConfigMap that the
+# `es-bootstrap` Job (see es-bootstrap-job.yaml) applies idempotently
+# against svc/elasticsearch BEFORE any traffic or re-index.
+#
+# Keep these in sync with the source of truth in subfrost-cdn until that
+# repo is retired. The access-event template is dynamic=strict, so adding a
+# top-level field requires bumping it here AND in the sink's expectations.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: es-index-templates
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/component: elasticsearch
+data:
+  ilm-policy.json: |
+    {
+      "policy": {
+        "phases": {
+          "hot":    { "min_age": "0ms", "actions": {} },
+          "delete": { "min_age": "30d", "actions": { "delete": {} } }
+        }
+      }
+    }
+  ilm-policy-diagnostics.json: |
+    {
+      "policy": {
+        "phases": {
+          "hot":    { "min_age": "0ms", "actions": {} },
+          "delete": { "min_age": "30d", "actions": { "delete": {} } }
+        }
+      }
+    }
+  es-template.json: |
+    {
+      "index_patterns": ["subfrost-cdn-*"],
+      "priority": 200,
+      "template": {
+        "settings": {
+          "index": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
+            "refresh_interval": "5s",
+            "lifecycle": { "name": "subfrost-cdn-delete-30d" }
+          }
+        },
+        "mappings": {
+          "dynamic": "strict",
+          "properties": {
+            "ts":               { "type": "date" },
+            "source_ip":        { "type": "ip", "ignore_malformed": true },
+            "cf_ray":           { "type": "keyword", "ignore_above": 64 },
+            "ja3":              { "type": "keyword", "ignore_above": 64 },
+            "ja3_full":         { "type": "keyword", "ignore_above": 512 },
+            "ja4":              { "type": "keyword", "ignore_above": 64 },
+            "host":             { "type": "keyword", "ignore_above": 253 },
+            "method":           { "type": "keyword", "ignore_above": 8 },
+            "path":             { "type": "keyword", "ignore_above": 2048 },
+            "status":           { "type": "integer" },
+            "bytes_out":        { "type": "long" },
+            "latency_ms":       { "type": "integer" },
+            "service":          { "type": "keyword", "ignore_above": 64 },
+            "instance":         { "type": "keyword", "ignore_above": 128 },
+            "headers_truncated":{ "type": "boolean" },
+            "headers":          { "type": "object", "dynamic": true }
+          }
+        }
+      },
+      "_meta": {
+        "description": "subfrost-cdn per-request access events. Top-level keys strict; headers.* dynamic=true. ILM subfrost-cdn-delete-30d deletes daily indices after 30d. number_of_replicas=0 for the single-node telemetry ES (raise to 1 if ES becomes multi-node)."
+      }
+    }
+  es-template-diagnostics.json: |
+    {
+      "index_patterns": ["subfrost-diagnostics-*"],
+      "priority": 200,
+      "template": {
+        "settings": {
+          "index": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
+            "refresh_interval": "10s",
+            "lifecycle": { "name": "subfrost-diagnostics-delete-30d" }
+          }
+        },
+        "mappings": {
+          "dynamic": "false",
+          "properties": {
+            "ingest_ts": { "type": "date" },
+            "reason":    { "type": "keyword", "ignore_above": 64 },
+            "ip":        { "type": "ip", "ignore_malformed": true },
+            "ua":        { "type": "keyword", "ignore_above": 512 },
+            "ja3":       { "type": "keyword", "ignore_above": 64 },
+            "ja4":       { "type": "keyword", "ignore_above": 64 },
+            "mobile_payload": {
+              "type": "object",
+              "dynamic": "false",
+              "properties": {
+                "schema":         { "type": "keyword", "ignore_above": 64 },
+                "reason":         { "type": "keyword", "ignore_above": 64 },
+                "ts":             { "type": "date", "ignore_malformed": true },
+                "vc":             { "type": "integer" },
+                "version_name":   { "type": "keyword", "ignore_above": 32 },
+                "application_id": { "type": "keyword", "ignore_above": 128 },
+                "locale":         { "type": "keyword", "ignore_above": 16 },
+                "timezone":       { "type": "keyword", "ignore_above": 64 },
+                "device":         { "type": "object", "enabled": true, "dynamic": true },
+                "network":        { "type": "object", "enabled": true, "dynamic": true },
+                "process":        { "type": "object", "enabled": true, "dynamic": true },
+                "breadcrumbs":    { "type": "text", "index": false },
+                "crash_stack":    { "type": "text", "index": false },
+                "logcat":         { "type": "text", "index": false }
+              }
+            }
+          }
+        }
+      },
+      "_meta": {
+        "description": "Mobile-submitted opt-in diagnostics envelopes. ILM subfrost-diagnostics-delete-30d deletes after 30d. number_of_replicas=0 for single-node ES."
+      }
+    }
