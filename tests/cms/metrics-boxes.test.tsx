@@ -14,7 +14,7 @@ const stats = (over: Partial<HomeStats['metrics']> = {}): HomeStats => ({
     alkanesCirculating: 99.2, brc20Circulating: 0.95, alkanesTotalUnwraps: 74.2, brc20TotalUnwraps: 20.3,
     btcPrice: 62000, ...over,
   },
-  marquee: { btcUsd: 62000, btcHeight: null, metashrewHeight: null, dieselUsd: null, fireUsd: null },
+  marquee: { btcUsd: 62000, btcHeight: null, metashrewHeight: null, dieselUsd: null, fireUsd: null, btcDieselRatio: null, btcFireRatio: null },
 })
 
 const renderWith = (s: HomeStats) =>

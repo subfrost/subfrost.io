@@ -18,11 +18,17 @@ export interface HomeStats {
     metashrewHeight: number | null
     dieselUsd: number | null
     fireUsd: number | null
+    // BTC priced in the token (token-per-BTC) = btcUsd / tokenUsd. Derived from the
+    // USD fields above; null when either operand is missing or the divisor is zero.
+    btcDieselRatio: number | null
+    btcFireRatio: number | null
   }
 }
 
 const numOrNull = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const strOrNull = (v: unknown): string | null => (typeof v === 'string' && v ? v : null)
+const ratioOrNull = (num: number | null, den: number | null): number | null =>
+  num !== null && den !== null && den !== 0 ? num / den : null
 
 /** Assemble the full home stat set from the durable store. Reads the store only —
  *  never calls the live cascade. A cold/missing/malformed key yields null for that
@@ -45,6 +51,8 @@ export async function getStats(): Promise<HomeStats> {
   const fire = at('fire-price')
 
   const btcPrice = numOrNull(price?.btcPrice)
+  const dieselUsd = numOrNull(diesel?.usd)
+  const fireUsd = numOrNull(fire?.usd)
   return {
     metrics: {
       alkanesBtcLocked: numOrNull(alkanesLocked?.btcLocked),
@@ -61,8 +69,10 @@ export async function getStats(): Promise<HomeStats> {
       btcUsd: btcPrice,
       btcHeight: numOrNull(btcHeight?.height),
       metashrewHeight: numOrNull(msHeight?.height),
-      dieselUsd: numOrNull(diesel?.usd),
-      fireUsd: numOrNull(fire?.usd),
+      dieselUsd,
+      fireUsd,
+      btcDieselRatio: ratioOrNull(btcPrice, dieselUsd),
+      btcFireRatio: ratioOrNull(btcPrice, fireUsd),
     },
   }
 }

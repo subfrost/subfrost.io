@@ -32,6 +32,9 @@ describe('getStats', () => {
     expect(s.marquee.metashrewHeight).toBe(955108)
     expect(s.marquee.dieselUsd).toBe(70.2)
     expect(s.marquee.fireUsd).toBe(55.2)
+    // BTC priced in token (token-per-BTC) = btcUsd / tokenUsd
+    expect(s.marquee.btcDieselRatio).toBeCloseTo(62000 / 70.2, 6) // ~883.19
+    expect(s.marquee.btcFireRatio).toBeCloseTo(62000 / 55.2, 6) // ~1123.19
   })
 
   it('yields null for cold/missing or malformed values (never throws)', async () => {
@@ -43,5 +46,20 @@ describe('getStats', () => {
     expect(s.metrics.alkanesBtcLockedAddress).toBeNull()
     expect(s.marquee.btcHeight).toBeNull()
     expect(s.marquee.dieselUsd).toBeNull()
+    // ratios need both operands; missing btcUsd → null (no NaN)
+    expect(s.marquee.btcDieselRatio).toBeNull()
+    expect(s.marquee.btcFireRatio).toBeNull()
+  })
+
+  it('yields null ratios when a token price is zero or missing (no divide-by-zero)', async () => {
+    vi.mocked(storeGetAll).mockResolvedValueOnce({
+      'btc-price': { btcPrice: 62000 },
+      'diesel-price': { usd: 0 }, // zero → no Infinity
+      // fire-price missing entirely → null operand
+    })
+    const s = await getStats()
+    expect(s.marquee.btcUsd).toBe(62000)
+    expect(s.marquee.btcDieselRatio).toBeNull()
+    expect(s.marquee.btcFireRatio).toBeNull()
   })
 })
