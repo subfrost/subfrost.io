@@ -32,6 +32,7 @@ export type CategoryKey =
   | "compliance"
   | "billing"
   | "financials"
+  | "marketing"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -45,6 +46,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "compliance", label: "Compliance" },
   { key: "billing", label: "Billing" },
   { key: "financials", label: "Financials" },
+  { key: "marketing", label: "Marketing" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -84,6 +86,9 @@ export const PRIVILEGES: PrivilegeDef[] = [
 
   // --- Financials (409A) ---
   { code: "financials.view", label: "Financials — view", description: "View the treasury holdings and the DIESEL accounting ledger for the 409A. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "financials", implies: [] },
+
+  // --- Marketing ---
+  { code: "marketing.view", label: "Marketing — view", description: "View and capture protocol marketing snapshots.", category: "marketing", implies: [] },
 
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
@@ -194,4 +199,5 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/users": { view: "iam.list_users", edit: "iam.modify_user" },
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },
+  "/admin/marketing/snapshots": { view: "marketing.view" },
 }
