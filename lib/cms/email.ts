@@ -108,3 +108,26 @@ export function onboardingEmail(name: string | null, tempPassword: string) {
     ),
   }
 }
+
+/** True when Resend is configured — lets callers tell a real send from the no-op. */
+export function isEmailEnabled(): boolean {
+  return !!process.env.RESEND_API_KEY
+}
+
+export function newArticleEmail(args: {
+  title: string
+  excerpt: string
+  slug: string
+  locale: "en" | "zh"
+  unsubscribeUrl: string
+}): { subject: string; html: string } {
+  const href = `${APP_URL}/articles/${args.slug}`
+  const copy =
+    args.locale === "zh"
+      ? { subject: `新文章：${args.title}`, heading: args.title, read: "阅读全文", unsub: "退订" }
+      : { subject: `New article: ${args.title}`, heading: args.title, read: "Read the article", unsub: "Unsubscribe" }
+  const body = `<p>${args.excerpt}</p>
+  <p style="margin:20px 0"><a href="${href}" style="display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${copy.read}</a></p>
+  <p style="font-size:12px;color:#94a3b8;margin-top:8px"><a href="${args.unsubscribeUrl}" style="color:#94a3b8">${copy.unsub}</a></p>`
+  return { subject: copy.subject, html: shell(copy.heading, body) }
+}
