@@ -70,7 +70,7 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
   }
 
   async function uploadFileIntoBody(file: File, atCursor: boolean) {
-    const token = `![enviando…](#upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)})`
+    const token = `![uploading…](#upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)})`
     // Insert placeholder via a functional update so concurrent uploads don't clobber.
     setContent((c) => {
       const body = c[activeLocale].body
@@ -198,7 +198,7 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
               {cur.body.trim() ? <Markdown variant="article">{cur.body}</Markdown> : <p className="text-zinc-400">Nothing to preview.</p>}
             </div>
           )}
-          {uploads > 0 && <p className="text-xs text-sky-400">Enviando imagem…</p>}
+          {uploads > 0 && <p className="text-xs text-sky-400">Uploading image…</p>}
         </div>
 
         <div className="space-y-1.5">
