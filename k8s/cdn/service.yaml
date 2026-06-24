@@ -1,0 +1,19 @@
+# ClusterIP Service for subfrost-cdn. tlsd (in the tlsd-ingress namespace)
+# routes host cdn.subfrost.io to this Service's cluster DNS / pod IPs —
+# see tlsd-route.md. Not publicly exposed directly; tlsd terminates TLS
+# and is the only ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: subfrost-cdn
+  namespace: subfrost
+  labels:
+    app: subfrost-cdn
+spec:
+  type: ClusterIP
+  selector:
+    app: subfrost-cdn
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: subfrost
+
+# subfrost-cdn — Rust container port of cdn.subfrost.io. Deploys into the
+# existing `subfrost` namespace (created by ../namespace.yaml). NOT wired
+# into ../kustomization.yaml yet — apply explicitly until cutover:
+#   kubectl apply -k k8s/cdn
+# tlsd routing for cdn.subfrost.io is a separate edit (see tlsd-route.md).
+resources:
+  - serviceaccount.yaml
+  - external-secrets.yaml
+  - deployment.yaml
+  - service.yaml
+  - pdb.yaml
+
+# Pin to an immutable SHORT_SHA tag the Cloud Build trigger produces
+# (rust/services/cdn/cloudbuild.yaml). Bump per release; Flux rolls out on change.
+images:
+  - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-cdn
+    newTag: latest
