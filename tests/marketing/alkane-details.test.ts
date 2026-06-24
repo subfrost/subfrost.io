@@ -36,4 +36,12 @@ describe("getAlkaneDetails", () => {
     expect(b.priceUsd).toBe(53.7)
     expect(b.supply).toBeNull()       // missing
   })
+
+  it("returns an all-null block for a malformed id without fetching", async () => {
+    const f = vi.fn() as unknown as typeof fetch
+    const b = await getAlkaneDetails("2", f)
+    expect(b.id).toBe("2")
+    expect(b.holders).toBeNull()
+    expect(f).not.toHaveBeenCalled()
+  })
 })

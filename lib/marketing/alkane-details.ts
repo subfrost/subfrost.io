@@ -26,6 +26,7 @@ export async function getAlkaneDetails(
 ): Promise<SnapshotTokenBlock> {
   try {
     const [block, tx] = id.split(":")
+    if (!block || !tx) return nullBlock(id)
     const res = await fetchImpl(`${DETAILS_URL}/get-alkane-details`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
