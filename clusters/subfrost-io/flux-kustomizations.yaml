@@ -1,0 +1,56 @@
+# Flux Kustomizations for the components that live outside the main app's
+# ./k8s overlay (which forces namespace: subfrost). Each reconciles its own
+# path on every push to main from the existing `subfrost-io` GitRepository.
+#
+# These are bootstrap CRs — applied once to the cluster (like the root
+# `subfrost-io` Kustomization itself, which is not in ./k8s):
+#   kubectl apply -f clusters/subfrost-io/flux-kustomizations.yaml
+# After that, a push that changes k8s/cdn, k8s/tlsd-ingress, or k8s/telemetry
+# reconciles automatically. The subfrost-cdn IMAGE builds via the Cloud Build
+# trigger `subfrost-cdn` (rust/services/cdn/cloudbuild.yaml); bump the pinned
+# tag in k8s/cdn/kustomization.yaml per release and Flux rolls it out.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: subfrost-cdn
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./k8s/cdn
+  prune: true
+  wait: true
+  timeout: 4m
+  sourceRef:
+    kind: GitRepository
+    name: subfrost-io
+  # k8s/cdn deploys into the `subfrost` namespace created by the root
+  # subfrost-io Kustomization, so gate on it existing first.
+  dependsOn:
+    - name: subfrost-io
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tlsd-ingress
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./k8s/tlsd-ingress
+  prune: true
+  wait: true
+  timeout: 4m
+  sourceRef:
+    kind: GitRepository
+    name: subfrost-io
+  # The `tlsd-tls` Secret (LE cert) is created out-of-band and never managed
+  # here, so prune will not touch it (Flux only prunes what it applied).
+
+# NOTE: k8s/telemetry is intentionally NOT Flux-managed yet. It is still a
+# SCAFFOLD — the live telemetry pipeline is the direct path (tlsd JA4 ->
+# /api/fp -> Elasticsearch), but the overlay also carries an unintegrated
+# RabbitMQ + cdn-telemetry-sink + secretstore that a reconcile would deploy.
+# Apply it by hand (kubectl apply -k k8s/telemetry) and add a Kustomization
+# here only once the scaffold components are finished or removed.

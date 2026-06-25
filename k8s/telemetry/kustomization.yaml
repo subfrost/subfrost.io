@@ -22,6 +22,7 @@ resources:
   - es-bootstrap-job.yaml
   - rabbitmq.yaml
   - cdn-telemetry-sink.yaml
-  # One-shot; comment out (or delete) once the dump has been loaded so Flux
-  # doesn't try to recreate a completed Job on every reconcile.
-  - reindex-job.yaml
+  # reindex-job.yaml is a ONE-SHOT dump loader — already run (ES holds the
+  # 94,612 migrated docs). Removed from the Flux-managed set so reconciles
+  # don't recreate + re-run it (which would duplicate data). The manifest
+  # file is kept in-tree for re-running by hand if ever needed.
