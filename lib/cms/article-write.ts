@@ -16,6 +16,7 @@ export const articleInputSchema = z.object({
   slug: z.string().optional(),
   coverImage: z.string().url().optional().or(z.literal("")).transform((v) => v || null),
   tags: z.array(z.string()).optional().default([]),
+  coAuthorIds: z.array(z.string()).optional().default([]),
   featured: z.boolean().optional().default(false),
   primaryLocale: z.enum(["en", "zh"]).default("en"),
   status: z.enum(["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
@@ -41,6 +42,16 @@ async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
     n += 1
     slug = `${base}-${n}`
   }
+}
+
+/** Dedupe coAuthor ids, drop the primary author, and keep only ids that resolve
+ *  to a real user. Defense-in-depth — the editor only offers valid members. */
+async function resolveCoAuthorIds(ids: string[], authorId: string): Promise<string[]> {
+  const unique = Array.from(new Set(ids)).filter((id) => id && id !== authorId)
+  if (unique.length === 0) return []
+  const found = await prisma.user.findMany({ where: { id: { in: unique } }, select: { id: true } })
+  const valid = new Set(found.map((u) => u.id))
+  return unique.filter((id) => valid.has(id))
 }
 
 function collect(t: z.infer<typeof articleInputSchema>["translations"]) {
@@ -84,6 +95,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
     }
     const slug = await uniqueSlug(data.slug ? toSlug(data.slug) : existing.slug, existing.id)
     const becomingPublished = status === "PUBLISHED" && existing.status !== "PUBLISHED"
+    const coAuthorIds = await resolveCoAuthorIds(data.coAuthorIds, existing.authorId)
     await prisma.$transaction(async (tx) => {
       await tx.article.update({
         where: { id: existing.id },
@@ -91,6 +103,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
           slug, coverImage: data.coverImage, featured: data.featured, status, primaryLocale,
           publishedAt: becomingPublished ? new Date() : existing.publishedAt,
           tags: { set: [], connectOrCreate: tagConnect },
+          coAuthors: { set: coAuthorIds.map((id) => ({ id })) },
         },
       })
       await tx.articleTranslation.deleteMany({
@@ -110,12 +123,14 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
   }
 
   const slug = await uniqueSlug(toSlug(data.slug || slugSeed))
+  const createCoAuthorIds = await resolveCoAuthorIds(data.coAuthorIds, actor.id)
   const created = await prisma.article.create({
     data: {
       slug, coverImage: data.coverImage, featured: data.featured, status, primaryLocale,
       publishedAt: status === "PUBLISHED" ? new Date() : null,
       authorId: actor.id,
       tags: { connectOrCreate: tagConnect },
+      coAuthors: { connect: createCoAuthorIds.map((id) => ({ id })) },
       translations: { create: translations },
       revisions: { create: translations.map((t) => ({ locale: t.locale, title: t.title, body: t.body, editorId: actor.id })) },
     },
