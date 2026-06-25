@@ -1,6 +1,7 @@
 "use client"
 
 import useSWR from "swr"
+import { BlogCardCover } from "./BlogCardCover"
 
 // Homepage widget: top published articles from the same-origin API. Renders
 // nothing if empty, so the homepage degrades gracefully.
@@ -44,12 +45,7 @@ export default function LatestArticles() {
         {articles.map((a) => (
           <a key={a.slug} href={`/articles/${a.slug}`}
             className="flex flex-col overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm">
-            {a.coverImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={a.coverImage} alt="" className="h-40 w-full object-cover opacity-90" />
-            ) : (
-              <div className="h-40 w-full bg-gradient-to-br from-[hsl(var(--brand-blue))] to-slate-900" />
-            )}
+            <BlogCardCover coverImage={a.coverImage} />
             <div className="flex flex-1 flex-col gap-2 p-5">
               <div className="flex flex-wrap gap-1.5">
                 {a.tags.slice(0, 2).map((t) => (
