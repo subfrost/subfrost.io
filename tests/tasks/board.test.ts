@@ -1,6 +1,6 @@
 import { it, expect } from "vitest"
-import { buildBoard, applyFilter, initiativeProgress, distinctLabels } from "@/lib/tasks/board"
-import type { TaskView } from "@/lib/tasks/types"
+import { buildBoard, applyFilter, initiativeProgress, distinctLabels, buildInitiativeBoard, selectableInitiatives } from "@/lib/tasks/board"
+import type { TaskView, InitiativeView } from "@/lib/tasks/types"
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
@@ -49,4 +49,28 @@ it("computes initiative progress", () => {
 it("collects distinct labels sorted", () => {
   const tasks = [t({ labels: ["b", "a"] }), t({ labels: ["a", "c"] })]
   expect(distinctLabels(tasks)).toEqual(["a", "b", "c"])
+})
+
+const init = (over: Partial<InitiativeView>): InitiativeView => ({
+  id: "i", name: "n", goal: "", color: "#38bdf8", status: "TODO", archived: false,
+  createdAt: new Date(), updatedAt: new Date(), ...over,
+})
+
+it("groups initiatives into the four mirrored columns", () => {
+  const b = buildInitiativeBoard([init({ id: "a", status: "TODO" }), init({ id: "b", status: "ON_HOLD" }), init({ id: "c", status: "DONE" })])
+  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "ON_HOLD", "IN_PROGRESS", "DONE"])
+  expect(b.columns[0].count).toBe(1)
+  expect(b.columns[1].count).toBe(1)
+  expect(b.columns[3].count).toBe(1)
+})
+
+it("offers only To do / In progress (non-archived) initiatives as selectable", () => {
+  const list = [
+    init({ id: "a", status: "TODO" }),
+    init({ id: "b", status: "IN_PROGRESS" }),
+    init({ id: "c", status: "ON_HOLD" }),
+    init({ id: "d", status: "DONE" }),
+    init({ id: "e", status: "TODO", archived: true }),
+  ]
+  expect(selectableInitiatives(list).map((i) => i.id)).toEqual(["a", "b"])
 })
