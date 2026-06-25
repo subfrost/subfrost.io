@@ -28,4 +28,12 @@ describe("AdminEditor -- sources field", () => {
     expect(getByText(/Sources/i)).toBeTruthy()
     expect(getByDisplayValue("BBSW #29")).toBeTruthy()
   })
+
+  it("shows a Ghost-style feature image action and plain primary language controls", () => {
+    const { getByText, queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
+
+    expect(getByText("Add feature image")).toBeTruthy()
+    expect(getByText("Primary language")).toBeTruthy()
+    expect(queryByRole("combobox", { name: /Primary language/i })).toBeNull()
+  })
 })
