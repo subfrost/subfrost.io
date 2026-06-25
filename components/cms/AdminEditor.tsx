@@ -254,22 +254,6 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
               </button>
             )}
 
-            <div className="mb-8 flex items-center gap-5">
-              {(["en", "zh"] as Locale[]).map((loc) => (
-                <button
-                  key={loc}
-                  type="button"
-                  onClick={() => setActiveLocale(loc)}
-                  className={`inline-flex items-center gap-2 text-sm transition-colors ${
-                    activeLocale === loc ? "text-white" : "text-zinc-500 hover:text-zinc-200"
-                  }`}
-                >
-                  {LOCALE_LABEL[loc]}
-                  {content[loc].title.trim() && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />}
-                </button>
-              ))}
-            </div>
-
             <input
               value={cur.title}
               onChange={(e) => setCur({ title: e.target.value })}
@@ -349,7 +333,10 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
                   <button
                     key={loc}
                     type="button"
-                    onClick={() => setPrimaryLocale(loc)}
+                    onClick={() => {
+                      setPrimaryLocale(loc)
+                      setActiveLocale(loc)
+                    }}
                     className={`inline-flex items-center gap-2 text-sm transition-colors ${
                       primaryLocale === loc ? "text-white" : "text-zinc-500 hover:text-zinc-200"
                     }`}
