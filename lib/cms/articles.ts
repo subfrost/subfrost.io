@@ -481,6 +481,19 @@ export async function getAuthorProfile(id: string, opts: { previewFallback?: boo
   }
 }
 
+/** Active accounts offered as co-author options in the editor, excluding the
+ *  given primary author. Name falls back to email. */
+export async function getCoAuthorOptions(excludeId: string): Promise<{ id: string; name: string }[]> {
+  const users = await prisma.user.findMany({
+    where: { active: true, id: { not: excludeId } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  })
+  return users
+    .filter((u) => u.id !== excludeId)
+    .map((u) => ({ id: u.id, name: u.name ?? u.email }))
+}
+
 // Published previews authored by a given user, newest first.
 export async function getAuthorArticles(
   id: string,

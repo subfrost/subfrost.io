@@ -44,6 +44,37 @@ vi.mock('next/headers', () => ({
   headers: () => new Headers(),
 }));
 
+// Default prisma mock — prevents real DB access in tests that don't explicitly
+// mock @/lib/prisma. The implementations use a function returning a resolved
+// promise so mockReset (which clears mockReturnValue/mockResolvedValue but not
+// the implementation fn itself) doesn't break them.
+vi.mock('@/lib/prisma', () => {
+  const makeModel = () => ({
+    findMany: vi.fn(() => Promise.resolve([])),
+    findUnique: vi.fn(() => Promise.resolve(null)),
+    findFirst: vi.fn(() => Promise.resolve(null)),
+    create: vi.fn(() => Promise.resolve(null)),
+    update: vi.fn(() => Promise.resolve(null)),
+    upsert: vi.fn(() => Promise.resolve(null)),
+    delete: vi.fn(() => Promise.resolve(null)),
+    count: vi.fn(() => Promise.resolve(0)),
+  });
+  return {
+    default: {
+      user: makeModel(),
+      article: makeModel(),
+      articleTranslation: makeModel(),
+      $transaction: vi.fn((fn: unknown) =>
+        typeof fn === 'function' ? fn({}) : Promise.all(fn as Promise<unknown>[])
+      ),
+      $queryRaw: vi.fn(() => Promise.resolve([])),
+      $executeRaw: vi.fn(() => Promise.resolve(0)),
+      $connect: vi.fn(),
+      $disconnect: vi.fn(),
+    },
+  };
+});
+
 // Global test lifecycle
 beforeAll(() => {
   // Setup before all tests
