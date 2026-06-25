@@ -162,7 +162,14 @@ async fn route(
     // non-empty remainder after the prefix; the object passed is `full`.
     let full = &path[1..]; // path always begins with '/' here
 
-    if strip(path, "/alkanes/").is_some() {
+    if let Some(rest) = strip(path, "/alkanes/") {
+        // Ordiscan-compat rewrite (formerly done by the cdn.subfrost.io
+        // Cloudflare Worker): the wallet apps + browser extensions request
+        // /alkanes/<block>_<tx>; serve it from alkanes/mainnet/<block>-<tx>.png.
+        if let Some(obj) = alkanes_ordiscan_object(rest) {
+            return Ok(proxy(state, &cfg.assets_bucket, &obj, headers, base_headers()).await);
+        }
+        // generic /alkanes/* — object keeps the prefix (parity with Go).
         return Ok(proxy(state, &cfg.assets_bucket, full, headers, base_headers()).await);
     }
     if strip(path, "/docs/").is_some() {
@@ -354,6 +361,25 @@ fn strip<'a>(path: &'a str, prefix: &str) -> Option<&'a str> {
     path.strip_prefix(prefix).filter(|s| !s.is_empty())
 }
 
+/// Ordiscan-compat: given the remainder after `/alkanes/`, map the
+/// `<block>_<tx>` form (digits, exactly one underscore, no extension) to the
+/// canonical mainnet object key. Returns None for any other shape (e.g. the
+/// already-canonical `mainnet/0-0.png`), which falls through to a literal
+/// `alkanes/<rest>` lookup. Equivalent to the old Worker regex
+/// `^/alkanes/(\d+)_(\d+)$`.
+fn alkanes_ordiscan_object(rest: &str) -> Option<String> {
+    let (b, t) = rest.split_once('_')?;
+    if !b.is_empty()
+        && !t.is_empty()
+        && b.bytes().all(|c| c.is_ascii_digit())
+        && t.bytes().all(|c| c.is_ascii_digit())
+    {
+        Some(format!("alkanes/mainnet/{b}-{t}.png"))
+    } else {
+        None
+    }
+}
+
 fn accepts_html(headers: &HeaderMap) -> bool {
     headers
         .get(header::ACCEPT)
@@ -376,4 +402,28 @@ fn query_flag(query: Option<&str>, key: &str) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::alkanes_ordiscan_object;
+
+    #[test]
+    fn ordiscan_rewrites_block_tx_to_mainnet_png() {
+        assert_eq!(alkanes_ordiscan_object("2_0").as_deref(), Some("alkanes/mainnet/2-0.png"));
+        assert_eq!(alkanes_ordiscan_object("32_0").as_deref(), Some("alkanes/mainnet/32-0.png"));
+        assert_eq!(alkanes_ordiscan_object("2_490").as_deref(), Some("alkanes/mainnet/2-490.png"));
+    }
+
+    #[test]
+    fn ordiscan_ignores_non_block_tx_shapes() {
+        // already-canonical paths + anything non-numeric fall through (None)
+        assert_eq!(alkanes_ordiscan_object("mainnet/2-0.png"), None);
+        assert_eq!(alkanes_ordiscan_object("2-0"), None); // dash, not underscore
+        assert_eq!(alkanes_ordiscan_object("2_0_3"), None); // two underscores
+        assert_eq!(alkanes_ordiscan_object("2_"), None); // empty tx
+        assert_eq!(alkanes_ordiscan_object("_0"), None); // empty block
+        assert_eq!(alkanes_ordiscan_object("abc_0"), None); // non-numeric
+        assert_eq!(alkanes_ordiscan_object("2_0/foo"), None); // trailing path
+    }
 }
