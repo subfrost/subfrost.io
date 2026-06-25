@@ -18,4 +18,4 @@ resources:
 # (rust/services/cdn/cloudbuild.yaml). Bump per release; Flux rolls out on change.
 images:
   - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-cdn
-    newTag: 0db1681c
+    newTag: 3e2af95
