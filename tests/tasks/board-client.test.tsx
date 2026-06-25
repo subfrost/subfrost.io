@@ -1,5 +1,5 @@
 import { it, expect, vi, beforeEach } from "vitest"
-import { render, cleanup, fireEvent } from "@testing-library/react"
+import { render, cleanup, fireEvent, waitFor, act } from "@testing-library/react"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 vi.mock("@/actions/tasks/board", () => ({
@@ -22,16 +22,19 @@ const task = (over: Partial<TaskView>): TaskView => ({
 beforeEach(() => cleanup())
 
 it("renders tasks and the initiative chip", () => {
-  const { getByText } = render(<BoardClient tasks={[task({})]} initiatives={[init]} meId="u1" canEdit />)
+  const { getByText, getAllByText } = render(<BoardClient tasks={[task({})]} initiatives={[init]} meId="u1" canEdit />)
   expect(getByText("Audit mint path")).toBeTruthy()
-  expect(getByText("frUSD deployment")).toBeTruthy()
+  // initiative name appears in both the filter pill and the task card
+  expect(getAllByText("frUSD deployment").length).toBeGreaterThanOrEqual(2)
 })
 
 it("quick-add submits createTaskAction with the active initiative", async () => {
   const { getByPlaceholderText } = render(<BoardClient tasks={[]} initiatives={[init]} meId="u1" canEdit />)
   const input = getByPlaceholderText(/Quick add/i)
-  fireEvent.change(input, { target: { value: "New task" } })
-  fireEvent.keyDown(input, { key: "Enter" })
+  await act(async () => {
+    fireEvent.change(input, { target: { value: "New task" } })
+    fireEvent.keyDown(input, { key: "Enter" })
+  })
   const { createTaskAction } = await import("@/actions/tasks/board")
   expect(createTaskAction).toHaveBeenCalled()
 })
@@ -44,15 +47,17 @@ it("toggles to the list view (Priority header appears)", () => {
 
 it("assign-to-me calls claimTaskAction", async () => {
   const { getByText } = render(<BoardClient tasks={[task({ owner: null })]} initiatives={[init]} meId="u1" canEdit />)
-  fireEvent.click(getByText(/Assign to me/i))
+  await act(async () => {
+    fireEvent.click(getByText(/Assign to me/i))
+  })
   const { claimTaskAction } = await import("@/actions/tasks/board")
   expect(claimTaskAction).toHaveBeenCalledWith("t1")
 })
 
 it("filtering by an initiative hides non-matching tasks", () => {
   const tasks = [task({ id: "a", title: "In frUSD", initiativeId: "i1" }), task({ id: "b", title: "No initiative", initiativeId: null })]
-  const { getByText, queryByText } = render(<BoardClient tasks={tasks} initiatives={[init]} meId="u1" canEdit />)
-  fireEvent.click(getByText("frUSD deployment"))
+  const { getByText, getByRole, queryByText } = render(<BoardClient tasks={tasks} initiatives={[init]} meId="u1" canEdit />)
+  fireEvent.click(getByRole("button", { name: "frUSD deployment" }))
   expect(queryByText("No initiative")).toBeNull()
   expect(getByText("In frUSD")).toBeTruthy()
 })

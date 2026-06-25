@@ -32,8 +32,9 @@ export function TaskCard({ task, initiative, canEdit }: {
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         {initiative && (
-          <span title={initiative.name} className="inline-flex items-center gap-1 text-[11px]" style={{ color: initiative.color }}>
+          <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: initiative.color }}>
             <span className="h-2 w-2 rounded-full" style={{ background: initiative.color }} />
+            {initiative.name}
           </span>
         )}
         {task.labels.map((l) => (
