@@ -34,6 +34,7 @@ export type CategoryKey =
   | "financials"
   | "files"
   | "marketing"
+  | "tasks"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -43,6 +44,7 @@ export interface CategoryDef {
 export const CATEGORIES: CategoryDef[] = [
   { key: "iam", label: "Identity & Access" },
   { key: "articles", label: "Articles" },
+  { key: "tasks", label: "Board" },
   { key: "community", label: "Community" },
   { key: "compliance", label: "Compliance" },
   { key: "billing", label: "Billing" },
@@ -67,6 +69,10 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "articles.edit_any", label: "Articles superuser", description: "Manage, edit, and delete any author's articles.", category: "articles", implies: ["articles.write"] },
   { code: "articles.publish", label: "Publish & feature", description: "Publish, unpublish, and feature articles on the homepage.", category: "articles", implies: ["articles.write"] },
   { code: "articles.edit_bio", label: "Edit public profile", description: "Maintain your public author byline — bio, avatar, and social handle.", category: "articles", implies: [] },
+
+  // --- Board (tasks) ---
+  { code: "tasks.view", label: "Board — view", description: "View the team task board and initiatives.", category: "tasks", implies: [] },
+  { code: "tasks.edit", label: "Board — edit", description: "Create, claim, move, and edit tasks and initiatives.", category: "tasks", implies: ["tasks.view"] },
 
   // --- Community ---
   { code: "referral.read", label: "Referral codes — view", description: "View the referral code hierarchy, owners, and redemptions.", category: "community", implies: [] },
@@ -206,4 +212,6 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },
   "/admin/marketing/snapshots": { view: "marketing.view" },
+  "/admin/board": { view: "tasks.view", edit: "tasks.edit" },
+  "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
 }
