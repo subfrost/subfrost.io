@@ -130,7 +130,7 @@ export default async function ArticlePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <ArticleView
-        article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags }}
+        article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags, author: a.author, readingMinutes: a.readingMinutes }}
         locale={locale}
       />
       <div className="mx-auto flex max-w-[680px] justify-center px-6 pb-2 sm:px-8">

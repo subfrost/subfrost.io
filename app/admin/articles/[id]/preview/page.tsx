@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
+import { readingTime } from "@/lib/cms/slug"
 import { ArticleView } from "@/components/cms/ArticleView"
 import { PreviewActions } from "@/components/cms/PreviewActions"
 import { EditorialThemeScope } from "@/components/articles/EditorialThemeScope"
@@ -23,7 +24,7 @@ export default async function PreviewArticlePage({
   const user = await currentUser()
   if (!user) redirect("/admin/login")
 
-  const article = await prisma.article.findUnique({ where: { id }, include: { tags: true, translations: true } })
+  const article = await prisma.article.findUnique({ where: { id }, include: { tags: true, translations: true, author: true } })
   if (!article) notFound()
   const canPublish = user.privileges.includes("articles.publish")
   if (!canPublish && article.authorId !== user.id) redirect("/admin/articles")
@@ -62,6 +63,14 @@ export default async function PreviewArticlePage({
             sources: tr.sources,
             publishedAt: article.publishedAt ? article.publishedAt.toISOString() : null,
             tags: article.tags,
+            author: {
+              id: article.author.id,
+              name: article.author.name ?? article.author.email,
+              avatarUrl: article.author.avatarUrl,
+              bio: article.author.bio,
+              twitter: article.author.twitter,
+            },
+            readingMinutes: readingTime(tr.body),
           }}
           locale={locale}
         />

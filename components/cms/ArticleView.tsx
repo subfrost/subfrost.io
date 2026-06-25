@@ -1,5 +1,7 @@
+import Link from "next/link"
 import { Markdown } from "@/lib/cms/markdown"
-import type { CmsLocale } from "@/lib/cms/articles"
+import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
+import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
 
 export interface ArticleViewData {
   title: string
@@ -8,6 +10,8 @@ export interface ArticleViewData {
   sources?: string
   publishedAt: string | null
   tags: { slug: string; name: string }[]
+  author?: AuthorProfile
+  readingMinutes?: number
 }
 
 // Maps a tag to its display category label per locale. Shared by the public
@@ -21,17 +25,21 @@ export function categoryLabel(tag: { slug: string; name: string }, locale: CmsLo
   return tag.name
 }
 
-/** The published article body — header (date + primary category, title, excerpt)
- *  and Markdown content. Rendered identically by the public page and the admin
- *  preview so the preview matches published output. */
+/** The published article body — header (date + primary category, title, excerpt,
+ *  author byline) and Markdown content, closing with the author bio card.
+ *  Rendered identically by the public page and the admin preview so the preview
+ *  matches published output. The author UI only renders when `author` is given. */
 export function ArticleView({ article, locale }: { article: ArticleViewData; locale: CmsLocale }) {
   const fallback = locale === "zh" ? "文章" : "Article"
   const primaryTag = article.tags.map((t) => categoryLabel(t, locale)).find((t): t is string => Boolean(t)) ?? fallback
+  const author = article.author
+  const authorHref = author ? (locale === "zh" ? `/authors/${author.id}?lang=zh` : `/authors/${author.id}`) : null
   return (
     <article className="mx-auto px-6 pb-20 pt-24 sm:px-8 lg:pt-28">
       <header className="mx-auto max-w-[920px] text-center">
         <div className="font-display mb-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
-          {article.publishedAt ? (
+          {/* Date lives in the byline when an author is shown, so avoid repeating it here. */}
+          {!author && article.publishedAt ? (
             <span>{new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(article.publishedAt))}</span>
           ) : null}
           <span>{primaryTag}</span>
@@ -49,6 +57,12 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
             {article.excerpt}
           </p>
         ) : null}
+
+        {author ? (
+          <div className="mt-8 flex justify-center">
+            <AuthorByline author={author} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={44} locale={locale} />
+          </div>
+        ) : null}
       </header>
 
       <div className="mx-auto mt-24 max-w-[680px]">
@@ -59,6 +73,26 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
         <aside className="ed-sources">
           <div className="ed-sources-label">{locale === "zh" ? "来源" : "Sources"}</div>
           <Markdown variant="article">{article.sources as string}</Markdown>
+        </aside>
+      ) : null}
+
+      {author?.bio && authorHref ? (
+        <aside
+          className="mx-auto mt-14 flex max-w-[680px] items-start gap-4 rounded-[14px] border p-5"
+          style={{ borderColor: "var(--ed-hair)" }}
+        >
+          <Avatar name={author.name} src={author.avatarUrl} size={48} />
+          <div>
+            <div className="font-display text-[11px] uppercase tracking-[1.5px]" style={{ color: "var(--ed-muted)" }}>
+              {locale === "zh" ? "作者" : "Written by"}
+            </div>
+            <Link href={authorHref} className="font-display text-[15px] font-medium hover:underline" style={{ color: "var(--ed-ink)" }}>
+              {author.name}
+            </Link>
+            <p className="font-reading mt-1 text-[15px] leading-[1.6]" style={{ color: "var(--ed-body)" }}>
+              {author.bio}
+            </p>
+          </div>
         </aside>
       ) : null}
     </article>
