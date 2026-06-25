@@ -43,6 +43,20 @@ const nextConfig = {
     ];
   },
 
+  // Vanity link: /download -> the SUBFROST Chrome Web Store listing.
+  // Temporary (307) so it isn't browser-cached forever — keeps the option to
+  // later make /download a landing page (e.g. Chrome + Firefox builds).
+  async redirects() {
+    return [
+      {
+        source: '/download',
+        destination:
+          'https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen',
+        permanent: false,
+      },
+    ];
+  },
+
 };
 
 export default nextConfig;
