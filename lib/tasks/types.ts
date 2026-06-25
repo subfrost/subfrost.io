@@ -1,0 +1,87 @@
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE"
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH"
+
+export interface OwnerView {
+  id: string
+  name: string | null
+  email: string
+}
+
+export interface TaskView {
+  id: string
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  labels: string[]
+  owner: OwnerView | null
+  initiativeId: string | null
+  position: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface InitiativeView {
+  id: string
+  name: string
+  goal: string
+  color: string
+  archived: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface BoardFilter {
+  initiativeId?: string | null // null/undefined = all
+  label?: string
+  ownerId?: string // "My tasks" passes the current user id
+  status?: TaskStatus
+}
+
+export interface BoardColumn {
+  status: TaskStatus
+  title: string
+  tasks: TaskView[]
+  count: number
+}
+
+export interface BoardData {
+  columns: BoardColumn[] // always [TODO, IN_PROGRESS, DONE]
+  total: number
+}
+
+export interface InitiativeProgress {
+  total: number
+  done: number
+  active: number
+  pct: number
+}
+
+export const STATUS_ORDER: TaskStatus[] = ["TODO", "IN_PROGRESS", "DONE"]
+
+export const TASK_STATUS: Record<TaskStatus, { label: string; cls: string; dot: string }> = {
+  TODO: { label: "To do", cls: "text-zinc-400", dot: "bg-zinc-500" },
+  IN_PROGRESS: { label: "Doing", cls: "text-sky-300", dot: "bg-sky-400" },
+  DONE: { label: "Done", cls: "text-emerald-300", dot: "bg-emerald-400" },
+}
+
+export const TASK_PRIORITY: Record<TaskPriority, { label: string; rank: number; cls: string }> = {
+  HIGH: { label: "High", rank: 2, cls: "bg-rose-500/15 text-rose-300" },
+  MEDIUM: { label: "Med", rank: 1, cls: "bg-amber-500/15 text-amber-300" },
+  LOW: { label: "Low", rank: 0, cls: "bg-zinc-500/15 text-zinc-400" },
+}
+
+export const SUGGESTED_LABELS = ["subfrost.io", "subfrost-app", "subfrost-admin", "contracts", "infra", "marketing"]
+
+export function ownerInitials(owner: { name: string | null; email: string } | null): string {
+  if (!owner) return "?"
+  const base = owner.name?.trim() || owner.email
+  const parts = base.split(/[\s@._-]+/).filter(Boolean)
+  const a = parts[0]?.[0] ?? ""
+  const b = parts.length > 1 ? parts[1][0] : ""
+  return (a + b).toUpperCase() || "?"
+}
+
+export function ownerName(owner: { name: string | null; email: string } | null): string {
+  return owner ? owner.name?.trim() || owner.email : "Unassigned"
+}
