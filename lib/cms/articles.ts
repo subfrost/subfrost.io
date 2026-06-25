@@ -27,6 +27,7 @@ export interface ArticlePreview {
   locale: CmsLocale
   availableLocales: CmsLocale[]
   author: AuthorProfile
+  coAuthors: AuthorProfile[]
   tags: { slug: string; name: string }[]
 }
 
@@ -57,6 +58,7 @@ const baseSelect = {
   updatedAt: true,
   primaryLocale: true,
   author: { select: { id: true, name: true, email: true, avatarUrl: true, bio: true, twitter: true } },
+  coAuthors: { select: { id: true, name: true, email: true, avatarUrl: true, bio: true, twitter: true } },
   tags: { select: { slug: true, name: true } },
   translations: { select: { locale: true, title: true, excerpt: true, body: true, sources: true } },
 } as const
@@ -68,6 +70,7 @@ type ArticleRow = {
   updatedAt: Date | null
   primaryLocale: string
   author: { id: string; name: string | null; email: string; avatarUrl: string | null; bio: string | null; twitter: string | null }
+  coAuthors: { id: string; name: string | null; email: string; avatarUrl: string | null; bio: string | null; twitter: string | null }[]
   tags: { slug: string; name: string }[]
   translations: TranslationRow[]
 }
@@ -196,6 +199,7 @@ function previewArticleToPreview(
     locale: translation.locale as CmsLocale,
     availableLocales: article.translations.map((t) => t.locale as CmsLocale),
     author: article.author,
+    coAuthors: [],
     tags: article.tags,
   }
 }
@@ -270,6 +274,10 @@ function toPreview(a: ArticleRow, want: CmsLocale): ArticlePreview | null {
       bio: a.author.bio,
       twitter: a.author.twitter,
     },
+    coAuthors: a.coAuthors
+      .filter((u) => u.id !== a.author.id)
+      .map((u) => ({ id: u.id, name: u.name ?? u.email, avatarUrl: u.avatarUrl, bio: u.bio, twitter: u.twitter }))
+      .sort((x, y) => x.name.localeCompare(y.name)),
     tags: a.tags,
   }
 }
