@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus } from "./types"
+import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView } from "./types"
 
 export class TaskError extends Error {}
 
@@ -49,7 +49,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
 }
 
 export interface UpdateTaskPatch {
-  title?: string; description?: string; priority?: TaskPriority; labels?: string[]; initiativeId?: string | null
+  title?: string; description?: string; priority?: TaskPriority; labels?: string[]; initiativeId?: string | null; blockerReason?: string
 }
 
 export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<TaskView> {
@@ -63,6 +63,7 @@ export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<Ta
   if (patch.priority !== undefined) data.priority = patch.priority
   if (patch.labels !== undefined) data.labels = patch.labels
   if (patch.initiativeId !== undefined) data.initiativeId = patch.initiativeId || null
+  if (patch.blockerReason !== undefined) data.blockerReason = patch.blockerReason.trim()
   const r = (await prisma.task.update({ where: { id }, data, include: TASK_INCLUDE })) as TaskRow
   return mapTask(r)
 }
@@ -79,6 +80,29 @@ export async function claimTask(id: string, ownerId: string): Promise<TaskView> 
 
 export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({ where: { id } })
+}
+
+export async function assignTask(id: string, ownerId: string | null): Promise<TaskView> {
+  if (ownerId) {
+    const u = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, active: true } })
+    if (!u || !u.active) throw new TaskError("User not found")
+  }
+  const r = (await prisma.task.update({ where: { id }, data: { ownerId }, include: TASK_INCLUDE })) as TaskRow
+  return mapTask(r)
+}
+
+export async function listAssignableUsers(): Promise<MemberView[]> {
+  const rows = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email }))
+}
+
+export async function bulkCreateTasks(input: { initiativeId: string; titles: string[]; createdById?: string | null }): Promise<number> {
+  const titles = input.titles.map((t) => t.trim()).filter(Boolean)
+  if (titles.length === 0) throw new TaskError("Add at least one task")
+  const r = await prisma.task.createMany({
+    data: titles.map((title) => ({ title, initiativeId: input.initiativeId, createdById: input.createdById || null })),
+  })
+  return r.count
 }
 
 // --- Initiatives ---
@@ -132,4 +156,9 @@ export async function updateInitiative(id: string, patch: UpdateInitiativePatch)
 
 export async function archiveInitiative(id: string): Promise<void> {
   await prisma.initiative.update({ where: { id }, data: { archived: true } })
+}
+
+export async function moveInitiative(id: string, status: InitiativeStatus): Promise<InitiativeView> {
+  const r = (await prisma.initiative.update({ where: { id }, data: { status } })) as InitiativeRow
+  return mapInitiative(r)
 }
