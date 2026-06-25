@@ -250,7 +250,7 @@ export default async function ArticlesIndex({
           </h2>
           <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
             <nav className="flex flex-wrap gap-x-6 gap-y-3" aria-label={copy.browseByTopic}>
-              {browseItems.map((topic, index) => (
+              {browseItems.map((topic) => (
                 <Link
                   key={topic.id}
                   href={topic.href}
