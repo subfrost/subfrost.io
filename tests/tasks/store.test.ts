@@ -68,6 +68,7 @@ it("assignTask sets the owner for a valid user and clears it for null", async ()
   expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "t1" }, data: { ownerId: "u9" } }))
   await assignTask("t1", null)
   expect(client.task.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: { ownerId: null } }))
+  expect(client.user.findUnique).toHaveBeenCalledTimes(1)
 })
 
 it("listAssignableUsers returns active users", async () => {
