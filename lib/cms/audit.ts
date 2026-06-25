@@ -80,6 +80,14 @@ export type AuditAction =
   | "file_delete"
   | "marketing_snapshot_create"
   | "marketing_snapshot_delete"
+  | "task_create"
+  | "task_update"
+  | "task_move"
+  | "task_claim"
+  | "task_delete"
+  | "initiative_create"
+  | "initiative_update"
+  | "initiative_archive"
 
 export async function audit(
   action: AuditAction,
