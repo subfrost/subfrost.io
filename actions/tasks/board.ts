@@ -214,9 +214,14 @@ export async function moveInitiativeAction(id: string, status: z.infer<typeof In
   if (!g.ok) return g
   const parsed = InitiativeStatusEnum.safeParse(status)
   if (!parsed.success) return { ok: false, error: "Invalid status" }
-  const value = await store.moveInitiative(id, parsed.data)
-  await audit("initiative_move", { actorId: g.me.id, target: id, details: { status: parsed.data }, ip: await ip() })
-  revalidatePath(INITIATIVES)
-  revalidatePath(BOARD)
-  return { ok: true, value }
+  try {
+    const value = await store.moveInitiative(id, parsed.data)
+    await audit("initiative_move", { actorId: g.me.id, target: id, details: { status: parsed.data }, ip: await ip() })
+    revalidatePath(INITIATIVES)
+    revalidatePath(BOARD)
+    return { ok: true, value }
+  } catch (e) {
+    if (e instanceof TaskError) return { ok: false, error: e.message }
+    throw e
+  }
 }

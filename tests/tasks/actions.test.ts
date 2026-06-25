@@ -73,3 +73,11 @@ it("moveInitiativeAction rejects an invalid status", async () => {
   expect(r).toEqual({ ok: false, error: "Invalid status" })
   expect(moveInitiative).not.toHaveBeenCalled()
 })
+
+it("moveInitiativeAction moves the initiative and returns the value", async () => {
+  vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.edit", "tasks.view"] } as never)
+  vi.mocked(moveInitiative).mockResolvedValue({ id: "i1", status: "ON_HOLD" } as never)
+  const r = await moveInitiativeAction("i1", "ON_HOLD")
+  expect(r).toEqual({ ok: true, value: { id: "i1", status: "ON_HOLD" } })
+  expect(moveInitiative).toHaveBeenCalledWith("i1", "ON_HOLD")
+})
