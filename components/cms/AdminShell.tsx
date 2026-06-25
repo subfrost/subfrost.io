@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { AdminNav } from "@/components/cms/AdminNav"
 import { UserMenu } from "@/components/cms/UserMenu"
 
@@ -14,6 +15,10 @@ export interface ShellUser {
 
 export function AdminShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname() ?? ""
+  const immersiveEditor =
+    pathname === "/admin/articles/new" ||
+    (/^\/admin\/articles\/[^/]+$/.test(pathname) && !pathname.endsWith("/preview"))
 
   const brand = (
     <div className="px-2">
@@ -30,6 +35,14 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
       </div>
     </>
   )
+
+  if (immersiveEditor) {
+    return (
+      <div className="dark min-h-screen bg-black text-zinc-100">
+        <main>{children}</main>
+      </div>
+    )
+  }
 
   return (
     <div className="dark flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">

@@ -40,13 +40,9 @@ describe("new article page auth guard", () => {
       privileges: ["articles.publish"],
     } as never)
 
-    const tree = (await NewArticlePage()) as { props: { children: unknown[] } }
-    const editor = tree.props.children.find(
-      (c): c is { props: { canPublish: boolean } } =>
-        typeof c === "object" && c !== null && "props" in c && "canPublish" in (c as { props: object }).props,
-    )
+    const editor = (await NewArticlePage()) as { props: { canPublish: boolean } }
 
     expect(redirect).not.toHaveBeenCalled()
-    expect(editor?.props.canPublish).toBe(true)
+    expect(editor.props.canPublish).toBe(true)
   })
 })

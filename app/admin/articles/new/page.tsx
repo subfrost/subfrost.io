@@ -16,12 +16,9 @@ export default async function NewArticlePage() {
   if (!user) redirect("/admin/login")
   const canPublish = user.privileges.includes("articles.publish")
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold text-white">New article</h1>
-      <AdminEditor
-        canPublish={canPublish}
-        initial={{ slug: "", coverImage: "", tags: [], featured: false, primaryLocale: "en", status: "DRAFT", en: empty, zh: empty }}
-      />
-    </div>
+    <AdminEditor
+      canPublish={canPublish}
+      initial={{ slug: "", coverImage: "", tags: [], featured: false, primaryLocale: "en", status: "DRAFT", en: empty, zh: empty }}
+    />
   )
 }
