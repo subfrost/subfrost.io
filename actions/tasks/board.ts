@@ -28,6 +28,7 @@ async function gate(priv: "tasks.view" | "tasks.edit"): Promise<Gate> {
 
 const PriorityEnum = z.enum(["LOW", "MEDIUM", "HIGH", "FIRE"])
 const StatusEnum = z.enum(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
+const InitiativeStatusEnum = z.enum(["TODO", "IN_PROGRESS", "ON_HOLD", "DONE"])
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1, "A title is required"),
@@ -60,6 +61,7 @@ const UpdateTaskSchema = z.object({
   priority: PriorityEnum.optional(),
   labels: z.array(z.string()).optional(),
   initiativeId: z.string().nullable().optional(),
+  blockerReason: z.string().optional(),
 })
 export type UpdateTaskInput = z.input<typeof UpdateTaskSchema>
 
@@ -97,6 +99,42 @@ export async function claimTaskAction(id: string): Promise<Result<TaskView>> {
   await audit("task_claim", { actorId: g.me.id, target: id, ip: await ip() })
   revalidatePath(BOARD)
   return { ok: true, value }
+}
+
+export async function assignTaskAction(id: string, ownerId: string | null): Promise<Result<TaskView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  try {
+    const value = await store.assignTask(id, ownerId)
+    await audit("task_assign", { actorId: g.me.id, target: id, details: { ownerId }, ip: await ip() })
+    revalidatePath(BOARD)
+    return { ok: true, value }
+  } catch (e) {
+    if (e instanceof TaskError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+const BulkCreateSchema = z.object({
+  initiativeId: z.string().min(1, "An initiative is required"),
+  titles: z.array(z.string()),
+})
+export type BulkCreateInput = z.input<typeof BulkCreateSchema>
+
+export async function bulkCreateTasksAction(input: BulkCreateInput): Promise<Result<{ count: number }>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const parsed = BulkCreateSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  try {
+    const count = await store.bulkCreateTasks({ initiativeId: parsed.data.initiativeId, titles: parsed.data.titles, createdById: g.me.id })
+    await audit("task_bulk_create", { actorId: g.me.id, target: parsed.data.initiativeId, details: { count }, ip: await ip() })
+    revalidatePath(BOARD)
+    return { ok: true, value: { count } }
+  } catch (e) {
+    if (e instanceof TaskError) return { ok: false, error: e.message }
+    throw e
+  }
 }
 
 export async function deleteTaskAction(id: string): Promise<Result<null>> {
@@ -169,4 +207,16 @@ export async function archiveInitiativeAction(id: string): Promise<Result<null>>
   revalidatePath(INITIATIVES)
   revalidatePath(BOARD)
   return { ok: true, value: null }
+}
+
+export async function moveInitiativeAction(id: string, status: z.infer<typeof InitiativeStatusEnum>): Promise<Result<InitiativeView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const parsed = InitiativeStatusEnum.safeParse(status)
+  if (!parsed.success) return { ok: false, error: "Invalid status" }
+  const value = await store.moveInitiative(id, parsed.data)
+  await audit("initiative_move", { actorId: g.me.id, target: id, details: { status: parsed.data }, ip: await ip() })
+  revalidatePath(INITIATIVES)
+  revalidatePath(BOARD)
+  return { ok: true, value }
 }
