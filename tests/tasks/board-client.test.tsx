@@ -12,10 +12,10 @@ vi.mock("@/actions/tasks/board", () => ({
 import { BoardClient } from "@/components/cms/board/BoardClient"
 import type { TaskView, InitiativeView } from "@/lib/tasks/types"
 
-const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship", color: "#1D9E75", archived: false, createdAt: new Date(), updatedAt: new Date() }
+const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship", color: "#1D9E75", status: "TODO", archived: false, createdAt: new Date(), updatedAt: new Date() }
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
-  labels: ["subfrost-app"], owner: null, initiativeId: "i1", position: 0,
+  labels: ["subfrost-app"], blockerReason: "", owner: null, initiativeId: "i1", position: 0,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 

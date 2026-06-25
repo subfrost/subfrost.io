@@ -26,8 +26,8 @@ async function gate(priv: "tasks.view" | "tasks.edit"): Promise<Gate> {
   return { ok: true, me }
 }
 
-const PriorityEnum = z.enum(["LOW", "MEDIUM", "HIGH"])
-const StatusEnum = z.enum(["TODO", "IN_PROGRESS", "DONE"])
+const PriorityEnum = z.enum(["LOW", "MEDIUM", "HIGH", "FIRE"])
+const StatusEnum = z.enum(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1, "A title is required"),

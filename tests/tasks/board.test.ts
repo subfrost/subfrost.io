@@ -4,15 +4,15 @@ import type { TaskView } from "@/lib/tasks/types"
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], owner: null, initiativeId: null, position: 0,
+  labels: [], blockerReason: "", owner: null, initiativeId: null, position: 0,
   createdAt: new Date("2026-06-25T00:00:00Z"), updatedAt: new Date("2026-06-25T00:00:00Z"), ...over,
 })
 
-it("groups tasks into the three ordered columns", () => {
+it("groups tasks into the four ordered columns", () => {
   const b = buildBoard([t({ id: "a", status: "TODO" }), t({ id: "b", status: "DONE" })])
-  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "IN_PROGRESS", "DONE"])
+  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
   expect(b.columns[0].count).toBe(1)
-  expect(b.columns[2].count).toBe(1)
+  expect(b.columns[3].count).toBe(1)
   expect(b.total).toBe(2)
 })
 

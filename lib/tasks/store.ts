@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import type { TaskView, InitiativeView, TaskStatus, TaskPriority } from "./types"
+import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus } from "./types"
 
 export class TaskError extends Error {}
 
@@ -7,7 +7,7 @@ const TASK_INCLUDE = { owner: { select: { id: true, name: true, email: true } } 
 
 type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
-  labels: string[]; initiativeId: string | null; position: number; createdAt: Date; updatedAt: Date
+  labels: string[]; blockerReason: string; initiativeId: string | null; position: number; createdAt: Date; updatedAt: Date
   owner: { id: string; name: string | null; email: string } | null
 }
 
@@ -15,7 +15,7 @@ function mapTask(r: TaskRow): TaskView {
   return {
     id: r.id, title: r.title, description: r.description,
     status: r.status as TaskStatus, priority: r.priority as TaskPriority,
-    labels: r.labels, owner: r.owner, initiativeId: r.initiativeId,
+    labels: r.labels, blockerReason: r.blockerReason, owner: r.owner, initiativeId: r.initiativeId,
     position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
   }
 }
@@ -83,10 +83,10 @@ export async function deleteTask(id: string): Promise<void> {
 
 // --- Initiatives ---
 
-type InitiativeRow = { id: string; name: string; goal: string; color: string; archived: boolean; createdAt: Date; updatedAt: Date }
+type InitiativeRow = { id: string; name: string; goal: string; color: string; status: string; archived: boolean; createdAt: Date; updatedAt: Date }
 
 function mapInitiative(r: InitiativeRow): InitiativeView {
-  return { id: r.id, name: r.name, goal: r.goal, color: r.color, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
+  return { id: r.id, name: r.name, goal: r.goal, color: r.color, status: r.status as InitiativeStatus, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
 }
 
 export async function listInitiatives(): Promise<InitiativeView[]> {
