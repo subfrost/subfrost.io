@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import { ArrowUp } from "lucide-react"
 import type { ArticlePreview, CmsLocale } from "@/lib/cms/articles"
 
-type SearchItem = Pick<ArticlePreview, "slug" | "title" | "excerpt" | "tags" | "author">
+type SearchItem = Pick<ArticlePreview, "slug" | "title" | "excerpt" | "tags" | "author" | "coAuthors">
 
 export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem[]; locale: CmsLocale }) {
   const [query, setQuery] = useState("")
@@ -20,6 +20,7 @@ export function ArticleSearchPrompt({ articles, locale }: { articles: SearchItem
           article.title,
           article.excerpt,
           article.author.name,
+          ...(article.coAuthors ?? []).map((c) => c.name),
           ...article.tags.flatMap((tag) => [tag.name, tag.slug]),
         ]
           .join(" ")
