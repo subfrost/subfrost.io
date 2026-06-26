@@ -24,8 +24,12 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
   const set = (patch: Partial<BoardFilterState>) => setState({ ...state, ...patch })
 
   const chip = (active: boolean) =>
-    `rounded-full border px-2.5 py-1 text-xs ${active ? "border-sky-500/50 bg-sky-500/15 text-sky-300" : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`
-  const section = "text-[11px] font-medium uppercase tracking-wide text-zinc-500"
+    `rounded-[999px] border px-3 py-1 text-xs transition-colors ${
+      active
+        ? "border-[color:var(--ed-ink)] bg-[color:var(--ed-ink)] text-[color:var(--ed-canvas)]"
+        : "border-[color:var(--ed-hair)] text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+    }`
+  const section = "text-xs font-medium text-[color:var(--ed-muted)]"
 
   const assigneeOptions: { value: string; label: string }[] = [
     { value: "all", label: "Anyone" },
@@ -36,25 +40,29 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative">
-        <button onClick={() => setOpen((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${n > 0 ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-zinc-700 text-zinc-200 hover:bg-zinc-800"}`}>
-          <SlidersHorizontal size={15} /> Filters{n > 0 && <span className="rounded-full bg-sky-500/30 px-1.5 text-[11px]">{n}</span>}
+        <button onClick={() => setOpen((v) => !v)} className={`inline-flex h-9 items-center gap-1.5 rounded-[6px] px-3 text-sm ${
+          n > 0
+            ? "bg-[color:var(--ed-ink)] text-[color:var(--ed-canvas)]"
+            : "text-[color:var(--ed-muted)] hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)]"
+        }`}>
+          <SlidersHorizontal size={15} /> Filters{n > 0 && <span className="rounded-full bg-[color:var(--ed-canvas)]/20 px-1.5 text-[11px]">{n}</span>}
         </button>
 
         {open && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute left-0 z-20 mt-1 w-80 space-y-3 rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl">
+            <div className="ed-admin-reveal absolute left-0 z-20 mt-2 w-[22rem] space-y-4 rounded-[8px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-4 shadow-[0_28px_80px_rgba(7,17,31,0.16)]">
               {/* Products */}
               {products.length > 0 && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <span className={section}>Products</span>
-                    {state.hiddenProducts.length > 0 && <button onClick={() => set({ hiddenProducts: [] })} className="text-[11px] text-sky-400 hover:text-sky-300">Show all</button>}
+                    {state.hiddenProducts.length > 0 && <button onClick={() => set({ hiddenProducts: [] })} className="text-[11px] text-[color:var(--ed-ink)] hover:opacity-70">Show all</button>}
                   </div>
-                  <div className="max-h-40 space-y-0.5 overflow-y-auto">
+                  <div className="ed-admin-scroll max-h-40 space-y-0.5 overflow-y-auto">
                     {products.map((p) => (
-                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-zinc-200 hover:bg-zinc-800">
-                        <input type="checkbox" checked={!state.hiddenProducts.includes(p.id)} onChange={() => set({ hiddenProducts: toggle(state.hiddenProducts, p.id) })} className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-900 text-sky-500 focus:ring-0" />
+                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-[6px] px-1 py-1 text-sm text-[color:var(--ed-ink)] hover:bg-[color:var(--ed-surface)]">
+                        <input type="checkbox" checked={!state.hiddenProducts.includes(p.id)} onChange={() => set({ hiddenProducts: toggle(state.hiddenProducts, p.id) })} className="h-3.5 w-3.5 rounded border-[color:var(--ed-hair)] accent-[color:var(--ed-ink)] focus:ring-0" />
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/30" style={{ background: p.color }} />
                         <span className="truncate">{p.name}</span>
                       </label>
@@ -70,7 +78,7 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
                   {assigneeOptions.map((o) => (
                     <button key={o.value} className={chip(state.assignee === o.value)} onClick={() => set({ assignee: o.value })}>{o.label}</button>
                   ))}
-                  <select aria-label="Assignee member" value={members.some((m) => m.id === state.assignee) ? state.assignee : ""} onChange={(e) => set({ assignee: e.target.value || "all" })} className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
+                  <select aria-label="Assignee member" value={members.some((m) => m.id === state.assignee) ? state.assignee : ""} onChange={(e) => set({ assignee: e.target.value || "all" })} className="rounded-[999px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-1 text-xs text-[color:var(--ed-ink)] outline-none">
                     <option value="">Someone…</option>
                     {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
                   </select>
@@ -101,22 +109,22 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className={section}>Initiative</span>
-                  <select aria-label="Initiative filter" value={state.initiativeId ?? ""} onChange={(e) => set({ initiativeId: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
+                  <select aria-label="Initiative filter" value={state.initiativeId ?? ""} onChange={(e) => set({ initiativeId: e.target.value || null })} className="mt-1 h-8 w-full rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 text-xs text-[color:var(--ed-ink)] outline-none">
                     <option value="">All</option>
                     {initiatives.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <span className={section}>Label</span>
-                  <select aria-label="Label filter" value={state.label ?? ""} onChange={(e) => set({ label: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
+                  <select aria-label="Label filter" value={state.label ?? ""} onChange={(e) => set({ label: e.target.value || null })} className="mt-1 h-8 w-full rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 text-xs text-[color:var(--ed-ink)] outline-none">
                     <option value="">All</option>
                     {labels.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="flex justify-end border-t border-zinc-800 pt-2">
-                <button onClick={() => setState({ ...EMPTY_FILTERS })} className="text-xs text-zinc-400 hover:text-zinc-200">Clear all</button>
+              <div className="flex justify-end border-t border-[color:var(--ed-hair)] pt-3">
+                <button onClick={() => setState({ ...EMPTY_FILTERS })} className="text-xs text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]">Clear all</button>
               </div>
             </div>
           </>
@@ -126,7 +134,7 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
       {/* Quick My-tasks toggle + active-filter pills outside the panel */}
       <button onClick={() => set({ assignee: state.assignee === "mine" ? "all" : "mine" })} className={chip(state.assignee === "mine")}>My tasks</button>
       {n > 0 && (
-        <button onClick={() => setState({ ...EMPTY_FILTERS })} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300">
+        <button onClick={() => setState({ ...EMPTY_FILTERS })} className="inline-flex items-center gap-1 text-xs text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]">
           <X size={12} /> Clear
         </button>
       )}

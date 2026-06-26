@@ -10,8 +10,8 @@ import { Checklist } from "./Checklist"
 import { ColorPicker } from "./ColorPicker"
 import { CommentList } from "./CommentList"
 
-const labelCls = "text-[11px] font-medium uppercase tracking-wide text-zinc-500"
-const fieldCls = "w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:border-sky-500 focus:outline-none"
+const labelCls = "text-[11px] font-medium uppercase tracking-wide text-[color:var(--ed-muted)]"
+const fieldCls = "w-full rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-1.5 text-sm text-[color:var(--ed-ink)] outline-none transition-colors placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)]"
 
 export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
   task: TaskView
@@ -83,10 +83,10 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
   })()
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 md:p-8" onClick={onClose}>
-      <div className="my-4 w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 p-4 backdrop-blur-[2px] md:p-8" onClick={onClose}>
+      <div className="ed-admin-reveal my-4 w-full max-w-xl rounded-[8px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] shadow-[0_24px_80px_rgba(0,0,0,0.22)]" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-start gap-2 border-b border-zinc-800 p-4">
+        <div className="flex items-start gap-2 border-b border-[color:var(--ed-hair)] p-4">
           {canEdit ? (
             <input
               value={title}
@@ -94,15 +94,15 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
               onBlur={saveTitle}
               onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur() }}
               placeholder="Task title…"
-              className="flex-1 bg-transparent text-lg font-semibold text-zinc-100 outline-none"
+              className="flex-1 bg-transparent text-lg font-medium text-[color:var(--ed-ink)] outline-none"
             />
           ) : (
-            <h2 className="flex-1 text-lg font-semibold text-zinc-100">{task.title}</h2>
+            <h2 className="flex-1 text-lg font-medium text-[color:var(--ed-ink)]">{task.title}</h2>
           )}
-          <button onClick={onClose} aria-label="Close" className="ml-2 text-zinc-500 hover:text-zinc-300"><X size={20} /></button>
+          <button onClick={onClose} aria-label="Close" className="ml-2 text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-ink)]"><X size={20} /></button>
         </div>
 
-        <div className="max-h-[72vh] space-y-5 overflow-y-auto p-4">
+        <div className="ed-admin-scroll max-h-[72vh] space-y-5 overflow-y-auto p-4">
           {/* Status + Priority */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -132,15 +132,15 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
               <label className={labelCls}>Owner</label>
               <div className="mt-1 flex items-center gap-2">
                 {task.owner && (
-                  <span title={ownerName(task.owner)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-medium text-sky-300">{ownerInitials(task.owner)}</span>
+                  <span title={ownerName(task.owner)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--ed-surface)] text-[10px] font-medium text-[color:var(--ed-ink)]">{ownerInitials(task.owner)}</span>
                 )}
-                <select disabled={!canEdit} value={task.owner?.id ?? ""} onChange={(e) => run(() => assignTaskAction(task.id, e.target.value || null))} className="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none">
+                <select disabled={!canEdit} value={task.owner?.id ?? ""} onChange={(e) => run(() => assignTaskAction(task.id, e.target.value || null))} className={`min-w-0 flex-1 ${fieldCls}`}>
                   <option value="">{task.owner ? "Unassign" : "Unassigned"}</option>
                   {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
                 </select>
               </div>
               {canEdit && !task.owner && (
-                <button onClick={() => run(() => claimTaskAction(task.id))} className="mt-1 inline-flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300"><UserPlus size={12} /> Self-assign</button>
+                <button onClick={() => run(() => claimTaskAction(task.id))} className="mt-1 inline-flex items-center gap-1 text-[11px] text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"><UserPlus size={12} /> Self-assign</button>
               )}
             </div>
           </div>
@@ -151,7 +151,7 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             {canEdit ? (
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} onBlur={saveDescription} rows={4} placeholder="Add a description…" className={`mt-1 max-h-[60vh] min-h-[5rem] resize-y ${fieldCls}`} />
             ) : (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-300">{task.description || <span className="text-zinc-600">No description</span>}</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-[color:var(--ed-body)]">{task.description || <span className="text-[color:var(--ed-muted)]">No description</span>}</p>
             )}
           </div>
 
@@ -160,7 +160,7 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             <div>
               <label className="text-[11px] font-medium uppercase tracking-wide text-rose-400">Blocker</label>
               {canEdit ? (
-                <input defaultValue={task.blockerReason} onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }} placeholder="What's blocking this?" className="mt-1 w-full rounded border border-rose-500/30 bg-rose-500/5 px-2 py-1.5 text-sm text-rose-200 placeholder:text-rose-400/50 focus:outline-none" />
+                <input defaultValue={task.blockerReason} onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }} placeholder="What's blocking this?" className="mt-1 w-full rounded-[6px] border border-rose-500/30 bg-rose-500/5 px-2 py-1.5 text-sm text-rose-300 placeholder:text-rose-400/50 focus:outline-none" />
               ) : (
                 <p className="mt-1 text-sm text-rose-300/80">{task.blockerReason || "—"}</p>
               )}
@@ -174,14 +174,14 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
               {task.labels.map((l) => (
                 <span
                   key={l}
-                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-zinc-800 text-zinc-300"}`}
+                  className={`inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-[color:var(--ed-surface)] text-[color:var(--ed-body)]"}`}
                   style={task.color ? { borderColor: task.color, color: task.color } : undefined}
                 >
                   {l}
-                  {canEdit && <button onClick={() => removeLabel(l)} aria-label={`Remove ${l}`} className="opacity-70 hover:text-rose-400"><X size={11} /></button>}
+                  {canEdit && <button onClick={() => removeLabel(l)} aria-label={`Remove ${l}`} className="text-[color:var(--ed-muted)] hover:text-rose-400"><X size={11} /></button>}
                 </span>
               ))}
-              {task.labels.length === 0 && !canEdit && <span className="text-[11px] text-zinc-600">None</span>}
+              {task.labels.length === 0 && !canEdit && <span className="text-[11px] text-[color:var(--ed-muted)]">None</span>}
             </div>
             {canEdit && (
               <div className="mt-1.5 flex gap-1.5">
@@ -191,7 +191,7 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
                   onChange={(e) => setLabelDraft(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel() } }}
                   placeholder="Add a label…"
-                  className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-500 focus:outline-none"
+                  className={fieldCls}
                 />
                 <datalist id="task-label-suggestions">
                   {SUGGESTED_LABELS.map((l) => <option key={l} value={l} />)}
@@ -206,12 +206,12 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             {canEdit ? (
               <ColorPicker selected={task.color} onChange={pickColor} />
             ) : task.color ? (
-              <span className="inline-flex items-center gap-1.5 text-sm text-zinc-300">
+              <span className="inline-flex items-center gap-1.5 text-sm text-[color:var(--ed-body)]">
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: task.color }} />
                 {colorName(task.color)}
               </span>
             ) : (
-              <span className="text-sm text-zinc-600">None</span>
+              <span className="text-sm text-[color:var(--ed-muted)]">None</span>
             )}
           </div>
 
@@ -230,17 +230,17 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
 
         {/* Footer */}
         {canEdit && (
-          <div className="flex items-center justify-between border-t border-zinc-800 p-4">
+          <div className="flex items-center justify-between border-t border-[color:var(--ed-hair)] p-4">
             {confirmDelete ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-rose-400">Move to recycle bin?</span>
-                <button onClick={() => run(() => deleteTaskAction(task.id)).then(onClose)} className="rounded bg-rose-600 px-2.5 py-1 text-sm text-white hover:bg-rose-700">Delete</button>
-                <button onClick={() => setConfirmDelete(false)} className="rounded border border-zinc-700 px-2.5 py-1 text-sm text-zinc-300 hover:bg-zinc-800">Cancel</button>
+                <button onClick={() => run(() => deleteTaskAction(task.id)).then(onClose)} className="rounded-[6px] bg-rose-600 px-2.5 py-1 text-sm text-white hover:bg-rose-700">Delete</button>
+                <button onClick={() => setConfirmDelete(false)} className="rounded-[6px] border border-[color:var(--ed-hair)] px-2.5 py-1 text-sm text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)]">Cancel</button>
               </div>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-rose-400"><Trash2 size={14} /> Delete</button>
+              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 text-sm text-[color:var(--ed-muted)] hover:text-rose-400"><Trash2 size={14} /> Delete</button>
             )}
-            <button onClick={onClose} className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800">Close</button>
+            <button onClick={onClose} className="rounded-[6px] border border-[color:var(--ed-hair)] px-3 py-1.5 text-sm text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)]">Close</button>
           </div>
         )}
       </div>

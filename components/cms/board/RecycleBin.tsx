@@ -25,34 +25,34 @@ export function RecycleBin({ tasks, initiatives, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 md:p-8" onClick={onClose}>
-      <div className="my-4 w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-zinc-800 p-4">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-100"><Trash2 size={16} className="text-zinc-400" /> Recycle bin</h2>
-          <button onClick={onClose} aria-label="Close" className="text-zinc-500 hover:text-zinc-300"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 p-4 backdrop-blur-[2px] md:p-8" onClick={onClose}>
+      <div className="ed-admin-reveal my-4 w-full max-w-lg rounded-[8px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] shadow-[0_24px_80px_rgba(0,0,0,0.22)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[color:var(--ed-hair)] p-4">
+          <h2 className="flex items-center gap-2 text-base font-medium text-[color:var(--ed-ink)]"><Trash2 size={16} className="text-[color:var(--ed-muted)]" /> Recycle bin</h2>
+          <button onClick={onClose} aria-label="Close" className="text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"><X size={20} /></button>
         </div>
 
-        <div className="max-h-[70vh] space-y-2 overflow-y-auto p-4">
-          {tasks.length === 0 && <p className="py-8 text-center text-sm text-zinc-600">The recycle bin is empty.</p>}
+        <div className="ed-admin-scroll max-h-[70vh] space-y-2 overflow-y-auto p-4">
+          {tasks.length === 0 && <p className="py-8 text-center text-sm text-[color:var(--ed-muted)]">The recycle bin is empty.</p>}
           {tasks.map((t) => {
             const initiative = t.initiativeId ? initiatives[t.initiativeId] ?? null : null
             return (
-              <div key={t.id} className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 p-2.5">
+              <div key={t.id} className="flex items-center gap-2 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] p-2.5">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-zinc-200">{t.title}</p>
+                  <p className="truncate text-sm text-[color:var(--ed-ink)]">{t.title}</p>
                   {initiative && (
                     <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: initiative.color }}>
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: initiative.color }} />{initiative.name}
                     </span>
                   )}
                 </div>
-                <button onClick={() => run(t.id, () => restoreTaskAction(t.id))} disabled={busy === t.id} className="inline-flex shrink-0 items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800 disabled:opacity-50">
+                <button onClick={() => run(t.id, () => restoreTaskAction(t.id))} disabled={busy === t.id} className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[color:var(--ed-hair)] px-2 py-1 text-[11px] text-[color:var(--ed-body)] hover:bg-[color:var(--ed-canvas)] disabled:opacity-50">
                   <RotateCcw size={12} /> Restore
                 </button>
                 {confirmPurge === t.id ? (
-                  <button onClick={() => run(t.id, () => purgeTaskAction(t.id))} disabled={busy === t.id} className="shrink-0 rounded bg-rose-600 px-2 py-1 text-[11px] text-white hover:bg-rose-700 disabled:opacity-50">Confirm</button>
+                  <button onClick={() => run(t.id, () => purgeTaskAction(t.id))} disabled={busy === t.id} className="shrink-0 rounded-[6px] bg-rose-600 px-2 py-1 text-[11px] text-white hover:bg-rose-700 disabled:opacity-50">Confirm</button>
                 ) : (
-                  <button onClick={() => setConfirmPurge(t.id)} aria-label="Delete forever" className="shrink-0 text-zinc-600 hover:text-rose-400"><Trash2 size={13} /></button>
+                  <button onClick={() => setConfirmPurge(t.id)} aria-label="Delete forever" className="shrink-0 text-[color:var(--ed-muted)] hover:text-rose-400"><Trash2 size={13} /></button>
                 )}
               </div>
             )
