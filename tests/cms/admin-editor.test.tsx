@@ -23,11 +23,11 @@ const initial: EditorInitial = {
   zh: { title: "", excerpt: "", body: "", sources: "" },
 }
 
-describe("AdminEditor -- sources field", () => {
-  it("shows a Sources field bound to the active locale", () => {
-    const { getByText, getByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
-    expect(getByText(/Sources/i)).toBeTruthy()
-    expect(getByDisplayValue("BBSW #29")).toBeTruthy()
+describe("AdminEditor -- source controls", () => {
+  it("keeps the removed Sources field out of the editor surface", () => {
+    const { queryByText, queryByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
+    expect(queryByText(/Sources/i)).toBeNull()
+    expect(queryByDisplayValue("BBSW #29")).toBeNull()
   })
 
   it("shows a Ghost-style feature image action and plain primary language controls", () => {

@@ -35,7 +35,7 @@ const ScrollArrow: React.FC<ScrollArrowProps> = ({
         </span>
       )}
 
-      <div className="animate-bounce">
+      <div className="transition-transform duration-300 ease-out hover:translate-y-0.5">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"

@@ -18,16 +18,16 @@ beforeEach(() => {
 
 describe("AdminShell", () => {
   it("renders the brand, the nav tree and its children", () => {
-    const { getAllByText, getByText } = render(
+    const { getAllByAltText, getByText } = render(
       <AdminShell user={user}>
         <p>page body</p>
       </AdminShell>,
     )
     // brand appears in desktop sidebar + mobile top bar
-    expect(getAllByText("SUBFROST").length).toBeGreaterThanOrEqual(1)
-    // pathname is /admin → the Overview group is active/expanded, rendering Dashboard.
+    expect(getAllByAltText("subfrost").length).toBeGreaterThanOrEqual(1)
+    // pathname is /admin -> the Overview group is active/expanded, rendering Dashboard.
     // The nav renders in both the desktop sidebar and the always-mounted mobile
-    // drawer (translated off-screen when closed), so Dashboard appears more than once.
+    // drawer, so Dashboard can appear more than once.
     expect(getAllByText("Dashboard").length).toBeGreaterThanOrEqual(1)
     expect(getByText("page body")).toBeTruthy()
   })

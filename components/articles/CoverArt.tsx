@@ -34,6 +34,8 @@ export function CoverArt({
   variant?: number | string
 }) {
   const cover = coverSources[coverIndex(variant)]
+  const intrinsicWidth = cover.largest
+  const intrinsicHeight = cover.largest === 1254 ? 1254 : 1024
   const webpSrcSet = [
     `/articles/${cover.base}-480.webp 480w`,
     `/articles/${cover.base}-960.webp 960w`,
@@ -52,6 +54,8 @@ export function CoverArt({
         <img
           src={`/articles/${cover.base}.png`}
           alt=""
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           decoding="async"
           fetchPriority={priority ? "high" : "auto"}
           loading={priority ? "eager" : "lazy"}

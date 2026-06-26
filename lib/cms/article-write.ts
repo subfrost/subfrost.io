@@ -24,7 +24,7 @@ export const articleInputSchema = z.object({
 })
 
 export type ArticleInput = z.input<typeof articleInputSchema>
-export type WriteResult = { ok: true; slug: string; id: string } | { ok: false; error: string }
+export type WriteResult = { ok: true; slug: string; id: string; authorId: string } | { ok: false; error: string }
 
 export interface Actor {
   id: string
@@ -119,7 +119,7 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
       }
     })
     if (becomingPublished) void notifyNewArticle(existing.id).catch((e) => console.error("[notify] update", e))
-    return { ok: true, slug, id: existing.id }
+    return { ok: true, slug, id: existing.id, authorId: existing.authorId }
   }
 
   const slug = await uniqueSlug(toSlug(data.slug || slugSeed))
@@ -136,5 +136,5 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
     },
   })
   if (status === "PUBLISHED") void notifyNewArticle(created.id).catch((e) => console.error("[notify] create", e))
-  return { ok: true, slug, id: created.id }
+  return { ok: true, slug, id: created.id, authorId: created.authorId }
 }

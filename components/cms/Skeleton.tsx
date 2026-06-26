@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils"
 
 // Generalized loading skeletons for the admin/app surfaces. Use these instead of
-// "Loading…" text anywhere content is being fetched. All are dark-theme tuned and
-// expose role="status" for a11y.
+// "Loading…" text anywhere content is being fetched.
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded bg-zinc-800/80", className)} />
+  return <div className={cn("animate-pulse rounded bg-[color:var(--ed-hair)]", className)} />
 }
 
 export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
@@ -33,9 +32,9 @@ export function SkeletonList({ rows = 6, height = "h-9", className }: { rows?: n
 /** A bordered table shell with a header bar and shimmering rows. */
 export function SkeletonTable({ rows = 6, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-zinc-800", className)} role="status" aria-label="Loading">
-      <div className="h-9 w-full bg-zinc-900/60" />
-      <div className="divide-y divide-zinc-800/60">
+    <div className={cn("overflow-hidden border-t border-[color:var(--ed-hair)]", className)} role="status" aria-label="Loading">
+      <div className="h-9 w-full bg-[color:var(--ed-surface)]" />
+      <div className="divide-y divide-[color:var(--ed-hair)]">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3">
             <Skeleton className="h-4 w-1/3" />
@@ -53,7 +52,7 @@ export function SkeletonStats({ count = 4, className }: { count?: number; classN
   return (
     <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-4", className)} role="status" aria-label="Loading">
       {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-16 rounded-xl" />
+        <Skeleton key={i} className="h-20 rounded-[6px]" />
       ))}
     </div>
   )

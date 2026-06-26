@@ -92,7 +92,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
 
         <form
           onSubmit={onSubmit}
-          className={`flex flex-row items-center rounded-[6px] border ${footer ? "mt-4 w-fit gap-2 px-3 py-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3 px-4 py-3"}`}
+          className={`box-border flex flex-row items-center rounded-[6px] border ${footer ? "mt-4 w-full max-w-[244px] gap-2 px-3 py-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3 px-4 py-3"}`}
           style={{
             borderColor: "color-mix(in srgb, var(--ed-ink) 10%, transparent)",
             background: "color-mix(in srgb, var(--ed-canvas) 92%, var(--ed-surface))",
@@ -104,7 +104,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
             onChange={(e) => setEmail(e.target.value)}
             placeholder={copy.placeholder}
             autoComplete="email"
-            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-7 w-[170px] text-[14px]" : "h-8 w-full text-[16px]"}`}
+            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-7 w-0 flex-1 text-[14px]" : "h-8 w-full text-[16px]"}`}
             style={{
               color: "var(--ed-ink)",
             }}

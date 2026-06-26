@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
+import prisma from "@/lib/prisma"
 import { AdminEditor } from "@/components/cms/AdminEditor"
-import { getCoAuthorOptions } from "@/lib/cms/articles"
 
 export const dynamic = "force-dynamic"
 
-const empty = { title: "", excerpt: "", body: "", sources: "" }
+const empty = { title: "", excerpt: "", body: "" }
 
 export default async function NewArticlePage() {
   const user = await currentUser()
@@ -16,12 +16,17 @@ export default async function NewArticlePage() {
   // /admin page already has.
   if (!user) redirect("/admin/login")
   const canPublish = user.privileges.includes("articles.publish")
-  const members = await getCoAuthorOptions(user.id)
+  const members = await prisma.user.findMany({
+    where: { active: true, id: { not: user.id } },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+    select: { id: true, name: true, email: true },
+  })
+
   return (
     <AdminEditor
       canPublish={canPublish}
-      members={members}
       initial={{ slug: "", coverImage: "", tags: [], featured: false, primaryLocale: "en", status: "DRAFT", en: empty, zh: empty }}
+      members={members.map((member) => ({ id: member.id, name: member.name ?? member.email }))}
     />
   )
 }

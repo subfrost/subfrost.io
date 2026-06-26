@@ -211,7 +211,6 @@ interface VaultProduct {
   tagline: string
   description: string
   icon: React.ReactNode
-  color: string
   badge?: string
 }
 
@@ -222,7 +221,6 @@ const products: VaultProduct[] = [
     tagline: "Mining Pool Innovation",
     description: "Block reward futures. Miners hedge lock times and users capture premiums from mining partnerships.",
     icon: <FtrBTCIcon />,
-    color: "from-purple-500 to-purple-700",
   },
   {
     symbol: "yvfrBTC",
@@ -230,7 +228,6 @@ const products: VaultProduct[] = [
     tagline: "Classic DeFi Vault Strategy",
     description: "Earn fees and capture incentives from deep liquidity pools across BTC, USD, DIESEL, and other markets on Bitcoin.",
     icon: <YvFrBTCIcon />,
-    color: "from-blue-500 to-blue-700"
   },
   {
     symbol: "dxBTC",
@@ -238,7 +235,6 @@ const products: VaultProduct[] = [
     tagline: "Superior UX for BTC Staking",
     description: "Stake BTC, receive dxBTC. Auto-deployed into yield strategies that maintain full exposure to the price of BTC. Unstake anytime with no lock-up period.",
     icon: <DxBTCIcon />,
-    color: "from-emerald-500 to-emerald-700"
   }
 ]
 
@@ -271,18 +267,10 @@ export default function VaultsOverview() {
           >
             {/* Badge */}
             {product.badge && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-bold text-white shadow-lg">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full bg-[#ec4521] text-xs font-bold text-white shadow-lg">
                 {product.badge}
               </div>
             )}
-
-            {/* Animated glow background */}
-            <div className={cn(
-              "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
-              "bg-gradient-to-br",
-              product.color,
-              "blur-md"
-            )} />
 
             {/* Icon - hidden */}
             <div className="hidden w-32 h-32 mx-auto mb-6">
@@ -291,9 +279,7 @@ export default function VaultsOverview() {
 
             {/* Name */}
             <h4 className="text-xl md:text-2xl font-bold text-center mb-2">
-              <span className={cn("bg-gradient-to-r bg-clip-text text-transparent", product.color)}>
-                {product.name}
-              </span>
+              <span className="text-[#e8f0ff]">{product.name}</span>
             </h4>
 
             {/* Tagline */}

@@ -18,12 +18,12 @@ describe('middleware locale detection', () => {
     expect(res.cookies.get('subfrost_locale')?.value).toBe('zh')
   })
 
-  it('sets subfrost_locale=en for an en visitor with no cookie', async () => {
+  it('does not set a locale cookie for an en visitor with no cookie', async () => {
     const req = new NextRequest('http://localhost/', {
       headers: { 'accept-language': 'en-US,en;q=0.9' },
     })
     const res = await middleware(req)
-    expect(res.cookies.get('subfrost_locale')?.value).toBe('en')
+    expect(res.cookies.get('subfrost_locale')).toBeUndefined()
   })
 
   it('does not override an existing cookie', async () => {
