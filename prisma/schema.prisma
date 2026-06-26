@@ -1179,6 +1179,22 @@ enum InitiativeStatus {
   DONE
 }
 
+// Top of the board hierarchy: Product -> Initiative -> Task. A Product groups
+// initiatives so people can filter the board down to what they own. Additive —
+// initiatives without a product are simply ungrouped.
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  color       String       @default("#ffffff")
+  archived    Boolean      @default(false)
+  createdById String?
+  initiatives Initiative[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([archived])
+}
+
 model Initiative {
   id          String   @id @default(cuid())
   name        String
@@ -1186,12 +1202,15 @@ model Initiative {
   color       String   @default("#38bdf8")
   archived    Boolean  @default(false)
   status      InitiativeStatus @default(TODO)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   createdById String?
   tasks       Task[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([archived])
+  @@index([productId])
 }
 
 model Task {

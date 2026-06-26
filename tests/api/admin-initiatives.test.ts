@@ -5,11 +5,12 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/tasks/store", () => ({
   createInitiativeWithSeed: vi.fn(),
   listInitiatives: vi.fn(),
+  updateInitiative: vi.fn(),
   TaskError: class extends Error {},
 }))
 
 import { NextRequest } from "next/server"
-import { POST, GET } from "@/app/api/admin/initiatives/route"
+import { POST, GET, PATCH } from "@/app/api/admin/initiatives/route"
 import { actorFromBearer } from "@/lib/cms/apikey-auth"
 import * as store from "@/lib/tasks/store"
 
@@ -70,5 +71,19 @@ describe("GET /api/admin/initiatives", () => {
     const res = await GET(get())
     expect(res.status).toBe(200)
     expect((await res.json()).initiatives[0]).toMatchObject({ id: "i1", name: "iOS" })
+  })
+})
+
+describe("PATCH /api/admin/initiatives", () => {
+  it("renames an initiative and assigns it to a product", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    vi.mocked(store.updateInitiative).mockResolvedValue({ id: "i1", name: "App Store Release", productId: "p1" } as never)
+    const req = new NextRequest("https://subfrost.io/api/admin/initiatives", {
+      method: "PATCH", headers: { authorization: "Bearer sk_test", "content-type": "application/json" },
+      body: JSON.stringify({ id: "i1", name: "App Store Release", productId: "p1" }),
+    })
+    const res = await PATCH(req)
+    expect(res.status).toBe(200)
+    expect(store.updateInitiative).toHaveBeenCalledWith("i1", { name: "App Store Release", productId: "p1" })
   })
 })

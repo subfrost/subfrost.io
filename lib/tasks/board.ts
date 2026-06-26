@@ -1,5 +1,40 @@
-import type { TaskView, BoardFilter, BoardData, BoardColumn, InitiativeProgress, InitiativeView, InitiativeBoardData } from "./types"
+import type { TaskView, BoardFilter, BoardFilterState, BoardData, BoardColumn, InitiativeProgress, InitiativeView, InitiativeBoardData } from "./types"
 import { STATUS_ORDER, TASK_STATUS, TASK_PRIORITY, INITIATIVE_STATUS_ORDER, INITIATIVE_STATUS } from "./types"
+
+// Apply the dashboard filter state. `productByInitiative` maps an initiative id
+// to its product id (or null) so we can hide whole products. meId resolves the
+// "mine" assignee shortcut.
+export function filterTasks(
+  tasks: TaskView[],
+  s: BoardFilterState,
+  productByInitiative: Record<string, string | null>,
+  meId: string,
+): TaskView[] {
+  return tasks.filter((t) => {
+    const productId = t.initiativeId ? productByInitiative[t.initiativeId] ?? null : null
+    if (productId && s.hiddenProducts.includes(productId)) return false
+    if (s.initiativeId && t.initiativeId !== s.initiativeId) return false
+    if (s.priorities.length && !s.priorities.includes(t.priority)) return false
+    if (s.statuses.length && !s.statuses.includes(t.status)) return false
+    if (s.label && !t.labels.includes(s.label)) return false
+    if (s.assignee === "mine" && t.owner?.id !== meId) return false
+    if (s.assignee === "unassigned" && t.owner) return false
+    if (s.assignee !== "all" && s.assignee !== "mine" && s.assignee !== "unassigned" && t.owner?.id !== s.assignee) return false
+    return true
+  })
+}
+
+// How many distinct filter constraints are active (for the "Filters (n)" badge).
+export function activeFilterCount(s: BoardFilterState): number {
+  let n = 0
+  if (s.hiddenProducts.length) n++
+  if (s.initiativeId) n++
+  if (s.priorities.length) n++
+  if (s.statuses.length) n++
+  if (s.assignee !== "all") n++
+  if (s.label) n++
+  return n
+}
 
 export function applyFilter(tasks: TaskView[], filter: BoardFilter): TaskView[] {
   return tasks.filter((t) => {

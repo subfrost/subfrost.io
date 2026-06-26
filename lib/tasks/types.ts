@@ -50,6 +50,16 @@ export interface InitiativeView {
   color: string
   status: InitiativeStatus
   archived: boolean
+  productId: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ProductView {
+  id: string
+  name: string
+  color: string
+  archived: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -59,6 +69,21 @@ export interface BoardFilter {
   label?: string
   ownerId?: string // "My tasks" passes the current user id
   status?: TaskStatus
+}
+
+// Rich dashboard filter state for the board. `assignee` is "all" | "mine" |
+// "unassigned" | a member id. Empty arrays mean "no constraint".
+export interface BoardFilterState {
+  hiddenProducts: string[]
+  initiativeId: string | null
+  priorities: TaskPriority[]
+  statuses: TaskStatus[]
+  assignee: string // "all" | "mine" | "unassigned" | <memberId>
+  label: string | null
+}
+
+export const EMPTY_FILTERS: BoardFilterState = {
+  hiddenProducts: [], initiativeId: null, priorities: [], statuses: [], assignee: "all", label: null,
 }
 
 export interface BoardColumn {
