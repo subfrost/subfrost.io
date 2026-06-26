@@ -137,11 +137,13 @@ it("shows the recycle bin with the deleted task count", () => {
   expect(getByText("Old thing")).toBeTruthy()
 })
 
-it("renders the color tag chip on the card", () => {
+it("tints the task's labels with its color", () => {
   const { getByText } = render(
-    <BoardClient tasks={[task({ color: "#ef4444", colorLabel: "bug" })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />,
+    <BoardClient tasks={[task({ color: "#ef4444", labels: ["urgent"] })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />,
   )
-  expect(getByText("bug")).toBeTruthy()
+  const chip = getByText("urgent")
+  expect(chip.className).toContain("border")
+  expect(chip.className).not.toContain("bg-zinc-800")
 })
 
 it("clicking the card body (not a control) opens the detail panel", async () => {
@@ -151,12 +153,12 @@ it("clicking the card body (not a control) opens the detail panel", async () => 
   expect(getByLabelText("Close")).toBeTruthy()
 })
 
-it("picking a color in the detail saves it with a seeded name", async () => {
+it("picking a color in the detail saves just the color (no name)", async () => {
   const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
   await act(async () => { fireEvent.click(getByText("Audit mint path")) })
   await act(async () => { fireEvent.click(getByLabelText("Red")) })
   const { updateTaskAction } = await import("@/actions/tasks/board")
-  expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444", colorLabel: "Red" })
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444" })
 })
 
 it("hiding a product in the filter dashboard removes its tasks", () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, Trash2, UserPlus } from "lucide-react"
 import type { TaskView, InitiativeView, MemberView, TaskStatus, TaskPriority, ChecklistItem } from "@/lib/tasks/types"
-import { STATUS_ORDER, PRIORITY_ORDER, TASK_STATUS, TASK_PRIORITY, SUGGESTED_LABELS, MAX_COLOR_LABEL, colorName, ownerName, ownerInitials } from "@/lib/tasks/types"
+import { STATUS_ORDER, PRIORITY_ORDER, TASK_STATUS, TASK_PRIORITY, SUGGESTED_LABELS, colorName, ownerName, ownerInitials } from "@/lib/tasks/types"
 import { updateTaskAction, moveTaskAction, assignTaskAction, claimTaskAction, deleteTaskAction } from "@/actions/tasks/board"
 import { Checklist } from "./Checklist"
 import { ColorPicker } from "./ColorPicker"
@@ -27,14 +27,12 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
   const [description, setDescription] = useState(task.description)
   const [labelDraft, setLabelDraft] = useState("")
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist)
-  const [colorLabel, setColorLabel] = useState(task.colorLabel)
 
   // Re-sync local fields when the underlying task changes (after router.refresh()).
   useEffect(() => {
     setTitle(task.title)
     setDescription(task.description)
     setChecklist(task.checklist)
-    setColorLabel(task.colorLabel)
   }, [task])
 
   useEffect(() => {
@@ -73,14 +71,8 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
     run(() => updateTaskAction(task.id, { labels: task.labels.filter((x) => x !== l) }))
   }
   function pickColor(hex: string) {
-    // Picking a color seeds the name with the swatch name if none set yet.
-    const nextLabel = hex && !colorLabel.trim() ? colorName(hex) : hex ? colorLabel : ""
-    setColorLabel(nextLabel)
-    run(() => updateTaskAction(task.id, { color: hex, colorLabel: nextLabel }))
-  }
-  function saveColorLabel() {
-    const v = colorLabel.trim().slice(0, MAX_COLOR_LABEL)
-    if (v !== task.colorLabel) run(() => updateTaskAction(task.id, { colorLabel: v }))
+    // The color tints the task's labels — no separate name.
+    run(() => updateTaskAction(task.id, { color: hex }))
   }
 
   const initiativeOptions = (() => {
@@ -180,9 +172,13 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             <label className={labelCls}>Labels</label>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {task.labels.map((l) => (
-                <span key={l} className="inline-flex items-center gap-1 rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-300">
+                <span
+                  key={l}
+                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-zinc-800 text-zinc-300"}`}
+                  style={task.color ? { borderColor: task.color, color: task.color } : undefined}
+                >
                   {l}
-                  {canEdit && <button onClick={() => removeLabel(l)} aria-label={`Remove ${l}`} className="text-zinc-500 hover:text-rose-400"><X size={11} /></button>}
+                  {canEdit && <button onClick={() => removeLabel(l)} aria-label={`Remove ${l}`} className="opacity-70 hover:text-rose-400"><X size={11} /></button>}
                 </span>
               ))}
               {task.labels.length === 0 && !canEdit && <span className="text-[11px] text-zinc-600">None</span>}
@@ -204,27 +200,15 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             )}
           </div>
 
-          {/* Color */}
+          {/* Color (tints this task's labels) */}
           <div>
             <label className={`${labelCls} mb-1.5 block`}>Color</label>
             {canEdit ? (
-              <>
-                <ColorPicker selected={task.color} onChange={pickColor} />
-                <input
-                  value={colorLabel}
-                  onChange={(e) => setColorLabel(e.target.value)}
-                  onBlur={saveColorLabel}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur() }}
-                  disabled={!task.color}
-                  maxLength={MAX_COLOR_LABEL}
-                  placeholder={task.color ? "Name this color (e.g. bug, urgent)" : "Pick a color to name it"}
-                  className={`mt-2 ${fieldCls} disabled:cursor-not-allowed disabled:opacity-50`}
-                />
-              </>
+              <ColorPicker selected={task.color} onChange={pickColor} />
             ) : task.color ? (
               <span className="inline-flex items-center gap-1.5 text-sm text-zinc-300">
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: task.color }} />
-                {task.colorLabel || colorName(task.color)}
+                {colorName(task.color)}
               </span>
             ) : (
               <span className="text-sm text-zinc-600">None</span>
