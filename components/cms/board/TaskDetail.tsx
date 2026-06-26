@@ -4,9 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, Trash2, UserPlus } from "lucide-react"
 import type { TaskView, InitiativeView, MemberView, TaskStatus, TaskPriority, ChecklistItem } from "@/lib/tasks/types"
-import { STATUS_ORDER, PRIORITY_ORDER, TASK_STATUS, TASK_PRIORITY, SUGGESTED_LABELS, ownerName, ownerInitials } from "@/lib/tasks/types"
+import { STATUS_ORDER, PRIORITY_ORDER, TASK_STATUS, TASK_PRIORITY, SUGGESTED_LABELS, MAX_COLOR_LABEL, colorName, ownerName, ownerInitials } from "@/lib/tasks/types"
 import { updateTaskAction, moveTaskAction, assignTaskAction, claimTaskAction, deleteTaskAction } from "@/actions/tasks/board"
 import { Checklist } from "./Checklist"
+import { ColorPicker } from "./ColorPicker"
 import { CommentList } from "./CommentList"
 
 const labelCls = "text-[11px] font-medium uppercase tracking-wide text-zinc-500"
@@ -26,12 +27,14 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
   const [description, setDescription] = useState(task.description)
   const [labelDraft, setLabelDraft] = useState("")
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist)
+  const [colorLabel, setColorLabel] = useState(task.colorLabel)
 
   // Re-sync local fields when the underlying task changes (after router.refresh()).
   useEffect(() => {
     setTitle(task.title)
     setDescription(task.description)
     setChecklist(task.checklist)
+    setColorLabel(task.colorLabel)
   }, [task])
 
   useEffect(() => {
@@ -68,6 +71,16 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
   }
   function removeLabel(l: string) {
     run(() => updateTaskAction(task.id, { labels: task.labels.filter((x) => x !== l) }))
+  }
+  function pickColor(hex: string) {
+    // Picking a color seeds the name with the swatch name if none set yet.
+    const nextLabel = hex && !colorLabel.trim() ? colorName(hex) : hex ? colorLabel : ""
+    setColorLabel(nextLabel)
+    run(() => updateTaskAction(task.id, { color: hex, colorLabel: nextLabel }))
+  }
+  function saveColorLabel() {
+    const v = colorLabel.trim().slice(0, MAX_COLOR_LABEL)
+    if (v !== task.colorLabel) run(() => updateTaskAction(task.id, { colorLabel: v }))
   }
 
   const initiativeOptions = (() => {
@@ -188,6 +201,33 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
                   {SUGGESTED_LABELS.map((l) => <option key={l} value={l} />)}
                 </datalist>
               </div>
+            )}
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>Color</label>
+            {canEdit ? (
+              <>
+                <ColorPicker selected={task.color} onChange={pickColor} />
+                <input
+                  value={colorLabel}
+                  onChange={(e) => setColorLabel(e.target.value)}
+                  onBlur={saveColorLabel}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur() }}
+                  disabled={!task.color}
+                  maxLength={MAX_COLOR_LABEL}
+                  placeholder={task.color ? "Name this color (e.g. bug, urgent)" : "Pick a color to name it"}
+                  className={`mt-2 ${fieldCls} disabled:cursor-not-allowed disabled:opacity-50`}
+                />
+              </>
+            ) : task.color ? (
+              <span className="inline-flex items-center gap-1.5 text-sm text-zinc-300">
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: task.color }} />
+                {task.colorLabel || colorName(task.color)}
+              </span>
+            ) : (
+              <span className="text-sm text-zinc-600">None</span>
             )}
           </div>
 

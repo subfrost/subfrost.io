@@ -107,6 +107,17 @@ describe.runIf(LIVE)("store (live Postgres)", () => {
     expect(moved.position).toBe(-5)
   })
 
+  it("persists color + colorLabel and clears the label when color is removed", async () => {
+    const t = await store.createTask({ title: "colored", color: "#ef4444", colorLabel: "  bug  " })
+    let got = (await store.listTasks()).find((x) => x.id === t.id)
+    expect(got?.color).toBe("#ef4444")
+    expect(got?.colorLabel).toBe("bug")
+    await store.updateTask(t.id, { color: "" })
+    got = (await store.listTasks()).find((x) => x.id === t.id)
+    expect(got?.color).toBe("")
+    expect(got?.colorLabel).toBe("") // cleared with the color
+  })
+
   it("assignTask rejects an inactive/unknown user and clears on null", async () => {
     const t = await store.createTask({ title: "assign me" })
     await expect(store.assignTask(t.id, "does-not-exist")).rejects.toBeInstanceOf(store.TaskError)

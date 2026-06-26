@@ -122,6 +122,21 @@ it("updateTask normalizes the checklist, dropping blank/invalid items", async ()
   expect(arg.data.checklist).toEqual([{ id: "a", text: "keep me", checked: false }])
 })
 
+it("updateTask trims/caps the color label and clears it when color is removed", async () => {
+  client.task.update.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "TODO", priority: "LOW",
+    labels: [], blockerReason: "", color: "", colorLabel: "", checklist: [], initiativeId: null, position: 0, deletedAt: null, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  await updateTask("t1", { color: "#ef4444", colorLabel: "  bug-very-long-label-exceeds  " })
+  let arg = client.task.update.mock.calls[0][0]
+  expect(arg.data.color).toBe("#ef4444")
+  expect(arg.data.colorLabel.length).toBeLessThanOrEqual(20)
+  expect(arg.data.colorLabel).toBe("bug-very-long-label-")
+  await updateTask("t1", { color: "", colorLabel: "still here" })
+  arg = client.task.update.mock.calls[1][0]
+  expect(arg.data).toMatchObject({ color: "", colorLabel: "" })
+})
+
 it("moveTask sets position when provided", async () => {
   client.task.update.mockResolvedValue({
     id: "t1", title: "x", description: "", status: "DONE", priority: "LOW",

@@ -48,6 +48,8 @@ const CreateTaskSchema = z.object({
   description: z.string().optional(),
   priority: PriorityEnum.optional(),
   labels: z.array(z.string()).optional(),
+  color: z.string().optional(),
+  colorLabel: z.string().optional(),
   initiativeId: z.string().nullable().optional(),
 })
 export type CreateTaskInput = z.input<typeof CreateTaskSchema>
@@ -80,6 +82,8 @@ const UpdateTaskSchema = z.object({
   labels: z.array(z.string()).optional(),
   initiativeId: z.string().nullable().optional(),
   blockerReason: z.string().optional(),
+  color: z.string().optional(),
+  colorLabel: z.string().optional(),
   checklist: z.array(ChecklistItemSchema).optional(),
 })
 export type UpdateTaskInput = z.input<typeof UpdateTaskSchema>

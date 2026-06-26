@@ -25,7 +25,7 @@ const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship",
 const members: MemberView[] = [{ id: "u2", name: "Gabe", email: "g@x.io" }]
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
-  labels: ["subfrost-app"], blockerReason: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
+  labels: ["subfrost-app"], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
@@ -135,4 +135,26 @@ it("shows the recycle bin with the deleted task count", () => {
   )
   fireEvent.click(getByText("Deleted"))
   expect(getByText("Old thing")).toBeTruthy()
+})
+
+it("renders the color tag chip on the card", () => {
+  const { getByText } = render(
+    <BoardClient tasks={[task({ color: "#ef4444", colorLabel: "bug" })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />,
+  )
+  expect(getByText("bug")).toBeTruthy()
+})
+
+it("clicking the card body (not a control) opens the detail panel", async () => {
+  const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  // the age badge ("now") is a non-control element inside the card
+  await act(async () => { fireEvent.click(getByText("now")) })
+  expect(getByLabelText("Close")).toBeTruthy()
+})
+
+it("picking a color in the detail saves it with a seeded name", async () => {
+  const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByText("Audit mint path")) })
+  await act(async () => { fireEvent.click(getByLabelText("Red")) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444", colorLabel: "Red" })
 })

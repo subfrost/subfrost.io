@@ -24,6 +24,8 @@ export interface TaskView {
   priority: TaskPriority
   labels: string[]
   blockerReason: string
+  color: string
+  colorLabel: string
   checklist: ChecklistItem[]
   commentCount: number
   owner: OwnerView | null
@@ -119,6 +121,28 @@ export const INITIATIVE_STATUS: Record<InitiativeStatus, { label: string; cls: s
 }
 
 export const SUGGESTED_LABELS = ["subfrost.io", "subfrost-app", "subfrost-admin", "contracts", "infra", "marketing"]
+
+// Curated accent palette for per-task color tags. `name` is only the swatch
+// tooltip / default suggestion — the user types their own colorLabel.
+export const TASK_COLORS: { hex: string; name: string }[] = [
+  { hex: "#ef4444", name: "Red" },
+  { hex: "#f97316", name: "Orange" },
+  { hex: "#f59e0b", name: "Amber" },
+  { hex: "#eab308", name: "Yellow" },
+  { hex: "#22c55e", name: "Green" },
+  { hex: "#14b8a6", name: "Teal" },
+  { hex: "#38bdf8", name: "Sky" },
+  { hex: "#6366f1", name: "Indigo" },
+  { hex: "#a855f7", name: "Violet" },
+  { hex: "#ec4899", name: "Pink" },
+  { hex: "#a1a1aa", name: "Zinc" },
+]
+
+export const MAX_COLOR_LABEL = 20
+
+export function colorName(hex: string): string {
+  return TASK_COLORS.find((c) => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex
+}
 
 export function ownerInitials(owner: { name: string | null; email: string } | null): string {
   if (!owner) return "?"

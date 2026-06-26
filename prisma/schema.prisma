@@ -1200,6 +1200,10 @@ model Task {
   priority     TaskPriority @default(MEDIUM)
   labels       String[]     @default([])
   blockerReason String      @default("")
+  // Optional per-task color accent (hex) + a free-text name for it ("bug",
+  // "urgent"), rendered as a colored chip/dot on the card. Element-style.
+  color        String       @default("")
+  colorLabel   String       @default("")
   // Subtasks, stored inline as [{ id, text, checked }]. Avoids a join table for
   // a small, always-loaded-with-the-task list. See lib/tasks/types.ChecklistItem.
   checklist    Json         @default("[]")

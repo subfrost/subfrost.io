@@ -7,6 +7,17 @@ import type { TaskView, InitiativeView, TaskStatus, TaskPriority, MemberView } f
 import { TASK_PRIORITY, TASK_STATUS, STATUS_ORDER, PRIORITY_ORDER, ownerInitials, ownerName, checklistProgress } from "@/lib/tasks/types"
 import { moveTaskAction, deleteTaskAction, claimTaskAction, assignTaskAction, updateTaskAction } from "@/actions/tasks/board"
 
+function formatAge(from: Date): string {
+  const s = Math.max(0, Math.floor((Date.now() - from.getTime()) / 1000))
+  if (s < 60) return "now"
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h`
+  const d = Math.floor(h / 24); if (d < 7) return `${d}d`
+  const w = Math.floor(d / 7); if (d < 30) return `${w}w`
+  const mo = Math.floor(d / 30); if (mo < 12) return `${mo}mo`
+  return `${Math.floor(d / 365)}y`
+}
+
 export function TaskCard({ task, initiative, selectableInitiatives, members, canEdit, onOpen, onDragStart, onDragEnd, dragging }: {
   task: TaskView
   initiative: InitiativeView | null
@@ -37,13 +48,31 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
     return opts
   })()
 
+  // Click anywhere on the card opens the detail panel — except on an actual
+  // inline control (so the dropdowns/buttons keep working).
+  function cardClick(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest("button, select, input, textarea, a, label")) return
+    onOpen(task.id)
+  }
+
   return (
     <div
       draggable={canEdit}
       onDragStart={(e) => { if (!canEdit) return; e.dataTransfer.setData("text/plain", task.id); e.dataTransfer.effectAllowed = "move"; onDragStart?.(task.id) }}
       onDragEnd={() => onDragEnd?.()}
-      className={`rounded-md border border-zinc-800 bg-zinc-900 p-3 ${dragging ? "opacity-40" : ""} ${canEdit ? "cursor-grab active:cursor-grabbing" : ""}`}
+      onClick={cardClick}
+      style={task.color ? { borderLeftColor: task.color, borderLeftWidth: 3 } : undefined}
+      className={`cursor-pointer rounded-md border border-zinc-800 bg-zinc-900 p-3 transition-shadow hover:border-zinc-700 hover:shadow-md ${dragging ? "opacity-40" : ""} ${canEdit ? "active:cursor-grabbing" : ""}`}
     >
+      {/* Color tag chip (color + name) */}
+      {task.color && task.colorLabel && (
+        <div className="mb-1.5">
+          <span className="inline-flex max-w-full items-center truncate rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: task.color }} title={task.colorLabel}>
+            {task.colorLabel}
+          </span>
+        </div>
+      )}
+
       {canEdit ? (
         <div className="mb-2">
           <select
@@ -66,13 +95,16 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       ) : null}
 
       <div className="mb-2 flex items-start justify-between gap-2">
-        <button
-          onClick={() => onOpen(task.id)}
-          title="Open details"
-          className={`flex-1 text-left text-sm leading-snug hover:text-sky-300 ${task.status === "DONE" ? "text-zinc-500 line-through" : "text-zinc-100"}`}
-        >
-          {task.title}
-        </button>
+        <span className="flex min-w-0 flex-1 items-start gap-1.5">
+          {task.color && !task.colorLabel && <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.color }} />}
+          <button
+            onClick={() => onOpen(task.id)}
+            title="Open details"
+            className={`text-left text-sm leading-snug hover:text-sky-300 ${task.status === "DONE" ? "text-zinc-500 line-through" : "text-zinc-100"}`}
+          >
+            {task.title}
+          </button>
+        </span>
         {canEdit ? (
           <select
             aria-label="Priority"
@@ -156,8 +188,8 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         <p className="mt-2 text-[11px] text-rose-300/80">{task.blockerReason}</p>
       )}
 
-      {canEdit && (
-        <div className="mt-2 flex items-center gap-2 border-t border-zinc-800 pt-2">
+      <div className="mt-2 flex items-center gap-2 border-t border-zinc-800 pt-2">
+        {canEdit && (
           <select
             aria-label="Status"
             value={task.status}
@@ -166,11 +198,14 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
           >
             {STATUS_ORDER.map((s) => <option key={s} value={s}>{TASK_STATUS[s].label}</option>)}
           </select>
-          <button onClick={() => run(() => deleteTaskAction(task.id))} aria-label="Delete task" className="ml-auto text-zinc-600 hover:text-rose-400">
+        )}
+        <span className="ml-auto text-[10px] tabular-nums text-zinc-600" title={`Created ${task.createdAt.toLocaleString()}`}>{formatAge(task.createdAt)}</span>
+        {canEdit && (
+          <button onClick={() => run(() => deleteTaskAction(task.id))} aria-label="Delete task" className="text-zinc-600 hover:text-rose-400">
             <Trash2 size={13} />
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

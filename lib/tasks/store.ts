@@ -10,8 +10,8 @@ const TASK_INCLUDE = {
 
 type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
-  labels: string[]; blockerReason: string; checklist: unknown; initiativeId: string | null
-  position: number; deletedAt: Date | null; createdAt: Date; updatedAt: Date
+  labels: string[]; blockerReason: string; color: string; colorLabel: string; checklist: unknown
+  initiativeId: string | null; position: number; deletedAt: Date | null; createdAt: Date; updatedAt: Date
   owner: { id: string; name: string | null; email: string } | null
   _count?: { comments: number }
 }
@@ -33,7 +33,8 @@ function mapTask(r: TaskRow): TaskView {
   return {
     id: r.id, title: r.title, description: r.description,
     status: r.status as TaskStatus, priority: r.priority as TaskPriority,
-    labels: r.labels, blockerReason: r.blockerReason, checklist: parseChecklist(r.checklist),
+    labels: r.labels, blockerReason: r.blockerReason, color: r.color, colorLabel: r.colorLabel,
+    checklist: parseChecklist(r.checklist),
     commentCount: r._count?.comments ?? 0, owner: r.owner, initiativeId: r.initiativeId,
     position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
   }
@@ -51,7 +52,18 @@ export async function listDeletedTasks(): Promise<TaskView[]> {
 
 export interface CreateTaskInput {
   title: string; description?: string; priority?: TaskPriority
-  labels?: string[]; initiativeId?: string | null; ownerId?: string | null; createdById?: string | null
+  labels?: string[]; color?: string; colorLabel?: string
+  initiativeId?: string | null; ownerId?: string | null; createdById?: string | null
+}
+
+// A color tag is only meaningful with a color; clearing the color clears its
+// label. colorLabel is trimmed and capped (matches the UI maxLength).
+function normalizeColor(color?: string, colorLabel?: string): { color?: string; colorLabel?: string } {
+  const out: { color?: string; colorLabel?: string } = {}
+  if (color !== undefined) out.color = color.trim()
+  if (colorLabel !== undefined) out.colorLabel = colorLabel.trim().slice(0, 20)
+  if (out.color === "") out.colorLabel = ""
+  return out
 }
 
 export async function createTask(input: CreateTaskInput): Promise<TaskView> {
@@ -63,6 +75,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
       description: input.description?.trim() || "",
       priority: input.priority ?? "MEDIUM",
       labels: input.labels ?? [],
+      ...normalizeColor(input.color, input.colorLabel),
       initiativeId: input.initiativeId || null,
       ownerId: input.ownerId || null,
       createdById: input.createdById || null,
@@ -75,6 +88,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
 export interface UpdateTaskPatch {
   title?: string; description?: string; priority?: TaskPriority; labels?: string[]
   initiativeId?: string | null; blockerReason?: string; checklist?: ChecklistItem[]
+  color?: string; colorLabel?: string
 }
 
 // Normalize an incoming checklist: drop blanks, coerce flags, keep ids stable.
@@ -96,6 +110,9 @@ export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<Ta
   if (patch.labels !== undefined) data.labels = patch.labels
   if (patch.initiativeId !== undefined) data.initiativeId = patch.initiativeId || null
   if (patch.blockerReason !== undefined) data.blockerReason = patch.blockerReason.trim()
+  if (patch.color !== undefined || patch.colorLabel !== undefined) {
+    Object.assign(data, normalizeColor(patch.color, patch.colorLabel))
+  }
   if (patch.checklist !== undefined) data.checklist = normalizeChecklist(patch.checklist)
   const r = (await prisma.task.update({ where: { id }, data, include: TASK_INCLUDE })) as TaskRow
   return mapTask(r)
