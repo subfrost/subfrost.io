@@ -95,6 +95,9 @@ export type AuditAction =
   | "task_comment"
   | "task_comment_delete"
   | "initiative_move"
+  | "product_create"
+  | "product_update"
+  | "product_archive"
 
 export async function audit(
   action: AuditAction,

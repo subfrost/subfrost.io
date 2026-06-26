@@ -8,10 +8,11 @@ import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import { audit } from "@/lib/cms/audit"
 import * as store from "@/lib/tasks/store"
 import { TaskError } from "@/lib/tasks/store"
-import type { TaskView, InitiativeView, CommentView } from "@/lib/tasks/types"
+import type { TaskView, InitiativeView, ProductView, CommentView } from "@/lib/tasks/types"
 
 const BOARD = "/admin/board"
 const INITIATIVES = "/admin/board/initiatives"
+const PRODUCTS = "/admin/board/products"
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 type Gate = { ok: true; me: CmsUser } | { ok: false; error: "unauthorized" }
@@ -278,6 +279,7 @@ const UpdateInitiativeSchema = z.object({
   name: z.string().optional(),
   goal: z.string().optional(),
   color: z.string().optional(),
+  productId: z.string().nullable().optional(),
 })
 export type UpdateInitiativeInput = z.input<typeof UpdateInitiativeSchema>
 
@@ -318,6 +320,63 @@ export async function moveInitiativeAction(id: string, status: z.infer<typeof In
     revalidatePath(INITIATIVES)
     revalidatePath(BOARD)
     return { ok: true, value }
+  } catch (e) {
+    return mapError(e) ?? (() => { throw e })()
+  }
+}
+
+// --- Products ---
+
+const CreateProductSchema = z.object({
+  name: z.string().min(1, "A product name is required"),
+  color: z.string().optional(),
+})
+export type CreateProductInput = z.input<typeof CreateProductSchema>
+
+export async function createProductAction(input: CreateProductInput): Promise<Result<ProductView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const parsed = CreateProductSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  try {
+    const value = await store.createProduct({ ...parsed.data, createdById: g.me.id })
+    await audit("product_create", { actorId: g.me.id, target: value.id, ip: await ip() })
+    revalidatePath(PRODUCTS); revalidatePath(BOARD)
+    return { ok: true, value }
+  } catch (e) {
+    return mapError(e) ?? (() => { throw e })()
+  }
+}
+
+const UpdateProductSchema = z.object({
+  name: z.string().optional(),
+  color: z.string().optional(),
+})
+export type UpdateProductInput = z.input<typeof UpdateProductSchema>
+
+export async function updateProductAction(id: string, patch: UpdateProductInput): Promise<Result<ProductView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const parsed = UpdateProductSchema.safeParse(patch)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  try {
+    const value = await store.updateProduct(id, parsed.data)
+    await audit("product_update", { actorId: g.me.id, target: id, ip: await ip() })
+    revalidatePath(PRODUCTS); revalidatePath(BOARD)
+    return { ok: true, value }
+  } catch (e) {
+    return mapError(e) ?? (() => { throw e })()
+  }
+}
+
+export async function archiveProductAction(id: string): Promise<Result<null>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  try {
+    await store.updateProduct(id, { archived: true })
+    await audit("product_archive", { actorId: g.me.id, target: id, ip: await ip() })
+    revalidatePath(PRODUCTS); revalidatePath(BOARD)
+    return { ok: true, value: null }
   } catch (e) {
     return mapError(e) ?? (() => { throw e })()
   }
