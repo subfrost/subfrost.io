@@ -12,6 +12,8 @@ import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfur
 
 type Locale = "en" | "zh"
 
+const showHeroMarketTicker = process.env.NEXT_PUBLIC_SHOW_HERO_MARKET_TICKER === "true"
+
 const teamMembers = [
   {
     name: "Gabe",
@@ -541,9 +543,11 @@ export default async function Page({
               initialStats={initialStats}
               initialVolumeStats={initialVolumeStats}
             />
-            <div className="mt-8">
-              <HeroMarketTicker locale={locale} initialData={initialStats} />
-            </div>
+            {showHeroMarketTicker ? (
+              <div className="mt-8">
+                <HeroMarketTicker locale={locale} initialData={initialStats} />
+              </div>
+            ) : null}
           </div>
 
           <div className="homepage-cascade-item homepage-cascade-5 homepage-brand-banner mt-10 aspect-[1794/598] overflow-hidden rounded-[6px]">
