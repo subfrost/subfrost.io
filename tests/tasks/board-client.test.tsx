@@ -56,6 +56,13 @@ it("the Assign dropdown assigns the task to another member", async () => {
   expect(assignTaskAction).toHaveBeenCalledWith("t1", "u2")
 })
 
+it("shows the assignee's full name when the task has an owner", () => {
+  const owned = task({ owner: { id: "u9", name: "Vitor", email: "v@x.io" } })
+  const { getByText } = render(<BoardClient tasks={[owned]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  // "Vitor" isn't in `members`, so it only renders as the assignee name span (not an <option>)
+  expect(getByText("Vitor")).toBeTruthy()
+})
+
 it("has no green Done button on the card", () => {
   const { queryByText } = render(<BoardClient tasks={[task({ status: "IN_PROGRESS" })]} initiatives={[init]} members={members} meId="u1" canEdit />)
   expect(queryByText("Done", { selector: "button" })).toBeNull()

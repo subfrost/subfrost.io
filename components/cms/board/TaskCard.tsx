@@ -64,9 +64,10 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
             value={task.priority}
             onChange={(e) => run(() => updateTaskAction(task.id, { priority: e.target.value as TaskPriority }))}
             className={`shrink-0 rounded px-1 py-0.5 text-[11px] font-medium focus:outline-none ${pr.cls}`}
+            style={{ colorScheme: "dark" }}
           >
             <optgroup label="Priority">
-              {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{TASK_PRIORITY[p].label}</option>)}
+              {PRIORITY_ORDER.map((p) => <option key={p} value={p} style={{ color: TASK_PRIORITY[p].color }}>{TASK_PRIORITY[p].label}</option>)}
             </optgroup>
           </select>
         ) : (
@@ -74,36 +75,44 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        {task.labels.map((l) => (
-          <span key={l} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">{l}</span>
-        ))}
-        <span className="ml-auto flex w-[30%] shrink-0 items-center justify-end gap-1.5">
-          {task.owner && (
+      {task.labels.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          {task.labels.map((l) => (
+            <span key={l} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">{l}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-1.5">
+        {task.owner && (
+          <>
             <span title={ownerName(task.owner)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-medium text-sky-300">{ownerInitials(task.owner)}</span>
-          )}
-          {canEdit ? (
-            <>
-              {!task.owner && (
-                <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-sky-400 hover:text-sky-300">
-                  <UserPlus size={12} /> Self-assign
-                </button>
-              )}
-              <select
-                aria-label="Assign"
-                title={task.owner ? ownerName(task.owner) : "Assign to a member"}
-                value={task.owner?.id ?? ""}
-                onChange={(e) => run(() => assignTaskAction(task.id, e.target.value || null))}
-                className="min-w-0 flex-1 truncate rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 focus:outline-none"
-              >
-                <option value="">{task.owner ? "Unassign" : "Assign…"}</option>
-                {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
-              </select>
-            </>
-          ) : !task.owner ? (
-            <span className="truncate text-[11px] text-zinc-600">Unassigned</span>
-          ) : null}
-        </span>
+            <span title={ownerName(task.owner)} className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{ownerName(task.owner)}</span>
+          </>
+        )}
+        {canEdit ? (
+          <>
+            {!task.owner && (
+              <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-sky-400 hover:text-sky-300">
+                <UserPlus size={12} /> Self-assign
+              </button>
+            )}
+            <select
+              aria-label="Assign"
+              title={task.owner ? "Reassign to a member" : "Assign to a member"}
+              value=""
+              onChange={(e) => { const v = e.target.value; if (v) run(() => assignTaskAction(task.id, v === "__none__" ? null : v)) }}
+              className="ml-auto shrink-0 rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 focus:outline-none"
+              style={{ colorScheme: "dark" }}
+            >
+              <option value="">{task.owner ? "Reassign" : "Assign…"}</option>
+              {task.owner && <option value="__none__">Unassign</option>}
+              {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
+            </select>
+          </>
+        ) : !task.owner ? (
+          <span className="ml-auto shrink-0 text-[11px] text-zinc-600">Unassigned</span>
+        ) : null}
       </div>
 
       {canEdit && task.status === "BLOCKED" && (
