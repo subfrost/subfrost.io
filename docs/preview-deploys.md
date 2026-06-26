@@ -34,32 +34,22 @@ repo's secrets — but it builds the PR's own (untrusted) code, so deploys are
 gated on the `preview` label that a maintainer adds after a quick look. The
 workflow *definition* always comes from `main`, never the PR.
 
-## One-time setup
+## Setup
 
-1. **Create the `preview` label** (once):
-   ```bash
-   gh label create preview --repo subfrost/subfrost.io \
-     --color 1f6feb --description "Deploy a Cloud Run preview for this PR"
-   ```
+**Nothing to do — it's wired.** The `preview` label already exists, and the
+workflows carry the GCP identifiers inline (project `night-wolves-jogging`, the
+`github-pool/github-provider` WIF provider, and the `dark-coyote-running@…`
+service account — the same ones the prod Deploy workflow uses). These are
+non-secret identifiers; auth still requires this repo's GitHub OIDC token, so
+they're safe to commit. The only real secret, `ADMIN_SECRET`, is already a
+repo-level secret available to these jobs, and the Cloud Run secrets
+`db-connection-string` / `cms-auth-secret` are read from Secret Manager at
+deploy time.
 
-2. **Give the `Preview` GitHub environment the secrets it needs.** Both
-   workflows use `environment: Preview`. Copy these from the `Production`
-   environment (Settings → Environments → Preview → Add secret):
-
-   | Secret | Purpose |
-   |---|---|
-   | `GCP_PROJECT_ID` | target GCP project |
-   | `WIF_PROVIDER` | Workload Identity provider resource name |
-   | `WIF_SERVICE_ACCOUNT` | deploy service account email |
-   | `ADMIN_SECRET` | admin/CMS secret (repo-level today; add to env or keep repo-level) |
-
-   The Cloud Run secrets `db-connection-string` and `cms-auth-secret` are read
-   from Secret Manager at deploy time — no GitHub secret needed.
-
-3. **WIF service account roles** — already granted by `gcp/setup-github-wif.sh`
-   (`roles/run.admin`, `artifactregistry.writer`, `cloudsql.client`,
-   `secretmanager.secretAccessor`, `vpcaccess.user`, `iam.serviceAccountUser`).
-   No change needed; previews reuse the same SA as the prod deploy.
+The WIF service account (`dark-coyote-running`) already holds the roles the
+deploy needs (`run.admin`, `artifactregistry.writer`, `cloudsql.client`,
+`secretmanager.secretAccessor`, `vpcaccess.user`, `iam.serviceAccountUser`),
+so no IAM change is required — previews reuse the same SA as the prod deploy.
 
 ## Data & cost notes
 

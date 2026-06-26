@@ -9,7 +9,11 @@ on:
     types: [closed, unlabeled]
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  # Non-secret GCP identifiers, mirrored from the prod Deploy workflow (see
+  # preview.yml). Security comes from the WIF OIDC trust, not from hiding these.
+  PROJECT_ID: night-wolves-jogging
+  WIF_PROVIDER: projects/560256025842/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  WIF_SERVICE_ACCOUNT: dark-coyote-running@night-wolves-jogging.iam.gserviceaccount.com
   REGION: us-central1
 
 jobs:
@@ -28,8 +32,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
