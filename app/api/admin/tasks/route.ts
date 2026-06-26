@@ -30,6 +30,8 @@ const Ticket = z.object({
   labels: z.array(z.string()).optional(),
   color: z.string().optional(),
   colorLabel: z.string().optional(),
+  // Acceptance-criteria style subtasks: plain strings, seeded unchecked.
+  checklist: z.array(z.string()).optional(),
   initiativeId: z.string().nullable().optional(),
 })
 const Body = z.union([
@@ -37,6 +39,16 @@ const Body = z.union([
   z.object({ tasks: z.array(Ticket).min(1, "tasks[] cannot be empty") }), // many
   z.object({ initiativeId: z.string().min(1), titles: z.array(z.string()).min(1) }), // bulk titles
 ])
+
+// Convert a parsed ticket (checklist as strings) into a store CreateTaskInput
+// (checklist as items with ids), so acceptance criteria become real subtasks.
+function toInput(t: z.infer<typeof Ticket>, actorId: string) {
+  return {
+    ...t,
+    checklist: t.checklist?.map((text) => ({ id: crypto.randomUUID(), text, checked: false })),
+    createdById: actorId,
+  }
+}
 
 function mapError(e: unknown): { status: number; error: string } {
   if (e instanceof TaskError) return { status: 400, error: e.message }
@@ -75,12 +87,12 @@ export async function POST(req: NextRequest) {
     // Shape 2: many full tickets.
     if ("tasks" in body) {
       const tasks = []
-      for (const t of body.tasks) tasks.push(await store.createTask({ ...t, createdById: actor.id }))
+      for (const t of body.tasks) tasks.push(await store.createTask(toInput(t, actor.id)))
       revalidatePath(BOARD)
       return NextResponse.json({ ok: true, tasks }, { status: 201 })
     }
     // Shape 1: a single ticket.
-    const task = await store.createTask({ ...body, createdById: actor.id })
+    const task = await store.createTask(toInput(body, actor.id))
     revalidatePath(BOARD)
     return NextResponse.json({ ok: true, task }, { status: 201 })
   } catch (e) {

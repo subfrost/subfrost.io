@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma"
+import type { Prisma } from "@prisma/client"
 import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView, ChecklistItem, CommentView } from "./types"
 
 export class TaskError extends Error {}
@@ -52,7 +53,7 @@ export async function listDeletedTasks(): Promise<TaskView[]> {
 
 export interface CreateTaskInput {
   title: string; description?: string; priority?: TaskPriority
-  labels?: string[]; color?: string; colorLabel?: string
+  labels?: string[]; color?: string; colorLabel?: string; checklist?: ChecklistItem[]
   initiativeId?: string | null; ownerId?: string | null; createdById?: string | null
 }
 
@@ -76,6 +77,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
       priority: input.priority ?? "MEDIUM",
       labels: input.labels ?? [],
       ...normalizeColor(input.color, input.colorLabel),
+      ...(input.checklist ? { checklist: normalizeChecklist(input.checklist) as unknown as Prisma.InputJsonValue } : {}),
       initiativeId: input.initiativeId || null,
       ownerId: input.ownerId || null,
       createdById: input.createdById || null,

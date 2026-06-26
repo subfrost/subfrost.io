@@ -61,6 +61,16 @@ describe("POST /api/admin/tasks", () => {
     expect(store.createTask).toHaveBeenCalledWith(expect.objectContaining({ title: "Audit", priority: "FIRE", initiativeId: "i1", createdById: "u1" }))
   })
 
+  it("seeds checklist strings as unchecked subtask items", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    vi.mocked(store.createTask).mockResolvedValue({ id: "t1" } as never)
+    await POST(post({ title: "x", checklist: ["criterion A", "criterion B"] }))
+    const arg = vi.mocked(store.createTask).mock.calls[0][0]
+    expect(arg.checklist).toHaveLength(2)
+    expect(arg.checklist?.[0]).toMatchObject({ text: "criterion A", checked: false })
+    expect(typeof arg.checklist?.[0].id).toBe("string")
+  })
+
   it("creates many tickets from a tasks[] array", async () => {
     vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
     vi.mocked(store.createTask).mockResolvedValueOnce({ id: "t1" } as never).mockResolvedValueOnce({ id: "t2" } as never)

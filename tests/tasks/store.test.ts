@@ -31,6 +31,16 @@ it("creates a task with defaults and maps the owner", async () => {
   }))
 })
 
+it("createTask seeds a normalized checklist when provided", async () => {
+  client.task.create.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "TODO", priority: "MEDIUM",
+    labels: [], blockerReason: "", color: "", colorLabel: "", checklist: [], initiativeId: null, position: 0, deletedAt: null, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  await createTask({ title: "x", checklist: [{ id: "a", text: "  do it  ", checked: false }, { id: "", text: "drop", checked: false }] })
+  const arg = client.task.create.mock.calls[0][0]
+  expect(arg.data.checklist).toEqual([{ id: "a", text: "do it", checked: false }])
+})
+
 it("seeds an initiative with one task per non-empty line", async () => {
   client.initiative.create.mockResolvedValue({
     id: "i1", name: "frUSD", goal: "", color: "#38bdf8", archived: false,
