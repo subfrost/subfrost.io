@@ -1,18 +1,18 @@
 import { it, expect } from "vitest"
-import { buildBoard, applyFilter, initiativeProgress, distinctLabels } from "@/lib/tasks/board"
-import type { TaskView } from "@/lib/tasks/types"
+import { buildBoard, applyFilter, initiativeProgress, distinctLabels, buildInitiativeBoard, selectableInitiatives } from "@/lib/tasks/board"
+import type { TaskView, InitiativeView } from "@/lib/tasks/types"
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], owner: null, initiativeId: null, position: 0,
+  labels: [], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: null, position: 0,
   createdAt: new Date("2026-06-25T00:00:00Z"), updatedAt: new Date("2026-06-25T00:00:00Z"), ...over,
 })
 
-it("groups tasks into the three ordered columns", () => {
+it("groups tasks into the four ordered columns", () => {
   const b = buildBoard([t({ id: "a", status: "TODO" }), t({ id: "b", status: "DONE" })])
-  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "IN_PROGRESS", "DONE"])
+  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
   expect(b.columns[0].count).toBe(1)
-  expect(b.columns[2].count).toBe(1)
+  expect(b.columns[3].count).toBe(1)
   expect(b.total).toBe(2)
 })
 
@@ -49,4 +49,28 @@ it("computes initiative progress", () => {
 it("collects distinct labels sorted", () => {
   const tasks = [t({ labels: ["b", "a"] }), t({ labels: ["a", "c"] })]
   expect(distinctLabels(tasks)).toEqual(["a", "b", "c"])
+})
+
+const init = (over: Partial<InitiativeView>): InitiativeView => ({
+  id: "i", name: "n", goal: "", color: "#38bdf8", status: "TODO", archived: false,
+  createdAt: new Date(), updatedAt: new Date(), ...over,
+})
+
+it("groups initiatives into the four mirrored columns", () => {
+  const b = buildInitiativeBoard([init({ id: "a", status: "TODO" }), init({ id: "b", status: "ON_HOLD" }), init({ id: "c", status: "DONE" })])
+  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "ON_HOLD", "IN_PROGRESS", "DONE"])
+  expect(b.columns[0].count).toBe(1)
+  expect(b.columns[1].count).toBe(1)
+  expect(b.columns[3].count).toBe(1)
+})
+
+it("offers only To do / In progress (non-archived) initiatives as selectable", () => {
+  const list = [
+    init({ id: "a", status: "TODO" }),
+    init({ id: "b", status: "IN_PROGRESS" }),
+    init({ id: "c", status: "ON_HOLD" }),
+    init({ id: "d", status: "DONE" }),
+    init({ id: "e", status: "TODO", archived: true }),
+  ]
+  expect(selectableInitiatives(list).map((i) => i.id)).toEqual(["a", "b"])
 })

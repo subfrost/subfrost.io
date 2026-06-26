@@ -5,22 +5,24 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 vi.mock("@/actions/tasks/board", () => ({
   createInitiativeAction: vi.fn().mockResolvedValue({ ok: true, value: { id: "i9" } }),
   archiveInitiativeAction: vi.fn().mockResolvedValue({ ok: true, value: null }),
+  moveInitiativeAction: vi.fn().mockResolvedValue({ ok: true, value: {} }),
 }))
 
 import { InitiativesClient } from "@/components/cms/board/InitiativesClient"
 import type { InitiativeView, TaskView } from "@/lib/tasks/types"
-import { createInitiativeAction, archiveInitiativeAction } from "@/actions/tasks/board"
+import { createInitiativeAction, archiveInitiativeAction, moveInitiativeAction } from "@/actions/tasks/board"
 
-const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship it", color: "#1D9E75", archived: false, createdAt: new Date(), updatedAt: new Date() }
+const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship it", color: "#1D9E75", status: "TODO", archived: false, createdAt: new Date(), updatedAt: new Date() }
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], owner: null, initiativeId: "i1", position: 0, createdAt: new Date(), updatedAt: new Date(), ...over,
+  labels: [], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0, createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
 beforeEach(() => {
   cleanup()
   vi.mocked(createInitiativeAction).mockResolvedValue({ ok: true, value: { id: "i9" } } as never)
   vi.mocked(archiveInitiativeAction).mockResolvedValue({ ok: true, value: null } as never)
+  vi.mocked(moveInitiativeAction).mockResolvedValue({ ok: true, value: {} } as never)
 })
 
 it("shows initiative progress (done/total)", () => {
@@ -39,4 +41,11 @@ it("opens the form, counts seed lines, and submits seedText", async () => {
     fireEvent.click(getByText("Create + seed"))
   })
   expect(createInitiativeAction).toHaveBeenCalledWith(expect.objectContaining({ name: "frUSD", seedText: "Deploy\nAudit" }))
+})
+
+it("moving an initiative status calls moveInitiativeAction", async () => {
+  const { getByLabelText } = render(<InitiativesClient initiatives={[init]} tasks={[]} canEdit />)
+  await act(async () => { fireEvent.change(getByLabelText("Initiative status"), { target: { value: "ON_HOLD" } }) })
+  const { moveInitiativeAction } = await import("@/actions/tasks/board")
+  expect(moveInitiativeAction).toHaveBeenCalledWith("i1", "ON_HOLD")
 })
