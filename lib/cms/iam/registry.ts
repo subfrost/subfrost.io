@@ -32,6 +32,7 @@ export type CategoryKey =
   | "compliance"
   | "billing"
   | "financials"
+  | "legal"
   | "files"
   | "marketing"
   | "tasks"
@@ -49,6 +50,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "compliance", label: "Compliance" },
   { key: "billing", label: "Billing" },
   { key: "financials", label: "Financials" },
+  { key: "legal", label: "Legal" },
   { key: "files", label: "Documents" },
   { key: "marketing", label: "Marketing" },
   { key: "apikeys", label: "API keys" },
@@ -94,6 +96,13 @@ export const PRIVILEGES: PrivilegeDef[] = [
 
   // --- Financials (409A) ---
   { code: "financials.view", label: "Financials — view", description: "View the treasury holdings and the DIESEL accounting ledger for the 409A. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "financials", implies: [] },
+  { code: "financials.edit", label: "Financials — edit", description: "Record payees, invoices, DIESEL payments, equity instruments, and balance-sheet lines. Restricted.", category: "financials", implies: ["financials.view"] },
+  { code: "financials.superuser", label: "Financials — superuser", description: "Full control of the financial record incl. reconciliation, ledger export, and destructive edits. Restricted.", category: "financials", implies: ["financials.edit"] },
+
+  // --- Legal (entities, agreements, OYL/deserter scope) ---
+  { code: "legal.view", label: "Legal — view", description: "View the legal-entity register: counterparties we've signed with, agreements, OYL deserters, and the Subfrost equity-swap scope. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "legal", implies: [] },
+  { code: "legal.edit", label: "Legal — edit", description: "Create and edit legal entities, agreements, deserter equity/DIESEL conversions, and swap sign-offs. Restricted.", category: "legal", implies: ["legal.view"] },
+  { code: "legal.superuser", label: "Legal — superuser", description: "Full control of the legal record incl. deletion and finalizing Arca/Alec swap sign-offs. Restricted.", category: "legal", implies: ["legal.edit"] },
 
   // --- Documents (file manager) ---
   { code: "files.read", label: "Documents — view", description: "Browse and download files and folders in the document archive.", category: "files", implies: [] },
@@ -115,7 +124,15 @@ const BY_CODE = new Map(PRIVILEGES.map((p) => [p.code, p]))
 /** Privileges that are NOT auto-granted by the ADMIN role bundle — they must be
  *  granted explicitly per-user (and, per the escalation guard, only by someone
  *  who already holds them). Use for sensitive surfaces like the treasury. */
-export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = ["billing.treasury_view", "financials.view"]
+export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = [
+  "billing.treasury_view",
+  "financials.view",
+  "financials.edit",
+  "financials.superuser",
+  "legal.view",
+  "legal.edit",
+  "legal.superuser",
+]
 
 export function isRestricted(code: PrivilegeCode): boolean {
   return RESTRICTED_PRIVILEGES.includes(code)
@@ -204,10 +221,16 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/billing": { view: "billing.read", edit: "billing.edit" },
   "/admin/billing/treasury": { view: "billing.treasury_view", edit: "billing.edit" },
   "/admin/financials/treasury": { view: "financials.view" },
-  "/admin/financials/accounting": { view: "financials.view" },
-  "/admin/financials/cap-table": { view: "financials.view" },
-  "/admin/financials/safes": { view: "financials.view" },
-  "/admin/financials/balance-sheet": { view: "financials.view" },
+  "/admin/financials/accounting": { view: "financials.view", edit: "financials.edit" },
+  "/admin/financials/cap-table": { view: "financials.view", edit: "financials.edit" },
+  "/admin/financials/safes": { view: "financials.view", edit: "financials.edit" },
+  "/admin/financials/balance-sheet": { view: "financials.view", edit: "financials.edit" },
+  // Reconciliation requires BOTH a legal tier AND a financials tier; VIEW_GATES
+  // models the financials side, the page enforces the legal-AND-financials rule
+  // via requireLegalAndFinancials() in lib/financials/legal/privilege.ts.
+  "/admin/financials/reconciliation": { view: "financials.view" },
+  "/admin/legal": { view: "legal.view", edit: "legal.edit" },
+  "/admin/legal/entities": { view: "legal.view", edit: "legal.edit" },
   "/admin/users": { view: "iam.list_users", edit: "iam.modify_user" },
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },

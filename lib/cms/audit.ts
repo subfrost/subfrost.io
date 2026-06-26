@@ -98,6 +98,16 @@ export type AuditAction =
   | "product_create"
   | "product_update"
   | "product_archive"
+  | "legal_entity_create"
+  | "legal_entity_update"
+  | "legal_entity_delete"
+  | "legal_agreement_create"
+  | "legal_agreement_update"
+  | "legal_agreement_delete"
+  | "legal_deserter_upsert"
+  | "legal_deserter_swap_signoff"
+  | "legal_obligation_upsert"
+  | "legal_reconciliation_view"
 
 export async function audit(
   action: AuditAction,
