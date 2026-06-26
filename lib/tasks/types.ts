@@ -84,11 +84,15 @@ export const TASK_STATUS: Record<TaskStatus, { label: string; cls: string; dot: 
   DONE: { label: "Done", cls: "text-emerald-300", dot: "bg-emerald-400" },
 }
 
-export const TASK_PRIORITY: Record<TaskPriority, { label: string; rank: number; cls: string }> = {
-  FIRE: { label: "Fire", rank: 3, cls: "bg-orange-500/15 text-orange-300" },
-  HIGH: { label: "High", rank: 2, cls: "bg-rose-500/15 text-rose-300" },
-  MEDIUM: { label: "Med", rank: 1, cls: "bg-amber-500/15 text-amber-300" },
-  LOW: { label: "Low", rank: 0, cls: "bg-zinc-500/15 text-zinc-400" },
+// `color` is the per-level hex used to tint each <option> directly (native
+// <option>s don't reliably inherit Tailwind text classes), so every priority
+// keeps its own fixed color whether the dropdown is closed or open.
+// Scale cold→hot: Low gray · Med amber · High orange · Fire red.
+export const TASK_PRIORITY: Record<TaskPriority, { label: string; rank: number; cls: string; color: string }> = {
+  FIRE: { label: "Fire", rank: 3, cls: "bg-red-500/20 text-red-300", color: "#fca5a5" },
+  HIGH: { label: "High", rank: 2, cls: "bg-orange-500/20 text-orange-300", color: "#fdba74" },
+  MEDIUM: { label: "Med", rank: 1, cls: "bg-amber-500/15 text-amber-300", color: "#fcd34d" },
+  LOW: { label: "Low", rank: 0, cls: "bg-zinc-500/15 text-zinc-400", color: "#a1a1aa" },
 }
 
 export const INITIATIVE_STATUS: Record<InitiativeStatus, { label: string; cls: string; dot: string }> = {
