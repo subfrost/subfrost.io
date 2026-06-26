@@ -11,6 +11,7 @@ export interface ArticleViewData {
   publishedAt: string | null
   tags: { slug: string; name: string }[]
   author?: AuthorProfile
+  coAuthors?: AuthorProfile[]
   readingMinutes?: number
 }
 
@@ -33,7 +34,6 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
   const fallback = locale === "zh" ? "文章" : "Article"
   const primaryTag = article.tags.map((t) => categoryLabel(t, locale)).find((t): t is string => Boolean(t)) ?? fallback
   const author = article.author
-  const authorHref = author ? (locale === "zh" ? `/authors/${author.id}?lang=zh` : `/authors/${author.id}`) : null
   return (
     <article className="mx-auto px-6 pb-20 pt-24 sm:px-8 lg:pt-28">
       <header className="mx-auto max-w-[920px] text-center">
@@ -60,7 +60,7 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
 
         {author ? (
           <div className="mt-8 flex justify-center">
-            <AuthorByline author={author} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={44} locale={locale} />
+            <AuthorByline author={author} coAuthors={article.coAuthors ?? []} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={44} locale={locale} />
           </div>
         ) : null}
       </header>
@@ -76,25 +76,35 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
         </aside>
       ) : null}
 
-      {author?.bio && authorHref ? (
-        <aside
-          className="mx-auto mt-14 flex max-w-[680px] items-start gap-4 rounded-[14px] border p-5"
-          style={{ borderColor: "var(--ed-hair)" }}
-        >
-          <Avatar name={author.name} src={author.avatarUrl} size={48} />
-          <div>
-            <div className="font-display text-[11px] uppercase tracking-[1.5px]" style={{ color: "var(--ed-muted)" }}>
-              {locale === "zh" ? "作者" : "Written by"}
-            </div>
-            <Link href={authorHref} className="font-display text-[15px] font-medium hover:underline" style={{ color: "var(--ed-ink)" }}>
-              {author.name}
-            </Link>
-            <p className="font-reading mt-1 text-[15px] leading-[1.6]" style={{ color: "var(--ed-body)" }}>
-              {author.bio}
-            </p>
+      {(() => {
+        const contributors = [author, ...(article.coAuthors ?? [])].filter((a): a is AuthorProfile => Boolean(a?.bio))
+        if (contributors.length === 0) return null
+        return (
+          <div className="mx-auto mt-14 max-w-[680px] space-y-4">
+            {contributors.map((a, i) => {
+              const href = locale === "zh" ? `/authors/${a.id}?lang=zh` : `/authors/${a.id}`
+              return (
+                <aside key={a.id} className="flex items-start gap-4 rounded-[14px] border p-5" style={{ borderColor: "var(--ed-hair)" }}>
+                  <Avatar name={a.name} src={a.avatarUrl} size={48} />
+                  <div>
+                    {i === 0 ? (
+                      <div className="font-display text-[11px] uppercase tracking-[1.5px]" style={{ color: "var(--ed-muted)" }}>
+                        {locale === "zh" ? "作者" : "Written by"}
+                      </div>
+                    ) : null}
+                    <Link href={href} className="font-display text-[15px] font-medium hover:underline" style={{ color: "var(--ed-ink)" }}>
+                      {a.name}
+                    </Link>
+                    <p className="font-reading mt-1 text-[15px] leading-[1.6]" style={{ color: "var(--ed-body)" }}>
+                      {a.bio}
+                    </p>
+                  </div>
+                </aside>
+              )
+            })}
           </div>
-        </aside>
-      ) : null}
+        )
+      })()}
     </article>
   )
 }

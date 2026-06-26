@@ -56,4 +56,31 @@ describe("ArticleView", () => {
     const { container } = render(<ArticleView article={base} locale="en" />)
     expect(container.querySelector('a[href^="/authors/"]')).toBeNull()
   })
+
+  const coAuthor = { id: "u2", name: "Gabe", avatarUrl: null, bio: "Ops and growth.", twitter: null }
+
+  it("renders co-authors in the byline linking to their author pages", () => {
+    const { container, getAllByText } = render(
+      <ArticleView article={{ ...base, author, coAuthors: [coAuthor], readingMinutes: 4 }} locale="en" />,
+    )
+    expect(getAllByText("Gabe").length).toBeGreaterThan(0)
+    expect(container.querySelector('a[href="/authors/u2"]')).toBeTruthy()
+  })
+
+  it("renders a bio card per author and co-author that has a bio", () => {
+    const { getByText } = render(
+      <ArticleView article={{ ...base, author, coAuthors: [coAuthor], readingMinutes: 4 }} locale="en" />,
+    )
+    expect(getByText("Builder of Bitcoin-native things.")).toBeTruthy()
+    expect(getByText("Ops and growth.")).toBeTruthy()
+  })
+
+  it("skips a co-author with no bio but still bylines them", () => {
+    const { container, getByText, queryByText } = render(
+      <ArticleView article={{ ...base, author, coAuthors: [{ ...coAuthor, bio: null }], readingMinutes: 4 }} locale="en" />,
+    )
+    expect(getByText("Builder of Bitcoin-native things.")).toBeTruthy()
+    expect(queryByText("Ops and growth.")).toBeNull()
+    expect(container.querySelector('a[href="/authors/u2"]')).toBeTruthy()
+  })
 })

@@ -284,6 +284,7 @@ model User {
   tokenVersion   Int       @default(0)
 
   articles        Article[]            @relation("AuthoredArticles")
+  coAuthoredArticles Article[]            @relation("CoAuthoredArticles")
   revisions       Revision[]
   apiKeys         ApiKey[]
   sessions        Session[]
@@ -380,6 +381,7 @@ model Article {
 
   author       User                 @relation("AuthoredArticles", fields: [authorId], references: [id])
   authorId     String
+  coAuthors    User[]               @relation("CoAuthoredArticles")
   tags               Tag[]                @relation("ArticleTags")
   translations       ArticleTranslation[]
   revisions          Revision[]

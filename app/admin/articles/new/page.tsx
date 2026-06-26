@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
 import { AdminEditor } from "@/components/cms/AdminEditor"
+import { getCoAuthorOptions } from "@/lib/cms/articles"
 
 export const dynamic = "force-dynamic"
 
@@ -15,9 +16,11 @@ export default async function NewArticlePage() {
   // /admin page already has.
   if (!user) redirect("/admin/login")
   const canPublish = user.privileges.includes("articles.publish")
+  const members = await getCoAuthorOptions(user.id)
   return (
     <AdminEditor
       canPublish={canPublish}
+      members={members}
       initial={{ slug: "", coverImage: "", tags: [], featured: false, primaryLocale: "en", status: "DRAFT", en: empty, zh: empty }}
     />
   )

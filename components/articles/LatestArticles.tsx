@@ -2,6 +2,7 @@
 
 import useSWR from "swr"
 import { BlogCardCover } from "./BlogCardCover"
+import { formatAuthorNames } from "@/lib/cms/author-format"
 
 // Homepage widget: top published articles from the same-origin API. Renders
 // nothing if empty, so the homepage degrades gracefully.
@@ -14,6 +15,7 @@ interface Preview {
   publishedAt: string | null
   readingMinutes: number
   author: { name: string; avatarUrl: string | null }
+  coAuthors?: { name: string; avatarUrl: string | null }[]
   tags: { slug: string; name: string }[]
 }
 
@@ -59,7 +61,7 @@ export default function LatestArticles() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={a.author.avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
                 )}
-                <span>{a.author.name}</span><span>·</span><span>{a.readingMinutes} min</span>
+                <span>{formatAuthorNames([a.author.name, ...(a.coAuthors ?? []).map((c) => c.name)], "en")}</span><span>·</span><span>{a.readingMinutes} min</span>
               </div>
             </div>
           </a>

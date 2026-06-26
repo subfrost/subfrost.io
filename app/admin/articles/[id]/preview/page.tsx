@@ -24,7 +24,10 @@ export default async function PreviewArticlePage({
   const user = await currentUser()
   if (!user) redirect("/admin/login")
 
-  const article = await prisma.article.findUnique({ where: { id }, include: { tags: true, translations: true, author: true } })
+  const article = await prisma.article.findUnique({
+    where: { id },
+    include: { tags: true, translations: true, author: true, coAuthors: true },
+  })
   if (!article) notFound()
   const canPublish = user.privileges.includes("articles.publish")
   if (!canPublish && article.authorId !== user.id) redirect("/admin/articles")
@@ -70,6 +73,13 @@ export default async function PreviewArticlePage({
               bio: article.author.bio,
               twitter: article.author.twitter,
             },
+            coAuthors: article.coAuthors.map((u) => ({
+              id: u.id,
+              name: u.name ?? u.email,
+              avatarUrl: u.avatarUrl,
+              bio: u.bio,
+              twitter: u.twitter,
+            })),
             readingMinutes: readingTime(tr.body),
           }}
           locale={locale}

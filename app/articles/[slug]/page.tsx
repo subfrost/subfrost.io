@@ -56,7 +56,7 @@ export async function generateMetadata({
         "x-default": articleUrl(slug),
       },
     },
-    authors: [{ name: a.author.name, url: authorUrl(a.author.id, locale) }],
+    authors: [a.author, ...a.coAuthors].map((au) => ({ name: au.name, url: authorUrl(au.id, locale) })),
     keywords: ["SUBFROST", ...tagNames, "Bitcoin", "Bitcoin DeFi", "frBTC"],
     openGraph: {
       title: a.title,
@@ -66,7 +66,7 @@ export async function generateMetadata({
       siteName,
       publishedTime: a.publishedAt ?? undefined,
       modifiedTime: a.updatedAt ?? undefined,
-      authors: [a.author.name],
+      authors: [a.author, ...a.coAuthors].map((au) => au.name),
       tags: tagNames,
       images: [imageMeta],
       locale: locale === "zh" ? "zh_CN" : "en_US",
@@ -130,7 +130,7 @@ export default async function ArticlePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <ArticleView
-        article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags, author: a.author, readingMinutes: a.readingMinutes }}
+        article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags, author: a.author, coAuthors: a.coAuthors, readingMinutes: a.readingMinutes }}
         locale={locale}
       />
       <div className="mx-auto flex max-w-[680px] justify-center px-6 pb-2 sm:px-8">

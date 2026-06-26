@@ -16,12 +16,17 @@ vi.mock("next/navigation", () => ({
     throw new Error(`NEXT_REDIRECT:${url}`)
   }),
 }))
+vi.mock("@/lib/prisma", () => ({ default: { user: { findMany: vi.fn() } } }))
 
 import NewArticlePage from "@/app/admin/articles/new/page"
 import { currentUser } from "@/lib/cms/authz"
 import { redirect } from "next/navigation"
+import prisma from "@/lib/prisma"
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(prisma.user.findMany as never as ReturnType<typeof vi.fn>).mockResolvedValue([])
+})
 
 describe("new article page auth guard", () => {
   it("redirects to /admin/login when the session resolves to no user (stale cookie)", async () => {

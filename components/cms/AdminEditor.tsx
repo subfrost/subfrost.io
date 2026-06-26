@@ -27,11 +27,12 @@ export interface EditorInitial {
   status: Status
   en: LocaleContent
   zh: LocaleContent
+  coAuthorIds?: string[]
 }
 
 const LOCALE_LABEL: Record<Locale, string> = { en: "English", zh: "中文" }
 
-export function AdminEditor({ initial, canPublish, canTranslate }: { initial: EditorInitial; canPublish: boolean; canTranslate?: boolean }) {
+export function AdminEditor({ initial, canPublish, canTranslate, members = [] }: { initial: EditorInitial; canPublish: boolean; canTranslate?: boolean; members?: { id: string; name: string }[] }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +46,9 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
   const [tags, setTags] = useState(initial.tags.join(", "))
   const [featured, setFeatured] = useState(initial.featured)
   const [primaryLocale, setPrimaryLocale] = useState<Locale>(initial.primaryLocale)
+  const [coAuthorIds, setCoAuthorIds] = useState<string[]>(initial.coAuthorIds ?? [])
+  const toggleCoAuthor = (id: string) =>
+    setCoAuthorIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
   const cur = content[activeLocale]
   function setCur(patch: Partial<LocaleContent>) {
@@ -145,6 +149,7 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
         coverImage,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         featured,
+        coAuthorIds,
         primaryLocale,
         status,
         translations: {
@@ -353,6 +358,33 @@ export function AdminEditor({ initial, canPublish, canTranslate }: { initial: Ed
               <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="frBTC, Research" className="border-white/10 bg-transparent text-zinc-100" />
               <p className="text-xs text-zinc-600">Comma-separated for now.</p>
             </div>
+
+            {members.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm text-zinc-300">Co-authors</Label>
+                <div className="flex flex-wrap gap-2">
+                  {members.map((m) => {
+                    const on = coAuthorIds.includes(m.id)
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleCoAuthor(m.id)}
+                        className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                          on
+                            ? "border-[#e9f0f7] bg-[#e9f0f7] text-[#212121]"
+                            : "border-white/15 text-zinc-300 hover:border-white/30 hover:text-white"
+                        }`}
+                      >
+                        {m.name}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-zinc-600">Members who helped write this article appear in the byline.</p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-sm text-zinc-300">Feature image URL</Label>
