@@ -105,22 +105,27 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
             {task.title}
           </button>
         </span>
-        {canEdit ? (
-          <select
-            aria-label="Priority"
-            title="Priority"
-            value={task.priority}
-            onChange={(e) => run(() => updateTaskAction(task.id, { priority: e.target.value as TaskPriority }))}
-            className={`shrink-0 rounded px-1 py-0.5 text-[11px] font-medium focus:outline-none ${pr.cls}`}
-            style={{ colorScheme: "dark" }}
-          >
-            <optgroup label="Priority">
-              {PRIORITY_ORDER.map((p) => <option key={p} value={p} style={{ color: TASK_PRIORITY[p].color }}>{TASK_PRIORITY[p].label}</option>)}
-            </optgroup>
-          </select>
-        ) : (
-          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${pr.cls}`}>{pr.label}</span>
-        )}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {initiative && (
+            <span className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/30" style={{ backgroundColor: initiative.color }} title={initiative.name} aria-label={`Initiative: ${initiative.name}`} />
+          )}
+          {canEdit ? (
+            <select
+              aria-label="Priority"
+              title="Priority"
+              value={task.priority}
+              onChange={(e) => run(() => updateTaskAction(task.id, { priority: e.target.value as TaskPriority }))}
+              className={`shrink-0 rounded px-1 py-0.5 text-[11px] font-medium focus:outline-none ${pr.cls}`}
+              style={{ colorScheme: "dark" }}
+            >
+              <optgroup label="Priority">
+                {PRIORITY_ORDER.map((p) => <option key={p} value={p} style={{ color: TASK_PRIORITY[p].color }}>{TASK_PRIORITY[p].label}</option>)}
+              </optgroup>
+            </select>
+          ) : (
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${pr.cls}`}>{pr.label}</span>
+          )}
+        </span>
       </div>
 
       {(task.labels.length > 0 || cl.total > 0 || task.commentCount > 0) && (

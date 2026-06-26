@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { KanbanSquare, Plus, Layers, Trash2 } from "lucide-react"
 import type { TaskView, InitiativeView, BoardFilter, MemberView, TaskStatus } from "@/lib/tasks/types"
@@ -34,14 +34,27 @@ export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, c
   const [binOpen, setBinOpen] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
+  // Per-user "hide these initiatives" set (turn off bloat). Persisted locally.
+  const [hidden, setHidden] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set()
+    try { return new Set(JSON.parse(localStorage.getItem("subfrost:board:hiddenInitiatives") || "[]")) } catch { return new Set() }
+  })
+  useEffect(() => {
+    try { localStorage.setItem("subfrost:board:hiddenInitiatives", JSON.stringify([...hidden])) } catch { /* ignore */ }
+  }, [hidden])
+  function toggleHidden(id: string) {
+    setHidden((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
 
   const initiativeById = useMemo(
     () => Object.fromEntries(initiatives.map((i) => [i.id, i])) as Record<string, InitiativeView>,
     [initiatives],
   )
   const selectable = useMemo(() => selectableInitiatives(initiatives), [initiatives])
-  const labels = useMemo(() => distinctLabels(tasks), [tasks])
-  const board = useMemo(() => buildBoard(tasks, filter), [tasks, filter])
+  // Drop tasks whose initiative the user has hidden (tasks with no initiative always show).
+  const visibleTasks = useMemo(() => tasks.filter((t) => !t.initiativeId || !hidden.has(t.initiativeId)), [tasks, hidden])
+  const labels = useMemo(() => distinctLabels(visibleTasks), [visibleTasks])
+  const board = useMemo(() => buildBoard(visibleTasks, filter), [visibleTasks, filter])
   const bulkCount = bulkText.split("\n").map((s) => s.trim()).filter(Boolean).length
   const selectedTask = selectedId ? tasks.find((t) => t.id === selectedId) ?? null : null
 
@@ -106,7 +119,7 @@ export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, c
         </div>
       </div>
 
-      <BoardFilters filter={filter} setFilter={setFilter} initiatives={initiatives} labels={labels} meId={meId} />
+      <BoardFilters filter={filter} setFilter={setFilter} initiatives={initiatives} labels={labels} meId={meId} hidden={hidden} toggleHidden={toggleHidden} />
 
       {canEdit && (
         <div className="space-y-2">

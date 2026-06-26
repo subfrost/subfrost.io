@@ -158,3 +158,12 @@ it("picking a color in the detail saves it with a seeded name", async () => {
   const { updateTaskAction } = await import("@/actions/tasks/board")
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444", colorLabel: "Red" })
 })
+
+it("hiding an initiative removes its tasks from the board", () => {
+  localStorage.clear()
+  const { getByText, getByLabelText, queryByText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  expect(getByText("Audit mint path")).toBeTruthy()
+  fireEvent.click(getByText("Show/hide"))
+  fireEvent.click(getByLabelText(init.name)) // uncheck the initiative in the visibility popover
+  expect(queryByText("Audit mint path")).toBeNull()
+})

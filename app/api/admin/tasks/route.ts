@@ -117,3 +117,42 @@ export async function GET(req: NextRequest) {
     tasks: tasks.map((t) => ({ id: t.id, title: t.title, status: t.status, priority: t.priority, initiativeId: t.initiativeId })),
   })
 }
+
+// Permanently delete one or more tasks. Body: { id } or { ids: [...] }.
+// Hard purge (not soft delete) — intended for CLI cleanup/re-seeding.
+const DeleteBody = z.union([
+  z.object({ id: z.string().min(1) }),
+  z.object({ ids: z.array(z.string().min(1)).min(1) }),
+])
+
+export async function DELETE(req: NextRequest) {
+  const actor = await actorFromBearer(req.headers.get("authorization"))
+  if (!actor) return NextResponse.json({ error: "Invalid or missing API key" }, { status: 401 })
+  if (!actor.privileges.includes("tasks.edit")) {
+    return NextResponse.json({ error: "This key lacks the tasks.edit scope" }, { status: 403 })
+  }
+  let raw: unknown
+  try {
+    raw = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Body must be valid JSON ({id} or {ids:[…]})" }, { status: 400 })
+  }
+  const parsed = DeleteBody.safeParse(raw)
+  if (!parsed.success) return NextResponse.json({ error: "Provide {id} or {ids:[…]}" }, { status: 400 })
+  const ids = "ids" in parsed.data ? parsed.data.ids : [parsed.data.id]
+
+  let deleted = 0
+  for (const id of ids) {
+    try {
+      await store.purgeTask(id)
+      deleted++
+    } catch (e) {
+      // Ignore already-gone rows (P2025); surface anything else.
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025")) {
+        return NextResponse.json({ error: "Internal error", deleted }, { status: 500 })
+      }
+    }
+  }
+  revalidatePath(BOARD)
+  return NextResponse.json({ ok: true, deleted })
+}

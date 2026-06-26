@@ -7,11 +7,12 @@ vi.mock("@/lib/tasks/store", () => ({
   bulkCreateTasks: vi.fn(),
   listInitiatives: vi.fn(),
   listTasks: vi.fn(),
+  purgeTask: vi.fn(),
   TaskError: class extends Error {},
 }))
 
 import { NextRequest } from "next/server"
-import { POST, GET } from "@/app/api/admin/tasks/route"
+import { POST, GET, DELETE } from "@/app/api/admin/tasks/route"
 import { actorFromBearer } from "@/lib/cms/apikey-auth"
 import * as store from "@/lib/tasks/store"
 
@@ -27,6 +28,13 @@ function post(body: unknown, auth = "Bearer sk_test") {
 }
 function get(auth = "Bearer sk_test") {
   return new NextRequest("https://subfrost.io/api/admin/tasks", { method: "GET", headers: { authorization: auth } })
+}
+function del(body: unknown, auth = "Bearer sk_test") {
+  return new NextRequest("https://subfrost.io/api/admin/tasks", {
+    method: "DELETE",
+    headers: { authorization: auth, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  })
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -120,5 +128,28 @@ describe("GET /api/admin/tasks", () => {
     const body = await res.json()
     expect(body.initiatives).toEqual([{ id: "i1", name: "frUSD", status: "TODO" }]) // archived dropped
     expect(body.tasks).toEqual([{ id: "t1", title: "Audit", status: "TODO", priority: "HIGH", initiativeId: "i1" }])
+  })
+})
+
+describe("DELETE /api/admin/tasks", () => {
+  it("403 without tasks.edit", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(viewer as never)
+    const res = await DELETE(del({ id: "t1" }))
+    expect(res.status).toBe(403)
+    expect(store.purgeTask).not.toHaveBeenCalled()
+  })
+
+  it("purges a batch of ids and reports the count", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    vi.mocked(store.purgeTask).mockResolvedValue(undefined as never)
+    const res = await DELETE(del({ ids: ["t1", "t2", "t3"] }))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, deleted: 3 })
+    expect(store.purgeTask).toHaveBeenCalledTimes(3)
+  })
+
+  it("400 on a bad body", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    expect((await DELETE(del({}))).status).toBe(400)
   })
 })
