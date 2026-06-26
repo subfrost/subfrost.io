@@ -78,30 +78,30 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         {task.labels.map((l) => (
           <span key={l} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">{l}</span>
         ))}
-        <span className="ml-auto inline-flex items-center gap-1.5">
+        <span className="ml-auto flex w-[30%] shrink-0 items-center justify-end gap-1.5">
           {task.owner && (
-            <span title={ownerName(task.owner)} className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-medium text-sky-300">{ownerInitials(task.owner)}</span>
+            <span title={ownerName(task.owner)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-medium text-sky-300">{ownerInitials(task.owner)}</span>
           )}
           {canEdit ? (
             <>
               {!task.owner && (
-                <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300">
+                <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-sky-400 hover:text-sky-300">
                   <UserPlus size={12} /> Self-assign
                 </button>
               )}
               <select
                 aria-label="Assign"
-                title="Assign to a member"
+                title={task.owner ? ownerName(task.owner) : "Assign to a member"}
                 value={task.owner?.id ?? ""}
                 onChange={(e) => run(() => assignTaskAction(task.id, e.target.value || null))}
-                className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 focus:outline-none"
+                className="min-w-0 flex-1 truncate rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 focus:outline-none"
               >
                 <option value="">{task.owner ? "Unassign" : "Assign…"}</option>
                 {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
               </select>
             </>
           ) : !task.owner ? (
-            <span className="text-[11px] text-zinc-600">Unassigned</span>
+            <span className="truncate text-[11px] text-zinc-600">Unassigned</span>
           ) : null}
         </span>
       </div>
