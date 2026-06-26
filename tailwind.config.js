@@ -6,6 +6,10 @@ module.exports = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    // lib/ holds Tailwind class strings consumed by components (e.g. the task
+    // board's TASK_PRIORITY/TASK_STATUS color maps in lib/tasks/types.ts). Without
+    // this glob those classes get purged and render uncolored.
+    "./lib/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
