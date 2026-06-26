@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import type { TaskView, InitiativeView, TaskStatus, TaskPriority } from "./types"
+import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView } from "./types"
 
 export class TaskError extends Error {}
 
@@ -7,7 +7,7 @@ const TASK_INCLUDE = { owner: { select: { id: true, name: true, email: true } } 
 
 type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
-  labels: string[]; initiativeId: string | null; position: number; createdAt: Date; updatedAt: Date
+  labels: string[]; blockerReason: string; initiativeId: string | null; position: number; createdAt: Date; updatedAt: Date
   owner: { id: string; name: string | null; email: string } | null
 }
 
@@ -15,7 +15,7 @@ function mapTask(r: TaskRow): TaskView {
   return {
     id: r.id, title: r.title, description: r.description,
     status: r.status as TaskStatus, priority: r.priority as TaskPriority,
-    labels: r.labels, owner: r.owner, initiativeId: r.initiativeId,
+    labels: r.labels, blockerReason: r.blockerReason, owner: r.owner, initiativeId: r.initiativeId,
     position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
   }
 }
@@ -49,7 +49,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
 }
 
 export interface UpdateTaskPatch {
-  title?: string; description?: string; priority?: TaskPriority; labels?: string[]; initiativeId?: string | null
+  title?: string; description?: string; priority?: TaskPriority; labels?: string[]; initiativeId?: string | null; blockerReason?: string
 }
 
 export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<TaskView> {
@@ -63,6 +63,7 @@ export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<Ta
   if (patch.priority !== undefined) data.priority = patch.priority
   if (patch.labels !== undefined) data.labels = patch.labels
   if (patch.initiativeId !== undefined) data.initiativeId = patch.initiativeId || null
+  if (patch.blockerReason !== undefined) data.blockerReason = patch.blockerReason.trim()
   const r = (await prisma.task.update({ where: { id }, data, include: TASK_INCLUDE })) as TaskRow
   return mapTask(r)
 }
@@ -81,12 +82,35 @@ export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({ where: { id } })
 }
 
+export async function assignTask(id: string, ownerId: string | null): Promise<TaskView> {
+  if (ownerId) {
+    const u = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, active: true } })
+    if (!u || !u.active) throw new TaskError("User not found")
+  }
+  const r = (await prisma.task.update({ where: { id }, data: { ownerId }, include: TASK_INCLUDE })) as TaskRow
+  return mapTask(r)
+}
+
+export async function listAssignableUsers(): Promise<MemberView[]> {
+  const rows = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email }))
+}
+
+export async function bulkCreateTasks(input: { initiativeId: string; titles: string[]; createdById?: string | null }): Promise<number> {
+  const titles = input.titles.map((t) => t.trim()).filter(Boolean)
+  if (titles.length === 0) throw new TaskError("Add at least one task")
+  const r = await prisma.task.createMany({
+    data: titles.map((title) => ({ title, initiativeId: input.initiativeId, createdById: input.createdById || null })),
+  })
+  return r.count
+}
+
 // --- Initiatives ---
 
-type InitiativeRow = { id: string; name: string; goal: string; color: string; archived: boolean; createdAt: Date; updatedAt: Date }
+type InitiativeRow = { id: string; name: string; goal: string; color: string; status: string; archived: boolean; createdAt: Date; updatedAt: Date }
 
 function mapInitiative(r: InitiativeRow): InitiativeView {
-  return { id: r.id, name: r.name, goal: r.goal, color: r.color, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
+  return { id: r.id, name: r.name, goal: r.goal, color: r.color, status: r.status as InitiativeStatus, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
 }
 
 export async function listInitiatives(): Promise<InitiativeView[]> {
@@ -132,4 +156,9 @@ export async function updateInitiative(id: string, patch: UpdateInitiativePatch)
 
 export async function archiveInitiative(id: string): Promise<void> {
   await prisma.initiative.update({ where: { id }, data: { archived: true } })
+}
+
+export async function moveInitiative(id: string, status: InitiativeStatus): Promise<InitiativeView> {
+  const r = (await prisma.initiative.update({ where: { id }, data: { status } })) as InitiativeRow
+  return mapInitiative(r)
 }

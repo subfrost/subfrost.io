@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Target, Archive } from "lucide-react"
-import type { InitiativeView, TaskView } from "@/lib/tasks/types"
-import { initiativeProgress } from "@/lib/tasks/board"
-import { createInitiativeAction, archiveInitiativeAction } from "@/actions/tasks/board"
+import type { InitiativeView, TaskView, InitiativeStatus } from "@/lib/tasks/types"
+import { INITIATIVE_STATUS, INITIATIVE_STATUS_ORDER } from "@/lib/tasks/types"
+import { initiativeProgress, buildInitiativeBoard } from "@/lib/tasks/board"
+import { createInitiativeAction, archiveInitiativeAction, moveInitiativeAction } from "@/actions/tasks/board"
 
 export function InitiativesClient({ initiatives, tasks, canEdit }: {
   initiatives: InitiativeView[]
@@ -22,6 +23,7 @@ export function InitiativesClient({ initiatives, tasks, canEdit }: {
   const [error, setError] = useState<string | null>(null)
 
   const seedCount = seedText.split("\n").map((s) => s.trim()).filter(Boolean).length
+  const boardCols = useMemo(() => buildInitiativeBoard(initiatives), [initiatives])
 
   async function create() {
     if (busy) return
@@ -31,6 +33,11 @@ export function InitiativesClient({ initiatives, tasks, canEdit }: {
     setBusy(false)
     if (!r.ok) { setError(r.error); return }
     setName(""); setGoal(""); setSeedText(""); setColor("#38bdf8"); setOpen(false)
+    router.refresh()
+  }
+
+  async function run(fn: () => Promise<unknown>) {
+    await fn()
     router.refresh()
   }
 
@@ -68,29 +75,49 @@ export function InitiativesClient({ initiatives, tasks, canEdit }: {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {initiatives.map((i) => {
-          const p = initiativeProgress(i.id, tasks)
-          return (
-            <div key={i.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: i.color }} />
-                <span className="font-medium text-zinc-100">{i.name}</span>
-                {canEdit && (
-                  <button onClick={async () => { await archiveInitiativeAction(i.id); router.refresh() }} aria-label="Archive" className="ml-auto text-zinc-600 hover:text-zinc-400">
-                    <Archive size={14} />
-                  </button>
-                )}
-              </div>
-              {i.goal && <p className="mb-3 text-xs text-zinc-400">{i.goal}</p>}
-              <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                <div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: i.color }} />
-              </div>
-              <p className="mt-1.5 text-[11px] text-zinc-500">{p.done} / {p.total} done · {p.active} active</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        {boardCols.columns.map((col) => (
+          <div key={col.status} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+            <div className="mb-3 flex items-center justify-between px-1">
+              <span className={`text-sm font-medium ${INITIATIVE_STATUS[col.status].cls}`}>{col.title}</span>
+              <span className="text-xs text-zinc-500">{col.count}</span>
             </div>
-          )
-        })}
-        {initiatives.length === 0 && <p className="text-sm text-zinc-500">No initiatives yet.</p>}
+            <div className="space-y-2">
+              {col.initiatives.map((i) => {
+                const p = initiativeProgress(i.id, tasks)
+                return (
+                  <div key={i.id} className="rounded-md border border-zinc-800 bg-zinc-900 p-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: i.color }} />
+                      <span className="font-medium text-zinc-100">{i.name}</span>
+                      {canEdit && (
+                        <button onClick={() => run(() => archiveInitiativeAction(i.id))} aria-label="Archive" className="ml-auto text-zinc-600 hover:text-zinc-400">
+                          <Archive size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {i.goal && <p className="mb-2 text-xs text-zinc-400">{i.goal}</p>}
+                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                      <div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: i.color }} />
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-zinc-500">{p.done} / {p.total} done · {p.active} active</p>
+                    {canEdit && (
+                      <select
+                        aria-label="Initiative status"
+                        value={i.status}
+                        onChange={(e) => run(() => moveInitiativeAction(i.id, e.target.value as InitiativeStatus))}
+                        className="mt-2 w-full rounded border border-zinc-700 bg-zinc-900 px-1.5 py-1 text-[11px] text-zinc-300 focus:outline-none"
+                      >
+                        {INITIATIVE_STATUS_ORDER.map((s) => <option key={s} value={s}>{INITIATIVE_STATUS[s].label}</option>)}
+                      </select>
+                    )}
+                  </div>
+                )
+              })}
+              {col.initiatives.length === 0 && <p className="px-1 py-6 text-center text-xs text-zinc-600">None</p>}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

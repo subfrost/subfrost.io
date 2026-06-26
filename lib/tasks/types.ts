@@ -1,11 +1,14 @@
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE"
-export type TaskPriority = "LOW" | "MEDIUM" | "HIGH"
+export type TaskStatus = "TODO" | "BLOCKED" | "IN_PROGRESS" | "DONE"
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "FIRE"
+export type InitiativeStatus = "TODO" | "IN_PROGRESS" | "ON_HOLD" | "DONE"
 
 export interface OwnerView {
   id: string
   name: string | null
   email: string
 }
+
+export type MemberView = OwnerView
 
 export interface TaskView {
   id: string
@@ -14,6 +17,7 @@ export interface TaskView {
   status: TaskStatus
   priority: TaskPriority
   labels: string[]
+  blockerReason: string
   owner: OwnerView | null
   initiativeId: string | null
   position: number
@@ -26,6 +30,7 @@ export interface InitiativeView {
   name: string
   goal: string
   color: string
+  status: InitiativeStatus
   archived: boolean
   createdAt: Date
   updatedAt: Date
@@ -46,8 +51,19 @@ export interface BoardColumn {
 }
 
 export interface BoardData {
-  columns: BoardColumn[] // always [TODO, IN_PROGRESS, DONE]
+  columns: BoardColumn[] // always [TODO, BLOCKED, IN_PROGRESS, DONE]
   total: number
+}
+
+export interface InitiativeBoardColumn {
+  status: InitiativeStatus
+  title: string
+  initiatives: InitiativeView[]
+  count: number
+}
+
+export interface InitiativeBoardData {
+  columns: InitiativeBoardColumn[] // always [TODO, ON_HOLD, IN_PROGRESS, DONE]
 }
 
 export interface InitiativeProgress {
@@ -57,18 +73,29 @@ export interface InitiativeProgress {
   pct: number
 }
 
-export const STATUS_ORDER: TaskStatus[] = ["TODO", "IN_PROGRESS", "DONE"]
+export const STATUS_ORDER: TaskStatus[] = ["TODO", "BLOCKED", "IN_PROGRESS", "DONE"]
+export const PRIORITY_ORDER: TaskPriority[] = ["LOW", "MEDIUM", "HIGH", "FIRE"]
+export const INITIATIVE_STATUS_ORDER: InitiativeStatus[] = ["TODO", "ON_HOLD", "IN_PROGRESS", "DONE"]
 
 export const TASK_STATUS: Record<TaskStatus, { label: string; cls: string; dot: string }> = {
   TODO: { label: "To do", cls: "text-zinc-400", dot: "bg-zinc-500" },
-  IN_PROGRESS: { label: "Doing", cls: "text-sky-300", dot: "bg-sky-400" },
+  BLOCKED: { label: "Blocked", cls: "text-rose-300", dot: "bg-rose-400" },
+  IN_PROGRESS: { label: "In Progress", cls: "text-sky-300", dot: "bg-sky-400" },
   DONE: { label: "Done", cls: "text-emerald-300", dot: "bg-emerald-400" },
 }
 
 export const TASK_PRIORITY: Record<TaskPriority, { label: string; rank: number; cls: string }> = {
+  FIRE: { label: "Fire", rank: 3, cls: "bg-orange-500/15 text-orange-300" },
   HIGH: { label: "High", rank: 2, cls: "bg-rose-500/15 text-rose-300" },
   MEDIUM: { label: "Med", rank: 1, cls: "bg-amber-500/15 text-amber-300" },
   LOW: { label: "Low", rank: 0, cls: "bg-zinc-500/15 text-zinc-400" },
+}
+
+export const INITIATIVE_STATUS: Record<InitiativeStatus, { label: string; cls: string; dot: string }> = {
+  TODO: { label: "To do", cls: "text-zinc-400", dot: "bg-zinc-500" },
+  ON_HOLD: { label: "On hold", cls: "text-amber-300", dot: "bg-amber-400" },
+  IN_PROGRESS: { label: "In Progress", cls: "text-sky-300", dot: "bg-sky-400" },
+  DONE: { label: "Done", cls: "text-emerald-300", dot: "bg-emerald-400" },
 }
 
 export const SUGGESTED_LABELS = ["subfrost.io", "subfrost-app", "subfrost-admin", "contracts", "infra", "marketing"]

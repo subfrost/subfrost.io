@@ -88,6 +88,9 @@ export type AuditAction =
   | "initiative_create"
   | "initiative_update"
   | "initiative_archive"
+  | "task_assign"
+  | "task_bulk_create"
+  | "initiative_move"
 
 export async function audit(
   action: AuditAction,

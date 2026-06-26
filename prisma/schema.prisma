@@ -1157,6 +1157,7 @@ model BalanceSheetItem {
 
 enum TaskStatus {
   TODO
+  BLOCKED
   IN_PROGRESS
   DONE
 }
@@ -1165,6 +1166,14 @@ enum TaskPriority {
   LOW
   MEDIUM
   HIGH
+  FIRE
+}
+
+enum InitiativeStatus {
+  TODO
+  IN_PROGRESS
+  ON_HOLD
+  DONE
 }
 
 model Initiative {
@@ -1173,6 +1182,7 @@ model Initiative {
   goal        String   @default("")
   color       String   @default("#38bdf8")
   archived    Boolean  @default(false)
+  status      InitiativeStatus @default(TODO)
   createdById String?
   tasks       Task[]
   createdAt   DateTime @default(now())
@@ -1188,6 +1198,7 @@ model Task {
   status       TaskStatus   @default(TODO)
   priority     TaskPriority @default(MEDIUM)
   labels       String[]     @default([])
+  blockerReason String      @default("")
   ownerId      String?
   owner        User?        @relation("TaskOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   initiativeId String?

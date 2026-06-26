@@ -1,5 +1,5 @@
-import type { TaskView, BoardFilter, BoardData, BoardColumn, InitiativeProgress } from "./types"
-import { STATUS_ORDER, TASK_STATUS, TASK_PRIORITY } from "./types"
+import type { TaskView, BoardFilter, BoardData, BoardColumn, InitiativeProgress, InitiativeView, InitiativeBoardData } from "./types"
+import { STATUS_ORDER, TASK_STATUS, TASK_PRIORITY, INITIATIVE_STATUS_ORDER, INITIATIVE_STATUS } from "./types"
 
 export function applyFilter(tasks: TaskView[], filter: BoardFilter): TaskView[] {
   return tasks.filter((t) => {
@@ -40,4 +40,17 @@ export function distinctLabels(tasks: TaskView[]): string[] {
   const s = new Set<string>()
   for (const t of tasks) for (const l of t.labels) s.add(l)
   return [...s].sort()
+}
+
+export function buildInitiativeBoard(initiatives: InitiativeView[]): InitiativeBoardData {
+  const live = initiatives.filter((i) => !i.archived)
+  const columns = INITIATIVE_STATUS_ORDER.map((status) => {
+    const colInitiatives = live.filter((i) => i.status === status)
+    return { status, title: INITIATIVE_STATUS[status].label, initiatives: colInitiatives, count: colInitiatives.length }
+  })
+  return { columns }
+}
+
+export function selectableInitiatives(initiatives: InitiativeView[]): InitiativeView[] {
+  return initiatives.filter((i) => !i.archived && (i.status === "TODO" || i.status === "IN_PROGRESS"))
 }
