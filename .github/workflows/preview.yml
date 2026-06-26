@@ -1,0 +1,158 @@
+name: PR Preview (Cloud Run)
+
+# Per-PR ephemeral deploy previews — the Netlify "deploy preview" replacement,
+# running on the same Cloud Run + WIF + Artifact Registry stack as production
+# (see .github/workflows/deploy.yml). Each labeled PR gets its own service:
+#   subfrost-io-pr-<number>  ->  https://subfrost-io-pr-<number>-...run.app
+#
+# SECURITY — why pull_request_target + a label gate:
+# Most PRs to this repo come from forks (e.g. #132). A plain `pull_request`
+# workflow gives fork PRs no secrets and no OIDC token, so WIF auth can't run.
+# `pull_request_target` runs with the BASE repo's secrets, but we build/deploy
+# the PR HEAD code — so it is gated on the `preview` label. A maintainer adds
+# the label after eyeballing the PR; without it, the job is skipped. The
+# workflow definition itself always comes from `main`, never the PR.
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize, reopened]
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # Non-secret GCP identifiers, mirrored from the prod Deploy workflow so
+  # previews need ZERO secret setup. Security comes from the WIF OIDC trust
+  # (only this repo's Actions can impersonate the SA), not from hiding these.
+  PROJECT_ID: night-wolves-jogging
+  WIF_PROVIDER: projects/560256025842/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  WIF_SERVICE_ACCOUNT: dark-coyote-running@night-wolves-jogging.iam.gserviceaccount.com
+  REGION: us-central1
+  REPOSITORY: subfrost-docker
+  IMAGE_NAME: subfrost-io
+
+jobs:
+  preview:
+    name: Deploy PR preview
+    # Only run while the `preview` label is present on the PR.
+    if: contains(github.event.pull_request.labels.*.name, 'preview')
+    runs-on: ubuntu-latest
+    environment: Preview
+    permissions:
+      contents: read
+      id-token: write       # Workload Identity Federation
+      pull-requests: write   # post/update the preview comment
+
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+        with:
+          # Build the PR merged into base, mirroring what merging would ship.
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push preview image
+        id: build
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}"
+          TAG="pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}"
+          docker build \
+            --tag "${IMAGE}:${TAG}" \
+            --cache-from "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:${TAG}"
+          echo "image=${IMAGE}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Look up Cloud SQL + Redis
+        id: infra
+        run: |
+          echo "sql=$(gcloud sql instances describe subfrost-postgres --format='value(connectionName)' 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "redis=$(gcloud redis instances describe subfrost-redis --region=${{ env.REGION }} --format='value(host)' 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview to Cloud Run
+        id: deploy
+        run: |
+          SERVICE="subfrost-io-pr-${{ github.event.pull_request.number }}"
+
+          # Reuses prod Cloud SQL + Redis + Secret Manager (db-connection-string,
+          # cms-auth-secret) so the preview shows real content. NOTE: the /admin
+          # CMS can write to prod data — this is a read-mostly design-review tool.
+          # We intentionally do NOT run prisma db push here; a preview must never
+          # mutate the shared prod schema.
+          gcloud run deploy "${SERVICE}" \
+            --image "${{ steps.build.outputs.image }}" \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 3000 \
+            --cpu 1 \
+            --memory 512Mi \
+            --min-instances 0 \
+            --max-instances 2 \
+            --concurrency 80 \
+            --timeout 120 \
+            --vpc-connector subfrost-connector \
+            --add-cloudsql-instances "${{ steps.infra.outputs.sql }}" \
+            --labels "preview=true,pr=${{ github.event.pull_request.number }}" \
+            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "NEXT_PUBLIC_NETWORK=mainnet" \
+            --set-env-vars "REDIS_URL=redis://${{ steps.infra.outputs.redis }}:6379" \
+            --set-env-vars "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
+            --set-env-vars "CMS_BUCKET=subfrost-cms" \
+            --set-secrets "DATABASE_URL=db-connection-string:latest,AUTH_SECRET=cms-auth-secret:latest"
+
+          URL=$(gcloud run services describe "${SERVICE}" --region=${{ env.REGION }} --format='value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### PR preview deployed :rocket:"
+            echo ""
+            echo "**URL:** ${URL}"
+            echo "**Service:** \`${SERVICE}\` (${{ env.REGION }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upsert preview comment
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const marker = '<!-- cloud-run-preview -->';
+            const url = process.env.PREVIEW_URL;
+            const sha = (process.env.HEAD_SHA || '').slice(0, 7);
+            const service = `subfrost-io-pr-${context.issue.number}`;
+            const body = [
+              marker,
+              '### ❄️ Cloud Run preview ready',
+              '',
+              '| | |',
+              '|---|---|',
+              `| **Preview** | ${url} |`,
+              `| **Commit** | \`${sha}\` |`,
+              `| **Service** | \`${service}\` (\`us-central1\`) |`,
+              '',
+              'Redeploys on every push while the `preview` label is set. The service is torn down when the PR closes or the label is removed.',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

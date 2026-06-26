@@ -1,0 +1,66 @@
+name: PR Preview Teardown
+
+# Tears down the ephemeral Cloud Run preview created by preview.yml when a PR is
+# closed/merged, or when the `preview` label is removed. Safe to run on forks:
+# it checks out no PR code, it only deletes the per-PR service.
+
+on:
+  pull_request_target:
+    types: [closed, unlabeled]
+
+env:
+  # Non-secret GCP identifiers, mirrored from the prod Deploy workflow (see
+  # preview.yml). Security comes from the WIF OIDC trust, not from hiding these.
+  PROJECT_ID: night-wolves-jogging
+  WIF_PROVIDER: projects/560256025842/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  WIF_SERVICE_ACCOUNT: dark-coyote-running@night-wolves-jogging.iam.gserviceaccount.com
+  REGION: us-central1
+
+jobs:
+  teardown:
+    name: Delete PR preview
+    # On close (any), or specifically when the `preview` label is removed.
+    if: github.event.action == 'closed' || github.event.label.name == 'preview'
+    runs-on: ubuntu-latest
+    environment: Preview
+    permissions:
+      contents: read
+      id-token: write       # Workload Identity Federation
+      pull-requests: write   # update the preview comment
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Delete preview service
+        run: |
+          SERVICE="subfrost-io-pr-${{ github.event.pull_request.number }}"
+          if gcloud run services describe "${SERVICE}" --region=${{ env.REGION }} > /dev/null 2>&1; then
+            gcloud run services delete "${SERVICE}" --region=${{ env.REGION }} --quiet
+            echo "Deleted ${SERVICE}"
+          else
+            echo "No preview service ${SERVICE} to delete"
+          fi
+
+      - name: Update preview comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- cloud-run-preview -->';
+            const service = `subfrost-io-pr-${context.issue.number}`;
+            const body = `${marker}\n### ❄️ Cloud Run preview torn down\nThe \`${service}\` preview service has been deleted. Re-add the \`preview\` label to redeploy.`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            }
