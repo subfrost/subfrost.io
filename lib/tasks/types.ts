@@ -10,6 +10,12 @@ export interface OwnerView {
 
 export type MemberView = OwnerView
 
+export interface ChecklistItem {
+  id: string
+  text: string
+  checked: boolean
+}
+
 export interface TaskView {
   id: string
   title: string
@@ -18,11 +24,21 @@ export interface TaskView {
   priority: TaskPriority
   labels: string[]
   blockerReason: string
+  checklist: ChecklistItem[]
+  commentCount: number
   owner: OwnerView | null
   initiativeId: string | null
   position: number
   createdAt: Date
   updatedAt: Date
+}
+
+export interface CommentView {
+  id: string
+  taskId: string
+  author: OwnerView | null
+  body: string
+  createdAt: Date
 }
 
 export interface InitiativeView {
@@ -115,4 +131,13 @@ export function ownerInitials(owner: { name: string | null; email: string } | nu
 
 export function ownerName(owner: { name: string | null; email: string } | null): string {
   return owner ? owner.name?.trim() || owner.email : "Unassigned"
+}
+
+export interface ChecklistProgress {
+  total: number
+  done: number
+}
+
+export function checklistProgress(items: ChecklistItem[]): ChecklistProgress {
+  return { total: items.length, done: items.filter((i) => i.checked).length }
 }

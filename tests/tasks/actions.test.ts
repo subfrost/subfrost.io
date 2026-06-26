@@ -7,12 +7,13 @@ vi.mock("next/headers", () => ({ headers: async () => ({ get: () => null }) }))
 vi.mock("@/lib/tasks/store", () => ({
   createTask: vi.fn(), createInitiativeWithSeed: vi.fn(), moveTask: vi.fn(),
   assignTask: vi.fn(), bulkCreateTasks: vi.fn(), moveInitiative: vi.fn(),
+  restoreTask: vi.fn(), purgeTask: vi.fn(), addComment: vi.fn(), deleteComment: vi.fn(), listComments: vi.fn(),
   TaskError: class extends Error {},
 }))
 
-import { createTaskAction, createInitiativeAction, moveTaskAction, assignTaskAction, bulkCreateTasksAction, moveInitiativeAction } from "@/actions/tasks/board"
+import { createTaskAction, createInitiativeAction, moveTaskAction, assignTaskAction, bulkCreateTasksAction, moveInitiativeAction, restoreTaskAction, addCommentAction } from "@/actions/tasks/board"
 import { currentUser } from "@/lib/cms/authz"
-import { createTask, createInitiativeWithSeed, assignTask, bulkCreateTasks, moveInitiative } from "@/lib/tasks/store"
+import { createTask, createInitiativeWithSeed, assignTask, bulkCreateTasks, moveInitiative, moveTask, restoreTask, addComment } from "@/lib/tasks/store"
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -42,6 +43,31 @@ it("rejects an invalid status on move", async () => {
   vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.edit", "tasks.view"] } as never)
   const r = await moveTaskAction("t1", "BOGUS" as never)
   expect(r).toEqual({ ok: false, error: "Invalid status" })
+})
+
+it("forwards a finite drag position to the store on move", async () => {
+  vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.edit", "tasks.view"] } as never)
+  vi.mocked(moveTask).mockResolvedValue({ id: "t1" } as never)
+  await moveTaskAction("t1", "DONE", -3)
+  expect(moveTask).toHaveBeenCalledWith("t1", "DONE", -3)
+})
+
+it("restoreTaskAction is denied without tasks.edit", async () => {
+  vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.view"] } as never)
+  const r = await restoreTaskAction("t1")
+  expect(r).toEqual({ ok: false, error: "unauthorized" })
+  expect(restoreTask).not.toHaveBeenCalled()
+})
+
+it("addCommentAction rejects an empty body and otherwise persists it", async () => {
+  vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.edit", "tasks.view"] } as never)
+  const bad = await addCommentAction({ taskId: "t1", body: "  " })
+  expect(bad.ok).toBe(false)
+  expect(addComment).not.toHaveBeenCalled()
+  vi.mocked(addComment).mockResolvedValue({ id: "c1" } as never)
+  const ok = await addCommentAction({ taskId: "t1", body: "looks good" })
+  expect(ok).toEqual({ ok: true, value: { id: "c1" } })
+  expect(addComment).toHaveBeenCalledWith("t1", "u1", "looks good")
 })
 
 it("assignTaskAction sets the owner via the store", async () => {

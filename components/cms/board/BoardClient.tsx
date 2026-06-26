@@ -2,17 +2,20 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { KanbanSquare, Plus, Layers } from "lucide-react"
-import type { TaskView, InitiativeView, BoardFilter, MemberView } from "@/lib/tasks/types"
+import { KanbanSquare, Plus, Layers, Trash2 } from "lucide-react"
+import type { TaskView, InitiativeView, BoardFilter, MemberView, TaskStatus } from "@/lib/tasks/types"
 import { TASK_STATUS } from "@/lib/tasks/types"
 import { buildBoard, distinctLabels, selectableInitiatives } from "@/lib/tasks/board"
-import { createTaskAction, bulkCreateTasksAction } from "@/actions/tasks/board"
+import { createTaskAction, bulkCreateTasksAction, moveTaskAction } from "@/actions/tasks/board"
 import { TaskCard } from "./TaskCard"
 import { TaskRow } from "./TaskRow"
 import { BoardFilters } from "./BoardFilters"
+import { TaskDetail } from "./TaskDetail"
+import { RecycleBin } from "./RecycleBin"
 
-export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
+export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, canEdit }: {
   tasks: TaskView[]
+  deletedTasks: TaskView[]
   initiatives: InitiativeView[]
   members: MemberView[]
   meId: string
@@ -27,6 +30,10 @@ export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
   const [bulkInitiative, setBulkInitiative] = useState("")
   const [bulkText, setBulkText] = useState("")
   const [bulkError, setBulkError] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [binOpen, setBinOpen] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
 
   const initiativeById = useMemo(
     () => Object.fromEntries(initiatives.map((i) => [i.id, i])) as Record<string, InitiativeView>,
@@ -36,6 +43,24 @@ export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
   const labels = useMemo(() => distinctLabels(tasks), [tasks])
   const board = useMemo(() => buildBoard(tasks, filter), [tasks, filter])
   const bulkCount = bulkText.split("\n").map((s) => s.trim()).filter(Boolean).length
+  const selectedTask = selectedId ? tasks.find((t) => t.id === selectedId) ?? null : null
+
+  async function dropOnColumn(status: TaskStatus) {
+    const id = draggingId
+    setDraggingId(null)
+    setDragOver(null)
+    if (!id) return
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+    // Land at the top of the destination column's priority band: position just
+    // below the current minimum. No-op if nothing actually changed.
+    const colTasks = board.columns.find((c) => c.status === status)?.tasks ?? []
+    const minPos = colTasks.reduce((m, t) => (t.id !== id ? Math.min(m, t.position) : m), Infinity)
+    const position = Number.isFinite(minPos) ? minPos - 1 : 0
+    if (task.status === status && colTasks[0]?.id === id) return
+    await moveTaskAction(id, status, position)
+    router.refresh()
+  }
 
   async function addQuick() {
     const title = quick.trim()
@@ -68,9 +93,16 @@ export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
         <h1 className="flex items-center gap-2 text-xl font-semibold text-white">
           <KanbanSquare size={20} className="text-zinc-400" /> Board
         </h1>
-        <div className="inline-flex overflow-hidden rounded-md border border-zinc-700">
-          <button onClick={() => setView("board")} className={segCls(view === "board")}>Board</button>
-          <button onClick={() => setView("list")} className={segCls(view === "list")}>List</button>
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <button onClick={() => setBinOpen(true)} title="Recycle bin" className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800">
+              <Trash2 size={15} /> Deleted{deletedTasks.length > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[11px] text-zinc-300">{deletedTasks.length}</span>}
+            </button>
+          )}
+          <div className="inline-flex overflow-hidden rounded-md border border-zinc-700">
+            <button onClick={() => setView("board")} className={segCls(view === "board")}>Board</button>
+            <button onClick={() => setView("list")} className={segCls(view === "list")}>List</button>
+          </div>
         </div>
       </div>
 
@@ -113,16 +145,35 @@ export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
       {view === "board" ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           {board.columns.map((col) => (
-            <div key={col.status} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+            <div
+              key={col.status}
+              onDragOver={(e) => { if (draggingId) { e.preventDefault(); setDragOver(col.status) } }}
+              onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(null) }}
+              onDrop={(e) => { e.preventDefault(); dropOnColumn(col.status) }}
+              className={`rounded-lg border bg-zinc-900/40 p-3 transition-colors ${dragOver === col.status ? "border-sky-500/60 bg-sky-500/5" : "border-zinc-800"}`}
+            >
               <div className="mb-3 flex items-center justify-between px-1">
                 <span className={`text-sm font-medium ${TASK_STATUS[col.status].cls}`}>{col.title}</span>
                 <span className="text-xs text-zinc-500">{col.count}</span>
               </div>
               <div className="space-y-2">
                 {col.tasks.map((t) => (
-                  <TaskCard key={t.id} task={t} initiative={t.initiativeId ? initiativeById[t.initiativeId] ?? null : null} selectableInitiatives={selectable} members={members} canEdit={canEdit} />
+                  <TaskCard
+                    key={t.id}
+                    task={t}
+                    initiative={t.initiativeId ? initiativeById[t.initiativeId] ?? null : null}
+                    selectableInitiatives={selectable}
+                    members={members}
+                    canEdit={canEdit}
+                    onOpen={setSelectedId}
+                    onDragStart={setDraggingId}
+                    onDragEnd={() => { setDraggingId(null); setDragOver(null) }}
+                    dragging={draggingId === t.id}
+                  />
                 ))}
-                {col.tasks.length === 0 && <p className="px-1 py-6 text-center text-xs text-zinc-600">No tasks</p>}
+                {col.tasks.length === 0 && (
+                  <p className="px-1 py-6 text-center text-xs text-zinc-600">{dragOver === col.status ? "Drop here" : "No tasks"}</p>
+                )}
               </div>
             </div>
           ))}
@@ -141,11 +192,25 @@ export function BoardClient({ tasks, initiatives, members, meId, canEdit }: {
             </thead>
             <tbody>
               {board.columns.flatMap((c) => c.tasks).map((t) => (
-                <TaskRow key={t.id} task={t} initiative={t.initiativeId ? initiativeById[t.initiativeId] ?? null : null} />
+                <TaskRow key={t.id} task={t} initiative={t.initiativeId ? initiativeById[t.initiativeId] ?? null : null} onOpen={setSelectedId} />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          initiatives={initiatives}
+          members={members}
+          canEdit={canEdit}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {binOpen && (
+        <RecycleBin tasks={deletedTasks} initiatives={initiativeById} onClose={() => setBinOpen(false)} />
       )}
     </div>
   )

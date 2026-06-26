@@ -7,7 +7,7 @@ import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import { audit } from "@/lib/cms/audit"
 import * as store from "@/lib/tasks/store"
 import { TaskError } from "@/lib/tasks/store"
-import type { TaskView, InitiativeView } from "@/lib/tasks/types"
+import type { TaskView, InitiativeView, CommentView } from "@/lib/tasks/types"
 
 const BOARD = "/admin/board"
 const INITIATIVES = "/admin/board/initiatives"
@@ -55,6 +55,12 @@ export async function createTaskAction(input: CreateTaskInput): Promise<Result<T
   }
 }
 
+const ChecklistItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string(),
+  checked: z.boolean(),
+})
+
 const UpdateTaskSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
@@ -62,6 +68,7 @@ const UpdateTaskSchema = z.object({
   labels: z.array(z.string()).optional(),
   initiativeId: z.string().nullable().optional(),
   blockerReason: z.string().optional(),
+  checklist: z.array(ChecklistItemSchema).optional(),
 })
 export type UpdateTaskInput = z.input<typeof UpdateTaskSchema>
 
@@ -81,12 +88,13 @@ export async function updateTaskAction(id: string, patch: UpdateTaskInput): Prom
   }
 }
 
-export async function moveTaskAction(id: string, status: z.infer<typeof StatusEnum>): Promise<Result<TaskView>> {
+export async function moveTaskAction(id: string, status: z.infer<typeof StatusEnum>, position?: number): Promise<Result<TaskView>> {
   const g = await gate("tasks.edit")
   if (!g.ok) return g
   const parsed = StatusEnum.safeParse(status)
   if (!parsed.success) return { ok: false, error: "Invalid status" }
-  const value = await store.moveTask(id, parsed.data)
+  const pos = typeof position === "number" && Number.isFinite(position) ? position : undefined
+  const value = await store.moveTask(id, parsed.data, pos)
   await audit("task_move", { actorId: g.me.id, target: id, details: { status: parsed.data }, ip: await ip() })
   revalidatePath(BOARD)
   return { ok: true, value }
@@ -140,8 +148,64 @@ export async function bulkCreateTasksAction(input: BulkCreateInput): Promise<Res
 export async function deleteTaskAction(id: string): Promise<Result<null>> {
   const g = await gate("tasks.edit")
   if (!g.ok) return g
-  await store.deleteTask(id)
+  await store.deleteTask(id) // soft delete → recycle bin
   await audit("task_delete", { actorId: g.me.id, target: id, ip: await ip() })
+  revalidatePath(BOARD)
+  return { ok: true, value: null }
+}
+
+export async function restoreTaskAction(id: string): Promise<Result<TaskView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const value = await store.restoreTask(id)
+  await audit("task_restore", { actorId: g.me.id, target: id, ip: await ip() })
+  revalidatePath(BOARD)
+  return { ok: true, value }
+}
+
+export async function purgeTaskAction(id: string): Promise<Result<null>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  await store.purgeTask(id)
+  await audit("task_purge", { actorId: g.me.id, target: id, ip: await ip() })
+  revalidatePath(BOARD)
+  return { ok: true, value: null }
+}
+
+export async function listCommentsAction(taskId: string): Promise<Result<CommentView[]>> {
+  const g = await gate("tasks.view")
+  if (!g.ok) return g
+  const value = await store.listComments(taskId)
+  return { ok: true, value }
+}
+
+const AddCommentSchema = z.object({
+  taskId: z.string().min(1),
+  body: z.string().trim().min(1, "A comment cannot be empty"),
+})
+export type AddCommentInput = z.input<typeof AddCommentSchema>
+
+export async function addCommentAction(input: AddCommentInput): Promise<Result<CommentView>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  const parsed = AddCommentSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  try {
+    const value = await store.addComment(parsed.data.taskId, g.me.id, parsed.data.body)
+    await audit("task_comment", { actorId: g.me.id, target: parsed.data.taskId, ip: await ip() })
+    revalidatePath(BOARD)
+    return { ok: true, value }
+  } catch (e) {
+    if (e instanceof TaskError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function deleteCommentAction(id: string, taskId: string): Promise<Result<null>> {
+  const g = await gate("tasks.edit")
+  if (!g.ok) return g
+  await store.deleteComment(id)
+  await audit("task_comment_delete", { actorId: g.me.id, target: taskId, ip: await ip() })
   revalidatePath(BOARD)
   return { ok: true, value: null }
 }

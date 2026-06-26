@@ -2,21 +2,26 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2, UserPlus } from "lucide-react"
+import { Trash2, UserPlus, CheckSquare, MessageSquare } from "lucide-react"
 import type { TaskView, InitiativeView, TaskStatus, TaskPriority, MemberView } from "@/lib/tasks/types"
-import { TASK_PRIORITY, TASK_STATUS, STATUS_ORDER, PRIORITY_ORDER, ownerInitials, ownerName } from "@/lib/tasks/types"
+import { TASK_PRIORITY, TASK_STATUS, STATUS_ORDER, PRIORITY_ORDER, ownerInitials, ownerName, checklistProgress } from "@/lib/tasks/types"
 import { moveTaskAction, deleteTaskAction, claimTaskAction, assignTaskAction, updateTaskAction } from "@/actions/tasks/board"
 
-export function TaskCard({ task, initiative, selectableInitiatives, members, canEdit }: {
+export function TaskCard({ task, initiative, selectableInitiatives, members, canEdit, onOpen, onDragStart, onDragEnd, dragging }: {
   task: TaskView
   initiative: InitiativeView | null
   selectableInitiatives: InitiativeView[]
   members: MemberView[]
   canEdit: boolean
+  onOpen: (id: string) => void
+  onDragStart?: (id: string) => void
+  onDragEnd?: () => void
+  dragging?: boolean
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const pr = TASK_PRIORITY[task.priority]
+  const cl = checklistProgress(task.checklist)
 
   async function run(fn: () => Promise<unknown>) {
     if (busy) return
@@ -33,7 +38,12 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
   })()
 
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-3">
+    <div
+      draggable={canEdit}
+      onDragStart={(e) => { if (!canEdit) return; e.dataTransfer.setData("text/plain", task.id); e.dataTransfer.effectAllowed = "move"; onDragStart?.(task.id) }}
+      onDragEnd={() => onDragEnd?.()}
+      className={`rounded-md border border-zinc-800 bg-zinc-900 p-3 ${dragging ? "opacity-40" : ""} ${canEdit ? "cursor-grab active:cursor-grabbing" : ""}`}
+    >
       {canEdit ? (
         <div className="mb-2">
           <select
@@ -56,7 +66,13 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       ) : null}
 
       <div className="mb-2 flex items-start justify-between gap-2">
-        <span className={`text-sm leading-snug ${task.status === "DONE" ? "text-zinc-500 line-through" : "text-zinc-100"}`}>{task.title}</span>
+        <button
+          onClick={() => onOpen(task.id)}
+          title="Open details"
+          className={`flex-1 text-left text-sm leading-snug hover:text-sky-300 ${task.status === "DONE" ? "text-zinc-500 line-through" : "text-zinc-100"}`}
+        >
+          {task.title}
+        </button>
         {canEdit ? (
           <select
             aria-label="Priority"
@@ -75,11 +91,21 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         )}
       </div>
 
-      {task.labels.length > 0 && (
+      {(task.labels.length > 0 || cl.total > 0 || task.commentCount > 0) && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           {task.labels.map((l) => (
             <span key={l} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">{l}</span>
           ))}
+          {cl.total > 0 && (
+            <span title="Checklist" className={`inline-flex items-center gap-0.5 text-[11px] ${cl.done === cl.total ? "text-emerald-400" : "text-zinc-500"}`}>
+              <CheckSquare size={11} /> {cl.done}/{cl.total}
+            </span>
+          )}
+          {task.commentCount > 0 && (
+            <span title="Comments" className="inline-flex items-center gap-0.5 text-[11px] text-zinc-500">
+              <MessageSquare size={11} /> {task.commentCount}
+            </span>
+          )}
         </div>
       )}
 

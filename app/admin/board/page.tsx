@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
-import { listTasks, listInitiatives, listAssignableUsers } from "@/lib/tasks/store"
+import { listTasks, listDeletedTasks, listInitiatives, listAssignableUsers } from "@/lib/tasks/store"
 import { BoardClient } from "@/components/cms/board/BoardClient"
 
 export const dynamic = "force-dynamic"
@@ -10,14 +10,21 @@ export default async function BoardPage() {
   if (!me) redirect("/admin/login")
   if (!me.privileges.includes("tasks.view")) redirect("/admin")
 
-  const [tasks, initiatives, members] = await Promise.all([listTasks(), listInitiatives(), listAssignableUsers()])
+  const canEdit = me.privileges.includes("tasks.edit")
+  const [tasks, deletedTasks, initiatives, members] = await Promise.all([
+    listTasks(),
+    canEdit ? listDeletedTasks() : Promise.resolve([]),
+    listInitiatives(),
+    listAssignableUsers(),
+  ])
   return (
     <BoardClient
       tasks={tasks}
+      deletedTasks={deletedTasks}
       initiatives={initiatives.filter((i) => !i.archived)}
       members={members}
       meId={me.id}
-      canEdit={me.privileges.includes("tasks.edit")}
+      canEdit={canEdit}
     />
   )
 }

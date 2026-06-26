@@ -296,6 +296,7 @@ model User {
   driveFiles         DriveFile[]          @relation("FileCreator")
   marketingSnapshots MarketingSnapshot[]  @relation("SnapshotCreator")
   tasksOwned         Task[]               @relation("TaskOwner")
+  taskComments       TaskComment[]        @relation("TaskCommentAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1199,16 +1200,36 @@ model Task {
   priority     TaskPriority @default(MEDIUM)
   labels       String[]     @default([])
   blockerReason String      @default("")
+  // Subtasks, stored inline as [{ id, text, checked }]. Avoids a join table for
+  // a small, always-loaded-with-the-task list. See lib/tasks/types.ChecklistItem.
+  checklist    Json         @default("[]")
   ownerId      String?
   owner        User?        @relation("TaskOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   initiativeId String?
   initiative   Initiative?  @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
   createdById  String?
   position     Float        @default(0)
+  // Soft delete: non-null = in the recycle bin. Lists filter these out; the
+  // recycle bin restores (clear) or purges (hard delete) them.
+  deletedAt    DateTime?
+  comments     TaskComment[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   @@index([status])
   @@index([initiativeId])
   @@index([ownerId])
+  @@index([deletedAt])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
 }

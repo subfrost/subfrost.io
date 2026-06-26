@@ -1,27 +1,51 @@
 import prisma from "@/lib/prisma"
-import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView } from "./types"
+import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView, ChecklistItem, CommentView } from "./types"
 
 export class TaskError extends Error {}
 
-const TASK_INCLUDE = { owner: { select: { id: true, name: true, email: true } } }
+const TASK_INCLUDE = {
+  owner: { select: { id: true, name: true, email: true } },
+  _count: { select: { comments: true } },
+}
 
 type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
-  labels: string[]; blockerReason: string; initiativeId: string | null; position: number; createdAt: Date; updatedAt: Date
+  labels: string[]; blockerReason: string; checklist: unknown; initiativeId: string | null
+  position: number; deletedAt: Date | null; createdAt: Date; updatedAt: Date
   owner: { id: string; name: string | null; email: string } | null
+  _count?: { comments: number }
+}
+
+// Tolerant parse: the checklist column is free-form JSON, so guard every field.
+function parseChecklist(raw: unknown): ChecklistItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((i): i is Record<string, unknown> => !!i && typeof i === "object")
+    .map((i) => ({
+      id: typeof i.id === "string" ? i.id : "",
+      text: typeof i.text === "string" ? i.text : "",
+      checked: i.checked === true,
+    }))
+    .filter((i) => i.id && i.text)
 }
 
 function mapTask(r: TaskRow): TaskView {
   return {
     id: r.id, title: r.title, description: r.description,
     status: r.status as TaskStatus, priority: r.priority as TaskPriority,
-    labels: r.labels, blockerReason: r.blockerReason, owner: r.owner, initiativeId: r.initiativeId,
+    labels: r.labels, blockerReason: r.blockerReason, checklist: parseChecklist(r.checklist),
+    commentCount: r._count?.comments ?? 0, owner: r.owner, initiativeId: r.initiativeId,
     position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
   }
 }
 
 export async function listTasks(): Promise<TaskView[]> {
-  const rows = (await prisma.task.findMany({ include: TASK_INCLUDE, orderBy: { createdAt: "desc" } })) as TaskRow[]
+  const rows = (await prisma.task.findMany({ where: { deletedAt: null }, include: TASK_INCLUDE, orderBy: { createdAt: "desc" } })) as TaskRow[]
+  return rows.map(mapTask)
+}
+
+export async function listDeletedTasks(): Promise<TaskView[]> {
+  const rows = (await prisma.task.findMany({ where: { deletedAt: { not: null } }, include: TASK_INCLUDE, orderBy: { deletedAt: "desc" } })) as TaskRow[]
   return rows.map(mapTask)
 }
 
@@ -49,7 +73,15 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
 }
 
 export interface UpdateTaskPatch {
-  title?: string; description?: string; priority?: TaskPriority; labels?: string[]; initiativeId?: string | null; blockerReason?: string
+  title?: string; description?: string; priority?: TaskPriority; labels?: string[]
+  initiativeId?: string | null; blockerReason?: string; checklist?: ChecklistItem[]
+}
+
+// Normalize an incoming checklist: drop blanks, coerce flags, keep ids stable.
+function normalizeChecklist(items: ChecklistItem[]): ChecklistItem[] {
+  return items
+    .map((i) => ({ id: String(i.id || ""), text: String(i.text || "").trim(), checked: i.checked === true }))
+    .filter((i) => i.id && i.text)
 }
 
 export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<TaskView> {
@@ -64,12 +96,15 @@ export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<Ta
   if (patch.labels !== undefined) data.labels = patch.labels
   if (patch.initiativeId !== undefined) data.initiativeId = patch.initiativeId || null
   if (patch.blockerReason !== undefined) data.blockerReason = patch.blockerReason.trim()
+  if (patch.checklist !== undefined) data.checklist = normalizeChecklist(patch.checklist)
   const r = (await prisma.task.update({ where: { id }, data, include: TASK_INCLUDE })) as TaskRow
   return mapTask(r)
 }
 
-export async function moveTask(id: string, status: TaskStatus): Promise<TaskView> {
-  const r = (await prisma.task.update({ where: { id }, data: { status }, include: TASK_INCLUDE })) as TaskRow
+export async function moveTask(id: string, status: TaskStatus, position?: number): Promise<TaskView> {
+  const data: Record<string, unknown> = { status }
+  if (position !== undefined && Number.isFinite(position)) data.position = position
+  const r = (await prisma.task.update({ where: { id }, data, include: TASK_INCLUDE })) as TaskRow
   return mapTask(r)
 }
 
@@ -79,7 +114,52 @@ export async function claimTask(id: string, ownerId: string): Promise<TaskView> 
 }
 
 export async function deleteTask(id: string): Promise<void> {
+  // Soft delete — moves the task to the recycle bin instead of dropping it.
+  await prisma.task.update({ where: { id }, data: { deletedAt: new Date() } })
+}
+
+export async function restoreTask(id: string): Promise<TaskView> {
+  const r = (await prisma.task.update({ where: { id }, data: { deletedAt: null }, include: TASK_INCLUDE })) as TaskRow
+  return mapTask(r)
+}
+
+export async function purgeTask(id: string): Promise<void> {
+  // Permanent delete from the recycle bin. Cascades comments via the relation.
   await prisma.task.delete({ where: { id } })
+}
+
+// --- Comments ---
+
+type CommentRow = {
+  id: string; taskId: string; body: string; createdAt: Date
+  author: { id: string; name: string | null; email: string } | null
+}
+
+function mapComment(r: CommentRow): CommentView {
+  return { id: r.id, taskId: r.taskId, author: r.author, body: r.body, createdAt: r.createdAt }
+}
+
+export async function listComments(taskId: string): Promise<CommentView[]> {
+  const rows = (await prisma.taskComment.findMany({
+    where: { taskId },
+    include: { author: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  })) as CommentRow[]
+  return rows.map(mapComment)
+}
+
+export async function addComment(taskId: string, authorId: string | null, body: string): Promise<CommentView> {
+  const text = body.trim()
+  if (!text) throw new TaskError("A comment cannot be empty")
+  const r = (await prisma.taskComment.create({
+    data: { taskId, authorId: authorId || null, body: text },
+    include: { author: { select: { id: true, name: true, email: true } } },
+  })) as CommentRow
+  return mapComment(r)
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  await prisma.taskComment.delete({ where: { id } })
 }
 
 export async function assignTask(id: string, ownerId: string | null): Promise<TaskView> {

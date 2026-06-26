@@ -90,6 +90,10 @@ export type AuditAction =
   | "initiative_archive"
   | "task_assign"
   | "task_bulk_create"
+  | "task_restore"
+  | "task_purge"
+  | "task_comment"
+  | "task_comment_delete"
   | "initiative_move"
 
 export async function audit(

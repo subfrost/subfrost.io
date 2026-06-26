@@ -2,12 +2,13 @@ import { it, expect, vi, beforeEach } from "vitest"
 
 const client = vi.hoisted(() => ({
   task: { findMany: vi.fn(), create: vi.fn(), createMany: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  taskComment: { findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
   initiative: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   user: { findUnique: vi.fn(), findMany: vi.fn() },
 }))
 vi.mock("@/lib/prisma", () => ({ prisma: client, default: client }))
 
-import { createTask, createInitiativeWithSeed, moveTask, claimTask, assignTask, listAssignableUsers, bulkCreateTasks, moveInitiative, updateTask, TaskError } from "@/lib/tasks/store"
+import { createTask, createInitiativeWithSeed, moveTask, claimTask, assignTask, listAssignableUsers, bulkCreateTasks, moveInitiative, updateTask, deleteTask, restoreTask, purgeTask, addComment, TaskError } from "@/lib/tasks/store"
 
 const owner = { id: "u1", name: "Vitor", email: "v@x.io" }
 beforeEach(() => vi.clearAllMocks())
@@ -105,4 +106,54 @@ it("updateTask persists a trimmed blockerReason", async () => {
   })
   await updateTask("t1", { blockerReason: "  waiting on flex  " })
   expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ blockerReason: "waiting on flex" }) }))
+})
+
+it("updateTask normalizes the checklist, dropping blank/invalid items", async () => {
+  client.task.update.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "TODO", priority: "LOW",
+    labels: [], blockerReason: "", checklist: [], initiativeId: null, position: 0, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  await updateTask("t1", { checklist: [
+    { id: "a", text: "  keep me  ", checked: false },
+    { id: "b", text: "   ", checked: true },
+    { id: "", text: "no id", checked: false },
+  ] })
+  const arg = client.task.update.mock.calls[0][0]
+  expect(arg.data.checklist).toEqual([{ id: "a", text: "keep me", checked: false }])
+})
+
+it("moveTask sets position when provided", async () => {
+  client.task.update.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "DONE", priority: "LOW",
+    labels: [], blockerReason: "", checklist: [], initiativeId: null, position: -1, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  await moveTask("t1", "DONE", -1)
+  expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "DONE", position: -1 } }))
+})
+
+it("deleteTask soft-deletes by stamping deletedAt; restoreTask clears it", async () => {
+  client.task.update.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "TODO", priority: "LOW",
+    labels: [], blockerReason: "", checklist: [], initiativeId: null, position: 0, deletedAt: null, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  await deleteTask("t1")
+  const delArg = client.task.update.mock.calls[0][0]
+  expect(delArg.where).toEqual({ id: "t1" })
+  expect(delArg.data.deletedAt).toBeInstanceOf(Date)
+
+  await restoreTask("t1")
+  expect(client.task.update).toHaveBeenLastCalledWith(expect.objectContaining({ where: { id: "t1" }, data: { deletedAt: null } }))
+})
+
+it("purgeTask hard-deletes the row", async () => {
+  client.task.delete.mockResolvedValue({})
+  await purgeTask("t1")
+  expect(client.task.delete).toHaveBeenCalledWith({ where: { id: "t1" } })
+})
+
+it("addComment rejects an empty body and trims a valid one", async () => {
+  await expect(addComment("t1", "u1", "   ")).rejects.toBeInstanceOf(TaskError)
+  client.taskComment.create.mockResolvedValue({ id: "c1", taskId: "t1", body: "hello", createdAt: new Date(), author: owner })
+  await addComment("t1", "u1", "  hello  ")
+  expect(client.taskComment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ taskId: "t1", authorId: "u1", body: "hello" }) }))
 })
