@@ -536,13 +536,13 @@ export default async function Page({
           </div>
 
           <div className="homepage-cascade-item homepage-cascade-4 homepage-data-band mt-10 max-w-[940px]">
-            <HeroMarketTicker locale={locale} initialData={initialStats} />
+            <HomepageProtocolStats
+              locale={locale}
+              initialStats={initialStats}
+              initialVolumeStats={initialVolumeStats}
+            />
             <div className="mt-8">
-              <HomepageProtocolStats
-                locale={locale}
-                initialStats={initialStats}
-                initialVolumeStats={initialVolumeStats}
-              />
+              <HeroMarketTicker locale={locale} initialData={initialStats} />
             </div>
           </div>
 
