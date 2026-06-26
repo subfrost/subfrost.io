@@ -16,8 +16,12 @@ export function SystemThemeSync() {
     const query = window.matchMedia("(prefers-color-scheme: dark)")
     const apply = () => {
       const storedTheme = getStoredTheme()
+      const theme = storedTheme ?? (query.matches ? "dark" : "light")
       const root = document.getElementById("ed-root")
-      if (root) root.dataset.edTheme = storedTheme ?? (query.matches ? "dark" : "light")
+      document.documentElement.dataset.edPageTheme = theme
+      document.documentElement.style.colorScheme = theme
+      document.body.dataset.edPageTheme = theme
+      if (root) root.dataset.edTheme = theme
     }
 
     apply()
@@ -26,6 +30,9 @@ export function SystemThemeSync() {
     return () => {
       query.removeEventListener("change", apply)
       window.removeEventListener("ed-theme-change", apply)
+      delete document.documentElement.dataset.edPageTheme
+      document.documentElement.style.colorScheme = ""
+      delete document.body.dataset.edPageTheme
     }
   }, [])
 

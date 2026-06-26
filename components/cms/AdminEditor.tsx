@@ -1,143 +1,120 @@
 "use client"
 
-import { useState, useTransition, useRef } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
+import type React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Markdown } from "@/lib/cms/markdown"
-import { insertAtCursor, replaceFirst } from "@/lib/cms/markdown-insert"
-import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
-import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
-import { ArrowLeft, ArrowUpRight, Eye, ImagePlus, Pencil, Trash2, Upload } from "lucide-react"
+import { saveArticle, deleteArticle } from "@/actions/cms/articles"
+import { Button } from "@/components/ui/button"
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Bold,
+  Eye,
+  Heading2,
+  Heading3,
+  ImagePlus,
+  Italic,
+  List,
+  ListOrdered,
+  PanelRightClose,
+  PanelRightOpen,
+  Pencil,
+  Pilcrow,
+  Quote,
+  Star,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react"
 
 type Status = "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
 type Locale = "en" | "zh"
-interface LocaleContent { title: string; excerpt: string; body: string; sources: string }
+interface LocaleContent { title: string; excerpt: string; body: string; sources?: string }
+interface EditorMember { id: string; name: string | null }
+interface RevisionSummary {
+  id: string
+  locale: Locale
+  title: string
+  createdAt: string
+  editorName: string | null
+  editorEmail: string | null
+}
 
 export interface EditorInitial {
   id?: string
   slug: string
   coverImage: string
   tags: string[]
+  coAuthorIds?: string[]
   featured: boolean
   primaryLocale: Locale
   status: Status
   en: LocaleContent
   zh: LocaleContent
-  coAuthorIds?: string[]
+  author?: { name: string | null; email: string } | null
+  publishedAt?: string | null
+  updatedAt?: string | null
+  revisions?: RevisionSummary[]
 }
 
 const LOCALE_LABEL: Record<Locale, string> = { en: "English", zh: "中文" }
+const STATUS_COPY: Record<Status, string> = {
+  DRAFT: "Draft",
+  REVIEW: "In review",
+  PUBLISHED: "Published",
+  ARCHIVED: "Archived",
+}
 
-export function AdminEditor({ initial, canPublish, canTranslate, members = [] }: { initial: EditorInitial; canPublish: boolean; canTranslate?: boolean; members?: { id: string; name: string }[] }) {
+export function AdminEditor({
+  initial,
+  canPublish,
+  members = [],
+}: {
+  initial: EditorInitial
+  canPublish: boolean
+  members?: EditorMember[]
+}) {
   const router = useRouter()
+  const fileRef = useRef<HTMLInputElement>(null)
   const [pending, startTransition] = useTransition()
+  const [uploading, setUploading] = useState(false)
+  const [inlineUploading, setInlineUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [translating, setTranslating] = useState(false)
   const [activeLocale, setActiveLocale] = useState<Locale>(initial.primaryLocale)
   const [tab, setTab] = useState<"write" | "preview">("write")
+  const [settingsOpen, setSettingsOpen] = useState(true)
 
   const [content, setContent] = useState<Record<Locale, LocaleContent>>({ en: initial.en, zh: initial.zh })
   const [slug, setSlug] = useState(initial.slug)
   const [coverImage, setCoverImage] = useState(initial.coverImage)
   const [tags, setTags] = useState(initial.tags.join(", "))
+  const [coAuthorIds, setCoAuthorIds] = useState<string[]>(initial.coAuthorIds ?? [])
   const [featured, setFeatured] = useState(initial.featured)
   const [primaryLocale, setPrimaryLocale] = useState<Locale>(initial.primaryLocale)
-  const [coAuthorIds, setCoAuthorIds] = useState<string[]>(initial.coAuthorIds ?? [])
-  const toggleCoAuthor = (id: string) =>
-    setCoAuthorIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
   const cur = content[activeLocale]
+  const wordCount = cur.body.trim() ? cur.body.trim().split(/\s+/).length : 0
+  const hasUnsavedShape = initial.status !== "PUBLISHED" ? STATUS_COPY[initial.status] : "Published"
+  const publicHref = slug ? `/articles/${slug}` : null
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        submit(initial.status === "PUBLISHED" && canPublish ? "PUBLISHED" : "DRAFT")
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+    // submit intentionally reads current editor state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canPublish, initial.status, slug, coverImage, tags, featured, primaryLocale, content])
+
   function setCur(patch: Partial<LocaleContent>) {
     setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], ...patch } }))
-  }
-
-  const bodyRef = useRef<HTMLTextAreaElement>(null)
-  const coverFileRef = useRef<HTMLInputElement>(null)
-  const [uploads, setUploads] = useState(0)
-  const [coverUploading, setCoverUploading] = useState(false)
-
-  function imageFilesFrom(items: DataTransferItemList | null, files: FileList | null): File[] {
-    const out: File[] = []
-    if (items) {
-      for (const it of Array.from(items)) {
-        if (it.kind === "file" && it.type.startsWith("image/")) {
-          const f = it.getAsFile()
-          if (f) out.push(f)
-        }
-      }
-    }
-    if (out.length === 0 && files) {
-      for (const f of Array.from(files)) if (f.type.startsWith("image/")) out.push(f)
-    }
-    return out
-  }
-
-  async function uploadFileIntoBody(file: File, atCursor: boolean) {
-    const token = `![uploading…](#upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)})`
-    // Insert placeholder via a functional update so concurrent uploads don't clobber.
-    setContent((c) => {
-      const body = c[activeLocale].body
-      if (atCursor) {
-        const el = bodyRef.current
-        const start = el?.selectionStart ?? body.length
-        const end = el?.selectionEnd ?? body.length
-        return { ...c, [activeLocale]: { ...c[activeLocale], body: insertAtCursor(body, start, end, token).text } }
-      }
-      const sep = body.length === 0 || body.endsWith("\n") ? "" : "\n"
-      return { ...c, [activeLocale]: { ...c[activeLocale], body: body + sep + token } }
-    })
-    setUploads((n) => n + 1)
-    try {
-      const url = await uploadInlineImage(file)
-      setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], body: replaceFirst(c[activeLocale].body, token, `![](${url})`) } }))
-    } catch (e) {
-      setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], body: replaceFirst(c[activeLocale].body, token, "") } }))
-      setError(e instanceof Error ? e.message : "Upload failed")
-    } finally {
-      setUploads((n) => n - 1)
-    }
-  }
-
-  async function uploadFilesIntoBody(files: File[]) {
-    for (let i = 0; i < files.length; i++) await uploadFileIntoBody(files[i], i === 0)
-  }
-
-  function onBodyPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-    const imgs = imageFilesFrom(e.clipboardData.items, e.clipboardData.files)
-    if (imgs.length === 0) return
-    e.preventDefault()
-    void uploadFilesIntoBody(imgs)
-  }
-
-  function onBodyDrop(e: React.DragEvent<HTMLTextAreaElement>) {
-    const imgs = imageFilesFrom(e.dataTransfer.items, e.dataTransfer.files)
-    if (imgs.length === 0) return
-    e.preventDefault()
-    void uploadFilesIntoBody(imgs)
-  }
-
-  async function uploadCoverFile(file: File) {
-    setError(null)
-    setCoverUploading(true)
-    try {
-      const url = await uploadInlineImage(file)
-      setCoverImage(url)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Cover image upload failed")
-    } finally {
-      setCoverUploading(false)
-    }
-  }
-
-  function onCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ""
-    if (!file) return
-    void uploadCoverFile(file)
   }
 
   function submit(status: Status) {
@@ -148,8 +125,8 @@ export function AdminEditor({ initial, canPublish, canTranslate, members = [] }:
         slug: slug || undefined,
         coverImage,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-        featured,
         coAuthorIds,
+        featured,
         primaryLocale,
         status,
         translations: {
@@ -157,294 +134,917 @@ export function AdminEditor({ initial, canPublish, canTranslate, members = [] }:
           zh: content.zh.title.trim() ? content.zh : undefined,
         },
       })
-      if (res.ok) { router.push("/admin/articles"); router.refresh() } else setError(res.error)
+      if (res.ok) {
+        router.push("/admin/articles")
+        router.refresh()
+      } else {
+        setError(res.error)
+      }
     })
-  }
-
-  function onTranslate() {
-    if (!initial.id) return
-    const from = activeLocale
-    const to: Locale = from === "en" ? "zh" : "en"
-    if (content[to].title.trim() && !confirm(`Overwrite the ${LOCALE_LABEL[to]} translation with a new Claude translation?`)) return
-    setError(null); setTranslating(true)
-    translateArticleAction(initial.id, from, to)
-      .then((res) => {
-        if (res.ok) setContent((c) => ({ ...c, [to]: res.translation }))
-        else setError(res.error)
-      })
-      .finally(() => setTranslating(false))
   }
 
   function onDelete() {
     if (!initial.id || !confirm("Delete this article? This cannot be undone.")) return
     startTransition(async () => {
       const res = await deleteArticle(initial.id!)
-      if (res.ok) { router.push("/admin/articles"); router.refresh() } else setError(res.error)
+      if (res.ok) {
+        router.push("/admin/articles")
+        router.refresh()
+      } else {
+        setError(res.error)
+      }
     })
   }
 
+  async function uploadImageFile(file: File, kind: "cover" | "inline") {
+    setError(null)
+    if (kind === "cover") setUploading(true)
+    else setInlineUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("kind", kind)
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
+      const data = (await res.json()) as { url?: string; error?: string }
+      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
+      return data.url
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed")
+      return null
+    } finally {
+      if (kind === "cover") setUploading(false)
+      else setInlineUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  async function uploadCover(file: File) {
+    const url = await uploadImageFile(file, "cover")
+    if (url) setCoverImage(url)
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/10 bg-black/95 px-5 backdrop-blur md:px-8">
-        <Link href="/admin/articles" className="inline-flex items-center gap-2 text-sm text-zinc-300 transition-colors hover:text-white">
-          <ArrowLeft size={15} />
-          Articles
-        </Link>
-        <span className="text-sm text-zinc-500">{initial.status === "DRAFT" ? "Draft" : initial.status.charAt(0) + initial.status.slice(1).toLowerCase()}</span>
-        <div className="ml-auto flex items-center gap-4">
-          {initial.id && (
-            <Link href={`/admin/articles/${initial.id}/preview`} target="_blank" className="inline-flex items-center gap-2 text-sm text-zinc-300 transition-colors hover:text-white">
-              <Eye size={15} />
-              Preview
-            </Link>
-          )}
-          <button type="button" onClick={() => submit("DRAFT")} disabled={pending || uploads > 0 || coverUploading} className="text-sm text-zinc-300 transition-colors hover:text-white disabled:opacity-40">
+    <div className="-mx-5 -my-8 min-h-screen bg-[color:var(--ed-canvas)] text-[color:var(--ed-ink)] md:-mx-8 lg:-mx-12 lg:-my-12">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)]/95 px-5 backdrop-blur md:px-7 lg:px-10">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/admin/articles"
+            className="inline-flex items-center gap-2 whitespace-nowrap text-sm text-[color:var(--ed-body)] transition-colors hover:text-[color:var(--ed-ink)]"
+          >
+            <ArrowLeft size={15} />
+            Articles
+          </Link>
+          <span className="hidden text-sm text-[color:var(--ed-muted)] sm:inline">{hasUnsavedShape}</span>
+        </div>
+
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTab((v) => (v === "preview" ? "write" : "preview"))}
+            className={`hidden h-9 items-center gap-2 rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)] md:inline-flex ${
+              tab === "preview" ? "bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" : ""
+            }`}
+          >
+            <Eye size={15} />
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={() => submit("DRAFT")}
+            disabled={pending}
+            className="hidden h-9 items-center whitespace-nowrap rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)] disabled:opacity-45 lg:inline-flex"
+          >
             Save draft
           </button>
           {canPublish ? (
-            <button
+            <Button
               type="button"
               onClick={() => submit("PUBLISHED")}
-              disabled={pending || uploads > 0 || coverUploading}
-              className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-[#e9f0f7] px-4 text-sm font-medium text-[#212121] transition-colors hover:bg-white disabled:opacity-40"
+              disabled={pending}
+              size="sm"
+              className="min-w-[104px]"
             >
               Publish
-              <ArrowUpRight size={15} />
-            </button>
+              <ArrowUpRight size={14} strokeWidth={2.3} />
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={() => submit("REVIEW")}
-              disabled={pending || uploads > 0 || coverUploading}
-              className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-[#e9f0f7] px-4 text-sm font-medium text-[#212121] transition-colors hover:bg-white disabled:opacity-40"
+              disabled={pending}
+              size="sm"
+              className="min-w-[104px]"
             >
-              Submit for review
-              <ArrowUpRight size={15} />
-            </button>
+              Review
+              <ArrowUpRight size={14} strokeWidth={2.3} />
+            </Button>
           )}
+          <button
+            type="button"
+            onClick={() => setSettingsOpen((v) => !v)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)]"
+            aria-label={settingsOpen ? "Close article settings" : "Open article settings"}
+          >
+            {settingsOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}
+          </button>
         </div>
       </header>
 
-      <div className="grid min-h-[calc(100vh-3.5rem)] lg:grid-cols-[minmax(0,1fr)_380px]">
-        <main className="min-w-0 px-5 py-10 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-[820px]">
-            <input ref={coverFileRef} type="file" accept="image/*" className="hidden" onChange={onCoverFileChange} />
-
-            {coverImage ? (
-              <div className="group mb-10 overflow-hidden rounded-[8px] border border-white/10 bg-zinc-950">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={coverImage} alt="" className="aspect-[16/7] w-full object-cover" />
-                <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
-                  <button type="button" onClick={() => coverFileRef.current?.click()} className="inline-flex items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white">
-                    <Upload size={15} />
-                    {coverUploading ? "Uploading feature image..." : "Replace feature image"}
-                  </button>
-                  <button type="button" onClick={() => setCoverImage("")} className="text-sm text-zinc-500 transition-colors hover:text-white">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => coverFileRef.current?.click()}
-                disabled={coverUploading}
-                className="mb-10 inline-flex h-8 items-center gap-3 rounded-[6px] text-sm text-zinc-500 transition-colors hover:text-zinc-200 disabled:opacity-50"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <ImagePlus size={15} />
-                  {coverUploading ? "Uploading feature image..." : "Add feature image"}
-                </span>
-                <Upload size={15} className="opacity-70" />
-              </button>
-            )}
-
+      <div className={`grid min-h-[calc(100vh-4rem)] ${settingsOpen ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
+        <main className="ed-admin-reveal min-w-0 px-5 py-10 md:px-8 lg:px-10">
+          <article className="mx-auto max-w-[820px]">
             <input
-              value={cur.title}
-              onChange={(e) => setCur({ title: e.target.value })}
-              placeholder="Article title"
-              className="mb-6 w-full resize-none bg-transparent text-[clamp(3rem,7vw,4.75rem)] font-semibold leading-[0.98] tracking-normal text-white outline-none placeholder:text-zinc-700"
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void uploadCover(file)
+              }}
             />
 
-            <Textarea
+            <FeatureImage
+              image={coverImage}
+              uploading={uploading}
+              onPick={() => fileRef.current?.click()}
+              onClear={() => setCoverImage("")}
+              onFile={(file) => void uploadCover(file)}
+            />
+
+            <div className="mt-10 flex flex-wrap items-center gap-2">
+              {(["en", "zh"] as Locale[]).map((loc) => (
+                <button
+                  key={loc}
+                  type="button"
+                  onClick={() => setActiveLocale(loc)}
+                  className={`inline-flex h-8 items-center gap-2 rounded-[6px] px-3 text-sm transition-colors ${
+                    activeLocale === loc
+                      ? "bg-[color:var(--ed-ink)] text-[color:var(--ed-canvas)]"
+                      : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+                  }`}
+                >
+                  {LOCALE_LABEL[loc]}
+                  {content[loc].title.trim() && <span className="h-1.5 w-1.5 rounded-full bg-[#1ea463]" />}
+                </button>
+              ))}
+            </div>
+
+            <label className="sr-only" htmlFor="post-title">Article title</label>
+            <textarea
+              id="post-title"
+              value={cur.title}
+              onChange={(e) => setCur({ title: e.target.value })}
+              rows={3}
+              placeholder="Article title"
+              className="mt-7 block min-h-[17rem] w-full resize-none overflow-hidden bg-transparent text-[46px] font-semibold leading-[1.05] text-[color:var(--ed-ink)] outline-none placeholder:text-[color:var(--ed-muted)] sm:min-h-[13rem] sm:text-[64px]"
+            />
+
+            <label className="sr-only" htmlFor="post-excerpt">Article excerpt</label>
+            <textarea
+              id="post-excerpt"
               value={cur.excerpt}
               onChange={(e) => setCur({ excerpt: e.target.value })}
               rows={2}
-              placeholder="Add an excerpt"
-              className="mb-12 min-h-20 resize-none border-0 bg-transparent p-0 text-2xl leading-snug text-zinc-300 shadow-none outline-none placeholder:text-zinc-700 focus-visible:ring-0"
+              placeholder="Excerpt"
+              className="mt-4 block min-h-[8.5rem] w-full resize-none overflow-hidden bg-transparent text-[22px] leading-[1.45] text-[color:var(--ed-body)] outline-none placeholder:text-[color:var(--ed-muted)] sm:min-h-[4.5rem]"
             />
 
-            <div className="border-y border-white/10 py-3">
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setTab("write")} className={`inline-flex items-center gap-2 rounded-[6px] px-3 py-2 text-sm transition-colors ${tab === "write" ? "bg-white/5 text-white" : "text-zinc-500 hover:text-white"}`}>
+            <div className="mt-10 border-t border-[color:var(--ed-hair)] pt-8">
+              <div className="mb-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTab("write")}
+                  className={`inline-flex h-8 items-center gap-2 rounded-[6px] px-3 text-sm ${tab === "write" ? "bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"}`}
+                >
                   <Pencil size={14} /> Write
                 </button>
-                <button type="button" onClick={() => setTab("preview")} className={`inline-flex items-center gap-2 rounded-[6px] px-3 py-2 text-sm transition-colors ${tab === "preview" ? "bg-white/5 text-white" : "text-zinc-500 hover:text-white"}`}>
+                <button
+                  type="button"
+                  onClick={() => setTab("preview")}
+                  className={`inline-flex h-8 items-center gap-2 rounded-[6px] px-3 text-sm ${tab === "preview" ? "bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"}`}
+                >
                   <Eye size={14} /> Preview
                 </button>
               </div>
+              {tab === "write" ? (
+                <GhostBodyEditor
+                  value={cur.body}
+                  onChange={(body) => setCur({ body })}
+                  uploading={inlineUploading}
+                  uploadImage={(file) => uploadImageFile(file, "inline")}
+                />
+              ) : (
+                <div className="min-h-[52vh] bg-[color:var(--ed-canvas)] py-2">
+                  {cur.body.trim() ? (
+                    <Markdown variant="article">{cur.body}</Markdown>
+                  ) : (
+                    <p className="text-[color:var(--ed-muted)]">Nothing to preview.</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            {tab === "write" ? (
-              <Textarea
-                ref={bodyRef}
-                value={cur.body}
-                onChange={(e) => setCur({ body: e.target.value })}
-                rows={24}
-                onPaste={onBodyPaste}
-                onDrop={onBodyDrop}
-                placeholder="Start writing..."
-                className="mt-8 min-h-[42rem] resize-none border-0 bg-transparent p-0 text-xl leading-[1.65] text-zinc-100 shadow-none outline-none placeholder:text-zinc-700 focus-visible:ring-0"
-              />
-            ) : (
-              <div className="mt-8 min-h-[42rem] rounded-[8px] bg-white p-8 text-zinc-950">
-                {cur.body.trim() ? <Markdown variant="article">{cur.body}</Markdown> : <p className="text-zinc-400">Nothing to preview.</p>}
-              </div>
-            )}
-            {uploads > 0 && <p className="mt-3 text-xs text-[#a7c6dc]">Uploading image...</p>}
-
-            <div className="mt-10 border-t border-white/10 pt-8">
-              <Label className="text-sm text-zinc-400">Sources</Label>
-              <Textarea
-                value={cur.sources}
-                onChange={(e) => setCur({ sources: e.target.value })}
-                rows={3}
-                placeholder="Optional Markdown sources shown at the end of the article"
-                className="mt-3 resize-none border-white/10 bg-transparent font-mono text-sm text-zinc-200 placeholder:text-zinc-700 focus-visible:ring-[#a7c6dc]"
-              />
+            <div className="mt-8 flex items-center justify-between border-t border-[color:var(--ed-hair)] py-5 text-sm text-[color:var(--ed-muted)]">
+              <span>{wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}</span>
+              {error && <span className="text-[#b8321a]">{error}</span>}
             </div>
-
-            {error && <p className="mt-5 text-sm text-red-400">{error}</p>}
-          </div>
+          </article>
         </main>
 
-        <aside className="border-t border-white/10 bg-black px-5 py-8 lg:border-l lg:border-t-0 lg:px-6">
-          <div className="sticky top-20 space-y-7">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-medium text-white">Article settings</h2>
-              <span className="text-sm text-zinc-500">{initial.status === "PUBLISHED" ? "Published" : initial.status === "DRAFT" ? "Draft" : initial.status}</span>
-            </div>
+        {settingsOpen && (
+          <PostSettings
+            canPublish={canPublish}
+            initial={initial}
+            publicHref={publicHref}
+            slug={slug}
+            setSlug={setSlug}
+            primaryLocale={primaryLocale}
+            setPrimaryLocale={setPrimaryLocale}
+            tags={tags}
+            setTags={setTags}
+            members={members}
+            coAuthorIds={coAuthorIds}
+            setCoAuthorIds={setCoAuthorIds}
+            coverImage={coverImage}
+            setCoverImage={setCoverImage}
+            featured={featured}
+            setFeatured={setFeatured}
+            pending={pending}
+            submit={submit}
+            onDelete={onDelete}
+            onPickCover={() => fileRef.current?.click()}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
 
-            <div className="space-y-2">
-              <Label className="text-sm text-zinc-300">Article URL</Label>
-              <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto from title" className="border-white/10 bg-transparent text-zinc-100" />
-              {slug && <p className="text-xs text-zinc-500">/articles/{slug}</p>}
-            </div>
+function GhostBodyEditor({
+  value,
+  onChange,
+  uploading,
+  uploadImage,
+}: {
+  value: string
+  onChange: (value: string) => void
+  uploading: boolean
+  uploadImage: (file: File) => Promise<string | null>
+}) {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const lastMarkdownRef = useRef<string>("")
 
-            <div className="space-y-3">
-              <Label className="text-sm text-zinc-300">Primary language</Label>
-              <div className="flex items-center gap-5">
-                {(["en", "zh"] as Locale[]).map((loc) => (
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor || value === lastMarkdownRef.current) return
+    editor.innerHTML = markdownToEditorHtml(value)
+    lastMarkdownRef.current = value
+  }, [value])
+
+  function syncFromDom() {
+    const editor = editorRef.current
+    if (!editor) return
+    const next = editorDomToMarkdown(editor)
+    lastMarkdownRef.current = next
+    onChange(next)
+  }
+
+  function focusEditor() {
+    editorRef.current?.focus()
+  }
+
+  function runCommand(command: string, valueArg?: string) {
+    focusEditor()
+    document.execCommand(command, false, valueArg)
+    syncFromDom()
+  }
+
+  function insertHtml(html: string) {
+    focusEditor()
+    document.execCommand("insertHTML", false, html)
+    syncFromDom()
+  }
+
+  async function insertImage(file: File) {
+    const url = await uploadImage(file)
+    if (!url) return
+    const alt = imageAltFromFile(file)
+    insertHtml(`<figure data-md-image="true"><img src="${escapeAttribute(url)}" alt="${escapeAttribute(alt)}"><figcaption>${escapeHtml(alt)}</figcaption></figure><p><br></p>`)
+  }
+
+  async function onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    const image = Array.from(event.clipboardData.files).find((file) => file.type.startsWith("image/"))
+    if (image) {
+      event.preventDefault()
+      await insertImage(image)
+      return
+    }
+
+    const text = event.clipboardData.getData("text/plain")
+    if (!text) return
+    event.preventDefault()
+    insertHtml(plainTextToEditorHtml(text))
+  }
+
+  async function onDrop(event: React.DragEvent<HTMLDivElement>) {
+    const image = Array.from(event.dataTransfer.files).find((file) => file.type.startsWith("image/"))
+    if (!image) return
+    event.preventDefault()
+    await insertImage(image)
+  }
+
+  return (
+    <div className="rounded-[8px]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) void insertImage(file)
+          event.currentTarget.value = ""
+        }}
+      />
+
+      <div className="mb-5 flex flex-wrap items-center gap-1.5 border-b border-[color:var(--ed-hair)] pb-3">
+        <EditorTool label="Paragraph" onClick={() => runCommand("formatBlock", "p")}><Pilcrow size={14} /></EditorTool>
+        <EditorTool label="Heading 2" onClick={() => runCommand("formatBlock", "h2")}><Heading2 size={15} /></EditorTool>
+        <EditorTool label="Heading 3" onClick={() => runCommand("formatBlock", "h3")}><Heading3 size={15} /></EditorTool>
+        <span className="mx-1 h-5 w-px bg-[color:var(--ed-hair)]" />
+        <EditorTool label="Bold" onClick={() => runCommand("bold")}><Bold size={14} /></EditorTool>
+        <EditorTool label="Italic" onClick={() => runCommand("italic")}><Italic size={14} /></EditorTool>
+        <EditorTool label="Quote" onClick={() => runCommand("formatBlock", "blockquote")}><Quote size={14} /></EditorTool>
+        <EditorTool label="Bullet list" onClick={() => runCommand("insertUnorderedList")}><List size={15} /></EditorTool>
+        <EditorTool label="Numbered list" onClick={() => runCommand("insertOrderedList")}><ListOrdered size={15} /></EditorTool>
+        <span className="mx-1 h-5 w-px bg-[color:var(--ed-hair)]" />
+        <EditorTool label={uploading ? "Uploading image" : "Add image"} onClick={() => fileInputRef.current?.click()} disabled={uploading}><ImagePlus size={15} /></EditorTool>
+        {uploading && <span className="ml-2 text-xs text-[color:var(--ed-muted)]">Uploading image...</span>}
+      </div>
+
+      <div className="group/editor relative">
+        {!value.trim() && (
+          <div className="pointer-events-none absolute left-0 top-0 text-[20px] leading-[1.75] text-[color:var(--ed-muted)]">
+            Begin writing your article...
+          </div>
+        )}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-label="Article body"
+          spellCheck
+          onInput={syncFromDom}
+          onBlur={syncFromDom}
+          onPaste={(event) => void onPaste(event)}
+          onDrop={(event) => void onDrop(event)}
+          onDragOver={(event) => event.preventDefault()}
+          className="ghost-post-editor min-h-[52vh] w-full outline-none"
+        />
+      </div>
+    </div>
+  )
+}
+
+function EditorTool({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string
+  disabled?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)] disabled:pointer-events-none disabled:opacity-45"
+    >
+      {children}
+    </button>
+  )
+}
+
+function FeatureImage({
+  image,
+  uploading,
+  onPick,
+  onClear,
+  onFile,
+}: {
+  image: string
+  uploading: boolean
+  onPick: () => void
+  onClear: () => void
+  onFile: (file: File) => void
+}) {
+  function onDrop(event: React.DragEvent<HTMLElement>) {
+    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith("image/"))
+    if (!file) return
+    event.preventDefault()
+    onFile(file)
+  }
+
+  if (image) {
+    return (
+      <figure
+        className="group relative overflow-hidden rounded-[8px] bg-[color:var(--ed-surface)]"
+        onDrop={onDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        <img src={image} alt="" className="aspect-[16/7] w-full object-cover" />
+        <div className="absolute right-3 top-3 flex gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={onPick}
+            className="inline-flex h-8 items-center gap-2 rounded-[6px] bg-black/70 px-3 text-xs font-medium text-white backdrop-blur"
+          >
+            <Upload size={13} /> Replace
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] bg-black/70 text-white backdrop-blur"
+            aria-label="Remove feature image"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </figure>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
+      disabled={uploading}
+      className="mb-10 flex h-8 w-fit items-center gap-3 rounded-[6px] text-sm text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-ink)] disabled:opacity-50"
+    >
+      <span className="inline-flex items-center gap-2">
+        <ImagePlus size={15} />
+        {uploading ? "Uploading feature image..." : "Add feature image"}
+      </span>
+      <Upload size={15} className="opacity-70" />
+    </button>
+  )
+}
+
+function PostSettings({
+  canPublish,
+  initial,
+  publicHref,
+  slug,
+  setSlug,
+  primaryLocale,
+  setPrimaryLocale,
+  tags,
+  setTags,
+  members,
+  coAuthorIds,
+  setCoAuthorIds,
+  coverImage,
+  setCoverImage,
+  featured,
+  setFeatured,
+  pending,
+  submit,
+  onDelete,
+  onPickCover,
+}: {
+  canPublish: boolean
+  initial: EditorInitial
+  publicHref: string | null
+  slug: string
+  setSlug: (value: string) => void
+  primaryLocale: Locale
+  setPrimaryLocale: (value: Locale) => void
+  tags: string
+  setTags: (value: string) => void
+  members: EditorMember[]
+  coAuthorIds: string[]
+  setCoAuthorIds: (value: string[]) => void
+  coverImage: string
+  setCoverImage: (value: string) => void
+  featured: boolean
+  setFeatured: (value: boolean) => void
+  pending: boolean
+  submit: (status: Status) => void
+  onDelete: () => void
+  onPickCover: () => void
+}) {
+  return (
+    <aside
+      className="ed-admin-scroll ed-admin-reveal border-t border-[color:var(--ed-hair)] px-5 py-7 md:px-8 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:border-t-0 lg:px-6 lg:shadow-[-24px_0_70px_rgba(7,17,31,0.04)]"
+      style={{ animationDelay: "80ms" }}
+    >
+      <div className="mb-7 flex items-center justify-between">
+        <h2 className="text-[18px] font-medium text-[color:var(--ed-ink)]">Article settings</h2>
+        <span className="text-xs text-[color:var(--ed-muted)]">{STATUS_COPY[initial.status]}</span>
+      </div>
+
+      <div className="space-y-6">
+        <SettingGroup label="Article URL">
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="auto-from-title"
+            className="h-10 w-full rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-3 text-sm text-[color:var(--ed-ink)] outline-none transition-colors placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)]"
+          />
+          <p className="mt-2 text-xs text-[color:var(--ed-muted)]">/articles/{slug || "article-slug"}</p>
+          {publicHref && initial.status === "PUBLISHED" && (
+            <Link href={publicHref} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[color:var(--ed-body)] hover:text-[color:var(--ed-ink)]">
+              View article <ArrowUpRight size={13} />
+            </Link>
+          )}
+        </SettingGroup>
+
+        <SettingGroup label="Publish date">
+          <p className="text-sm text-[color:var(--ed-ink)]">
+            {initial.publishedAt ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(initial.publishedAt)) : "Not published"}
+          </p>
+        </SettingGroup>
+
+        <SettingGroup label="Author">
+          <p className="truncate text-sm text-[color:var(--ed-ink)]">
+            {initial.author?.name ?? initial.author?.email ?? "Current user"}
+          </p>
+        </SettingGroup>
+
+        <SettingGroup label="Primary language">
+          <div className="flex items-center gap-4">
+            {(["en", "zh"] as Locale[]).map((locale) => (
+              <button
+                key={locale}
+                type="button"
+                onClick={() => setPrimaryLocale(locale)}
+                className={`inline-flex items-center gap-2 text-sm transition-colors ${
+                  primaryLocale === locale
+                    ? "text-[color:var(--ed-ink)]"
+                    : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+                }`}
+              >
+                {LOCALE_LABEL[locale]}
+                {primaryLocale === locale && <span className="h-1.5 w-1.5 rounded-full bg-[#1ea463]" aria-hidden />}
+              </button>
+            ))}
+          </div>
+        </SettingGroup>
+
+        <SettingGroup label="Tags">
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="Research, Alkanes"
+            className="h-10 w-full rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-3 text-sm text-[color:var(--ed-ink)] outline-none transition-colors placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)]"
+          />
+          <p className="mt-2 text-xs text-[color:var(--ed-muted)]">Comma-separated for now; tokenized tags come next.</p>
+        </SettingGroup>
+
+        {members.length > 0 && (
+          <SettingGroup label="Co-authors">
+            <div className="flex flex-wrap gap-2">
+              {members.map((member) => {
+                const active = coAuthorIds.includes(member.id)
+                return (
                   <button
-                    key={loc}
+                    key={member.id}
                     type="button"
-                    onClick={() => {
-                      setPrimaryLocale(loc)
-                      setActiveLocale(loc)
-                    }}
-                    className={`inline-flex items-center gap-2 text-sm transition-colors ${
-                      primaryLocale === loc ? "text-white" : "text-zinc-500 hover:text-zinc-200"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setCoAuthorIds(
+                        active
+                          ? coAuthorIds.filter((id) => id !== member.id)
+                          : [...coAuthorIds, member.id],
+                      )
+                    }
+                    className={`inline-flex h-8 items-center rounded-[6px] px-3 text-sm transition-colors ${
+                      active
+                        ? "bg-[color:var(--ed-ink)] text-[color:var(--ed-canvas)]"
+                        : "bg-[color:var(--ed-surface)] text-[color:var(--ed-body)] hover:text-[color:var(--ed-ink)]"
                     }`}
                   >
-                    {LOCALE_LABEL[loc]}
-                    {primaryLocale === loc && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />}
+                    {member.name ?? member.id}
                   </button>
-                ))}
-              </div>
+                )
+              })}
             </div>
+          </SettingGroup>
+        )}
 
-            <div className="space-y-2">
-              <Label className="text-sm text-zinc-300">Tags</Label>
-              <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="frBTC, Research" className="border-white/10 bg-transparent text-zinc-100" />
-              <p className="text-xs text-zinc-600">Comma-separated for now.</p>
-            </div>
+        <SettingGroup label="Feature image">
+          <div className="flex gap-2">
+            <input
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://..."
+              className="h-10 min-w-0 flex-1 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-3 text-sm text-[color:var(--ed-ink)] outline-none transition-colors placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)]"
+            />
+            <Button
+              type="button"
+              onClick={onPickCover}
+              variant="outline"
+              size="icon"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-[color:var(--ed-hair)] text-[color:var(--ed-body)] transition-colors hover:text-[color:var(--ed-ink)]"
+              aria-label="Upload feature image"
+            >
+              <Upload size={15} />
+            </Button>
+          </div>
+        </SettingGroup>
 
-            {members.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm text-zinc-300">Co-authors</Label>
-                <div className="flex flex-wrap gap-2">
-                  {members.map((m) => {
-                    const on = coAuthorIds.includes(m.id)
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => toggleCoAuthor(m.id)}
-                        className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                          on
-                            ? "border-[#e9f0f7] bg-[#e9f0f7] text-[#212121]"
-                            : "border-white/15 text-zinc-300 hover:border-white/30 hover:text-white"
-                        }`}
-                      >
-                        {m.name}
-                      </button>
-                    )
-                  })}
+        {canPublish && (
+          <label className="flex items-center justify-between border-t border-[color:var(--ed-hair)] py-5 text-sm text-[color:var(--ed-ink)]">
+            <span className="inline-flex items-center gap-2"><Star size={15} /> Feature this article</span>
+            <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 accent-[color:var(--ed-ink)]" />
+          </label>
+        )}
+
+        {initial.revisions && initial.revisions.length > 0 && (
+          <SettingGroup label="Article history">
+            <div className="space-y-3">
+              {initial.revisions.slice(0, 5).map((revision) => (
+                <div key={revision.id} className="border-t border-[color:var(--ed-hair)] pt-3 first:border-t-0 first:pt-0">
+                  <div className="flex items-center justify-between gap-3 text-sm text-[color:var(--ed-ink)]">
+                    <span className="truncate">{revision.title || "Untitled"}</span>
+                    <span className="text-xs uppercase text-[color:var(--ed-muted)]">{revision.locale}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-[color:var(--ed-muted)]">
+                    {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(revision.createdAt))}
+                    {revision.editorName || revision.editorEmail ? ` by ${revision.editorName ?? revision.editorEmail}` : ""}
+                  </p>
                 </div>
-                <p className="text-xs text-zinc-600">Members who helped write this article appear in the byline.</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label className="text-sm text-zinc-300">Feature image URL</Label>
-              <div className="flex gap-2">
-                <Input value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="https://..." className="border-white/10 bg-transparent text-zinc-100" />
-                <button type="button" onClick={() => coverFileRef.current?.click()} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-white/10 text-zinc-400 transition-colors hover:border-white/25 hover:text-white" aria-label="Upload feature image">
-                  <Upload size={16} />
-                </button>
-              </div>
+              ))}
             </div>
+          </SettingGroup>
+        )}
 
-            {canPublish && (
-              <label className="flex items-center gap-3 border-y border-white/10 py-5 text-sm text-zinc-300">
-                <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 accent-[#e9f0f7]" />
-                Feature this article
-              </label>
-            )}
-
-            <div className="space-y-3 border-t border-white/10 pt-6">
-              <div className="text-sm text-zinc-300">Publishing</div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => submit("DRAFT")} disabled={pending || uploads > 0 || coverUploading} className="border-white/10 bg-transparent text-zinc-100 hover:bg-white/5">
-                  Save draft
-                </Button>
-                {canPublish ? (
-                  <Button size="sm" onClick={() => submit("PUBLISHED")} disabled={pending || uploads > 0 || coverUploading} className="bg-[#e9f0f7] text-[#212121] hover:bg-white">
-                    Publish <ArrowUpRight size={14} />
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={() => submit("REVIEW")} disabled={pending || uploads > 0 || coverUploading} className="bg-[#e9f0f7] text-[#212121] hover:bg-white">
-                    Submit <ArrowUpRight size={14} />
-                  </Button>
-                )}
-              </div>
-              {initial.status === "PUBLISHED" && canPublish && (
-                <button type="button" onClick={() => submit("ARCHIVED")} disabled={pending || uploads > 0 || coverUploading} className="text-sm text-zinc-400 transition-colors hover:text-white disabled:opacity-40">
-                  Unpublish <ArrowUpRight size={13} className="inline" />
-                </button>
-              )}
-              {initial.id && (
-                <button
-                  type="button"
-                  onClick={onTranslate}
-                  disabled={pending || translating || !canTranslate}
-                  title={canTranslate ? "Translate the current language into the other with Claude" : "Claude translation isn't configured"}
-                  className="block text-sm text-zinc-400 transition-colors hover:text-white disabled:opacity-40"
-                >
-                  {translating ? "Translating..." : `Translate ${activeLocale === "en" ? "EN -> 中文" : "中文 -> EN"}`}
-                </button>
-              )}
-            </div>
-
-            {initial.id && (
-              <Button size="sm" variant="destructive" onClick={onDelete} disabled={pending} className="w-full bg-[#ec4521] text-white hover:bg-[#ec4521]/90">
-                <Trash2 size={14} /> Delete article
+        <div className="border-t border-[color:var(--ed-hair)] pt-5">
+          <div className="mb-3 text-sm font-medium text-[color:var(--ed-ink)]">Publishing</div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => submit("DRAFT")}
+              disabled={pending}
+              variant="outline"
+              size="sm"
+            >
+              Save draft
+            </Button>
+            {canPublish ? (
+              <Button
+                type="button"
+                onClick={() => submit("PUBLISHED")}
+                disabled={pending}
+                size="sm"
+              >
+                Publish
+                <ArrowUpRight size={14} strokeWidth={2.3} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => submit("REVIEW")}
+                disabled={pending}
+                size="sm"
+              >
+                Submit review
+                <ArrowUpRight size={14} strokeWidth={2.3} />
               </Button>
             )}
           </div>
-        </aside>
+          {initial.status === "PUBLISHED" && canPublish && (
+            <button type="button" onClick={() => submit("ARCHIVED")} disabled={pending} className="mt-3 inline-flex items-center gap-1 text-sm text-[color:var(--ed-body)] hover:text-[color:var(--ed-ink)]">
+              Unpublish <ArrowUpRight size={13} />
+            </button>
+          )}
+        </div>
+
+        {initial.id && (
+          <Button
+            type="button"
+            onClick={onDelete}
+            disabled={pending}
+            variant="destructive"
+            className="w-full"
+          >
+            <Trash2 size={15} /> Delete article
+          </Button>
+        )}
       </div>
+    </aside>
+  )
+}
+
+function markdownToEditorHtml(markdown: string) {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n")
+  const html: string[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+    if (!line.trim()) {
+      i += 1
+      continue
+    }
+
+    const image = line.match(/^!\[(.*?)]\((.*?)\)\s*$/)
+    if (image) {
+      html.push(`<figure data-md-image="true"><img src="${escapeAttribute(image[2])}" alt="${escapeAttribute(image[1])}"><figcaption>${escapeHtml(image[1])}</figcaption></figure>`)
+      i += 1
+      continue
+    }
+
+    if (line.startsWith("```")) {
+      const code: string[] = []
+      i += 1
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        code.push(lines[i])
+        i += 1
+      }
+      i += lines[i]?.startsWith("```") ? 1 : 0
+      html.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`)
+      continue
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/)
+    if (heading) {
+      const level = Math.min(heading[1].length, 3)
+      html.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`)
+      i += 1
+      continue
+    }
+
+    if (/^>\s?/.test(line)) {
+      const quote: string[] = []
+      while (i < lines.length && /^>\s?/.test(lines[i])) {
+        quote.push(lines[i].replace(/^>\s?/, ""))
+        i += 1
+      }
+      html.push(`<blockquote>${formatInlineMarkdown(quote.join("<br>"))}</blockquote>`)
+      continue
+    }
+
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(`<li>${formatInlineMarkdown(lines[i].replace(/^\s*[-*]\s+/, ""))}</li>`)
+        i += 1
+      }
+      html.push(`<ul>${items.join("")}</ul>`)
+      continue
+    }
+
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${formatInlineMarkdown(lines[i].replace(/^\s*\d+\.\s+/, ""))}</li>`)
+        i += 1
+      }
+      html.push(`<ol>${items.join("")}</ol>`)
+      continue
+    }
+
+    const para: string[] = []
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !/^(!\[.*?]\(.*?\)|```|#{1,3}\s+|>\s?|\s*[-*]\s+|\s*\d+\.\s+)/.test(lines[i])
+    ) {
+      para.push(lines[i])
+      i += 1
+    }
+    html.push(`<p>${formatInlineMarkdown(para.join("<br>"))}</p>`)
+  }
+
+  return html.join("") || "<p><br></p>"
+}
+
+function editorDomToMarkdown(root: HTMLElement) {
+  const blocks = Array.from(root.childNodes)
+    .map((node) => blockNodeToMarkdown(node))
+    .filter(Boolean)
+  return blocks.join("\n\n").trim()
+}
+
+function blockNodeToMarkdown(node: ChildNode): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent?.trim() ?? ""
+  if (!(node instanceof HTMLElement)) return ""
+
+  const tag = node.tagName.toLowerCase()
+
+  if (tag === "figure") {
+    const img = node.querySelector("img")
+    if (!img) return ""
+    const alt = img.getAttribute("alt") || node.querySelector("figcaption")?.textContent?.trim() || "image"
+    return `![${escapeMarkdownText(alt)}](${img.getAttribute("src") || ""})`
+  }
+
+  if (tag === "img") {
+    return `![${escapeMarkdownText(node.getAttribute("alt") || "image")}](${node.getAttribute("src") || ""})`
+  }
+
+  if (tag === "h1") return `# ${inlineNodeToMarkdown(node).trim()}`
+  if (tag === "h2") return `## ${inlineNodeToMarkdown(node).trim()}`
+  if (tag === "h3") return `### ${inlineNodeToMarkdown(node).trim()}`
+  if (tag === "blockquote") {
+    return inlineNodeToMarkdown(node)
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n")
+      .trim()
+  }
+  if (tag === "ul") {
+    return Array.from(node.children)
+      .filter((child) => child.tagName.toLowerCase() === "li")
+      .map((li) => `- ${inlineNodeToMarkdown(li).trim()}`)
+      .join("\n")
+  }
+  if (tag === "ol") {
+    return Array.from(node.children)
+      .filter((child) => child.tagName.toLowerCase() === "li")
+      .map((li, index) => `${index + 1}. ${inlineNodeToMarkdown(li).trim()}`)
+      .join("\n")
+  }
+  if (tag === "pre") return `\`\`\`\n${node.textContent?.replace(/\n+$/, "") ?? ""}\n\`\`\``
+  return inlineNodeToMarkdown(node).trim()
+}
+
+function inlineNodeToMarkdown(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? ""
+  if (!(node instanceof HTMLElement)) return ""
+
+  const tag = node.tagName.toLowerCase()
+  if (tag === "br") return "\n"
+  if (tag === "strong" || tag === "b") return `**${childrenToMarkdown(node)}**`
+  if (tag === "em" || tag === "i") return `*${childrenToMarkdown(node)}*`
+  if (tag === "code") return `\`${node.textContent ?? ""}\``
+  if (tag === "a") return `[${childrenToMarkdown(node)}](${node.getAttribute("href") || ""})`
+  if (tag === "img") return `![${escapeMarkdownText(node.getAttribute("alt") || "image")}](${node.getAttribute("src") || ""})`
+  return childrenToMarkdown(node)
+}
+
+function childrenToMarkdown(node: Node) {
+  return Array.from(node.childNodes).map((child) => inlineNodeToMarkdown(child)).join("")
+}
+
+function formatInlineMarkdown(value: string) {
+  let html = escapeHtml(value)
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>")
+  html = html.replace(/\[([^\]]+)]\(([^)]+)\)/g, (_match, text: string, href: string) => `<a href="${escapeAttribute(href)}">${escapeHtml(text)}</a>`)
+  return html
+}
+
+function plainTextToEditorHtml(value: string) {
+  return value
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+    .join("")
+}
+
+function imageAltFromFile(file: File) {
+  return file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "image"
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+function escapeAttribute(value: string) {
+  return escapeHtml(value).replace(/`/g, "&#96;")
+}
+
+function escapeMarkdownText(value: string) {
+  return value.replace(/]/g, "\\]")
+}
+
+function SettingGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-[color:var(--ed-body)]">
+        {label}
+      </label>
+      {children}
     </div>
   )
 }

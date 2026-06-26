@@ -57,13 +57,13 @@ describe("AdminNav", () => {
     expect(onNavigate).toHaveBeenCalledTimes(1)
   })
 
-  it("marks a collapsed-but-active group header with the accent dot", () => {
+  it("marks a collapsed-but-active group header with the active marker", () => {
     const { getByRole } = render(<AdminNav privileges={ALL} />)
-    // /admin/kyc lives under Compliance, which auto-expands → no dot while open.
+    // /admin/kyc lives under Compliance, which auto-expands, so no marker is needed while open.
     const compliance = getByRole("button", { name: /Compliance/ })
-    expect(compliance.querySelector(".bg-sky-400")).toBeNull()
-    // Explicitly collapse the active group: the header surfaces the accent dot.
+    expect(compliance.querySelector("[data-active-marker='true']")).toBeNull()
+    // Explicitly collapse the active group: the header surfaces the active marker.
     fireEvent.click(compliance)
-    expect(compliance.querySelector(".bg-sky-400")).not.toBeNull()
+    expect(compliance.querySelector("[data-active-marker='true']")).not.toBeNull()
   })
 })

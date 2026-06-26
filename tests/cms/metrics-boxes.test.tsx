@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import MetricsBoxes from '@/components/MetricsBoxes'
-import type { HomeStats } from '@/lib/stats'
+import { normalizeHomeStats, type HomeStats } from '@/lib/stats'
 
 vi.mock('@/hooks/useTranslation', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 
 beforeEach(() => cleanup())
 
-const stats = (over: Partial<HomeStats['metrics']> = {}): HomeStats => ({
+const stats = (over: Partial<HomeStats['metrics']> = {}): HomeStats => normalizeHomeStats({
   metrics: {
     alkanesBtcLocked: 99.6, brc20BtcLocked: 1, alkanesBtcLockedAddress: null, brc20BtcLockedAddress: null,
     alkanesCirculating: 99.2, brc20Circulating: 0.95, alkanesTotalUnwraps: 74.2, brc20TotalUnwraps: 20.3,

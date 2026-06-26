@@ -18,13 +18,13 @@ beforeEach(() => {
 
 describe("AdminShell", () => {
   it("renders the brand, the nav tree and its children", () => {
-    const { getAllByText, getByText } = render(
+    const { getAllByAltText, getByText } = render(
       <AdminShell user={user}>
         <p>page body</p>
       </AdminShell>,
     )
     // brand appears in desktop sidebar + mobile top bar
-    expect(getAllByText("SUBFROST").length).toBeGreaterThanOrEqual(1)
+    expect(getAllByAltText("subfrost").length).toBeGreaterThanOrEqual(1)
     // pathname is /admin → the Overview group is active/expanded, rendering Dashboard
     expect(getByText("Dashboard")).toBeTruthy()
     expect(getByText("page body")).toBeTruthy()

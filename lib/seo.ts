@@ -1,5 +1,9 @@
 export const siteUrl = "https://subfrost.io"
 export const siteName = "SUBFROST"
+export const sharedUnfurlImagePath = "/brand/subfrost/Graphics/jpeg/banner_light.jpg"
+export const sharedUnfurlImageUrl = absoluteUrl(sharedUnfurlImagePath)
+export const sharedUnfurlImageWidth = 1794
+export const sharedUnfurlImageHeight = 598
 
 export function absoluteUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) return path

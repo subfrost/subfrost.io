@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { ArticlePreview, CmsLocale } from "@/lib/cms/articles"
 import { CmsCoverImage } from "./CmsCoverImage"
+import { AuthorByline } from "./AuthorByline"
 
 function categoryLabel(tag: { slug: string; name: string }, locale: CmsLocale) {
   const value = tag.slug.toLowerCase()
@@ -26,22 +27,29 @@ export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePrev
   const href = locale === "zh" ? `/articles/${a.slug}?lang=zh` : `/articles/${a.slug}`
 
   return (
-    <Link href={href} className="ed-card" prefetch={false}>
-      <div className="ed-cover-frame aspect-[24/11]">
-        <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant ?? a.slug} />
-      </div>
+    <article className="ed-card">
+      <Link href={href} className="block" prefetch={false}>
+        <div className="ed-cover-frame aspect-[24/11]">
+          <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant ?? a.slug} />
+        </div>
+      </Link>
       <div className="flex flex-1 flex-col pt-4">
-        <h3
-          className="font-display text-balance text-[20px] font-normal leading-[1.28]"
-          style={{ color: "var(--ed-ink)" }}
-        >
-          {a.title}
-        </h3>
+        <Link href={href} prefetch={false}>
+          <h3
+            className="font-display text-balance text-[20px] font-normal leading-[1.28]"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            {a.title}
+          </h3>
+        </Link>
         <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
           {tag ? <span style={{ color: "var(--ed-ink)" }}>{tag}</span> : null}
           {a.publishedAt ? <span>{articleDate(a.publishedAt, locale)}</span> : null}
         </div>
+        <div className="mt-4">
+          <AuthorByline author={a.author} publishedAt={null} readingMinutes={a.readingMinutes} size={32} variant="compact" locale={locale} />
+        </div>
       </div>
-    </Link>
+    </article>
   )
 }

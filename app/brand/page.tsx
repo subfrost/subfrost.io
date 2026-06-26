@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { ArrowDownToLine, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
+import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImagePath, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
 
@@ -14,11 +15,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await searchParams
   const locale: Locale = lang === "zh" ? "zh" : "en"
-  const title = locale === "zh" ? "Subfrost 品牌资源" : "Subfrost brand kit"
+  const title = locale === "zh" ? "subfrost 品牌资源" : "subfrost brand kit"
   const description =
     locale === "zh"
-      ? "Subfrost 的品牌指南、标志、色彩、字体与视觉素材。"
-      : "Subfrost brand guidelines, logos, color, typography, and visual asset rules."
+      ? "subfrost 的品牌指南、标志、色彩、字体与视觉素材。"
+      : "subfrost brand guidelines, logos, color, typography, and visual asset rules."
   const url = locale === "zh" ? "https://subfrost.io/brand?lang=zh" : "https://subfrost.io/brand"
 
   return {
@@ -37,13 +38,13 @@ export async function generateMetadata({
       description,
       type: "website",
       url,
-      siteName: "Subfrost",
+      siteName: "subfrost",
       images: [
         {
-          url: "/Logo.png",
-          width: 1200,
-          height: 630,
-          alt: "Subfrost",
+          url: sharedUnfurlImagePath,
+          width: sharedUnfurlImageWidth,
+          height: sharedUnfurlImageHeight,
+          alt: "subfrost",
         },
       ],
     },
@@ -51,7 +52,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["/Logo.png"],
+      images: [sharedUnfurlImagePath],
     },
   }
 }
@@ -60,15 +61,15 @@ const copy = {
   en: {
     title: "Brand guidelines",
     intro:
-      "Subfrost is a Bitcoin-native product company. The brand should feel cold, precise, liquid, and trustworthy - never loud, speculative, or generic crypto.",
+      "subfrost is a Bitcoin-native product company. The brand should feel cold, precise, liquid, and trustworthy - never loud, speculative, or generic crypto.",
     download: "Download guidelines",
     contact: "Contact support",
     overview: "Overview",
     overviewBody:
-      "Use the approved logotype and mark, Geist typography, and the Subfrost color system. Keep layouts quiet, image-led, and precise. White space is part of the identity.",
+      "Use the approved lowercase logotype and mark, Geist typography, and the subfrost color system. Keep layouts quiet, image-led, and precise. White space is part of the identity.",
     logoTitle: "Logo",
     logoBody:
-      "The logotype is the primary brand asset. Use it in black on white surfaces and the light wordmark on black or dark surfaces. Keep the snowflake Glacial blue across themes. Do not stretch, outline, recolor, or add effects.",
+      "The lowercase subfrost logotype is the primary brand asset. Use it in black on white surfaces and the light wordmark on black or dark surfaces. Keep the snowflake Glacial blue across themes. Do not stretch, outline, recolor, title-case, or add effects.",
     markTitle: "Logomark",
     markBody:
       "The snowflake mark is reserved for compact spaces: favicon, avatar, social, and small navigation. When it appears in color, use Glacial.",
@@ -95,15 +96,15 @@ const copy = {
   zh: {
     title: "品牌指南",
     intro:
-      "Subfrost 是比特币原生产品公司。品牌气质应当冷静、精确、流动、可信，不应喧闹、投机或像通用加密项目。",
+      "subfrost 是比特币原生产品公司。品牌气质应当冷静、精确、流动、可信，不应喧闹、投机或像通用加密项目。",
     download: "下载指南",
     contact: "联系支持",
     overview: "概览",
     overviewBody:
-      "使用批准的字标与图标、Geist 字体和 Subfrost 色彩系统。版式保持安静、以图像为核心、足够精确。留白也是品牌的一部分。",
+      "使用批准的小写字标与图标、Geist 字体和 subfrost 色彩系统。版式保持安静、以图像为核心、足够精确。留白也是品牌的一部分。",
     logoTitle: "标志",
     logoBody:
-      "字标是主要品牌资产。白色界面使用黑色版本，黑色或深色界面使用浅色字标。雪花在不同主题中都保持 Glacial 蓝。不要拉伸、描边、重新上色或添加特效。",
+      "小写 subfrost 字标是主要品牌资产。白色界面使用黑色版本，黑色或深色界面使用浅色字标。雪花在不同主题中都保持 Glacial 蓝。不要拉伸、描边、重新上色、改成标题大小写或添加特效。",
     markTitle: "图标",
     markBody:
       "雪花图标用于紧凑场景：favicon、头像、社交图标与小型导航。彩色版本应使用 Glacial。",
@@ -223,10 +224,44 @@ export default async function BrandPage({
   const locale = getLocale(lang)
   const t = copy[locale]
   const languageSuffix = locale === "zh" ? "?lang=zh" : ""
+  const pageUrl = absoluteUrl(locale === "zh" ? "/brand?lang=zh" : "/brand")
+  const brandJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: locale === "zh" ? "subfrost 品牌资源" : "subfrost brand kit",
+    description: String(t.intro),
+    url: pageUrl,
+    inLanguage: locale === "zh" ? "zh-CN" : "en-US",
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteName,
+      url: siteUrl,
+    },
+    about: {
+      "@type": "Brand",
+      name: "subfrost",
+      logo: absoluteUrl("/brand/subfrost/Logos/svg/logomark/logomark.svg"),
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: downloads.map((asset, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(asset.href),
+        name: asset.title,
+        description: asset.description,
+      })),
+    },
+  }
 
   return (
-    <EditorialShell>
-      <main className="overflow-hidden">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(brandJsonLd) }}
+      />
+      <EditorialShell>
+        <main className="overflow-hidden">
         <section>
           <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-14 sm:px-8 sm:pb-20 sm:pt-[92px]">
             <div className="mx-auto max-w-[900px] text-center">
@@ -259,7 +294,7 @@ export default async function BrandPage({
             <div className="mt-14 overflow-hidden rounded-[6px]" style={{ background: "var(--ed-surface)" }}>
               <BrandImage
                 src={`${brandAssetRoot}/Graphics/jpeg/banner_light.jpg`}
-                alt="Subfrost light brand banner"
+                alt="subfrost light brand banner"
                 className="aspect-[1794/598]"
               />
             </div>
@@ -276,14 +311,14 @@ export default async function BrandPage({
             <div className="flex min-h-[280px] items-center justify-center rounded-[6px] p-10" style={{ background: "#ffffff" }}>
               <img
                 src={`${brandAssetRoot}/Logos/svg/logotype/logotype_black.svg`}
-                alt="Subfrost black logotype"
+                alt="subfrost black logotype"
                 className="h-auto w-full max-w-[420px]"
               />
             </div>
             <div className="flex min-h-[280px] items-center justify-center rounded-[6px] p-10" style={{ background: "#000000" }}>
               <img
                 src={`${brandAssetRoot}/Logos/svg/logotype/logotype_light.svg`}
-                alt="Subfrost light logotype"
+                alt="subfrost light logotype"
                 className="h-auto w-full max-w-[420px]"
               />
             </div>
@@ -300,12 +335,12 @@ export default async function BrandPage({
             <div className="flex min-h-[340px] items-center justify-center rounded-[6px]" style={{ background: "var(--ed-surface)" }}>
               <img
                 src={`${brandAssetRoot}/Logos/svg/logomark/logomark.svg`}
-                alt="Subfrost snowflake symbol"
+                alt="subfrost snowflake symbol"
                 className="h-auto w-28 sm:w-36"
               />
             </div>
             <div className="rounded-[6px]">
-              <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/graphic_light.jpg`} alt="Subfrost frost visual system" className="aspect-[1920/599]" />
+              <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/graphic_light.jpg`} alt="subfrost frost visual system" className="aspect-[1920/599]" />
             </div>
           </div>
         </section>
@@ -377,8 +412,8 @@ export default async function BrandPage({
             body={String(t.imageBody)}
           />
           <div className="mx-auto mt-14 grid max-w-[1180px] gap-5 px-5 sm:px-8 md:grid-cols-2">
-            <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/banner_light.jpg`} alt="Subfrost branded frost banner" className="aspect-[1794/598]" />
-            <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/ice_bg.jpg`} alt="Subfrost abstract frost texture" className="aspect-[1794/598]" />
+            <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/banner_light.jpg`} alt="subfrost branded frost banner" className="aspect-[1794/598]" />
+            <BrandImage src={`${brandAssetRoot}/Graphics/jpeg/ice_bg.jpg`} alt="subfrost abstract frost texture" className="aspect-[1794/598]" />
           </div>
         </section>
 
@@ -427,7 +462,8 @@ export default async function BrandPage({
             </div>
           </div>
         </section>
-      </main>
-    </EditorialShell>
+        </main>
+      </EditorialShell>
+    </>
   )
 }

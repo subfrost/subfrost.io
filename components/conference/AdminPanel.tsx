@@ -167,7 +167,7 @@ export function AdminPanel({
                 {/* Kick */}
                 <button
                   onClick={() => onKick(p.id)}
-                  className="p-1.5 rounded text-zinc-600 hover:text-red-400/80 hover:bg-red-500/10 transition-colors"
+                  className="p-1.5 rounded text-red-300/80 hover:text-red-100 hover:bg-red-500/10 transition-colors"
                   title="Remove from room"
                 >
                   <UserX className="h-3.5 w-3.5" />
