@@ -1,4 +1,5 @@
 import { it, expect, vi, beforeEach } from "vitest"
+import { Prisma } from "@prisma/client"
 
 vi.mock("@/lib/cms/authz", () => ({ currentUser: vi.fn() }))
 vi.mock("@/lib/cms/audit", () => ({ audit: vi.fn() }))
@@ -50,6 +51,14 @@ it("forwards a finite drag position to the store on move", async () => {
   vi.mocked(moveTask).mockResolvedValue({ id: "t1" } as never)
   await moveTaskAction("t1", "DONE", -3)
   expect(moveTask).toHaveBeenCalledWith("t1", "DONE", -3)
+})
+
+it("maps a P2025 (record gone — concurrent admin) to a friendly refresh message", async () => {
+  vi.mocked(currentUser).mockResolvedValue({ id: "u1", privileges: ["tasks.edit", "tasks.view"] } as never)
+  const gone = new Prisma.PrismaClientKnownRequestError("not found", { code: "P2025", clientVersion: "5.22.0" })
+  vi.mocked(moveTask).mockRejectedValue(gone as never)
+  const r = await moveTaskAction("t1", "DONE")
+  expect(r).toEqual({ ok: false, error: "That item no longer exists — refresh the board." })
 })
 
 it("restoreTaskAction is denied without tasks.edit", async () => {
