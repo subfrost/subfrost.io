@@ -157,7 +157,7 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
           <div>
             <label className={labelCls}>Description</label>
             {canEdit ? (
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} onBlur={saveDescription} rows={3} placeholder="Add a description…" className={`mt-1 resize-none ${fieldCls}`} />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} onBlur={saveDescription} rows={4} placeholder="Add a description…" className={`mt-1 max-h-[60vh] min-h-[5rem] resize-y ${fieldCls}`} />
             ) : (
               <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-300">{task.description || <span className="text-zinc-600">No description</span>}</p>
             )}
