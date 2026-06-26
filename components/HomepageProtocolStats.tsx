@@ -172,7 +172,7 @@ export default function HomepageProtocolStats({
   })()
 
   return (
-    <div className="homepage-protocol-stats grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="homepage-protocol-stats grid grid-cols-2 gap-x-6 gap-y-7 sm:gap-6 lg:grid-cols-4">
       {t.items.map((item, index) => {
         const nativeValue = item.key === "volume24hBtc" ? volume24hBtc : metricValue(data, item.key as keyof StatsPayload)
         const convertedUsd = usdValue(data, nativeValue)
@@ -182,7 +182,7 @@ export default function HomepageProtocolStats({
           <a
             key={item.key}
             href={item.href}
-            className="homepage-protocol-stat group border-t pt-5"
+            className="homepage-protocol-stat group border-t pt-4 sm:pt-5"
             style={{ "--stat-index": index, borderColor: "var(--ed-hair)" } as CSSProperties}
           >
             <span className="homepage-protocol-stat-content block">
@@ -193,7 +193,7 @@ export default function HomepageProtocolStats({
                 <ArrowUpRight className="h-4 w-4 opacity-45 transition-opacity duration-200 group-hover:opacity-100" strokeWidth={1.8} style={{ color: "var(--ed-muted)" }} />
               </span>
               <span
-                className={`homepage-protocol-stat-value mt-3 font-mono text-[22px] font-semibold tabular-nums ${hasUsd ? "homepage-protocol-stat-value-cycle" : ""}`}
+                className={`homepage-protocol-stat-value mt-3 font-mono text-[clamp(17px,4.6vw,22px)] font-semibold tabular-nums sm:text-[22px] ${hasUsd ? "homepage-protocol-stat-value-cycle" : ""}`}
                 style={{ color: "var(--ed-ink)" }}
               >
                 <span className="homepage-protocol-stat-native">

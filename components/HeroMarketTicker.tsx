@@ -131,17 +131,17 @@ export default function HeroMarketTicker({
 
   return (
     <div className="hero-market-ticker w-full max-w-[62rem] bg-transparent">
-      <div className="hero-market-ticker-track grid grid-cols-1 items-center gap-x-0 gap-y-2 min-[420px]:grid-cols-2 md:flex md:justify-between md:gap-6">
+      <div className="hero-market-ticker-track grid grid-cols-2 items-center gap-x-4 gap-y-3 md:flex md:justify-between md:gap-6">
         {items.map((item, index) => {
           const Icon = item.icon
           return (
             <a
               key={item.label}
               href={item.href}
-              className="hero-market-ticker-item group flex min-w-0 justify-start rounded-[6px] py-1.5 transition-colors duration-200 min-[420px]:justify-center md:flex-none md:py-2"
+              className="hero-market-ticker-item group flex min-w-0 justify-start rounded-[6px] py-1.5 transition-colors duration-200 last:col-span-2 last:justify-center md:flex-none md:py-2 md:last:col-span-1"
               style={{ "--ticker-index": index, color: "var(--ed-ink)" } as CSSProperties}
             >
-              <span className="hero-market-ticker-content flex min-w-0 items-center justify-center gap-2">
+              <span className="hero-market-ticker-content flex min-w-0 items-center justify-start gap-2 md:justify-center">
                 <Icon className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden="true" />
                 <span className="shrink-0 whitespace-nowrap text-[0.64rem] font-medium leading-none tracking-normal opacity-75 sm:text-[0.7rem]">
                   {item.label}
