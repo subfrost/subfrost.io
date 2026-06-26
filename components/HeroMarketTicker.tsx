@@ -125,8 +125,8 @@ export default function HeroMarketTicker({
     { label: copy.btcHeight, value: formatInteger(stats?.btcHeight, copy.fallback), icon: Bitcoin, href: "https://app.subfrost.io/activity" },
     { label: copy.msHeight, value: formatInteger(stats?.metashrewHeight, copy.fallback), icon: RadioTower, href: "https://app.subfrost.io/activity" },
     { label: "BTC/USD", value: formatUsd(stats?.btcPrice, copy.fallback), icon: Activity, href: "https://app.subfrost.io/markets" },
-    { label: "BTC/DIESEL", value: formatRatio(stats?.btcDieselPrice, copy.fallback), icon: Fuel, href: "https://app.subfrost.io/markets" },
-    { label: "BTC/FIRE", value: formatRatio(stats?.btcFirePrice, copy.fallback), icon: Flame, href: "https://app.subfrost.io/markets" },
+    { label: "BTC/DIESEL", value: formatRatio(stats?.btcDieselPrice, copy.fallback), icon: Fuel, href: "https://app.subfrost.io/swap?from=btc&to=2%3A0" },
+    { label: "BTC/FIRE", value: formatRatio(stats?.btcFirePrice, copy.fallback), icon: Flame, href: "https://app.subfrost.io/swap?from=btc&to=2%3A77623" },
   ]
 
   return (
