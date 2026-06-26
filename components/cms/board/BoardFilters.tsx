@@ -63,6 +63,17 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
                 </div>
               )}
 
+              {/* Initiative (scoped to visible products so unrelated ones drop out) */}
+              <div>
+                <span className={section}>Initiative</span>
+                <select aria-label="Initiative filter" value={state.initiativeId ?? ""} onChange={(e) => set({ initiativeId: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none">
+                  <option value="">All initiatives</option>
+                  {initiatives
+                    .filter((i) => !i.productId || !state.hiddenProducts.includes(i.productId))
+                    .map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </div>
+
               {/* Assignee */}
               <div>
                 <span className={section}>Assignee</span>
@@ -97,22 +108,13 @@ export function BoardFilters({ state, setState, products, initiatives, members, 
                 </div>
               </div>
 
-              {/* Initiative + Label */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className={section}>Initiative</span>
-                  <select aria-label="Initiative filter" value={state.initiativeId ?? ""} onChange={(e) => set({ initiativeId: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
-                    <option value="">All</option>
-                    {initiatives.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <span className={section}>Label</span>
-                  <select aria-label="Label filter" value={state.label ?? ""} onChange={(e) => set({ label: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
-                    <option value="">All</option>
-                    {labels.map((l) => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </div>
+              {/* Label */}
+              <div>
+                <span className={section}>Label</span>
+                <select aria-label="Label filter" value={state.label ?? ""} onChange={(e) => set({ label: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none">
+                  <option value="">All labels</option>
+                  {labels.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
               </div>
 
               <div className="flex justify-end border-t border-zinc-800 pt-2">
