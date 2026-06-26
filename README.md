@@ -343,6 +343,42 @@ For full streaming ops setup, see `STREAM.md`.
 - CI workflow is in `.github/workflows/ci.yml`.
 - GCP provisioning/deployment scripts are in `gcp/`.
 
+### Netlify Deploy Preview Admin Testing
+
+Public deploy previews can render with fallback article data, but `/admin` cannot
+be production-like unless the preview has real CMS infrastructure behind it.
+For end-to-end admin testing before merge, configure the Netlify deploy-preview
+context with:
+
+- `DATABASE_URL`: a staging or preview Postgres database, not production unless
+  the test is intentionally mutating production content.
+- `AUTH_SECRET`: a stable random secret used to sign admin session cookies.
+- `ADMIN_SECRET`: a stable random secret used by `/api/admin/*` bootstrap and
+  health endpoints.
+- `CMS_BASE_URL`: the active deploy-preview URL, or the canonical staging URL
+  used for article/admin links.
+
+After the database is attached, sync the schema before testing admin:
+
+```bash
+DATABASE_URL="postgresql://..." pnpm db:push
+```
+
+Then verify the preview:
+
+```bash
+curl https://deploy-preview-<number>--subfrost-prod.netlify.app/api/admin/health \
+  -H "x-admin-secret: $ADMIN_SECRET"
+```
+
+The health endpoint checks the admin-critical tables for users, sessions, audit
+logs, articles, and boards. Once it returns `ok: true`, bootstrap or reset a test
+admin account through `/api/admin/users`, then sign in through the preview UI.
+
+Long term, replace preview `db:push` with Prisma migrations and run
+`pnpm db:migrate:deploy` during deploys so fresh preview databases are
+reproducible without manual schema sync.
+
 ## Environment Variables Reference
 
 Commonly used variables across app and media services:
