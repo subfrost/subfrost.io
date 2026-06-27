@@ -21,16 +21,18 @@ describe("visibleNav", () => {
     ])
   })
 
-  it("shows all 10 groups for ADMIN (all privileges)", () => {
+  it("shows all 11 groups for ADMIN (all privileges)", () => {
     const groups = visibleNav([...ALL_PRIVILEGES])
     expect(groups.map((g) => g.key)).toEqual([
-      "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "settings",
+      "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "legal", "settings",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
     expect(groups.find((g) => g.key === "financials")!.items.map((i) => i.href)).toEqual([
       "/admin/financials/treasury", "/admin/financials/accounting",
       "/admin/financials/cap-table", "/admin/financials/safes", "/admin/financials/balance-sheet",
+      "/admin/financials/reconciliation",
     ])
+    expect(groups.find((g) => g.key === "legal")!.items.map((i) => i.href)).toEqual(["/admin/legal"])
   })
 
   it("never returns a group with zero items", () => {
