@@ -4,7 +4,7 @@ import Link from "next/link"
 import type { CSSProperties, FormEvent, MouseEvent } from "react"
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { ArrowUp, ArrowUpRight, PanelRight, Search } from "lucide-react"
+import { ArrowUp, ArrowUpRight, PanelRight, Search, X } from "lucide-react"
 import { LocaleToggle } from "./LocaleToggle"
 
 type MenuId = "trade" | "developer"
@@ -41,6 +41,7 @@ export function SiteHeader() {
   const [searchResults, setSearchResults] = useState<SiteSearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobilePanel, setMobilePanel] = useState<MenuId | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const overlayOpenRef = useRef(false)
   const pathname = usePathname()
@@ -162,14 +163,13 @@ export function SiteHeader() {
     },
   ]
   const navItems = [{ id: "blog", label: copy.blog, href: articleHref }]
+  const developerMenu = developerMenus.find((menu) => menu.id === "developer")
   const activeId =
     pathname?.startsWith("/articles") || pathname?.startsWith("/authors")
       ? "blog"
       : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
         ? "developer"
-        : pathname === "/"
-          ? "trade"
-          : null
+        : null
 
   useEffect(() => {
     const onScroll = () => {
@@ -188,6 +188,7 @@ export function SiteHeader() {
   useEffect(() => {
     setActiveMenu(null)
     setMobileMenuOpen(false)
+    setMobilePanel(null)
     setSearchOpen(false)
   }, [pathname, searchParams])
 
@@ -207,6 +208,7 @@ export function SiteHeader() {
       if (event.key !== "Escape") return
       setActiveMenu(null)
       setMobileMenuOpen(false)
+      setMobilePanel(null)
       setSearchOpen(false)
     }
 
@@ -255,11 +257,13 @@ export function SiteHeader() {
   function toggleSearch() {
     setActiveMenu(null)
     setMobileMenuOpen(false)
+    setMobilePanel(null)
     setSearchOpen((value) => !value)
   }
 
   function toggleMenu(menu: MenuId) {
     setMobileMenuOpen(false)
+    setMobilePanel(null)
     setSearchOpen(false)
     setActiveMenu((value) => value === menu ? null : menu)
   }
@@ -281,7 +285,17 @@ export function SiteHeader() {
   function closeOverlays() {
     setActiveMenu(null)
     setMobileMenuOpen(false)
+    setMobilePanel(null)
     setSearchOpen(false)
+  }
+
+  function toggleMobileMenu() {
+    setActiveMenu(null)
+    setSearchOpen(false)
+    setMobileMenuOpen((value) => {
+      if (value) setMobilePanel(null)
+      return !value
+    })
   }
 
   function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -348,7 +362,7 @@ export function SiteHeader() {
                 onMouseEnter={() => openDesktopMenu(menu.id)}
                 onFocus={() => openDesktopMenu(menu.id)}
                 onMouseDown={(event) => event.preventDefault()}
-                className={`font-display inline-flex rounded-sm font-normal outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
+                className={`font-display inline-flex rounded-sm font-normal outline-none transition-colors duration-200 hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
                   activeMenu === menu.id ? "text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"
                 }`}
                 aria-haspopup="true"
@@ -369,7 +383,7 @@ export function SiteHeader() {
                   closeDesktopMenu()
                   closeSearch()
                 }}
-                className={`font-display rounded-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
+                className={`font-display rounded-sm font-normal outline-none transition-colors duration-200 hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
                   item.id === activeId ? "text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"
                 }`}
               >
@@ -430,10 +444,10 @@ export function SiteHeader() {
             type="button"
             aria-label={copy.openNav}
             aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen((value) => !value)}
+            onClick={toggleMobileMenu}
             className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
           >
-            <PanelRight size={18} strokeWidth={1.9} />
+            {mobileMenuOpen ? <X size={18} strokeWidth={1.9} /> : <PanelRight size={18} strokeWidth={1.9} />}
           </button>
         </div>
       </div>
@@ -446,67 +460,94 @@ export function SiteHeader() {
         style={{ background: "var(--ed-canvas)" }}
       >
         <div className="flex min-h-full flex-col px-4 pb-10 pt-7">
-          <nav className="flex flex-col gap-4">
-            <div>
-              <p className="font-display text-[18px] font-normal text-[color:var(--ed-muted)]">
-                {copy.trade}
-              </p>
-              <div className="mt-3 flex flex-col gap-3 border-l pl-4" style={{ borderColor: "var(--ed-hair)" }}>
-                {tradeItems.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="font-display text-[38px] font-normal leading-[1.08] text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-                  >
-                    {item.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="font-display text-[18px] font-normal text-[color:var(--ed-muted)]">
-                {copy.developer}
-              </p>
-              <div className="mt-3 flex flex-col gap-3 border-l pl-4" style={{ borderColor: "var(--ed-hair)" }}>
-                {developerMenus.find((menu) => menu.id === "developer")?.primary.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="font-display text-[38px] font-normal leading-[1.08] text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-                  >
-                    {item.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-            {navItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="font-display text-[42px] font-normal leading-[1.08] text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+          {mobilePanel ? (
+            <div
+              className="animate-in fade-in slide-in-from-right-2 duration-300"
+              style={{ animationTimingFunction: "cubic-bezier(0.22,1,0.36,1)" }}
+            >
+              <button
+                type="button"
+                onClick={() => setMobilePanel(null)}
+                className="font-display mb-12 text-[16px] font-normal text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
               >
-                {item.label}
+                Home
+              </button>
+              <nav className="flex flex-col gap-4">
+                {(mobilePanel === "trade" ? tradeItems : developerMenu?.primary ?? []).map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                  >
+                    {item.label}
+                    <ArrowUpRight className="h-5 w-5" strokeWidth={1.8} />
+                  </a>
+                ))}
+              </nav>
+              {mobilePanel === "developer" && developerMenu?.resources ? (
+                <>
+                  <div className="my-10 h-px w-full bg-[color:var(--ed-hair)]" />
+                  <nav className="flex flex-col gap-4">
+                    {developerMenu.resources.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="font-display inline-flex items-center gap-1.5 text-[16px] font-medium text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                      >
+                        {item.label}
+                        <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </a>
+                    ))}
+                  </nav>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <div
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+              style={{ animationTimingFunction: "cubic-bezier(0.22,1,0.36,1)" }}
+            >
+              <nav className="flex flex-col gap-4">
+                {developerMenus.map((menu) => (
+                  <button
+                    key={menu.id}
+                    type="button"
+                    onClick={() => setMobilePanel(menu.id)}
+                    className="font-display text-left text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                  >
+                    {menu.label}
+                  </button>
+                ))}
+                {navItems.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="font-display text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+
+              <div className="my-10 h-px w-full bg-[color:var(--ed-hair)]" />
+
+              <a
+                href="https://app.subfrost.io/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-none text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+              >
+                {copy.try}
+                <ArrowUpRight className="h-7 w-7" strokeWidth={2} />
               </a>
-            ))}
-          </nav>
 
-          <div className="my-10 h-px w-full bg-[color:var(--ed-hair)]" />
-
-          <a
-            href="https://app.subfrost.io/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="font-display inline-flex items-center gap-2 text-[38px] font-normal leading-none text-[color:var(--ed-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-          >
-            {copy.try}
-            <ArrowUpRight className="h-8 w-8" strokeWidth={2} />
-          </a>
-
-          <div className="mt-9 flex items-center text-[color:var(--ed-muted)]">
-            <LocaleToggle />
-          </div>
+              <div className="mt-9 flex items-center text-[color:var(--ed-muted)]">
+                <LocaleToggle />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div
@@ -600,8 +641,8 @@ export function SiteHeader() {
         </div>
       </div>
       <div
-        className={`fixed inset-x-0 bottom-0 top-16 z-40 hidden overflow-y-auto sm:block transition-[opacity,transform,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          activeMenu ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0 pointer-events-none"
+        className={`fixed inset-x-0 bottom-0 top-16 z-40 hidden overflow-y-auto sm:block transition-[transform,visibility] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          activeMenu ? "visible translate-y-0" : "invisible -translate-y-2 pointer-events-none"
         }`}
         style={{ background: "var(--ed-canvas)" }}
         aria-hidden={!activeMenu}

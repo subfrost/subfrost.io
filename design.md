@@ -364,7 +364,8 @@ Mobile menu:
 
 - Match OpenAI mobile menu structure.
 - Full-screen menu.
-- Large stacked nav links.
+- Large stacked top-level nav links first; do not dump nested Trade or Developer links into the root drawer.
+- Trade and Developer drill into their own simple link views, with a small `Home` return action and the same editorial easing.
 - Search and panel/menu icons remain top-right.
 - Dark mode menu is true black.
 - Launch App appears as a large text action with external arrow inside the menu.
@@ -499,8 +500,7 @@ Navigation:
 - Developer links should live under one `Developer` menu in the editorial header. Label the primary entry `Gateway`, then include docs, API docs, technical overview, and high-value integration references without crowding the top nav.
 - Trade and Developer must share one standardized mega-menu pattern: full-width editorial panel, muted eyebrow, large primary links, optional right-side resource list, small arrow icons inside menu items only, no top-nav chevrons, no floating card dropdowns, no nested cards, and the same open/close easing.
 - Keep the top-level header minimal: brand, Trade, Developer, Articles, search, language, primary app CTA.
-- Mobile menus may expand Trade inline instead of using nested flyouts.
-- Mobile menus may expand Developer inline the same way as Trade, with primary links first and resource links available through the destination pages.
+- Mobile menu root uses OpenAI-style top-level navigation only. Trade and Developer drill into section-specific views; keep primary links large and resource links smaller.
 
 Protocol analytics:
 
