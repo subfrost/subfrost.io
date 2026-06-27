@@ -188,7 +188,7 @@ function DeserterForm({ d, onSave, disabled }: {
   const [alec, setAlec] = useState(d?.alecSignedOff ?? false)
   const [notes, setNotes] = useState(d?.notes ?? "")
   return (
-    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 sm:grid-cols-3">
+    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-3">
       <Field label="Vest status">
         <select className={INPUT} value={desertedVest} onChange={(e) => setDesertedVest(e.target.value as DesertionStatus)}>
           <option value="UNDECIDED">Undecided</option><option value="RETAINED">Retained vest</option><option value="DESERTED">Deserted vest</option>
@@ -270,7 +270,7 @@ function ObligationForm({ o, onSave, disabled }: {
   const [vestingNote, setVestingNote] = useState(o?.vestingNote ?? "")
   const derived = dieselFromSafe(Number(purchaseUsd) || 0, Number(valuationCap) || 0)
   return (
-    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 sm:grid-cols-3">
+    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-3">
       <Field label="Funding">
         <select className={INPUT} value={funding} onChange={(e) => setFunding(e.target.value as OylFunding)}>
           <option value="FUNDED">Funded</option><option value="UNFUNDED_VOID">Void (unfunded)</option>
@@ -316,7 +316,7 @@ function AddAgreement({ entityId, scope, onAdd, disabled }: {
   const [pdfUrl, setPdfUrl] = useState("")
   if (!open) return <button onClick={() => setOpen(true)} className="mb-2 text-xs text-sky-400 hover:underline">+ Add agreement</button>
   return (
-    <div className="mb-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 sm:grid-cols-3">
+    <div className="mb-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-3">
       <Field label="Title"><input className={INPUT} value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
       <Field label="Type">
         <select className={INPUT} value={type} onChange={(e) => setType(e.target.value as LegalAgreementType)}>
@@ -354,7 +354,7 @@ function EditEntityForm({ entity, users, shareholders, payees, onSave, disabled 
   const [shareholderId, setShareholderId] = useState(entity.shareholderId ?? "")
   const [notes, setNotes] = useState(entity.notes ?? "")
   return (
-    <div className="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 sm:grid-cols-3">
+    <div className="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-3">
       <Field label="Name"><input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label="Email"><input className={INPUT} value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       <div />

@@ -78,25 +78,38 @@ export function LegalEntitiesManager({ initial, canEdit, users, shareholders, pa
       {shown.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-zinc-500">No entities in this view.</div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-zinc-800">
           <table className="w-full text-sm">
             <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
-              <tr><th className="px-3 py-2">Name</th><th>Category</th><th>Scope</th><th>Linked to</th><th className="text-right">Agreements</th><th></th></tr>
+              <tr>
+                <th className="px-3 py-2">Name</th>
+                <th>Category</th>
+                <th className="hidden sm:table-cell">Scope</th>
+                <th className="hidden md:table-cell">Linked to</th>
+                <th className="hidden text-right sm:table-cell">Agreements</th>
+                <th></th>
+              </tr>
             </thead>
             <tbody>
               {shown.map((e) => (
-                <tr key={e.id} className="border-t border-zinc-900 hover:bg-zinc-900/30">
-                  <td className="px-3 py-2">
+                <tr key={e.id} className="border-t border-zinc-900 transition-colors hover:bg-zinc-900/30">
+                  <td className="px-3 py-2.5">
                     <Link href={`/admin/legal/entities/${e.id}`} className="font-medium text-white hover:underline">{e.name}</Link>
                     <span className="ml-2 rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-400">{e.kind}</span>
+                    {/* mobile-only secondary line for the hidden columns */}
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-zinc-500 sm:hidden">
+                      <span>{e.scope}</span>
+                      {e.agreementCount > 0 ? <span>· {e.agreementCount} agr</span> : null}
+                      {e.userName ? <span>· {e.userName}</span> : e.payeeName ? <span>· {e.payeeName}</span> : null}
+                    </div>
                   </td>
-                  <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CAT_CLS[e.category]}`}>{LEGAL_ENTITY_CATEGORY_LABELS[e.category]}</span></td>
-                  <td className="text-xs text-zinc-400">{e.scope}</td>
-                  <td className="text-xs text-zinc-400">
+                  <td><span className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium ${CAT_CLS[e.category]}`}>{LEGAL_ENTITY_CATEGORY_LABELS[e.category]}</span></td>
+                  <td className="hidden text-xs text-zinc-400 sm:table-cell">{e.scope}</td>
+                  <td className="hidden text-xs text-zinc-400 md:table-cell">
                     {e.userName ? `user: ${e.userName}` : e.payeeName ? `payee: ${e.payeeName}` : e.shareholderName ? `holder: ${e.shareholderName}` : "—"}
                   </td>
-                  <td className="text-right text-zinc-300">{e.agreementCount}</td>
-                  <td className="px-3 text-right"><Link href={`/admin/legal/entities/${e.id}`} className="text-xs text-sky-400 hover:underline">Open →</Link></td>
+                  <td className="hidden text-right text-zinc-300 sm:table-cell">{e.agreementCount}</td>
+                  <td className="px-3 text-right"><Link href={`/admin/legal/entities/${e.id}`} className="whitespace-nowrap text-xs text-sky-400 hover:underline">Open →</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -135,7 +148,7 @@ function NewEntityForm({ users, shareholders, payees, onSaved, onCancel, onError
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+    <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 duration-200 animate-in fade-in slide-in-from-top-1">
       <h3 className="text-sm font-semibold text-white">New legal entity</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Name"><input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} /></Field>

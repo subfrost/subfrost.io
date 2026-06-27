@@ -160,7 +160,7 @@ function DeserterEditForm({ deserter, onSave, disabled }: {
   const [diesel, setDiesel] = useState(deserter.dieselConverted != null ? String(deserter.dieselConverted) : "")
   const [notes, setNotes] = useState(deserter.notes ?? "")
   return (
-    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 sm:grid-cols-3">
+    <div className="mt-3 grid gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-3">
       <Field label="Vest status">
         <select className={INPUT} value={desertedVest} onChange={(e) => setDesertedVest(e.target.value as DesertionStatus)}>
           <option value="UNDECIDED">Undecided</option>

@@ -48,8 +48,8 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-800">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <table className="w-full min-w-[680px] text-sm">
           <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
             <tr><th className="px-3 py-2">Invoice</th><th>Payee</th><th className="text-right">USD</th><th>Status</th><th>Settled by (on-chain DIESEL)</th></tr>
           </thead>
@@ -85,8 +85,8 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
       {unlinked.length > 0 && (
         <div>
           <div className="mb-2 text-sm font-semibold text-zinc-300">Unlinked on-chain payments ({unlinked.length})</div>
-          <div className="overflow-hidden rounded-xl border border-amber-900/30">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-amber-900/30">
+            <table className="w-full min-w-[520px] text-sm">
               <thead className="bg-amber-950/20 text-left text-xs text-amber-300/70">
                 <tr><th className="px-3 py-2">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th><th>Paid</th></tr>
               </thead>

@@ -52,25 +52,31 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
         {body()}
       </aside>
 
-      {/* Mobile drawer */}
-      {open && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-zinc-800 bg-zinc-900 p-4">
-            <div className="mb-6 flex items-center justify-between">
-              {brand}
-              <button
-                onClick={() => setOpen(false)}
-                className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                aria-label="Close menu"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {body(() => setOpen(false))}
-          </aside>
-        </div>
-      )}
+      {/* Mobile drawer — always mounted so it can slide/fade both ways */}
+      <div
+        className={`fixed inset-0 z-40 md:hidden ${open ? "" : "pointer-events-none"}`}
+        aria-hidden={!open}
+      >
+        <div
+          className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
+          onClick={() => setOpen(false)}
+        />
+        <aside
+          className={`absolute left-0 top-0 flex h-full w-64 flex-col overflow-y-auto border-r border-zinc-800 bg-zinc-900 p-4 shadow-2xl transition-transform duration-300 ease-out ${open ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="mb-6 flex items-center justify-between">
+            {brand}
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          {body(() => setOpen(false))}
+        </aside>
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}

@@ -14,7 +14,9 @@ export function SafesTabs() {
         <TabButton active={tab === "instruments"} onClick={() => setTab("instruments")}>Instruments</TabButton>
         <TabButton active={tab === "deserters"} onClick={() => setTab("deserters")}>Deserter SAFEs</TabButton>
       </div>
-      {tab === "instruments" ? <SafesManager /> : <DesertersManager />}
+      <div key={tab} className="duration-200 animate-in fade-in">
+        {tab === "instruments" ? <SafesManager /> : <DesertersManager />}
+      </div>
     </div>
   )
 }
@@ -23,7 +25,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+      className={`-mb-px flex-1 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:flex-none sm:px-4 ${
         active ? "border-sky-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
       }`}
     >
