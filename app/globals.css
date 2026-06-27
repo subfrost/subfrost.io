@@ -498,7 +498,7 @@ div[data-netlify-deploy-id] {
 
 .scroll-reveal-word-shadow {
   color: var(--ed-muted);
-  opacity: 0.52;
+  opacity: 0.42;
 }
 
 .scroll-reveal-word-active {
