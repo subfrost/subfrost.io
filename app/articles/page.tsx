@@ -4,9 +4,9 @@ import { headers } from "next/headers"
 import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib/cms/articles"
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
-import { AuthorByline } from "@/components/articles/AuthorByline"
 import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
+import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
 import { ArrowRight } from "lucide-react"
 
@@ -74,7 +74,7 @@ const articleCopy = {
     articles: "All",
     browseByTopic: "Browse By Topic",
     featured: "Featured",
-    recentPosts: "Recent",
+    recentPosts: "Recent Articles",
     noMatching: "No matching updates found.",
     noTopicPosts: "No published posts in this topic yet.",
     srTitle: "Subfrost articles",
@@ -98,19 +98,16 @@ const topicDefinitions = [
   {
     id: "research",
     title: { en: "Research", zh: "研究" },
-    description: { en: "Mechanism design, Bitcoin execution, and market structure.", zh: "机制设计、比特币执行环境与市场结构研究。" },
     aliases: ["research", "bitcoin", "alkanes"],
   },
   {
     id: "protocol",
     title: { en: "Protocol", zh: "协议" },
-    description: { en: "Settlement mechanics, custody surfaces, and live network behavior.", zh: "结算机制、托管边界与实时网络运行情况。" },
     aliases: ["protocol", "operations", "ops", "frbtc", "bitcoin"],
   },
   {
     id: "docs",
     title: { en: "Developer", zh: "开发者" },
-    description: { en: "Product guides, release notes, and technical references.", zh: "产品指南、发布说明与技术参考资料。" },
     aliases: ["docs", "documentation", "product", "release", "releases", "subfrost"],
   },
 ]
@@ -170,18 +167,49 @@ function primaryCategory(article: ArticlePreview, locale: CmsLocale) {
   return article.tags.map((tag) => categoryLabel(tag, locale)).find((tag): tag is string => Boolean(tag))
 }
 
-function topicCoverOffset(topicId: string) {
-  if (topicId === "research") return 1
-  if (topicId === "protocol") return 3
-  if (topicId === "docs") return 6
-  return 1
+function RecentMiniArticleCard({ a, locale, coverVariant }: { a: ArticlePreview; locale: CmsLocale; coverVariant: number | string }) {
+  return (
+    <Link href={articleHref(a.slug, locale)} className="flex items-start gap-3 overflow-hidden rounded-[8px] border p-3" style={{ borderColor: "color-mix(in srgb, var(--ed-ink) 8%, transparent)", background: "color-mix(in srgb, var(--ed-surface) 52%, transparent)" }} prefetch={false}>
+      <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]">
+        <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display line-clamp-2 text-[15px] font-normal leading-[1.25]" style={{ color: "var(--ed-ink)" }}>
+          {a.title}
+        </h3>
+        <div className="font-display mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-medium" style={{ color: "var(--ed-muted)" }}>
+          <span style={{ color: "var(--ed-ink)" }}>{primaryCategory(a, locale)}</span>
+          {a.publishedAt ? <span>{articleDate(a.publishedAt, locale)}</span> : null}
+        </div>
+      </div>
+    </Link>
+  )
 }
 
-function DocsBackfillCard({ doc, locale, copy, coverVariant }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en; coverVariant?: number | string }) {
+function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
+  return (
+    <a href={doc.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 overflow-hidden rounded-[8px] border p-3" style={{ borderColor: "color-mix(in srgb, var(--ed-ink) 8%, transparent)", background: "color-mix(in srgb, var(--ed-surface) 52%, transparent)" }}>
+      <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]">
+        <CoverArt className="h-full w-full" variant={`recent-${doc.href}`} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display line-clamp-2 text-[15px] font-normal leading-[1.25]" style={{ color: "var(--ed-ink)" }}>
+          {doc.title[locale]}
+        </h3>
+        <div className="font-display mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-medium" style={{ color: "var(--ed-muted)" }}>
+          <span style={{ color: "var(--ed-ink)" }}>{copy.docsEyebrow}</span>
+          <span>{copy.docsSource}</span>
+        </div>
+      </div>
+    </a>
+  )
+}
+
+function DocsGridCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
   return (
     <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card">
-      <div className="ed-cover-frame">
-        <CoverArt className="h-[220px] sm:h-[300px]" variant={coverVariant ?? doc.href} />
+      <div className="ed-cover-frame aspect-[24/11]">
+        <CoverArt className="h-full w-full" variant={doc.href} />
       </div>
       <div className="flex flex-1 flex-col pt-4">
         <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
@@ -205,29 +233,24 @@ export default async function ArticlesIndex({
   const locale: CmsLocale = lang === "zh" ? "zh" : "en"
   const copy = articleCopy[locale]
   const requestHeaders = await headers()
-  const articles = await getPublishedPreviews({
+  const allArticles = await getPublishedPreviews({
     limit: 30,
     locale,
     previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
   }).catch(() => [])
-  const [lead, ...rest] = articles
-  const latest = rest.slice(0, 5)
-  const recentDocs = docsBackfill.slice(0, Math.max(0, 5 - latest.length))
-  const hasRecent = latest.length + recentDocs.length > 0
-  const localizedTopics = topicDefinitions.map((topic) => ({
-    ...topic,
-    title: topic.title[locale],
-    description: topic.description[locale],
+  const localizedTopics = topicDefinitions.map((item) => ({
+    ...item,
+    title: item.title[locale],
   }))
   const selectedTopic = localizedTopics.find((item) => item.id === topic)
-  const pageTitle = selectedTopic?.title ?? (locale === "zh" ? "全部" : "All")
-  const topicSections = localizedTopics.map((topic) => ({
-    ...topic,
-    articles: articles.filter((article) => articleMatchesTopic(article, topic.aliases)).slice(0, 2),
-  }))
-  const selectedArticles = selectedTopic ? articles.filter((article) => articleMatchesTopic(article, selectedTopic.aliases)) : []
-  const selectedInitialArticles = selectedArticles.slice(0, 9)
-  const hasMoreSelectedArticles = selectedArticles.length > selectedInitialArticles.length
+  const isAllTopic = !selectedTopic
+  const isDocsTopic = selectedTopic?.id === "docs"
+  const articles = selectedTopic ? allArticles.filter((article) => articleMatchesTopic(article, selectedTopic.aliases)) : allArticles
+  const [featuredLead] = allArticles
+  const latest = allArticles.slice(1, 6)
+  const recentDocs: Array<(typeof docsBackfill)[number]> = []
+  const hasRecent = latest.length + recentDocs.length > 0
+  const feedArticles = isAllTopic ? allArticles.slice(1) : articles
   const articleIndexHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
   const topicHref = (id: string) => {
     const params = new URLSearchParams()
@@ -236,203 +259,115 @@ export default async function ArticlesIndex({
     return `/articles?${params.toString()}`
   }
   const browseItems = [
-    ...localizedTopics.map((topic) => ({ id: topic.id, title: topic.title, href: topicHref(topic.id) })),
     { id: "articles", title: copy.articles, href: articleIndexHref },
+    ...localizedTopics.map((item) => ({ id: item.id, title: item.title, href: topicHref(item.id) })),
   ]
   return (
     <main className="relative overflow-hidden pb-8">
       <h1 className="sr-only">{copy.srTitle}</h1>
 
       <section style={{ background: "var(--ed-canvas)" }}>
-        <div className="mx-auto max-w-[1440px] px-6 pb-9 pt-14 sm:px-8 sm:pb-10 sm:pt-[88px]">
-          <h2 className="font-display text-[44px] font-normal leading-none sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>
-            {pageTitle}
-          </h2>
-          <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="mx-auto max-w-[1440px] px-6 pb-2 pt-7 sm:px-8 sm:pb-3 sm:pt-[44px]">
+          <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
             <nav className="flex flex-wrap gap-x-6 gap-y-3" aria-label={copy.browseByTopic}>
-              {browseItems.map((topic) => (
+              {browseItems.map((item) => (
                 <Link
-                  key={topic.id}
-                  href={topic.href}
-                  data-topic-filter
+                  key={item.id}
+                  href={item.href}
                   prefetch={false}
                   className="font-display inline-flex items-center text-[16px] font-normal leading-none"
                   style={{
                     color:
-                      (!selectedTopic && topic.id === "articles") || selectedTopic?.id === topic.id
+                      (!selectedTopic && item.id === "articles") || selectedTopic?.id === item.id
                         ? "var(--ed-ink)"
                         : "var(--ed-muted)",
                   }}
                 >
-                  {topic.title}
+                  {item.title}
                 </Link>
               ))}
             </nav>
+            <TopSubscribeModalButton locale={locale} />
           </div>
         </div>
       </section>
 
       <ArticleSearchPrompt articles={articles} locale={locale} />
 
-      <div className="mx-auto max-w-[1440px] px-6 pt-4 sm:px-8 sm:pt-5">
-        {articles.length === 0 ? (
-          <div className="space-y-8">
-            <div
-              className="font-reading rounded-[8px] p-12 text-center text-[17px]"
-              style={{ background: "color-mix(in srgb, var(--ed-surface) 68%, transparent)", color: "var(--ed-muted)" }}
-            >
-              {copy.noMatching}
+      <div className="mx-auto max-w-[1440px] px-6 pt-0 sm:px-8 sm:pt-0">
+        {articles.length === 0 && !featuredLead ? (
+          isDocsTopic ? (
+            <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {docsBackfill.map((doc) => (
+                <DocsGridCard key={doc.href} doc={doc} locale={locale} copy={copy} />
+              ))}
+            </section>
+          ) : (
+            <div className="space-y-8">
+              <div
+                className="font-reading rounded-[8px] p-12 text-center text-[17px]"
+                style={{ background: "color-mix(in srgb, var(--ed-surface) 68%, transparent)", color: "var(--ed-muted)" }}
+              >
+                {copy.noMatching}
+              </div>
             </div>
-          </div>
+          )
         ) : (
           <>
-            {selectedTopic ? (
-              <section id={`topic-${selectedTopic.id}`} className="grid gap-x-8 gap-y-12 pt-4 sm:grid-cols-2 lg:grid-cols-3">
-                {selectedTopic.id === "docs" ? (
-                  docsBackfill.map((doc, index) => (
-                    <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
-                  ))
-                ) : selectedInitialArticles.length > 0 ? (
-                  selectedInitialArticles.map((a, index) => (
-                    <ArticleCard key={`${selectedTopic.id}-${a.slug}`} a={a} locale={locale} coverVariant={topicCoverOffset(selectedTopic.id) + index} />
-                  ))
-                ) : (
-                  <div className="font-reading text-[17px]" style={{ color: "var(--ed-muted)" }}>
-                    {copy.noTopicPosts}
-                  </div>
-                )}
-                {hasMoreSelectedArticles ? (
-                  <div className="col-span-full flex justify-center pt-6">
-                    <Link
-                      href={topicHref(selectedTopic.id)}
-                      className="font-display rounded-full bg-black/[0.04] px-5 py-2 text-[14px] font-normal"
-                      style={{ color: "var(--ed-ink)" }}
-                    >
-                      {locale === "zh" ? "加载更多" : "Load more"}
-                    </Link>
-                  </div>
-                ) : null}
-              </section>
-            ) : (
-              <>
-                <section
-                  id="featured"
-                  className={`grid gap-10 ${hasRecent ? "lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.8fr)] xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,0.75fr)]" : "lg:max-w-[920px]"} lg:items-start`}
-                >
-              {lead ? (
-                <article>
+            <section id="featured" className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(270px,0.8fr)] lg:items-start">
+              {featuredLead ? (
+                <article className="rounded-[10px] p-4 sm:p-5" style={{ background: "color-mix(in srgb, var(--ed-surface) 58%, transparent)" }}>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
-                  <Link href={articleHref(lead.slug, locale)} className="ed-card" prefetch={false}>
+                  <Link href={articleHref(featuredLead.slug, locale)} className="ed-card" prefetch={false}>
                     <div className="ed-cover-frame aspect-[24/11]">
                       <CmsCoverImage
-                        src={lead.coverImage}
+                        src={featuredLead.coverImage}
                         className="h-full w-full"
                         fallbackVariant={0}
                         priority
                       />
                     </div>
-                    <div className="flex flex-1 flex-col pt-4">
+                    <div className="flex flex-1 flex-col pt-5">
                       <h2
-                        className="font-display text-balance text-[21px] font-normal leading-[1.28] sm:text-[22px]"
+                        className="font-display text-balance text-[24px] font-normal leading-[1.2] sm:text-[28px]"
                         style={{ color: "var(--ed-ink)" }}
                       >
-                        {lead.title}
+                        {featuredLead.title}
                       </h2>
                       <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
-                        <span style={{ color: "var(--ed-ink)" }}>{primaryCategory(lead, locale)}</span>
-                        {lead.publishedAt ? <span>{articleDate(lead.publishedAt, locale)}</span> : null}
+                        <span style={{ color: "var(--ed-ink)" }}>{primaryCategory(featuredLead, locale)}</span>
+                        {featuredLead.publishedAt ? <span>{articleDate(featuredLead.publishedAt, locale)}</span> : null}
                       </div>
                     </div>
                   </Link>
                 </article>
               ) : null}
 
-              {hasRecent ? (
-                <aside className="lg:pl-5 xl:pl-8">
-                  <div className="mb-7">
-                    <p className="ed-eyebrow">{copy.recentPosts}</p>
-                  </div>
-                  <div className="space-y-9">
-                    {latest.map((a) => (
-                      <Link
-                        key={a.slug}
-                        href={articleHref(a.slug, locale)}
-                        className="block"
-                        prefetch={false}
-                      >
-                        <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
-                          <span>{a.title}</span>
-                          <ArrowRight className="ml-1 inline-block h-3 w-3 align-baseline" strokeWidth={2} aria-hidden="true" />
-                        </h3>
-                        <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
-                          <span style={{ color: "var(--ed-ink)" }}>
-                            {a.tags.map((tag) => categoryLabel(tag, locale)).find((tag): tag is string => Boolean(tag))}
-                          </span>
-                          {a.publishedAt ? <span>{articleDate(a.publishedAt, locale)}</span> : null}
-                        </div>
-                      </Link>
+              {isAllTopic && hasRecent ? (
+                <aside className="rounded-[10px] p-4" style={{ background: "color-mix(in srgb, var(--ed-surface) 44%, transparent)" }}>
+                  <p className="ed-eyebrow mb-4">{copy.recentPosts}</p>
+                  <div className="space-y-3">
+                    {latest.slice(0, 3).map((a, index) => (
+                      <RecentMiniArticleCard key={`featured-recent-${a.slug}`} a={a} locale={locale} coverVariant={`featured-recent-${index}`} />
                     ))}
-                    {recentDocs.map((doc) => (
-                      <a
-                        key={doc.href}
-                        href={doc.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
-                          <span>{doc.title[locale]}</span>
-                          <ArrowRight className="ml-1 inline-block h-3 w-3 align-baseline" strokeWidth={2} aria-hidden="true" />
-                        </h3>
-                        <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
-                          <span style={{ color: "var(--ed-ink)" }}>{copy.docsEyebrow}</span>
-                          <span>{copy.docsSource}</span>
-                        </div>
-                      </a>
+                    {recentDocs.slice(0, 3 - Math.min(3, latest.length)).map((doc) => (
+                      <RecentMiniDocCard key={`featured-recent-${doc.href}`} doc={doc} locale={locale} copy={copy} />
                     ))}
                   </div>
                 </aside>
               ) : null}
-                </section>
+            </section>
 
-                <section className="mt-12 space-y-4">
-              {topicSections.map((topic) => (
-                <section
-                  key={topic.id}
-                  id={`topic-${topic.id}`}
-                  className="grid scroll-mt-24 gap-8 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]"
-                >
-                  <div>
-                    <h3 className="font-display text-[30px] font-semibold" style={{ color: "var(--ed-ink)" }}>
-                      {topic.title}
-                    </h3>
-                    <p className="font-reading mt-4 text-[16px] leading-[1.6]" style={{ color: "var(--ed-body)" }}>
-                      {topic.description}
-                    </p>
-                  </div>
-                  {topic.articles.length > 0 ? (
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {topic.articles.map((a, index) => (
-                        <ArticleCard key={`${topic.id}-${a.slug}`} a={a} locale={locale} coverVariant={topicCoverOffset(topic.id) + index} />
-                      ))}
-                    </div>
-                  ) : topic.id === "docs" ? (
-                    <div className="grid gap-6 md:grid-cols-3">
-                      {docsBackfill.map((doc, index) => (
-                        <DocsBackfillCard key={doc.href} doc={doc} locale={locale} copy={copy} coverVariant={topicCoverOffset(topic.id) + index} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[116px] items-center justify-center rounded-[8px] p-8 text-center" style={{ background: "color-mix(in srgb, var(--ed-surface) 54%, transparent)", color: "var(--ed-muted)" }}>
-                      <p className="font-reading text-[15px]">{copy.noTopicPosts}</p>
-                    </div>
-                  )}
-                </section>
-              ))}
-
-                </section>
-              </>
-            )}
+            {feedArticles.length > 0 || isDocsTopic || isAllTopic ? (
+              <section className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {feedArticles.map((a, index) => (
+                  <ArticleCard key={a.slug} a={a} locale={locale} coverVariant={index + 2} />
+                ))}
+                {(isDocsTopic || isAllTopic) ? docsBackfill.map((doc) => (
+                  <DocsGridCard key={doc.href} doc={doc} locale={locale} copy={copy} />
+                )) : null}
+              </section>
+            ) : null}
 
           </>
         )}
