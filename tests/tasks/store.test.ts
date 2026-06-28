@@ -112,7 +112,7 @@ it("moveInitiative updates the status", async () => {
 it("updateTask persists a trimmed blockerReason", async () => {
   client.task.update.mockResolvedValue({
     id: "t1", title: "x", description: "", status: "BLOCKED", priority: "LOW",
-    labels: [], blockerReason: "waiting on flex", initiativeId: null, position: 0, owner: null, createdAt: new Date(), updatedAt: new Date(),
+    labels: [], blockerReason: "waiting on flex", blocked: false, initiativeId: null, position: 0, owner: null, createdAt: new Date(), updatedAt: new Date(),
   })
   await updateTask("t1", { blockerReason: "  waiting on flex  " })
   expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ blockerReason: "waiting on flex" }) }))

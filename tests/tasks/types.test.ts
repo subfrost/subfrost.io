@@ -4,6 +4,7 @@ import { TASK_STATUS, TASK_PRIORITY, STATUS_ORDER, INITIATIVE_STATUS, INITIATIVE
 it("has metadata for every status and an explicit column order", () => {
   expect(STATUS_ORDER).toEqual(["REQUESTED", "TODO", "IN_PROGRESS", "DONE"])
   expect(TASK_STATUS.REQUESTED.label).toBe("Requested Tasks")
+  expect(TASK_STATUS.BLOCKED.label).toBe("Blocked")
   expect(TASK_STATUS.TODO.label).toBe("To do")
   expect(TASK_STATUS.IN_PROGRESS.label).toBe("In Progress")
   expect(TASK_STATUS.DONE.label).toBe("Done")
