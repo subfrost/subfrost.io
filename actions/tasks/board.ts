@@ -41,7 +41,7 @@ async function gate(priv: "tasks.view" | "tasks.edit"): Promise<Gate> {
 }
 
 const PriorityEnum = z.enum(["LOW", "MEDIUM", "HIGH", "FIRE"])
-const StatusEnum = z.enum(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
+const StatusEnum = z.enum(["REQUESTED", "TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
 const InitiativeStatusEnum = z.enum(["TODO", "IN_PROGRESS", "ON_HOLD", "DONE"])
 
 const CreateTaskSchema = z.object({
@@ -83,6 +83,7 @@ const UpdateTaskSchema = z.object({
   labels: z.array(z.string()).optional(),
   initiativeId: z.string().nullable().optional(),
   blockerReason: z.string().optional(),
+  blocked: z.boolean().optional(),
   color: z.string().optional(),
   colorLabel: z.string().optional(),
   checklist: z.array(ChecklistItemSchema).optional(),

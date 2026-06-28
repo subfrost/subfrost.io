@@ -1328,6 +1328,7 @@ model OylObligation {
 // ============================================
 
 enum TaskStatus {
+  REQUESTED
   TODO
   BLOCKED
   IN_PROGRESS
@@ -1390,6 +1391,7 @@ model Task {
   priority     TaskPriority @default(MEDIUM)
   labels       String[]     @default([])
   blockerReason String      @default("")
+  blocked      Boolean      @default(false)
   // Optional per-task color accent (hex) + a free-text name for it ("bug",
   // "urgent"), rendered as a colored chip/dot on the card. Element-style.
   color        String       @default("")

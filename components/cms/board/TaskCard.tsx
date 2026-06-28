@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2, UserPlus, CheckSquare, MessageSquare } from "lucide-react"
+import { Trash2, UserPlus, CheckSquare, MessageSquare, Ban } from "lucide-react"
 import type { TaskView, InitiativeView, TaskStatus, TaskPriority, MemberView } from "@/lib/tasks/types"
 import { TASK_PRIORITY, TASK_STATUS, STATUS_ORDER, PRIORITY_ORDER, ownerInitials, ownerName, checklistProgress } from "@/lib/tasks/types"
 import { moveTaskAction, deleteTaskAction, claimTaskAction, assignTaskAction, updateTaskAction } from "@/actions/tasks/board"
@@ -108,9 +108,9 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
               className={`shrink-0 rounded px-1 py-0.5 text-[11px] font-medium focus:outline-none ${pr.cls}`}
               style={{ colorScheme: "dark" }}
             >
-              <optgroup label="Priority">
-                {PRIORITY_ORDER.map((p) => <option key={p} value={p} style={{ color: TASK_PRIORITY[p].color }}>{TASK_PRIORITY[p].label}</option>)}
-              </optgroup>
+              {PRIORITY_ORDER.map((p) => (
+                <option key={p} value={p} style={{ color: TASK_PRIORITY[p].color, backgroundColor: "#18181b" }}>{TASK_PRIORITY[p].label}</option>
+              ))}
             </select>
           ) : (
             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${pr.cls}`}>{pr.label}</span>
@@ -174,19 +174,23 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         ) : null}
       </div>
 
-      {canEdit && task.status === "BLOCKED" && (
-        <div className="mt-2">
-          <input
-            aria-label="Blocker reason"
-            defaultValue={task.blockerReason}
-            onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }}
-            placeholder="What's blocking this?"
-            className="w-full rounded border border-rose-500/30 bg-rose-500/5 px-2 py-1 text-[11px] text-rose-200 placeholder:text-rose-400/50 focus:outline-none"
-          />
+      {task.blocked && (
+        <div className="mt-2 space-y-1">
+          <span className="inline-flex items-center gap-1 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-300">
+            <Ban size={10} /> Blocked
+          </span>
+          {canEdit ? (
+            <input
+              aria-label="Blocker reason"
+              defaultValue={task.blockerReason}
+              onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }}
+              placeholder="What's blocking this?"
+              className="w-full rounded border border-rose-500/30 bg-rose-500/5 px-2 py-1 text-[11px] text-rose-200 placeholder:text-rose-400/50 focus:outline-none"
+            />
+          ) : task.blockerReason ? (
+            <p className="text-[11px] text-rose-300/80">{task.blockerReason}</p>
+          ) : null}
         </div>
-      )}
-      {!canEdit && task.status === "BLOCKED" && task.blockerReason && (
-        <p className="mt-2 text-[11px] text-rose-300/80">{task.blockerReason}</p>
       )}
 
       <div className="mt-2 flex items-center gap-2 border-t border-zinc-800 pt-2">
@@ -199,6 +203,16 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
           >
             {STATUS_ORDER.map((s) => <option key={s} value={s}>{TASK_STATUS[s].label}</option>)}
           </select>
+        )}
+        {canEdit && (
+          <button
+            onClick={() => run(() => updateTaskAction(task.id, { blocked: !task.blocked }))}
+            aria-label={task.blocked ? "Unmark blocked" : "Mark blocked"}
+            title={task.blocked ? "Unmark blocked" : "Mark blocked"}
+            className={`inline-flex items-center gap-1 rounded border px-1.5 py-1 text-[11px] ${task.blocked ? "border-rose-500/40 text-rose-300 hover:bg-rose-500/10" : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            <Ban size={12} /> {task.blocked ? "Blocked" : "Block"}
+          </button>
         )}
         <span className="ml-auto text-[10px] tabular-nums text-zinc-600" title={`Created ${task.createdAt.toLocaleString()}`}>{formatAge(task.createdAt)}</span>
         {canEdit && (

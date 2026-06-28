@@ -155,17 +155,37 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             )}
           </div>
 
-          {/* Blocker (only meaningful when blocked) */}
-          {task.status === "BLOCKED" && (
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wide text-rose-400">Blocker</label>
-              {canEdit ? (
-                <input defaultValue={task.blockerReason} onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }} placeholder="What's blocking this?" className="mt-1 w-full rounded border border-rose-500/30 bg-rose-500/5 px-2 py-1.5 text-sm text-rose-200 placeholder:text-rose-400/50 focus:outline-none" />
-              ) : (
-                <p className="mt-1 text-sm text-rose-300/80">{task.blockerReason || "—"}</p>
-              )}
-            </div>
-          )}
+          {/* Blocked tag (independent of column/status) */}
+          <div>
+            <label className="text-[11px] font-medium uppercase tracking-wide text-rose-400">Blocked</label>
+            {canEdit ? (
+              <div className="mt-1 space-y-2">
+                <label className="inline-flex items-center gap-2 text-sm text-zinc-200">
+                  <input
+                    type="checkbox"
+                    aria-label="Blocked"
+                    checked={task.blocked}
+                    onChange={(e) => run(() => updateTaskAction(task.id, { blocked: e.target.checked }))}
+                    className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-900 text-rose-500 focus:ring-0"
+                  />
+                  Mark this task as blocked
+                </label>
+                {task.blocked && (
+                  <input
+                    aria-label="Blocker reason"
+                    defaultValue={task.blockerReason}
+                    onBlur={(e) => { if (e.target.value !== task.blockerReason) run(() => updateTaskAction(task.id, { blockerReason: e.target.value })) }}
+                    placeholder="What's blocking this?"
+                    className="w-full rounded border border-rose-500/30 bg-rose-500/5 px-2 py-1.5 text-sm text-rose-200 placeholder:text-rose-400/50 focus:outline-none"
+                  />
+                )}
+              </div>
+            ) : task.blocked ? (
+              <p className="mt-1 text-sm text-rose-300/80">{task.blockerReason || "Blocked"}</p>
+            ) : (
+              <p className="mt-1 text-sm text-zinc-600">Not blocked</p>
+            )}
+          </div>
 
           {/* Labels */}
           <div>

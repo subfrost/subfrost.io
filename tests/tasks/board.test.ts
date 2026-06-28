@@ -5,16 +5,24 @@ import type { TaskView, InitiativeView, BoardFilterState } from "@/lib/tasks/typ
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: null, position: 0,
+  labels: [], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: null, position: 0,
   createdAt: new Date("2026-06-25T00:00:00Z"), updatedAt: new Date("2026-06-25T00:00:00Z"), ...over,
 })
 
 it("groups tasks into the four ordered columns", () => {
   const b = buildBoard([t({ id: "a", status: "TODO" }), t({ id: "b", status: "DONE" })])
-  expect(b.columns.map((c) => c.status)).toEqual(["TODO", "BLOCKED", "IN_PROGRESS", "DONE"])
-  expect(b.columns[0].count).toBe(1)
-  expect(b.columns[3].count).toBe(1)
+  expect(b.columns.map((c) => c.status)).toEqual(["REQUESTED", "TODO", "IN_PROGRESS", "DONE"])
+  expect(b.columns[1].count).toBe(1) // TODO
+  expect(b.columns[3].count).toBe(1) // DONE
   expect(b.total).toBe(2)
+})
+
+it("folds a legacy BLOCKED task into In Progress and marks it blocked", () => {
+  const b = buildBoard([t({ id: "b1", status: "BLOCKED" })])
+  expect(b.columns.some((c) => c.status === "BLOCKED")).toBe(false)
+  const ip = b.columns.find((c) => c.status === "IN_PROGRESS")!
+  expect(ip.tasks.map((x) => x.id)).toContain("b1")
+  expect(ip.tasks.find((x) => x.id === "b1")!.blocked).toBe(true)
 })
 
 it("orders a column by priority desc", () => {
@@ -22,7 +30,7 @@ it("orders a column by priority desc", () => {
     t({ id: "lo", status: "TODO", priority: "LOW" }),
     t({ id: "hi", status: "TODO", priority: "HIGH" }),
   ])
-  expect(b.columns[0].tasks.map((x) => x.id)).toEqual(["hi", "lo"])
+  expect(b.columns[1].tasks.map((x) => x.id)).toEqual(["hi", "lo"])
 })
 
 it("filters by initiative, label, owner, and status", () => {

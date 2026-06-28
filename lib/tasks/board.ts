@@ -56,7 +56,12 @@ function byColumnOrder(a: TaskView, b: TaskView): number {
 export function buildBoard(tasks: TaskView[], filter: BoardFilter = {}): BoardData {
   const filtered = applyFilter(tasks, filter)
   const columns: BoardColumn[] = STATUS_ORDER.map((status) => {
-    const colTasks = filtered.filter((t) => t.status === status).sort(byColumnOrder)
+    const colTasks = filtered
+      // Legacy safety net: a task still in the removed BLOCKED status renders in the
+      // In Progress column, surfaced as blocked, so nothing ever disappears from the board.
+      .filter((t) => t.status === status || (status === "IN_PROGRESS" && t.status === "BLOCKED"))
+      .map((t) => (t.status === "BLOCKED" ? { ...t, blocked: true } : t))
+      .sort(byColumnOrder)
     return { status, title: TASK_STATUS[status].label, tasks: colTasks, count: colTasks.length }
   })
   return { columns, total: filtered.length }

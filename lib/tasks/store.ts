@@ -11,7 +11,7 @@ const TASK_INCLUDE = {
 
 type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
-  labels: string[]; blockerReason: string; color: string; colorLabel: string; checklist: unknown
+  labels: string[]; blockerReason: string; blocked: boolean; color: string; colorLabel: string; checklist: unknown
   initiativeId: string | null; position: number; deletedAt: Date | null; createdAt: Date; updatedAt: Date
   owner: { id: string; name: string | null; email: string } | null
   _count?: { comments: number }
@@ -34,7 +34,7 @@ function mapTask(r: TaskRow): TaskView {
   return {
     id: r.id, title: r.title, description: r.description,
     status: r.status as TaskStatus, priority: r.priority as TaskPriority,
-    labels: r.labels, blockerReason: r.blockerReason, color: r.color, colorLabel: r.colorLabel,
+    labels: r.labels, blockerReason: r.blockerReason, blocked: r.blocked ?? false, color: r.color, colorLabel: r.colorLabel,
     checklist: parseChecklist(r.checklist),
     commentCount: r._count?.comments ?? 0, owner: r.owner, initiativeId: r.initiativeId,
     position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
@@ -89,7 +89,7 @@ export async function createTask(input: CreateTaskInput): Promise<TaskView> {
 
 export interface UpdateTaskPatch {
   title?: string; description?: string; priority?: TaskPriority; labels?: string[]
-  initiativeId?: string | null; blockerReason?: string; checklist?: ChecklistItem[]
+  initiativeId?: string | null; blockerReason?: string; blocked?: boolean; checklist?: ChecklistItem[]
   color?: string; colorLabel?: string
 }
 
@@ -112,6 +112,7 @@ export async function updateTask(id: string, patch: UpdateTaskPatch): Promise<Ta
   if (patch.labels !== undefined) data.labels = patch.labels
   if (patch.initiativeId !== undefined) data.initiativeId = patch.initiativeId || null
   if (patch.blockerReason !== undefined) data.blockerReason = patch.blockerReason.trim()
+  if (patch.blocked !== undefined) data.blocked = patch.blocked
   if (patch.color !== undefined || patch.colorLabel !== undefined) {
     Object.assign(data, normalizeColor(patch.color, patch.colorLabel))
   }

@@ -25,7 +25,7 @@ const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship",
 const members: MemberView[] = [{ id: "u2", name: "Gabe", email: "g@x.io" }]
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
-  labels: ["subfrost-app"], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
+  labels: ["subfrost-app"], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
@@ -43,10 +43,10 @@ beforeEach(() => {
   vi.mocked(boardActions.purgeTaskAction).mockResolvedValue({ ok: true, value: null } as never)
 })
 
-it("renders the four columns including Blocked", () => {
+it("renders the four columns including Requested Tasks", () => {
   const { getAllByText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
-  // "Blocked"/"In Progress" appear as a column header AND as a status <option>, so match >= 1
-  expect(getAllByText("Blocked").length).toBeGreaterThan(0)
+  // "Requested Tasks"/"In Progress" appear as a column header AND as a status <option>, so match >= 1
+  expect(getAllByText("Requested Tasks").length).toBeGreaterThan(0)
   expect(getAllByText("In Progress").length).toBeGreaterThan(0)
 })
 
@@ -76,12 +76,26 @@ it("has no green Done button on the card", () => {
   expect(queryByText("Done", { selector: "button" })).toBeNull()
 })
 
-it("shows the blocker input only for blocked tasks and saves it on blur", async () => {
-  const { getByLabelText } = render(<BoardClient tasks={[task({ status: "BLOCKED" })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+it("shows the blocker input for blocked tasks and saves it on blur", async () => {
+  const { getByLabelText } = render(<BoardClient tasks={[task({ blocked: true })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
   const input = getByLabelText("Blocker reason")
   await act(async () => { fireEvent.change(input, { target: { value: "waiting on flex" } }); fireEvent.blur(input) })
   const { updateTaskAction } = await import("@/actions/tasks/board")
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { blockerReason: "waiting on flex" })
+})
+
+it("the Block toggle marks an unblocked task as blocked", async () => {
+  const { getByRole } = render(<BoardClient tasks={[task({ blocked: false })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByRole("button", { name: "Mark blocked" })) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
+})
+
+it("the Block toggle unmarks an already-blocked task", async () => {
+  const { getByRole } = render(<BoardClient tasks={[task({ blocked: true })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByRole("button", { name: "Unmark blocked" })) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: false })
 })
 
 it("changing the priority dropdown calls updateTaskAction", async () => {
@@ -159,6 +173,14 @@ it("picking a color in the detail saves just the color (no name)", async () => {
   await act(async () => { fireEvent.click(getByLabelText("Red")) })
   const { updateTaskAction } = await import("@/actions/tasks/board")
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444" })
+})
+
+it("toggling Blocked in the detail marks the task blocked", async () => {
+  const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByText("Audit mint path")) })
+  await act(async () => { fireEvent.click(getByLabelText("Blocked")) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
 })
 
 it("hiding a product in the filter dashboard removes its tasks", () => {
