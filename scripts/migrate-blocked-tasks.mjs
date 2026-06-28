@@ -7,6 +7,10 @@
  */
 import { PrismaClient } from "@prisma/client"
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set — point it at the target DB (via cloud-sql-proxy) before running")
+}
+
 const prisma = new PrismaClient()
 try {
   const r = await prisma.task.updateMany({
