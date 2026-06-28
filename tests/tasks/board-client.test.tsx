@@ -76,12 +76,19 @@ it("has no green Done button on the card", () => {
   expect(queryByText("Done", { selector: "button" })).toBeNull()
 })
 
-it("shows the blocker input only for blocked tasks and saves it on blur", async () => {
-  const { getByLabelText } = render(<BoardClient tasks={[task({ status: "BLOCKED" })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+it("shows the blocker input for blocked tasks and saves it on blur", async () => {
+  const { getByLabelText } = render(<BoardClient tasks={[task({ blocked: true })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
   const input = getByLabelText("Blocker reason")
   await act(async () => { fireEvent.change(input, { target: { value: "waiting on flex" } }); fireEvent.blur(input) })
   const { updateTaskAction } = await import("@/actions/tasks/board")
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { blockerReason: "waiting on flex" })
+})
+
+it("the Block toggle marks an unblocked task as blocked", async () => {
+  const { getByRole } = render(<BoardClient tasks={[task({ blocked: false })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByRole("button", { name: "Mark blocked" })) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
 })
 
 it("changing the priority dropdown calls updateTaskAction", async () => {
