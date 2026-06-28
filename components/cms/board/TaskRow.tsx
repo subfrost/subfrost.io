@@ -10,6 +10,7 @@ export function TaskRow({ task, initiative, onOpen }: { task: TaskView; initiati
         <span className="flex items-center gap-1.5">
           {task.color && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.color }} title={task.colorLabel || undefined} />}
           {task.title}
+          {task.blocked && <span className="rounded bg-rose-500/15 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-300">Blocked</span>}
         </span>
       </td>
       <td className={`px-3 py-2 ${TASK_STATUS[task.status].cls}`}>{TASK_STATUS[task.status].label}</td>

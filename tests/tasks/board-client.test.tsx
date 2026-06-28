@@ -173,6 +173,14 @@ it("picking a color in the detail saves it with a seeded name", async () => {
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444", colorLabel: "Red" })
 })
 
+it("toggling Blocked in the detail marks the task blocked", async () => {
+  const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByText("Audit mint path")) })
+  await act(async () => { fireEvent.click(getByLabelText("Blocked")) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
+})
+
 it("hiding an initiative removes its tasks from the board", () => {
   localStorage.clear()
   const { getByText, getByLabelText, queryByText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
