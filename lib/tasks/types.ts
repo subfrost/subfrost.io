@@ -1,4 +1,4 @@
-export type TaskStatus = "TODO" | "BLOCKED" | "IN_PROGRESS" | "DONE"
+export type TaskStatus = "REQUESTED" | "TODO" | "BLOCKED" | "IN_PROGRESS" | "DONE"
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "FIRE"
 export type InitiativeStatus = "TODO" | "IN_PROGRESS" | "ON_HOLD" | "DONE"
 
@@ -24,6 +24,7 @@ export interface TaskView {
   priority: TaskPriority
   labels: string[]
   blockerReason: string
+  blocked: boolean
   color: string
   colorLabel: string
   checklist: ChecklistItem[]
@@ -69,7 +70,7 @@ export interface BoardColumn {
 }
 
 export interface BoardData {
-  columns: BoardColumn[] // always [TODO, BLOCKED, IN_PROGRESS, DONE]
+  columns: BoardColumn[] // always [REQUESTED, TODO, IN_PROGRESS, DONE]
   total: number
 }
 
@@ -91,11 +92,12 @@ export interface InitiativeProgress {
   pct: number
 }
 
-export const STATUS_ORDER: TaskStatus[] = ["TODO", "BLOCKED", "IN_PROGRESS", "DONE"]
+export const STATUS_ORDER: TaskStatus[] = ["REQUESTED", "TODO", "IN_PROGRESS", "DONE"]
 export const PRIORITY_ORDER: TaskPriority[] = ["LOW", "MEDIUM", "HIGH", "FIRE"]
 export const INITIATIVE_STATUS_ORDER: InitiativeStatus[] = ["TODO", "ON_HOLD", "IN_PROGRESS", "DONE"]
 
 export const TASK_STATUS: Record<TaskStatus, { label: string; cls: string; dot: string }> = {
+  REQUESTED: { label: "Requested Tasks", cls: "text-violet-300", dot: "bg-violet-400" },
   TODO: { label: "To do", cls: "text-zinc-400", dot: "bg-zinc-500" },
   BLOCKED: { label: "Blocked", cls: "text-rose-300", dot: "bg-rose-400" },
   IN_PROGRESS: { label: "In Progress", cls: "text-sky-300", dot: "bg-sky-400" },

@@ -25,7 +25,7 @@ const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship",
 const members: MemberView[] = [{ id: "u2", name: "Gabe", email: "g@x.io" }]
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
-  labels: ["subfrost-app"], blockerReason: "", color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
+  labels: ["subfrost-app"], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
@@ -43,10 +43,10 @@ beforeEach(() => {
   vi.mocked(boardActions.purgeTaskAction).mockResolvedValue({ ok: true, value: null } as never)
 })
 
-it("renders the four columns including Blocked", () => {
+it("renders the four columns including Requested Tasks", () => {
   const { getAllByText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
-  // "Blocked"/"In Progress" appear as a column header AND as a status <option>, so match >= 1
-  expect(getAllByText("Blocked").length).toBeGreaterThan(0)
+  // "Requested Tasks"/"In Progress" appear as a column header AND as a status <option>, so match >= 1
+  expect(getAllByText("Requested Tasks").length).toBeGreaterThan(0)
   expect(getAllByText("In Progress").length).toBeGreaterThan(0)
 })
 

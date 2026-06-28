@@ -118,6 +118,16 @@ it("updateTask persists a trimmed blockerReason", async () => {
   expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ blockerReason: "waiting on flex" }) }))
 })
 
+it("updateTask persists the blocked flag", async () => {
+  client.task.update.mockResolvedValue({
+    id: "t1", title: "x", description: "", status: "IN_PROGRESS", priority: "LOW",
+    labels: [], blockerReason: "", blocked: true, color: "", colorLabel: "", checklist: [], initiativeId: null, position: 0, deletedAt: null, owner: null, createdAt: new Date(), updatedAt: new Date(),
+  })
+  const v = await updateTask("t1", { blocked: true })
+  expect(client.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ blocked: true }) }))
+  expect(v.blocked).toBe(true)
+})
+
 it("updateTask normalizes the checklist, dropping blank/invalid items", async () => {
   client.task.update.mockResolvedValue({
     id: "t1", title: "x", description: "", status: "TODO", priority: "LOW",
