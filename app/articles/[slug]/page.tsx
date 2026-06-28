@@ -6,7 +6,7 @@ import { getPublishedArticle, type CmsLocale } from "@/lib/cms/articles"
 import { resolveArticleLocale } from "@/lib/i18n/resolve"
 import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 import { ArticleView, categoryLabel } from "@/components/cms/ArticleView"
-import { SubscribePanel } from "@/components/articles/SubscribePanel"
+import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
 import { absoluteUrlForHost, articleUrl, authorUrl, shouldUseArticlePreviewFallback, siteName } from "@/lib/seo"
 import { ArrowLeft } from "lucide-react"
 
@@ -134,22 +134,22 @@ export default async function ArticlePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <div className="mx-auto max-w-[920px] px-6 pb-2 pt-8 sm:px-8 sm:pt-10">
-        <Link
-          href={articleIndexHref}
-          className="font-display inline-flex items-center gap-2 text-[14px] font-medium transition-opacity hover:opacity-70"
-          style={{ color: "var(--ed-ink)" }}
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
-          <span>{copy.backToArticles}</span>
-        </Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href={articleIndexHref}
+            className="font-display inline-flex items-center gap-2 text-[14px] font-medium transition-opacity hover:opacity-70"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
+            <span>{copy.backToArticles}</span>
+          </Link>
+          <TopSubscribeModalButton locale={locale} />
+        </div>
       </div>
       <ArticleView
         article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags, author: a.author, coAuthors: a.coAuthors, readingMinutes: a.readingMinutes }}
         locale={locale}
       />
-      <div className="mx-auto max-w-[680px] px-6 pb-20 sm:px-8">
-        <SubscribePanel locale={locale} />
-      </div>
     </>
   )
 }
