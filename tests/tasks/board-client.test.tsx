@@ -91,6 +91,13 @@ it("the Block toggle marks an unblocked task as blocked", async () => {
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
 })
 
+it("the Block toggle unmarks an already-blocked task", async () => {
+  const { getByRole } = render(<BoardClient tasks={[task({ blocked: true })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  await act(async () => { fireEvent.click(getByRole("button", { name: "Unmark blocked" })) })
+  const { updateTaskAction } = await import("@/actions/tasks/board")
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: false })
+})
+
 it("changing the priority dropdown calls updateTaskAction", async () => {
   const { getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
   await act(async () => { fireEvent.change(getByLabelText("Priority"), { target: { value: "FIRE" } }) })
