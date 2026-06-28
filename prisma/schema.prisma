@@ -1155,6 +1155,175 @@ model BalanceSheetItem {
 }
 
 // ============================================
+// LEGAL — entities, agreements, OYL deserters & funded-investor obligations
+// ============================================
+//
+// The legal register that backs /admin/legal and the "Deserter SAFEs" subtab of
+// /admin/financials/safes. A LegalEntity is the profile hub for anyone we hold a
+// legal/financial relationship with — a funded OYL investor, an OYL "deserter"
+// (internal team member with a DIESEL vesting allocation), a Subfrost
+// counterparty (Halborn, SPRF, etc.), or one of our own employees. It carries
+// loose refs (userId/payeeId/shareholderId) into the existing identity models,
+// and 1:1 satellites for the deserter-equity and funded-investor-obligation
+// detail. Reached only through legal.* gated actions.
+
+enum LegalEntityKind {
+  PERSON
+  ORG
+}
+
+// Which book of business an entity belongs to. FUNDED_INVESTOR/VOID_NONFUNDER/
+// DESERTER come from the OYL scope; COUNTERPARTY/EMPLOYEE are Subfrost scope.
+enum LegalEntityCategory {
+  FUNDED_INVESTOR
+  DESERTER
+  VOID_NONFUNDER
+  COUNTERPARTY
+  EMPLOYEE
+}
+
+// "deserter scope of legal" (OYL) vs "our own subfrost legal".
+enum LegalScope {
+  SUBFROST
+  OYL
+}
+
+enum LegalAgreementType {
+  SAFE
+  TOKEN_RIGHTS
+  ADVISOR
+  CONTRACTOR
+  NDA
+  INTEGRATION
+  IP_ASSIGNMENT
+  RELEASE
+  BOARD_CONSENT
+  OTHER
+}
+
+enum LegalAgreementStatus {
+  DRAFT
+  SENT
+  SIGNED
+  VOID
+}
+
+// Did the OYL insider walk away from their vest, or stay through it?
+enum DesertionStatus {
+  RETAINED // did NOT desert — eligible for the Subfrost equity swap
+  DESERTED // abandoned the vest — declined
+  UNDECIDED
+}
+
+// Progress of converting a retained deserter's OYL allocation into the Subfrost
+// equity deal. Needs Arca + Alec sign-off before it can convert to DIESEL.
+enum SwapStatus {
+  NOT_STARTED
+  PROPOSED
+  ARCA_SIGNED
+  ALEC_SIGNED
+  FULLY_SIGNED
+  CONVERTED
+}
+
+// Whether a funded-investor SAFE actually settled (money wired) or is a signed
+// but unfunded grant we treat as void.
+enum OylFunding {
+  FUNDED
+  UNFUNDED_VOID
+}
+
+model LegalEntity {
+  id            String              @id @default(cuid())
+  name          String
+  kind          LegalEntityKind     @default(PERSON)
+  category      LegalEntityCategory
+  scope         LegalScope          @default(SUBFROST)
+  email         String?
+  // loose refs into existing identity models (resolved on read, like Shareholder)
+  userId        String? // our own team member (User)
+  payeeId       String? // accounting Payee
+  shareholderId String? // cap-table Shareholder
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  agreements LegalAgreement[]
+  deserter   Deserter?
+  obligation OylObligation?
+
+  @@index([category])
+  @@index([scope])
+  @@index([name])
+}
+
+model LegalAgreement {
+  id               String               @id @default(cuid())
+  entityId         String
+  entity           LegalEntity          @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  type             LegalAgreementType   @default(OTHER)
+  status           LegalAgreementStatus @default(DRAFT)
+  title            String
+  counterpartyName String? // the other signatory, when not the entity itself
+  scope            LegalScope           @default(SUBFROST)
+  signedAt         DateTime?
+  // binding-document linkage (mirrors Instrument): uploaded PDF and/or e-sign Envelope
+  pdfUrl           String?
+  envelopeId       String? // loose ref to Envelope.id
+  notes            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([entityId])
+  @@index([type])
+  @@index([status])
+}
+
+// 1:1 satellite of a DESERTER LegalEntity: the OYL insider's vesting allocation
+// and its path into the Subfrost equity swap → DIESEL. This is the "Deserter
+// SAFEs" record.
+model Deserter {
+  id               String          @id @default(cuid())
+  entityId         String          @unique
+  entity           LegalEntity     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  oylRole          String? // role at OYL (e.g. "Engineer")
+  oylTokenPct      Float? // their internal DIESEL allocation % at OYL
+  desertedVest     DesertionStatus @default(UNDECIDED)
+  // equity granted in the Subfrost deal if RETAINED (percent), and the DIESEL it
+  // converts into once the swap is signed off.
+  deserterEquityPct Float?
+  dieselConverted   Float?
+  swapStatus        SwapStatus     @default(NOT_STARTED)
+  arcaSignedOff     Boolean        @default(false)
+  alecSignedOff     Boolean        @default(false)
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+// 1:1 satellite of a FUNDED_INVESTOR / VOID_NONFUNDER LegalEntity: the OYL SAFE
+// round token obligation Subfrost honors. dieselOwed/claimableNow come straight
+// from the corrected obligations doc; funding distinguishes wired vs void.
+model OylObligation {
+  id              String     @id @default(cuid())
+  entityId        String     @unique
+  entity          LegalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  funding         OylFunding @default(FUNDED)
+  purchaseUsd     Float? // SAFE purchase amount
+  valuationCap    Float? // post-money cap ($20M or $60M)
+  dieselOwed      Float      @default(0)
+  dieselClaimable Float      @default(0) // currently vested/claimable
+  // on-chain settlement evidence (Gnosis Safe deposit), when reconciled
+  onchainTxid     String?
+  onchainAddress  String?
+  fundedAt        DateTime?
+  vestingNote     String?
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// ============================================
 // TASK BOARD (initiatives) — /admin/board
 // ============================================
 
@@ -1180,6 +1349,22 @@ enum InitiativeStatus {
   DONE
 }
 
+// Top of the board hierarchy: Product -> Initiative -> Task. A Product groups
+// initiatives so people can filter the board down to what they own. Additive —
+// initiatives without a product are simply ungrouped.
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  color       String       @default("#ffffff")
+  archived    Boolean      @default(false)
+  createdById String?
+  initiatives Initiative[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([archived])
+}
+
 model Initiative {
   id          String   @id @default(cuid())
   name        String
@@ -1187,12 +1372,15 @@ model Initiative {
   color       String   @default("#38bdf8")
   archived    Boolean  @default(false)
   status      InitiativeStatus @default(TODO)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   createdById String?
   tasks       Task[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([archived])
+  @@index([productId])
 }
 
 model Task {

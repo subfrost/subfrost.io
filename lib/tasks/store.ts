@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 import type { Prisma } from "@prisma/client"
-import type { TaskView, InitiativeView, TaskStatus, TaskPriority, InitiativeStatus, MemberView, ChecklistItem, CommentView } from "./types"
+import type { TaskView, InitiativeView, ProductView, TaskStatus, TaskPriority, InitiativeStatus, MemberView, ChecklistItem, CommentView } from "./types"
 
 export class TaskError extends Error {}
 
@@ -207,10 +207,10 @@ export async function bulkCreateTasks(input: { initiativeId: string; titles: str
 
 // --- Initiatives ---
 
-type InitiativeRow = { id: string; name: string; goal: string; color: string; status: string; archived: boolean; createdAt: Date; updatedAt: Date }
+type InitiativeRow = { id: string; name: string; goal: string; color: string; status: string; archived: boolean; productId: string | null; createdAt: Date; updatedAt: Date }
 
 function mapInitiative(r: InitiativeRow): InitiativeView {
-  return { id: r.id, name: r.name, goal: r.goal, color: r.color, status: r.status as InitiativeStatus, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
+  return { id: r.id, name: r.name, goal: r.goal, color: r.color, status: r.status as InitiativeStatus, archived: r.archived, productId: r.productId, createdAt: r.createdAt, updatedAt: r.updatedAt }
 }
 
 export async function listInitiatives(): Promise<InitiativeView[]> {
@@ -219,7 +219,7 @@ export async function listInitiatives(): Promise<InitiativeView[]> {
 }
 
 export interface CreateInitiativeInput {
-  name: string; goal?: string; color?: string; seedTitles?: string[]; createdById?: string | null
+  name: string; goal?: string; color?: string; productId?: string | null; seedTitles?: string[]; createdById?: string | null
 }
 
 export async function createInitiativeWithSeed(input: CreateInitiativeInput): Promise<InitiativeView> {
@@ -231,6 +231,7 @@ export async function createInitiativeWithSeed(input: CreateInitiativeInput): Pr
       name,
       goal: input.goal?.trim() || "",
       color: input.color?.trim() || "#38bdf8",
+      productId: input.productId || null,
       createdById: input.createdById || null,
       tasks: { create: titles.map((title) => ({ title, createdById: input.createdById || null })) },
     },
@@ -238,7 +239,7 @@ export async function createInitiativeWithSeed(input: CreateInitiativeInput): Pr
   return mapInitiative(r)
 }
 
-export interface UpdateInitiativePatch { name?: string; goal?: string; color?: string; archived?: boolean }
+export interface UpdateInitiativePatch { name?: string; goal?: string; color?: string; archived?: boolean; productId?: string | null }
 
 export async function updateInitiative(id: string, patch: UpdateInitiativePatch): Promise<InitiativeView> {
   const data: Record<string, unknown> = {}
@@ -250,8 +251,46 @@ export async function updateInitiative(id: string, patch: UpdateInitiativePatch)
   if (patch.goal !== undefined) data.goal = patch.goal.trim()
   if (patch.color !== undefined) data.color = patch.color.trim()
   if (patch.archived !== undefined) data.archived = patch.archived
+  if (patch.productId !== undefined) data.productId = patch.productId || null
   const r = (await prisma.initiative.update({ where: { id }, data })) as InitiativeRow
   return mapInitiative(r)
+}
+
+// --- Products (top of the hierarchy) ---
+
+type ProductRow = { id: string; name: string; color: string; archived: boolean; createdAt: Date; updatedAt: Date }
+
+function mapProduct(r: ProductRow): ProductView {
+  return { id: r.id, name: r.name, color: r.color, archived: r.archived, createdAt: r.createdAt, updatedAt: r.updatedAt }
+}
+
+export async function listProducts(): Promise<ProductView[]> {
+  const rows = (await prisma.product.findMany({ orderBy: { createdAt: "asc" } })) as ProductRow[]
+  return rows.map(mapProduct)
+}
+
+export async function createProduct(input: { name: string; color?: string; createdById?: string | null }): Promise<ProductView> {
+  const name = input.name.trim()
+  if (!name) throw new TaskError("A product name is required")
+  const r = (await prisma.product.create({
+    data: { name, color: input.color?.trim() || "#ffffff", createdById: input.createdById || null },
+  })) as ProductRow
+  return mapProduct(r)
+}
+
+export interface UpdateProductPatch { name?: string; color?: string; archived?: boolean }
+
+export async function updateProduct(id: string, patch: UpdateProductPatch): Promise<ProductView> {
+  const data: Record<string, unknown> = {}
+  if (patch.name !== undefined) {
+    const n = patch.name.trim()
+    if (!n) throw new TaskError("A product name is required")
+    data.name = n
+  }
+  if (patch.color !== undefined) data.color = patch.color.trim()
+  if (patch.archived !== undefined) data.archived = patch.archived
+  const r = (await prisma.product.update({ where: { id }, data })) as ProductRow
+  return mapProduct(r)
 }
 
 export async function archiveInitiative(id: string): Promise<void> {

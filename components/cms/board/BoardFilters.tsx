@@ -1,78 +1,136 @@
 "use client"
 
 import { useState } from "react"
-import { Eye } from "lucide-react"
-import type { BoardFilter, InitiativeView } from "@/lib/tasks/types"
+import { SlidersHorizontal, X } from "lucide-react"
+import type { BoardFilterState, InitiativeView, ProductView, MemberView, TaskPriority, TaskStatus } from "@/lib/tasks/types"
+import { EMPTY_FILTERS, PRIORITY_ORDER, STATUS_ORDER, TASK_PRIORITY, TASK_STATUS } from "@/lib/tasks/types"
+import { activeFilterCount } from "@/lib/tasks/board"
 
-export function BoardFilters({ filter, setFilter, initiatives, labels, meId, hidden, toggleHidden }: {
-  filter: BoardFilter
-  setFilter: (f: BoardFilter) => void
+function toggle<T>(arr: T[], v: T): T[] {
+  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
+}
+
+export function BoardFilters({ state, setState, products, initiatives, members, labels, meId }: {
+  state: BoardFilterState
+  setState: (s: BoardFilterState) => void
+  products: ProductView[]
   initiatives: InitiativeView[]
+  members: MemberView[]
   labels: string[]
   meId: string
-  hidden: Set<string>
-  toggleHidden: (id: string) => void
 }) {
-  const [showVis, setShowVis] = useState(false)
-  const pill = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-xs ${active ? "border-sky-500/50 bg-sky-500/15 text-sky-300" : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`
-  // Focus pills only list initiatives the user hasn't hidden (keeps the row lean).
-  const visibleInitiatives = initiatives.filter((i) => !hidden.has(i.id))
+  const [open, setOpen] = useState(false)
+  const n = activeFilterCount(state)
+  const set = (patch: Partial<BoardFilterState>) => setState({ ...state, ...patch })
+
+  const chip = (active: boolean) =>
+    `rounded-full border px-2.5 py-1 text-xs ${active ? "border-sky-500/50 bg-sky-500/15 text-sky-300" : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`
+  const section = "text-[11px] font-medium uppercase tracking-wide text-zinc-500"
+
+  const assigneeOptions: { value: string; label: string }[] = [
+    { value: "all", label: "Anyone" },
+    { value: "mine", label: "My tasks" },
+    { value: "unassigned", label: "Unassigned" },
+  ]
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-zinc-500">Initiative:</span>
-      <button className={pill(filter.initiativeId == null)} onClick={() => setFilter({ ...filter, initiativeId: null })}>All</button>
-      {visibleInitiatives.map((i) => (
-        <button key={i.id} className={pill(filter.initiativeId === i.id)} onClick={() => setFilter({ ...filter, initiativeId: i.id })}>
-          <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: i.color }} />
-          {i.name}
+      <div className="relative">
+        <button onClick={() => setOpen((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${n > 0 ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-zinc-700 text-zinc-200 hover:bg-zinc-800"}`}>
+          <SlidersHorizontal size={15} /> Filters{n > 0 && <span className="rounded-full bg-sky-500/30 px-1.5 text-[11px]">{n}</span>}
         </button>
-      ))}
 
-      {/* Visibility (turn off the bloat) */}
-      {initiatives.length > 0 && (
-        <div className="relative">
-          <button onClick={() => setShowVis((v) => !v)} className={`inline-flex items-center gap-1 ${pill(hidden.size > 0)}`} title="Show / hide initiatives">
-            <Eye size={13} /> {hidden.size > 0 ? `${hidden.size} hidden` : "Show/hide"}
-          </button>
-          {showVis && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowVis(false)} />
-              <div className="absolute left-0 z-20 mt-1 w-56 rounded-md border border-zinc-700 bg-zinc-950 p-2 shadow-xl">
-                <div className="mb-1 flex items-center justify-between px-1">
-                  <span className="text-[11px] uppercase tracking-wide text-zinc-500">Visible initiatives</span>
-                  {hidden.size > 0 && (
-                    <button onClick={() => [...hidden].forEach(toggleHidden)} className="text-[11px] text-sky-400 hover:text-sky-300">Show all</button>
-                  )}
+        {open && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+            <div className="absolute left-0 z-20 mt-1 w-80 space-y-3 rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl">
+              {/* Products */}
+              {products.length > 0 && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className={section}>Products</span>
+                    {state.hiddenProducts.length > 0 && <button onClick={() => set({ hiddenProducts: [] })} className="text-[11px] text-sky-400 hover:text-sky-300">Show all</button>}
+                  </div>
+                  <div className="max-h-40 space-y-0.5 overflow-y-auto">
+                    {products.map((p) => (
+                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-zinc-200 hover:bg-zinc-800">
+                        <input type="checkbox" checked={!state.hiddenProducts.includes(p.id)} onChange={() => set({ hiddenProducts: toggle(state.hiddenProducts, p.id) })} className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-900 text-sky-500 focus:ring-0" />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/30" style={{ background: p.color }} />
+                        <span className="truncate">{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {initiatives.map((i) => (
-                    <label key={i.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm text-zinc-200 hover:bg-zinc-800">
-                      <input type="checkbox" checked={!hidden.has(i.id)} onChange={() => toggleHidden(i.id)} className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-900 text-sky-500 focus:ring-0" />
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: i.color }} />
-                      <span className="truncate">{i.name}</span>
-                    </label>
+              )}
+
+              {/* Initiative (scoped to visible products so unrelated ones drop out) */}
+              <div>
+                <span className={section}>Initiative</span>
+                <select aria-label="Initiative filter" value={state.initiativeId ?? ""} onChange={(e) => set({ initiativeId: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none">
+                  <option value="">All initiatives</option>
+                  {initiatives
+                    .filter((i) => !i.productId || !state.hiddenProducts.includes(i.productId))
+                    .map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </div>
+
+              {/* Assignee */}
+              <div>
+                <span className={section}>Assignee</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {assigneeOptions.map((o) => (
+                    <button key={o.value} className={chip(state.assignee === o.value)} onClick={() => set({ assignee: o.value })}>{o.label}</button>
+                  ))}
+                  <select aria-label="Assignee member" value={members.some((m) => m.id === state.assignee) ? state.assignee : ""} onChange={(e) => set({ assignee: e.target.value || "all" })} className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none">
+                    <option value="">Someone…</option>
+                    {members.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.email}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <span className={section}>Priority</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {PRIORITY_ORDER.slice().reverse().map((p: TaskPriority) => (
+                    <button key={p} className={chip(state.priorities.includes(p))} onClick={() => set({ priorities: toggle(state.priorities, p) })}>{TASK_PRIORITY[p].label}</button>
                   ))}
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      )}
 
-      <span className="mx-1 h-4 w-px bg-zinc-700" />
-      <button className={pill(!!filter.ownerId)} onClick={() => setFilter({ ...filter, ownerId: filter.ownerId ? undefined : meId })}>My tasks</button>
-      {labels.length > 0 && (
-        <select
-          aria-label="Label"
-          value={filter.label ?? ""}
-          onChange={(e) => setFilter({ ...filter, label: e.target.value || undefined })}
-          className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
-        >
-          <option value="">All labels</option>
-          {labels.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
+              {/* Status */}
+              <div>
+                <span className={section}>Status</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {STATUS_ORDER.map((s: TaskStatus) => (
+                    <button key={s} className={chip(state.statuses.includes(s))} onClick={() => set({ statuses: toggle(state.statuses, s) })}>{TASK_STATUS[s].label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Label */}
+              <div>
+                <span className={section}>Label</span>
+                <select aria-label="Label filter" value={state.label ?? ""} onChange={(e) => set({ label: e.target.value || null })} className="mt-1 w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:outline-none">
+                  <option value="">All labels</option>
+                  {labels.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+
+              <div className="flex justify-end border-t border-zinc-800 pt-2">
+                <button onClick={() => setState({ ...EMPTY_FILTERS })} className="text-xs text-zinc-400 hover:text-zinc-200">Clear all</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Quick My-tasks toggle + active-filter pills outside the panel */}
+      <button onClick={() => set({ assignee: state.assignee === "mine" ? "all" : "mine" })} className={chip(state.assignee === "mine")}>My tasks</button>
+      {n > 0 && (
+        <button onClick={() => setState({ ...EMPTY_FILTERS })} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300">
+          <X size={12} /> Clear
+        </button>
       )}
     </div>
   )

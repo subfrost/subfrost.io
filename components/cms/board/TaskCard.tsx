@@ -64,15 +64,6 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       style={task.color ? { borderLeftColor: task.color, borderLeftWidth: 3 } : undefined}
       className={`cursor-pointer rounded-md border border-zinc-800 bg-zinc-900 p-3 transition-shadow hover:border-zinc-700 hover:shadow-md ${dragging ? "opacity-40" : ""} ${canEdit ? "active:cursor-grabbing" : ""}`}
     >
-      {/* Color tag chip (color + name) */}
-      {task.color && task.colorLabel && (
-        <div className="mb-1.5">
-          <span className="inline-flex max-w-full items-center truncate rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: task.color }} title={task.colorLabel}>
-            {task.colorLabel}
-          </span>
-        </div>
-      )}
-
       {canEdit ? (
         <div className="mb-2">
           <select
@@ -96,7 +87,6 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
 
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-1 items-start gap-1.5">
-          {task.color && !task.colorLabel && <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.color }} />}
           <button
             onClick={() => onOpen(task.id)}
             title="Open details"
@@ -131,7 +121,13 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       {(task.labels.length > 0 || cl.total > 0 || task.commentCount > 0) && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           {task.labels.map((l) => (
-            <span key={l} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">{l}</span>
+            <span
+              key={l}
+              className={`rounded px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-zinc-800 text-zinc-400"}`}
+              style={task.color ? { borderColor: task.color, color: task.color } : undefined}
+            >
+              {l}
+            </span>
           ))}
           {cl.total > 0 && (
             <span title="Checklist" className={`inline-flex items-center gap-0.5 text-[11px] ${cl.done === cl.total ? "text-emerald-400" : "text-zinc-500"}`}>

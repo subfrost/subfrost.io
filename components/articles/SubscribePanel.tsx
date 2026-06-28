@@ -31,7 +31,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
           }
         : {
             title: "Subscribe",
-            subtitle: "Get notified when new research, releases, and field notes go live.",
+          subtitle: "Get notified when new releases, updates, & articles go live!",
             cta: "Subscribe",
             placeholder: "Enter your email address",
             success: "You are subscribed. We will notify you about new articles.",

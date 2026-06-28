@@ -25,8 +25,10 @@ describe("AdminShell", () => {
     )
     // brand appears in desktop sidebar + mobile top bar
     expect(getAllByText("SUBFROST").length).toBeGreaterThanOrEqual(1)
-    // pathname is /admin → the Overview group is active/expanded, rendering Dashboard
-    expect(getByText("Dashboard")).toBeTruthy()
+    // pathname is /admin → the Overview group is active/expanded, rendering Dashboard.
+    // The nav renders in both the desktop sidebar and the always-mounted mobile
+    // drawer (translated off-screen when closed), so Dashboard appears more than once.
+    expect(getAllByText("Dashboard").length).toBeGreaterThanOrEqual(1)
     expect(getByText("page body")).toBeTruthy()
   })
 

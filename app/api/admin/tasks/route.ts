@@ -156,3 +156,46 @@ export async function DELETE(req: NextRequest) {
   revalidatePath(BOARD)
   return NextResponse.json({ ok: true, deleted })
 }
+
+// Update fields on one or more tasks. Body: { id|ids, ...patch }. Used e.g. to
+// clear labels in bulk. checklist accepts plain strings (seeded unchecked).
+const PatchBody = z.object({
+  id: z.string().min(1).optional(),
+  ids: z.array(z.string().min(1)).optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  priority: Priority.optional(),
+  labels: z.array(z.string()).optional(),
+  color: z.string().optional(),
+  colorLabel: z.string().optional(),
+  blockerReason: z.string().optional(),
+  initiativeId: z.string().nullable().optional(),
+  checklist: z.array(z.string()).optional(),
+}).refine((b) => b.id || (b.ids && b.ids.length), { message: "Provide id or ids[]" })
+
+export async function PATCH(req: NextRequest) {
+  const actor = await actorFromBearer(req.headers.get("authorization"))
+  if (!actor) return NextResponse.json({ error: "Invalid or missing API key" }, { status: 401 })
+  if (!actor.privileges.includes("tasks.edit")) {
+    return NextResponse.json({ error: "This key lacks the tasks.edit scope" }, { status: 403 })
+  }
+  let raw: unknown
+  try { raw = await req.json() } catch { return NextResponse.json({ error: "Body must be valid JSON" }, { status: 400 }) }
+  const parsed = PatchBody.safeParse(raw)
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 })
+  const { id, ids, checklist, ...rest } = parsed.data
+  const targets = ids?.length ? ids : id ? [id] : []
+  const patch = {
+    ...rest,
+    ...(checklist ? { checklist: checklist.map((text) => ({ id: crypto.randomUUID(), text, checked: false })) } : {}),
+  }
+  try {
+    let updated = 0
+    for (const t of targets) { await store.updateTask(t, patch); updated++ }
+    revalidatePath(BOARD)
+    return NextResponse.json({ ok: true, updated })
+  } catch (e) {
+    const { status, error } = mapError(e)
+    return NextResponse.json({ error }, { status })
+  }
+}

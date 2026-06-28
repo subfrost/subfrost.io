@@ -4,11 +4,12 @@ const client = vi.hoisted(() => ({
   task: { findMany: vi.fn(), create: vi.fn(), createMany: vi.fn(), update: vi.fn(), delete: vi.fn() },
   taskComment: { findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
   initiative: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+  product: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   user: { findUnique: vi.fn(), findMany: vi.fn() },
 }))
 vi.mock("@/lib/prisma", () => ({ prisma: client, default: client }))
 
-import { createTask, createInitiativeWithSeed, moveTask, claimTask, assignTask, listAssignableUsers, bulkCreateTasks, moveInitiative, updateTask, deleteTask, restoreTask, purgeTask, addComment, TaskError } from "@/lib/tasks/store"
+import { createTask, createInitiativeWithSeed, moveTask, claimTask, assignTask, listAssignableUsers, bulkCreateTasks, moveInitiative, updateTask, updateInitiative, createProduct, updateProduct, deleteTask, restoreTask, purgeTask, addComment, TaskError } from "@/lib/tasks/store"
 
 const owner = { id: "u1", name: "Vitor", email: "v@x.io" }
 beforeEach(() => vi.clearAllMocks())
@@ -191,4 +192,31 @@ it("addComment rejects an empty body and trims a valid one", async () => {
   client.taskComment.create.mockResolvedValue({ id: "c1", taskId: "t1", body: "hello", createdAt: new Date(), author: owner })
   await addComment("t1", "u1", "  hello  ")
   expect(client.taskComment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ taskId: "t1", authorId: "u1", body: "hello" }) }))
+})
+
+it("createProduct trims the name and defaults the color to white", async () => {
+  client.product.create.mockResolvedValue({ id: "p1", name: "iOS", color: "#ffffff", archived: false, createdAt: new Date(), updatedAt: new Date() })
+  const p = await createProduct({ name: "  iOS  ", createdById: "u1" })
+  expect(p.name).toBe("iOS")
+  expect(client.product.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: "iOS", color: "#ffffff", createdById: "u1" }) }))
+})
+
+it("createProduct rejects an empty name", async () => {
+  await expect(createProduct({ name: "   " })).rejects.toBeInstanceOf(TaskError)
+})
+
+it("updateProduct updates name/color/archived", async () => {
+  client.product.update.mockResolvedValue({ id: "p1", name: "App Store", color: "#fff", archived: true, createdAt: new Date(), updatedAt: new Date() })
+  await updateProduct("p1", { name: "App Store", archived: true })
+  expect(client.product.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "p1" }, data: expect.objectContaining({ name: "App Store", archived: true }) }))
+})
+
+it("updateInitiative can set or clear the productId", async () => {
+  client.initiative.update.mockResolvedValue({ id: "i1", name: "App Store Release", goal: "", color: "#fff", status: "TODO", archived: false, productId: "p1", createdAt: new Date(), updatedAt: new Date() })
+  await updateInitiative("i1", { name: "App Store Release", productId: "p1" })
+  let arg = client.initiative.update.mock.calls[0][0]
+  expect(arg.data).toMatchObject({ name: "App Store Release", productId: "p1" })
+  await updateInitiative("i1", { productId: null })
+  arg = client.initiative.update.mock.calls[1][0]
+  expect(arg.data.productId).toBeNull()
 })

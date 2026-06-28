@@ -3,7 +3,7 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target,
+  KanbanSquare, Target, Package, Gavel, Building2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -41,6 +41,7 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "board", label: "Board", icon: KanbanSquare, items: [
       { label: "Tasks", href: "/admin/board", icon: KanbanSquare, privilege: "tasks.view" },
       { label: "Initiatives", href: "/admin/board/initiatives", icon: Target, privilege: "tasks.view" },
+      { label: "Products", href: "/admin/board/products", icon: Package, privilege: "tasks.view" },
     ],
   },
   {
@@ -91,6 +92,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Cap table", href: "/admin/financials/cap-table", icon: PieChart, privilege: FINANCIALS_PRIVILEGE },
       { label: "SAFEs & tokens", href: "/admin/financials/safes", icon: Handshake, privilege: FINANCIALS_PRIVILEGE },
       { label: "Balance sheet", href: "/admin/financials/balance-sheet", icon: Scale, privilege: FINANCIALS_PRIVILEGE },
+      { label: "Reconciliation", href: "/admin/financials/reconciliation", icon: ArrowLeftRight, privilege: "legal.view" },
+    ],
+  },
+  {
+    key: "legal", label: "Legal", icon: Gavel, items: [
+      { label: "Entities", href: "/admin/legal", icon: Building2, privilege: "legal.view" },
     ],
   },
   {
@@ -128,6 +135,9 @@ export function isItemActive(href: string, pathname: string): boolean {
   }
   if (href === "/admin/documents") {
     return pathname === "/admin/documents" || pathname.startsWith("/admin/documents/")
+  }
+  if (href === "/admin/legal") {
+    return pathname === "/admin/legal" || pathname.startsWith("/admin/legal/")
   }
   return pathname === href
 }

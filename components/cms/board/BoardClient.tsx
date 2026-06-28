@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { KanbanSquare, Plus, Layers, Trash2 } from "lucide-react"
-import type { TaskView, InitiativeView, BoardFilter, MemberView, TaskStatus } from "@/lib/tasks/types"
-import { TASK_STATUS } from "@/lib/tasks/types"
-import { buildBoard, distinctLabels, selectableInitiatives } from "@/lib/tasks/board"
+import type { TaskView, InitiativeView, ProductView, BoardFilterState, MemberView, TaskStatus } from "@/lib/tasks/types"
+import { TASK_STATUS, EMPTY_FILTERS } from "@/lib/tasks/types"
+import { buildBoard, distinctLabels, selectableInitiatives, filterTasks } from "@/lib/tasks/board"
 import { createTaskAction, bulkCreateTasksAction, moveTaskAction } from "@/actions/tasks/board"
 import { TaskCard } from "./TaskCard"
 import { TaskRow } from "./TaskRow"
@@ -13,17 +13,19 @@ import { BoardFilters } from "./BoardFilters"
 import { TaskDetail } from "./TaskDetail"
 import { RecycleBin } from "./RecycleBin"
 
-export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, canEdit }: {
+const FILTERS_KEY = "subfrost:board:filters:v2"
+
+export function BoardClient({ tasks, deletedTasks, initiatives, products = [], members, meId, canEdit }: {
   tasks: TaskView[]
   deletedTasks: TaskView[]
   initiatives: InitiativeView[]
+  products?: ProductView[]
   members: MemberView[]
   meId: string
   canEdit: boolean
 }) {
   const router = useRouter()
   const [view, setView] = useState<"board" | "list">("board")
-  const [filter, setFilter] = useState<BoardFilter>({})
   const [quick, setQuick] = useState("")
   const [busy, setBusy] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -34,27 +36,27 @@ export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, c
   const [binOpen, setBinOpen] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
-  // Per-user "hide these initiatives" set (turn off bloat). Persisted locally.
-  const [hidden, setHidden] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set()
-    try { return new Set(JSON.parse(localStorage.getItem("subfrost:board:hiddenInitiatives") || "[]")) } catch { return new Set() }
+  // Dashboard filter state (products/priority/assignee/status/…), persisted.
+  const [filters, setFilters] = useState<BoardFilterState>(() => {
+    if (typeof window === "undefined") return EMPTY_FILTERS
+    try { return { ...EMPTY_FILTERS, ...JSON.parse(localStorage.getItem(FILTERS_KEY) || "{}") } } catch { return EMPTY_FILTERS }
   })
   useEffect(() => {
-    try { localStorage.setItem("subfrost:board:hiddenInitiatives", JSON.stringify([...hidden])) } catch { /* ignore */ }
-  }, [hidden])
-  function toggleHidden(id: string) {
-    setHidden((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
-  }
+    try { localStorage.setItem(FILTERS_KEY, JSON.stringify(filters)) } catch { /* ignore */ }
+  }, [filters])
 
   const initiativeById = useMemo(
     () => Object.fromEntries(initiatives.map((i) => [i.id, i])) as Record<string, InitiativeView>,
     [initiatives],
   )
+  const productByInitiative = useMemo(
+    () => Object.fromEntries(initiatives.map((i) => [i.id, i.productId])) as Record<string, string | null>,
+    [initiatives],
+  )
   const selectable = useMemo(() => selectableInitiatives(initiatives), [initiatives])
-  // Drop tasks whose initiative the user has hidden (tasks with no initiative always show).
-  const visibleTasks = useMemo(() => tasks.filter((t) => !t.initiativeId || !hidden.has(t.initiativeId)), [tasks, hidden])
-  const labels = useMemo(() => distinctLabels(visibleTasks), [visibleTasks])
-  const board = useMemo(() => buildBoard(visibleTasks, filter), [visibleTasks, filter])
+  const labels = useMemo(() => distinctLabels(tasks), [tasks])
+  const visibleTasks = useMemo(() => filterTasks(tasks, filters, productByInitiative, meId), [tasks, filters, productByInitiative, meId])
+  const board = useMemo(() => buildBoard(visibleTasks), [visibleTasks])
   const bulkCount = bulkText.split("\n").map((s) => s.trim()).filter(Boolean).length
   const selectedTask = selectedId ? tasks.find((t) => t.id === selectedId) ?? null : null
 
@@ -79,7 +81,7 @@ export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, c
     const title = quick.trim()
     if (!title || busy) return
     setBusy(true)
-    await createTaskAction({ title, initiativeId: filter.initiativeId ?? null, labels: filter.label ? [filter.label] : [] })
+    await createTaskAction({ title, initiativeId: filters.initiativeId ?? null, labels: filters.label ? [filters.label] : [] })
     setQuick("")
     setBusy(false)
     router.refresh()
@@ -119,7 +121,7 @@ export function BoardClient({ tasks, deletedTasks, initiatives, members, meId, c
         </div>
       </div>
 
-      <BoardFilters filter={filter} setFilter={setFilter} initiatives={initiatives} labels={labels} meId={meId} hidden={hidden} toggleHidden={toggleHidden} />
+      <BoardFilters state={filters} setState={setFilters} products={products} initiatives={initiatives} members={members} labels={labels} meId={meId} />
 
       {canEdit && (
         <div className="space-y-2">

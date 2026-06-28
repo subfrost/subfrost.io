@@ -1,6 +1,7 @@
 import { it, expect } from "vitest"
-import { buildBoard, applyFilter, initiativeProgress, distinctLabels, buildInitiativeBoard, selectableInitiatives } from "@/lib/tasks/board"
-import type { TaskView, InitiativeView } from "@/lib/tasks/types"
+import { buildBoard, applyFilter, initiativeProgress, distinctLabels, buildInitiativeBoard, selectableInitiatives, filterTasks, activeFilterCount } from "@/lib/tasks/board"
+import { EMPTY_FILTERS } from "@/lib/tasks/types"
+import type { TaskView, InitiativeView, BoardFilterState } from "@/lib/tasks/types"
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
@@ -60,7 +61,7 @@ it("collects distinct labels sorted", () => {
 })
 
 const init = (over: Partial<InitiativeView>): InitiativeView => ({
-  id: "i", name: "n", goal: "", color: "#38bdf8", status: "TODO", archived: false,
+  id: "i", name: "n", goal: "", color: "#38bdf8", status: "TODO", archived: false, productId: null,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
@@ -81,4 +82,37 @@ it("offers only To do / In progress (non-archived) initiatives as selectable", (
     init({ id: "e", status: "TODO", archived: true }),
   ]
   expect(selectableInitiatives(list).map((i) => i.id)).toEqual(["a", "b"])
+})
+
+// --- dashboard filters ---
+const owner = (id: string) => ({ id, name: id, email: `${id}@x.io` })
+const prodMap = { i1: "p1", i2: "p2" } as Record<string, string | null>
+
+it("filterTasks hides tasks of hidden products", () => {
+  const tasks = [t({ id: "a", initiativeId: "i1" }), t({ id: "b", initiativeId: "i2" })]
+  const s: BoardFilterState = { ...EMPTY_FILTERS, hiddenProducts: ["p1"] }
+  expect(filterTasks(tasks, s, prodMap, "me").map((x) => x.id)).toEqual(["b"])
+})
+
+it("filterTasks: mine / unassigned / specific assignee", () => {
+  const tasks = [t({ id: "a", owner: owner("me") }), t({ id: "b", owner: owner("u2") }), t({ id: "c", owner: null })]
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, assignee: "mine" }, prodMap, "me").map((x) => x.id)).toEqual(["a"])
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, assignee: "unassigned" }, prodMap, "me").map((x) => x.id)).toEqual(["c"])
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, assignee: "u2" }, prodMap, "me").map((x) => x.id)).toEqual(["b"])
+})
+
+it("filterTasks: priority + status + label constraints AND together", () => {
+  const tasks = [
+    t({ id: "a", priority: "FIRE", status: "TODO", labels: ["x"] }),
+    t({ id: "b", priority: "LOW", status: "TODO", labels: ["x"] }),
+    t({ id: "c", priority: "FIRE", status: "DONE", labels: ["y"] }),
+  ]
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, priorities: ["FIRE"] }, prodMap, "me").map((x) => x.id)).toEqual(["a", "c"])
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, statuses: ["TODO"] }, prodMap, "me").map((x) => x.id)).toEqual(["a", "b"])
+  expect(filterTasks(tasks, { ...EMPTY_FILTERS, label: "x" }, prodMap, "me").map((x) => x.id)).toEqual(["a", "b"])
+})
+
+it("activeFilterCount counts distinct active constraints", () => {
+  expect(activeFilterCount(EMPTY_FILTERS)).toBe(0)
+  expect(activeFilterCount({ ...EMPTY_FILTERS, assignee: "mine", priorities: ["FIRE"], hiddenProducts: ["p1"] })).toBe(3)
 })

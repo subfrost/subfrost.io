@@ -19,9 +19,9 @@ vi.mock("@/actions/tasks/board", () => ({
 
 import * as boardActions from "@/actions/tasks/board"
 import { BoardClient } from "@/components/cms/board/BoardClient"
-import type { TaskView, InitiativeView, MemberView } from "@/lib/tasks/types"
+import type { TaskView, InitiativeView, ProductView, MemberView } from "@/lib/tasks/types"
 
-const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship", color: "#1D9E75", status: "TODO", archived: false, createdAt: new Date(), updatedAt: new Date() }
+const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship", color: "#1D9E75", status: "TODO", archived: false, productId: null, createdAt: new Date(), updatedAt: new Date() }
 const members: MemberView[] = [{ id: "u2", name: "Gabe", email: "g@x.io" }]
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
@@ -151,11 +151,13 @@ it("shows the recycle bin with the deleted task count", () => {
   expect(getByText("Old thing")).toBeTruthy()
 })
 
-it("renders the color tag chip on the card", () => {
+it("tints the task's labels with its color", () => {
   const { getByText } = render(
-    <BoardClient tasks={[task({ color: "#ef4444", colorLabel: "bug" })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />,
+    <BoardClient tasks={[task({ color: "#ef4444", labels: ["urgent"] })]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />,
   )
-  expect(getByText("bug")).toBeTruthy()
+  const chip = getByText("urgent")
+  expect(chip.className).toContain("border")
+  expect(chip.className).not.toContain("bg-zinc-800")
 })
 
 it("clicking the card body (not a control) opens the detail panel", async () => {
@@ -165,12 +167,12 @@ it("clicking the card body (not a control) opens the detail panel", async () => 
   expect(getByLabelText("Close")).toBeTruthy()
 })
 
-it("picking a color in the detail saves it with a seeded name", async () => {
+it("picking a color in the detail saves just the color (no name)", async () => {
   const { getByText, getByLabelText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
   await act(async () => { fireEvent.click(getByText("Audit mint path")) })
   await act(async () => { fireEvent.click(getByLabelText("Red")) })
   const { updateTaskAction } = await import("@/actions/tasks/board")
-  expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444", colorLabel: "Red" })
+  expect(updateTaskAction).toHaveBeenCalledWith("t1", { color: "#ef4444" })
 })
 
 it("toggling Blocked in the detail marks the task blocked", async () => {
@@ -181,11 +183,25 @@ it("toggling Blocked in the detail marks the task blocked", async () => {
   expect(updateTaskAction).toHaveBeenCalledWith("t1", { blocked: true })
 })
 
-it("hiding an initiative removes its tasks from the board", () => {
+it("hiding a product in the filter dashboard removes its tasks", () => {
   localStorage.clear()
-  const { getByText, getByLabelText, queryByText } = render(<BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  const product: ProductView = { id: "p1", name: "iOS", color: "#ffffff", archived: false, createdAt: new Date(), updatedAt: new Date() }
+  const initWithProd = { ...init, productId: "p1" }
+  const { getByText, getByLabelText, queryByText } = render(
+    <BoardClient tasks={[task({})]} deletedTasks={[]} initiatives={[initWithProd]} products={[product]} members={members} meId="u1" canEdit />,
+  )
   expect(getByText("Audit mint path")).toBeTruthy()
-  fireEvent.click(getByText("Show/hide"))
-  fireEvent.click(getByLabelText(init.name)) // uncheck the initiative in the visibility popover
+  fireEvent.click(getByText("Filters"))
+  fireEvent.click(getByLabelText("iOS")) // uncheck the product in the dashboard
   expect(queryByText("Audit mint path")).toBeNull()
+})
+
+it("the My tasks quick toggle filters to the current user", () => {
+  localStorage.clear()
+  const mine = task({ id: "tm", title: "Mine", owner: { id: "u1", name: "Me", email: "me@x.io" } })
+  const theirs = task({ id: "tt", title: "Theirs", owner: { id: "u2", name: "Gabe", email: "g@x.io" } })
+  const { getByText, queryByText } = render(<BoardClient tasks={[mine, theirs]} deletedTasks={[]} initiatives={[init]} members={members} meId="u1" canEdit />)
+  fireEvent.click(getByText("My tasks"))
+  expect(getByText("Mine")).toBeTruthy()
+  expect(queryByText("Theirs")).toBeNull()
 })

@@ -1,7 +1,7 @@
 "use client"
 
 import {
-  UserCog, FileText, Megaphone, Scale, CreditCard, Banknote, KeyRound, ScrollText, Shield, FolderOpen, TrendingUp, KanbanSquare,
+  UserCog, FileText, Megaphone, Scale, CreditCard, Banknote, KeyRound, ScrollText, Shield, FolderOpen, TrendingUp, KanbanSquare, Gavel,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { CategoryKey } from "@/lib/cms/iam/registry"
@@ -14,6 +14,7 @@ export const CATEGORY_ICON: Record<CategoryKey, LucideIcon> = {
   compliance: Scale,
   billing: CreditCard,
   financials: Banknote,
+  legal: Gavel,
   files: FolderOpen,
   marketing: TrendingUp,
   apikeys: KeyRound,

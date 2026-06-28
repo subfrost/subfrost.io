@@ -8,11 +8,12 @@ vi.mock("@/lib/tasks/store", () => ({
   listInitiatives: vi.fn(),
   listTasks: vi.fn(),
   purgeTask: vi.fn(),
+  updateTask: vi.fn(),
   TaskError: class extends Error {},
 }))
 
 import { NextRequest } from "next/server"
-import { POST, GET, DELETE } from "@/app/api/admin/tasks/route"
+import { POST, GET, DELETE, PATCH } from "@/app/api/admin/tasks/route"
 import { actorFromBearer } from "@/lib/cms/apikey-auth"
 import * as store from "@/lib/tasks/store"
 
@@ -151,5 +152,31 @@ describe("DELETE /api/admin/tasks", () => {
   it("400 on a bad body", async () => {
     vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
     expect((await DELETE(del({}))).status).toBe(400)
+  })
+})
+
+describe("PATCH /api/admin/tasks", () => {
+  function patch(body: unknown, auth = "Bearer sk_test") {
+    return new NextRequest("https://subfrost.io/api/admin/tasks", {
+      method: "PATCH", headers: { authorization: auth, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  }
+  it("403 without tasks.edit", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(viewer as never)
+    expect((await PATCH(patch({ id: "t1", labels: [] }))).status).toBe(403)
+  })
+  it("clears labels across a batch of ids", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    vi.mocked(store.updateTask).mockResolvedValue({ id: "t1" } as never)
+    const res = await PATCH(patch({ ids: ["t1", "t2"], labels: [] }))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, updated: 2 })
+    expect(store.updateTask).toHaveBeenCalledWith("t1", { labels: [] })
+    expect(store.updateTask).toHaveBeenCalledWith("t2", { labels: [] })
+  })
+  it("400 when neither id nor ids provided", async () => {
+    vi.mocked(actorFromBearer).mockResolvedValue(editor as never)
+    expect((await PATCH(patch({ labels: [] }))).status).toBe(400)
   })
 })
