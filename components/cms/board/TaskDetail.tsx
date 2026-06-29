@@ -9,6 +9,7 @@ import { updateTaskAction, moveTaskAction, assignTaskAction, claimTaskAction, de
 import { Checklist } from "./Checklist"
 import { ColorPicker } from "./ColorPicker"
 import { CommentList } from "./CommentList"
+import { TaskGithubLink } from "./TaskGithubLink"
 
 const labelCls = "text-[11px] font-medium uppercase tracking-wide text-zinc-500"
 const fieldCls = "w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:border-sky-500 focus:outline-none"
@@ -240,6 +241,9 @@ export function TaskDetail({ task, initiatives, members, canEdit, onClose }: {
             <label className={`${labelCls} mb-1.5 block`}>Checklist</label>
             <Checklist items={checklist} onChange={saveChecklist} disabled={!canEdit} />
           </div>
+
+          {/* GitHub link */}
+          <TaskGithubLink task={task} canEdit={canEdit} />
 
           {/* Comments */}
           <div>

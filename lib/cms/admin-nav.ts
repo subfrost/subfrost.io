@@ -3,7 +3,7 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2,
+  KanbanSquare, Target, Package, Gavel, Building2, Github,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -40,6 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "board", label: "Board", icon: KanbanSquare, items: [
       { label: "Tasks", href: "/admin/board", icon: KanbanSquare, privilege: "tasks.view" },
+      { label: "Issue intake", href: "/admin/board/intake", icon: Github, privilege: "tasks.view" },
       { label: "Initiatives", href: "/admin/board/initiatives", icon: Target, privilege: "tasks.view" },
       { label: "Products", href: "/admin/board/products", icon: Package, privilege: "tasks.view" },
     ],

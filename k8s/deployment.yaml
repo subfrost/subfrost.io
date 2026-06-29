@@ -184,6 +184,21 @@ spec:
                   name: subfrost-io-secrets
                   key: DOCUMENSO_WEBHOOK_SECRET
                   optional: true
+            # GitHub Issues integration (board intake + PR/issue sync). optional:true
+            # so the pod starts without them; absent PAT => sync disabled, intake
+            # accept/deny still works. Webhook receiver at /api/webhooks/github.
+            - name: GITHUB_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: GITHUB_PAT
+                  optional: true
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: GITHUB_WEBHOOK_SECRET
+                  optional: true
             # Anthropic Claude key for article translation (lib/cms/translate.ts:
             # the editor's "Translate with Claude" button). Lives in a STANDALONE
             # k8s Secret `anthropic-api-key` (created out-of-band, NOT the

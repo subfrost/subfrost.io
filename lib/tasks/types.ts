@@ -32,6 +32,8 @@ export interface TaskView {
   owner: OwnerView | null
   initiativeId: string | null
   position: number
+  // optional GitHub linkage (issue/PR this task tracks)
+  github: { repo: string; number: number; url: string; kind: string; state: string | null } | null
   createdAt: Date
   updatedAt: Date
 }

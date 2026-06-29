@@ -13,6 +13,8 @@ type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string
   labels: string[]; blockerReason: string; blocked: boolean; color: string; colorLabel: string; checklist: unknown
   initiativeId: string | null; position: number; deletedAt: Date | null; createdAt: Date; updatedAt: Date
+  githubRepo?: string | null; githubNumber?: number | null; githubUrl?: string | null
+  githubKind?: string | null; githubState?: string | null
   owner: { id: string; name: string | null; email: string } | null
   _count?: { comments: number }
 }
@@ -37,7 +39,11 @@ function mapTask(r: TaskRow): TaskView {
     labels: r.labels, blockerReason: r.blockerReason, blocked: r.blocked ?? false, color: r.color, colorLabel: r.colorLabel,
     checklist: parseChecklist(r.checklist),
     commentCount: r._count?.comments ?? 0, owner: r.owner, initiativeId: r.initiativeId,
-    position: r.position, createdAt: r.createdAt, updatedAt: r.updatedAt,
+    position: r.position,
+    github: r.githubRepo && r.githubNumber != null
+      ? { repo: r.githubRepo, number: r.githubNumber, url: r.githubUrl ?? "", kind: r.githubKind ?? "ISSUE", state: r.githubState ?? null }
+      : null,
+    createdAt: r.createdAt, updatedAt: r.updatedAt,
   }
 }
 
