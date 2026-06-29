@@ -50,6 +50,11 @@ const staticCopy = {
       description: "Sign in to the live Subfrost API dashboard.",
       keywords: "api login auth dashboard developer access",
     },
+    chromeExtension: {
+      title: "Chrome extension",
+      description: "Download the live Subfrost Chrome extension from the Chrome Web Store.",
+      keywords: "downloads chrome extension browser web store plugin",
+    },
     volume: {
       title: "Volume",
       description: "Wrap and unwrap volume across Both, Alkanes, and BRC2.0 sources.",
@@ -121,6 +126,11 @@ const staticCopy = {
       title: "API 登录",
       description: "登录实时 Subfrost API 控制台。",
       keywords: "api 登录 认证 控制台 开发者 访问",
+    },
+    chromeExtension: {
+      title: "Chrome 扩展",
+      description: "从 Chrome 网上应用店下载 live Subfrost 扩展。",
+      keywords: "下载 chrome 扩展 浏览器 网上应用店 插件",
     },
     volume: {
       title: "交易量",
@@ -226,6 +236,7 @@ function staticEntries(locale: CmsLocale): SearchableEntry[] {
     { id: "docs", type: "docs", section: "Developer", href: externalLinks.docs, priority: 5, ...copy.docs },
     { id: "api-docs", type: "docs", section: "Developer", href: externalLinks.apiDocs, priority: 5, ...copy.apiDocs },
     { id: "api-login", type: "docs", section: "Developer", href: externalLinks.apiLogin, priority: 4, ...copy.apiLogin },
+    { id: "chrome-extension", type: "product", section: "Downloads", href: externalLinks.chromeExtension, priority: 5, ...copy.chromeExtension },
     { id: "articles", type: "page", section: "Articles", href: "/articles", priority: 4, ...copy.articles },
     { id: "support", type: "page", section: "Company", href: "/support", priority: 1, ...copy.support },
     { id: "brand", type: "page", section: "Company", href: "/brand", priority: 1, ...copy.brand },
@@ -300,7 +311,7 @@ export async function searchSite(opts: {
 
   if (!query) {
     return index
-      .filter((entry) => ["home", "markets", "swap", "vaults", "developer", "docs", "api-docs", "api-login"].includes(entry.id))
+      .filter((entry) => ["home", "markets", "swap", "vaults", "developer", "docs", "api-docs", "api-login", "chrome-extension"].includes(entry.id))
       .slice(0, limit)
       .map(({ keywords: _keywords, priority: _priority, ...result }) => result)
   }

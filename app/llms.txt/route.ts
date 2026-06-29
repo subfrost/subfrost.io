@@ -29,6 +29,7 @@ export async function GET() {
 - [Docs](${externalLinks.docs}): Technical references, setup paths, product guides, token docs, and networking references.
 - [API Docs](${externalLinks.apiDocs}): API reference for balances, wrapping state, transactions, and integrations.
 - [API Login](${externalLinks.apiLogin}): Live API dashboard login.
+- [Chrome Extension](${externalLinks.chromeExtension}): Live browser extension download. iOS and Android apps are coming soon.
 - [Volume Charts](${absoluteUrl("/volume")}): Protocol wrap and unwrap volume chart surface backed by the volume APIs.
 - [Brand Kit](${absoluteUrl("/brand")}): Official subfrost brand guidelines, logo, color, typography, imagery, and downloads.
 - [App](https://app.subfrost.io/): Live SUBFROST application.

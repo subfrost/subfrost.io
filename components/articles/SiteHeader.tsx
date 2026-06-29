@@ -8,13 +8,14 @@ import { ArrowUp, ArrowUpRight, PanelRight, Search, X } from "lucide-react"
 import { LocaleToggle } from "./LocaleToggle"
 import { externalLinks } from "@/lib/external-links"
 
-type MenuId = "trade" | "developer"
+type MenuId = "trade" | "developer" | "downloads"
 
 type MenuItem = {
   id: string
   label: string
   body?: string
-  href: string
+  href?: string
+  status?: string
 }
 
 type MegaMenu = {
@@ -71,6 +72,14 @@ export function SiteHeader() {
       apiDocsBody: "Endpoint context for balances, wrapping state, transactions, and integrations.",
       apiLogin: "API login",
       apiLoginBody: "Sign in to the live API dashboard.",
+      downloads: "Downloads",
+      chromeExtension: "Chrome extension",
+      chromeExtensionBody: "Available now in the Chrome Web Store.",
+      ios: "iOS",
+      iosBody: "Mobile app coming soon.",
+      android: "Android",
+      androidBody: "Mobile app coming soon.",
+      comingSoon: "Coming soon",
       technicalOverview: "Technical overview",
       alkanesIntegration: "Alkanes integration",
       brc20Integration: "BRC2.0 integration",
@@ -110,6 +119,14 @@ export function SiteHeader() {
       apiDocsBody: "余额、包装状态、交易与集成端点说明。",
       apiLogin: "API 登录",
       apiLoginBody: "登录实时 API 控制台。",
+      downloads: "下载",
+      chromeExtension: "Chrome 扩展",
+      chromeExtensionBody: "现已在 Chrome 网上应用店提供。",
+      ios: "iOS",
+      iosBody: "移动应用即将推出。",
+      android: "Android",
+      androidBody: "移动应用即将推出。",
+      comingSoon: "即将推出",
       technicalOverview: "技术概览",
       alkanesIntegration: "Alkanes 集成",
       brc20Integration: "BRC2.0 集成",
@@ -167,9 +184,25 @@ export function SiteHeader() {
         { id: "support", label: copy.support, href: locale === "zh" ? "/support?lang=zh" : "/support" },
       ],
     },
+    {
+      id: "downloads",
+      label: copy.downloads,
+      eyebrow: copy.downloads,
+      primary: [
+        {
+          id: "chrome-extension",
+          label: copy.chromeExtension,
+          body: copy.chromeExtensionBody,
+          href: externalLinks.chromeExtension,
+        },
+        { id: "ios", label: copy.ios, body: copy.iosBody, status: copy.comingSoon },
+        { id: "android", label: copy.android, body: copy.androidBody, status: copy.comingSoon },
+      ],
+    },
   ]
   const navItems = [{ id: "blog", label: copy.blog, href: articleHref }]
   const developerMenu = developerMenus.find((menu) => menu.id === "developer")
+  const activeMobileMenu = mobilePanel ? developerMenus.find((menu) => menu.id === mobilePanel) : null
   const activeId =
     pathname?.startsWith("/articles") || pathname?.startsWith("/authors")
       ? "blog"
@@ -479,17 +512,26 @@ export function SiteHeader() {
                 Home
               </button>
               <nav className="flex flex-col gap-4">
-                {(mobilePanel === "trade" ? tradeItems : developerMenu?.primary ?? []).map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-                  >
-                    {item.label}
-                    <ArrowUpRight className="h-5 w-5" strokeWidth={1.8} />
-                  </a>
-                ))}
+                {(activeMobileMenu?.primary ?? []).map((item) =>
+                  item.href ? (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                    >
+                      {item.label}
+                      <ArrowUpRight className="h-5 w-5" strokeWidth={1.8} />
+                    </a>
+                  ) : (
+                    <div key={item.label} aria-disabled="true" className="font-display text-[34px] font-normal leading-[1.12] text-[color:var(--ed-muted)]">
+                      <span className="inline-flex items-baseline gap-3">
+                        {item.label}
+                        {item.status ? <span className="text-[13px] font-medium uppercase tracking-[0.08em] opacity-70">{item.status}</span> : null}
+                      </span>
+                    </div>
+                  ),
+                )}
               </nav>
               {mobilePanel === "developer" && developerMenu?.resources ? (
                 <>
@@ -680,24 +722,43 @@ export function SiteHeader() {
                     } ${isOpen ? "translate-y-0 opacity-100 delay-100" : "translate-y-3 opacity-0"}`}
                   >
                     <div className={`grid gap-x-8 gap-y-9 ${menu.primary.length > 3 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-                      {menu.primary.map((item) => (
-                        <a
-                          key={item.id}
-                          href={item.href}
-                          onClick={() => setActiveMenu(null)}
-                          className="group outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-                        >
-                          <span className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-none lg:text-[38px]" style={{ color: "var(--ed-ink)" }}>
-                            {item.label}
-                            <ArrowUpRight className="h-5 w-5 opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
-                          </span>
-                          {item.body ? (
-                            <span className="mt-3 block max-w-[300px] text-[15px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
-                              {item.body}
+                      {menu.primary.map((item) => {
+                        const content = (
+                          <>
+                            <span
+                              className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-none lg:text-[38px]"
+                              style={{ color: item.href ? "var(--ed-ink)" : "var(--ed-muted)" }}
+                            >
+                              {item.label}
+                              {item.href ? (
+                                <ArrowUpRight className="h-5 w-5 opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
+                              ) : item.status ? (
+                                <span className="text-[12px] font-medium uppercase tracking-[0.08em] opacity-65">{item.status}</span>
+                              ) : null}
                             </span>
-                          ) : null}
-                        </a>
-                      ))}
+                            {item.body ? (
+                              <span className="mt-3 block max-w-[300px] text-[15px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
+                                {item.body}
+                              </span>
+                            ) : null}
+                          </>
+                        )
+
+                        return item.href ? (
+                          <a
+                            key={item.id}
+                            href={item.href}
+                            onClick={() => setActiveMenu(null)}
+                            className="group outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+                          >
+                            {content}
+                          </a>
+                        ) : (
+                          <div key={item.id} aria-disabled="true" className="cursor-default">
+                            {content}
+                          </div>
+                        )
+                      })}
                     </div>
                     {menu.resources ? (
                       <div className="lg:pl-2">

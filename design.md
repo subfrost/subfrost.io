@@ -352,20 +352,20 @@ Rules:
 
 Navigation:
 
-- Desktop nav items use compact top-level groups: Trade, Developer, Articles, Search.
+- Desktop nav items use compact top-level groups: Trade, Developer, Downloads, Articles, Search.
 - Chinese mode localizes menu items.
 - Active item uses `--ed-ink`.
 - Inactive items use `--ed-muted`.
 - Hover states should match OpenAI: no pills, no background, no chevrons, no button chrome; use pointer cursor and steady text color behavior.
-- Trade and Developer open their full-width editorial panels on hover and keyboard focus. The panel stays open while the cursor or focus remains inside the header/menu region, then exits with the shared editorial easing.
+- Trade, Developer, and Downloads open their full-width editorial panels on hover and keyboard focus. The panel stays open while the cursor or focus remains inside the header/menu region, then exits with the shared editorial easing.
 - Focus states must be accessible but should not show browser-orange default outlines.
 
 Mobile menu:
 
 - Match OpenAI mobile menu structure.
 - Full-screen menu.
-- Large stacked top-level nav links first; do not dump nested Trade or Developer links into the root drawer.
-- Trade and Developer drill into their own simple link views, with a small `Home` return action and the same editorial easing.
+- Large stacked top-level nav links first; do not dump nested Trade, Developer, or Downloads links into the root drawer.
+- Trade, Developer, and Downloads drill into their own simple link views, with a small `Home` return action and the same editorial easing.
 - Search and panel/menu icons remain top-right.
 - Dark mode menu is true black.
 - Launch App appears as a large text action with external arrow inside the menu.
@@ -498,9 +498,10 @@ Navigation:
 - Trade should also expose `Volume` when available. Keep navigation as routing first: a compact endpoint-backed preview may live inside the Volume item, but do not add a detached right-side analytics panel or modal-style chart controls to the header. Surface compact 24H volume near the homepage protocol stats, and keep dense chart controls in the destination surface.
 - Until the volume experience is rebuilt in the editorial system, `/volume` may route to the existing protocol volume chart component. The header and homepage stats should link there rather than to a missing external app route.
 - Developer links should live under one `Developer` menu in the editorial header. Label the primary entry `Gateway`, then include docs, API docs, technical overview, and high-value integration references without crowding the top nav.
-- Trade and Developer must share one standardized mega-menu pattern: full-width editorial panel, muted eyebrow, large primary links, optional right-side resource list, small arrow icons inside menu items only, no top-nav chevrons, no floating card dropdowns, no nested cards, and the same open/close easing.
-- Keep the top-level header minimal: brand, Trade, Developer, Articles, search, language, primary app CTA.
-- Mobile menu root uses OpenAI-style top-level navigation only. Trade and Developer drill into section-specific views; keep primary links large and resource links smaller.
+- Trade, Developer, and Downloads must share one standardized mega-menu pattern: full-width editorial panel, muted eyebrow, large primary links, optional right-side resource list, small arrow icons inside live menu items only, no top-nav chevrons, no floating card dropdowns, no nested cards, and the same open/close easing.
+- Keep the top-level header minimal: brand, Trade, Developer, Downloads, Articles, search, language, primary app CTA.
+- Downloads currently exposes the Chrome extension as the live download. iOS and Android may be shown as coming soon, but they must remain inert until real destination URLs exist.
+- Mobile menu root uses OpenAI-style top-level navigation only. Trade, Developer, and Downloads drill into section-specific views; keep primary links large and resource links smaller.
 
 Protocol analytics:
 
