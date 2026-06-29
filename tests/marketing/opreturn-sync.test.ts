@@ -17,3 +17,9 @@ it("skips blank and malformed lines", () => {
   const rows = parseHistoryCsv(CSV + "\n\nbad,row,short\n")
   expect(rows).toHaveLength(2)
 })
+
+it("skips rows with a non-numeric cell", () => {
+  const bad = "2026-01-02,930000,930090,11,NaN,19132,1862,186773,164044,41320,1859,20479751,172670,1565961,87822.9"
+  const rows = parseHistoryCsv(CSV + "\n" + bad)
+  expect(rows).toHaveLength(2) // the NaN row is dropped; only the 2 valid CSV rows remain
+})

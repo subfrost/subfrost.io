@@ -499,9 +499,9 @@ model OpReturnDaily {
   runestoneBytes  Int
   alkanesBytes    Int
   dieselMints     Int
-  feeTotalSats    Int
-  feeAlkanesSats  Int
-  feeOpReturnSats Int
+  feeTotalSats    Float
+  feeAlkanesSats  Float
+  feeOpReturnSats Float
   btcUsd          Float
   updatedAt       DateTime @updatedAt
 }

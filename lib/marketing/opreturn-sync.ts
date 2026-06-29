@@ -10,7 +10,7 @@ export async function fetchHistoryCsv(): Promise<string> {
       const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) })
       if (res.ok) {
         const text = await res.text()
-        if (text.includes("date,") && text.includes("alkanesBytes")) return text
+        if (text.includes("date,fromHeight") && text.includes("alkanesBytes")) return text
       }
     } catch { /* try next */ }
   }
