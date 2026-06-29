@@ -26,6 +26,9 @@ describe("visibleNav", () => {
     expect(groups.map((g) => g.key)).toEqual([
       "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "legal", "settings",
     ])
+    expect(groups.find((g) => g.key === "board")!.items.map((i) => i.href)).toEqual([
+      "/admin/board", "/admin/board/intake", "/admin/board/initiatives", "/admin/board/products",
+    ])
     expect(groups.find((g) => g.key === "documents")!.items.map((i) => i.href)).toEqual([
       "/admin/files", "/admin/oyl",
     ])

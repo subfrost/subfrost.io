@@ -8,6 +8,7 @@ import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import { audit } from "@/lib/cms/audit"
 import * as store from "@/lib/tasks/store"
 import { TaskError } from "@/lib/tasks/store"
+import { pushTaskDoneToGithub } from "@/lib/github/intake"
 import type { TaskView, InitiativeView, ProductView, CommentView } from "@/lib/tasks/types"
 
 const BOARD = "/admin/board"
@@ -114,6 +115,9 @@ export async function moveTaskAction(id: string, status: z.infer<typeof StatusEn
   try {
     const value = await store.moveTask(id, parsed.data, pos)
     await audit("task_move", { actorId: g.me.id, target: id, details: { status: parsed.data }, ip: await ip() })
+    // Push side of sync: moving a GitHub-linked task to Done closes its issue.
+    // Best-effort and fire-and-forget — never block the board move on GitHub.
+    if (parsed.data === "DONE") void pushTaskDoneToGithub(id).catch(() => {})
     revalidatePath(BOARD)
     return { ok: true, value }
   } catch (e) {

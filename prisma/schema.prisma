@@ -1444,6 +1444,16 @@ model Task {
   initiative   Initiative?  @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
   createdById  String?
   position     Float        @default(0)
+  // Optional GitHub linkage: an issue or PR (across the allow-listed repos) this
+  // task tracks. Set when an intake issue is accepted, or linked manually. The
+  // webhook pulls state changes here; moving to DONE can push-close the issue.
+  githubRepo   String?      // "subfrost/subfrost-app"
+  githubNumber Int?         // issue/PR number
+  githubUrl    String?      // html_url
+  githubKind   String?      // "ISSUE" | "PR"
+  githubState  String?      // open | closed | merged
+  githubSyncedAt DateTime?
+  intakeIssue  GithubIssue? // back-relation when this task came from triaged intake
   // Soft delete: non-null = in the recycle bin. Lists filter these out; the
   // recycle bin restores (clear) or purges (hard delete) them.
   deletedAt    DateTime?
@@ -1455,6 +1465,42 @@ model Task {
   @@index([initiativeId])
   @@index([ownerId])
   @@index([deletedAt])
+  @@index([githubRepo, githubNumber])
+}
+
+// External GitHub issues filed by non-team members across the allow-listed
+// repos. They land here (PENDING) via the webhook — NOT directly on the board —
+// so triage stays a deliberate accept/deny step and the board stays lightweight.
+// Accepting creates a board Task (status REQUESTED) linked back via taskId.
+enum GithubIntakeState {
+  PENDING
+  ACCEPTED
+  DENIED
+}
+
+model GithubIssue {
+  id          String            @id @default(cuid())
+  repo        String            // "subfrost/subfrost-app"
+  number      Int               // issue number within the repo
+  title       String
+  body        String            @default("")
+  author      String            @default("") // GitHub login of the opener
+  url         String            // html_url
+  state       String            @default("open") // GitHub issue state: open | closed
+  labels      String[]          @default([])
+  intake      GithubIntakeState @default(PENDING)
+  // when ACCEPTED, the board task this became:
+  taskId      String?           @unique
+  task        Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  triagedById String?           // admin User who accepted/denied
+  triagedAt   DateTime?
+  raw         Json?             // last webhook payload snapshot (for debugging)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([repo, number])
+  @@index([intake])
+  @@index([repo])
 }
 
 model TaskComment {

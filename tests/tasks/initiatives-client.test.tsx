@@ -15,7 +15,7 @@ import { createInitiativeAction, archiveInitiativeAction, moveInitiativeAction }
 const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship it", color: "#1D9E75", status: "TODO", archived: false, productId: null, createdAt: new Date(), updatedAt: new Date() }
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0, createdAt: new Date(), updatedAt: new Date(), ...over,
+  labels: [], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0, github: null, createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
 beforeEach(() => {

@@ -110,6 +110,11 @@ export type AuditAction =
   | "legal_deserter_swap_signoff"
   | "legal_obligation_upsert"
   | "legal_reconciliation_view"
+  | "github_issue_accept"
+  | "github_issue_deny"
+  | "github_task_link"
+  | "github_task_unlink"
+  | "github_task_sync"
 
 export async function audit(
   action: AuditAction,

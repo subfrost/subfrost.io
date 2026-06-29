@@ -24,8 +24,8 @@ it("gates the board routes on tasks.view", () => {
   expect(VIEW_GATES["/admin/board/products"].view).toBe("tasks.view")
 })
 
-it("shows the Board nav group (Tasks + Initiatives + Products) for a tasks.view user", () => {
+it("shows the Board nav group (Tasks + Issue intake + Initiatives + Products) for a tasks.view user", () => {
   const group = visibleNav(["tasks.view"]).find((g) => g.key === "board")
   expect(group).toBeTruthy()
-  expect(group!.items.map((i) => i.href)).toEqual(["/admin/board", "/admin/board/initiatives", "/admin/board/products"])
+  expect(group!.items.map((i) => i.href)).toEqual(["/admin/board", "/admin/board/intake", "/admin/board/initiatives", "/admin/board/products"])
 })

@@ -238,6 +238,7 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/audit": { view: "audit.view" },
   "/admin/marketing/snapshots": { view: "marketing.view" },
   "/admin/board": { view: "tasks.view", edit: "tasks.edit" },
+  "/admin/board/intake": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/products": { view: "tasks.view", edit: "tasks.edit" },
 }

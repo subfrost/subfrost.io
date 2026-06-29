@@ -5,7 +5,7 @@ import type { TaskView, InitiativeView, BoardFilterState } from "@/lib/tasks/typ
 
 const t = (over: Partial<TaskView>): TaskView => ({
   id: "x", title: "t", description: "", status: "TODO", priority: "MEDIUM",
-  labels: [], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: null, position: 0,
+  labels: [], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: null, position: 0, github: null,
   createdAt: new Date("2026-06-25T00:00:00Z"), updatedAt: new Date("2026-06-25T00:00:00Z"), ...over,
 })
 
