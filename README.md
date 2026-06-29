@@ -337,6 +337,7 @@ For full streaming ops setup, see `STREAM.md`.
 - App Docker build is defined in `Dockerfile` (multi-stage, standalone Next.js output).
 - CI workflow is in `.github/workflows/ci.yml`.
 - GCP provisioning/deployment scripts are in `gcp/`.
+- **PR previews:** add the `preview` label to a PR to get a live per-PR Cloud Run deploy (URL posted as a comment). See [`docs/preview-deploys.md`](docs/preview-deploys.md).
 
 ## Environment Variables Reference
 
