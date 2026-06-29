@@ -173,12 +173,12 @@ Do not:
 
 ## Developer Gateway
 
-The `/developer` page is the git-managed front door for technical users. It is not the full docs system. Deep protocol references, API specifications, and long-form setup guides remain hosted on `docs.subfrost.io` until that repository is available.
+The `/developer` page is the git-managed front door for technical users. It is not the full docs system. Deep protocol references, API specifications, and long-form setup guides link out to the live Subfrost systems during the operational transition.
 
 Purpose:
 
 - Give engineers and partners one polished starting point from the marketing site.
-- Route users quickly to docs, technical overview, API docs, app, protocol updates, and support.
+- Route users quickly to the live docs, API docs, API login, app, protocol updates, and support.
 - Carry the same OpenAI-inspired editorial design language into developer surfaces.
 - Avoid duplicating source-of-truth protocol documentation in the marketing repo.
 
@@ -522,8 +522,9 @@ Protocol analytics:
 
 Docs:
 
-- Public docs pages should backfill from the existing docs.subfrost.io sitemap/source pages only. Do not add unsourced technical claims or guessed command syntax.
-- Docs pages use the editorial shell, mobile-visible section navigation, horizontally safe tables/code, and the same restrained link/arrow language as the homepage.
+- Do not replace `docs.subfrost.io` or `api.subfrost.io` inside the marketing site until the docs migration is explicitly scoped.
+- Current technical destinations are external handoffs: `Docs` -> `https://docs.subfrost.io/`, `API docs` -> `https://api.subfrost.io/docs`, and `API login` -> `https://api.subfrost.io/auth/login`.
+- The marketing site may keep `/developer` as a designed gateway, but `/docs` and deep docs routes should redirect to the live source-of-truth systems during this transition.
 
 Team and proof:
 

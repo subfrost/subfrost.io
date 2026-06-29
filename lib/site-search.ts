@@ -1,5 +1,6 @@
 import { docPages } from "@/lib/docs/content"
 import { getPublishedPreviews, type CmsLocale } from "@/lib/cms/articles"
+import { externalLinks } from "@/lib/external-links"
 
 export type SiteSearchType = "page" | "product" | "docs" | "article" | "author"
 
@@ -38,6 +39,16 @@ const staticCopy = {
       title: "Docs",
       description: "Product guides, setup paths, protocol references, and technical components.",
       keywords: "docs documentation product guides protocol technical overview",
+    },
+    apiDocs: {
+      title: "API docs",
+      description: "Endpoint references for balances, wrapping state, transactions, and integrations.",
+      keywords: "api docs reference endpoints balances wrapping transactions integrations",
+    },
+    apiLogin: {
+      title: "API login",
+      description: "Sign in to the live Subfrost API dashboard.",
+      keywords: "api login auth dashboard developer access",
     },
     volume: {
       title: "Volume",
@@ -100,6 +111,16 @@ const staticCopy = {
       title: "文档",
       description: "产品指南、设置路径、协议参考与技术组件。",
       keywords: "文档 产品 指南 协议 技术 概览",
+    },
+    apiDocs: {
+      title: "API 文档",
+      description: "余额、包装状态、交易与集成端点说明。",
+      keywords: "api 文档 参考 端点 余额 包装 交易 集成",
+    },
+    apiLogin: {
+      title: "API 登录",
+      description: "登录实时 Subfrost API 控制台。",
+      keywords: "api 登录 认证 控制台 开发者 访问",
     },
     volume: {
       title: "交易量",
@@ -202,7 +223,9 @@ function staticEntries(locale: CmsLocale): SearchableEntry[] {
     { id: "vaults", type: "product", section: "Trade", href: "https://app.subfrost.io/vaults", priority: 5, ...copy.vaults },
     { id: "volume", type: "product", section: "Trade", href: "/volume", priority: 4, ...copy.volume },
     { id: "developer", type: "page", section: "Developer", href: "/developer", priority: 5, ...copy.developer },
-    { id: "docs", type: "docs", section: "Developer", href: "/docs", priority: 4, ...copy.docs },
+    { id: "docs", type: "docs", section: "Developer", href: externalLinks.docs, priority: 5, ...copy.docs },
+    { id: "api-docs", type: "docs", section: "Developer", href: externalLinks.apiDocs, priority: 5, ...copy.apiDocs },
+    { id: "api-login", type: "docs", section: "Developer", href: externalLinks.apiLogin, priority: 4, ...copy.apiLogin },
     { id: "articles", type: "page", section: "Articles", href: "/articles", priority: 4, ...copy.articles },
     { id: "support", type: "page", section: "Company", href: "/support", priority: 1, ...copy.support },
     { id: "brand", type: "page", section: "Company", href: "/brand", priority: 1, ...copy.brand },
@@ -231,7 +254,7 @@ export async function buildSiteSearchIndex(opts: {
       title: page.title,
       description: page.description,
       section: page.section,
-      href: localizeHref(`/docs/${page.slug}`, locale),
+      href: page.title.toLowerCase() === "api docs" ? externalLinks.apiDocs : page.sourceUrl,
       keywords: `${page.sourceUrl} ${docText(page)}`,
       priority: 3,
     })),
@@ -277,7 +300,7 @@ export async function searchSite(opts: {
 
   if (!query) {
     return index
-      .filter((entry) => ["home", "markets", "swap", "vaults", "developer", "docs"].includes(entry.id))
+      .filter((entry) => ["home", "markets", "swap", "vaults", "developer", "docs", "api-docs", "api-login"].includes(entry.id))
       .slice(0, limit)
       .map(({ keywords: _keywords, priority: _priority, ...result }) => result)
   }

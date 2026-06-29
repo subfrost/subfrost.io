@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { ArrowUp, ArrowUpRight, PanelRight, Search, X } from "lucide-react"
 import { LocaleToggle } from "./LocaleToggle"
+import { externalLinks } from "@/lib/external-links"
 
 type MenuId = "trade" | "developer"
 
@@ -68,6 +69,8 @@ export function SiteHeader() {
       docsBody: "Product guides, setup paths, protocol references, and technical components.",
       apiDocs: "API docs",
       apiDocsBody: "Endpoint context for balances, wrapping state, transactions, and integrations.",
+      apiLogin: "API login",
+      apiLoginBody: "Sign in to the live API dashboard.",
       technicalOverview: "Technical overview",
       alkanesIntegration: "Alkanes integration",
       brc20Integration: "BRC2.0 integration",
@@ -105,6 +108,8 @@ export function SiteHeader() {
       docsBody: "产品指南、设置路径、协议参考与技术组件。",
       apiDocs: "API 文档",
       apiDocsBody: "余额、包装状态、交易与集成端点说明。",
+      apiLogin: "API 登录",
+      apiLoginBody: "登录实时 API 控制台。",
       technicalOverview: "技术概览",
       alkanesIntegration: "Alkanes 集成",
       brc20Integration: "BRC2.0 集成",
@@ -133,9 +138,9 @@ export function SiteHeader() {
     { id: "volume", label: copy.volumeCharts, body: copy.volumeChartsBody, href: volumeHref },
   ]
   const developerHref = locale === "zh" ? "/developer?lang=zh" : "/developer"
-  const docsHref = locale === "zh" ? "/docs?lang=zh" : "/docs"
-  const apiDocsHref = locale === "zh" ? "/docs/introduction/api-docs?lang=zh" : "/docs/introduction/api-docs"
-  const technicalHref = locale === "zh" ? "/docs/introduction/technical-overview?lang=zh" : "/docs/introduction/technical-overview"
+  const docsHref = externalLinks.docs
+  const apiDocsHref = externalLinks.apiDocs
+  const technicalHref = "https://docs.subfrost.io/introduction/technical-overview"
   const developerMenus: MegaMenu[] = [
     {
       id: "trade",
@@ -151,13 +156,14 @@ export function SiteHeader() {
         { id: "gateway", label: copy.developerGateway, body: copy.developerGatewayBody, href: developerHref },
         { id: "docs", label: copy.docs, body: copy.docsBody, href: docsHref },
         { id: "api", label: copy.apiDocs, body: copy.apiDocsBody, href: apiDocsHref },
+        { id: "api-login", label: copy.apiLogin, body: copy.apiLoginBody, href: externalLinks.apiLogin },
       ],
       resources: [
         { id: "technical", label: copy.technicalOverview, href: technicalHref },
-        { id: "alkanes", label: copy.alkanesIntegration, href: locale === "zh" ? "/docs/developer/alkanes-integration?lang=zh" : "/docs/developer/alkanes-integration" },
-        { id: "brc20", label: copy.brc20Integration, href: locale === "zh" ? "/docs/developer/brc20-integration?lang=zh" : "/docs/developer/brc20-integration" },
-        { id: "frbtc-alkanes", label: copy.frbtcAlkanes, href: locale === "zh" ? "/docs/developer/frbtc-alkanes?lang=zh" : "/docs/developer/frbtc-alkanes" },
-        { id: "frbtc-brc20", label: copy.frbtcBrc20, href: locale === "zh" ? "/docs/developer/frbtc-brc20?lang=zh" : "/docs/developer/frbtc-brc20" },
+        { id: "alkanes", label: copy.alkanesIntegration, href: "https://docs.subfrost.io/developer-guide/alkanes-integration" },
+        { id: "brc20", label: copy.brc20Integration, href: "https://docs.subfrost.io/developer-guide/brc20-prog/" },
+        { id: "frbtc-alkanes", label: copy.frbtcAlkanes, href: "https://docs.subfrost.io/developer-guide/wrapping-frBTC/" },
+        { id: "frbtc-brc20", label: copy.frbtcBrc20, href: "https://docs.subfrost.io/developer-guide/frBTC-brc20/" },
         { id: "support", label: copy.support, href: locale === "zh" ? "/support?lang=zh" : "/support" },
       ],
     },

@@ -2,14 +2,15 @@ import type { Metadata } from "next"
 import { ArrowRight, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { CoverArt } from "@/components/articles/CoverArt"
+import { externalLinks } from "@/lib/external-links"
 import { absoluteUrl, sharedUnfurlImagePath, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
 
-const docsUrl = "/docs"
-const technicalUrl = "/docs/introduction/technical-overview"
-const apiUrl = "/docs/introduction/api-docs"
-const appUrl = "https://app.subfrost.io/"
+const docsUrl = externalLinks.docs
+const apiUrl = externalLinks.apiDocs
+const apiLoginUrl = externalLinks.apiLogin
+const appUrl = externalLinks.app
 
 export async function generateMetadata({
   searchParams,
@@ -62,12 +63,12 @@ const copy = {
       { label: "Overview", href: "#overview" },
       { label: "Docs", href: docsUrl },
       { label: "API docs", href: apiUrl },
-      { label: "Support", href: "/support" },
+      { label: "API login", href: apiLoginUrl },
     ],
     heroKicker: "Start here",
     heroTitle: "Bitcoin-native infrastructure, documented clearly.",
     heroBody:
-      "This page is the git-managed developer front door. The docs now live in this repo so protocol, product, and integration material can share one designed system.",
+      "This page is the git-managed developer front door. Deep technical references stay on the live docs and API systems so operators can use the source of truth.",
     docsTitle: "Core references",
     docsBody: "Primary paths for engineers, partners, and protocol reviewers.",
     protocolTitle: "Protocol surfaces",
@@ -83,17 +84,17 @@ const copy = {
         variant: 3,
       },
       {
-        title: "Technical overview",
-        body: "Layer-0 architecture, fraud proofs, and ZK verification model.",
-        meta: "technical reference",
-        href: technicalUrl,
-        variant: 4,
-      },
-      {
         title: "API docs",
         body: "Entry points for app development and Bitcoin-native integrations.",
         meta: "developer API",
         href: apiUrl,
+        variant: 4,
+      },
+      {
+        title: "API login",
+        body: "Access the live API dashboard.",
+        meta: "developer access",
+        href: apiLoginUrl,
         variant: 5,
       },
     ],
@@ -110,12 +111,12 @@ const copy = {
       { label: "概览", href: "#overview" },
       { label: "文档", href: docsUrl },
       { label: "API", href: apiUrl },
-      { label: "支持", href: "/support?lang=zh" },
+      { label: "API 登录", href: apiLoginUrl },
     ],
     heroKicker: "从这里开始",
     heroTitle: "面向比特币原生基础设施的清晰文档入口。",
     heroBody:
-      "这个页面是 git 管理的开发者入口。文档现在由此仓库承载，让协议、产品与集成资料共享统一设计系统。",
+      "这个页面是 git 管理的开发者入口。深入技术参考保留在实时文档与 API 系统中，方便运营使用单一事实来源。",
     docsTitle: "核心参考",
     docsBody: "面向工程师、合作伙伴与协议评审的主要路径。",
     protocolTitle: "协议入口",
@@ -131,17 +132,17 @@ const copy = {
         variant: 3,
       },
       {
-        title: "技术概览",
-        body: "Layer-0 架构、欺诈证明与 ZK 验证模型。",
-        meta: "技术参考",
-        href: technicalUrl,
-        variant: 4,
-      },
-      {
         title: "API 文档",
         body: "应用开发与比特币原生集成的入口。",
         meta: "开发者 API",
         href: apiUrl,
+        variant: 4,
+      },
+      {
+        title: "API 登录",
+        body: "访问实时 API 控制台。",
+        meta: "开发者访问",
+        href: apiLoginUrl,
         variant: 5,
       },
     ],

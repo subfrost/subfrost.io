@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react"
 import { CoverArt } from "./CoverArt"
+import { externalLinks } from "@/lib/external-links"
 
 // Homepage widget: top published articles from the same-origin API. Renders
 // nothing if empty, so the homepage degrades gracefully.
@@ -50,10 +51,10 @@ const copy = {
 const fallbackCards = {
   en: [
     {
-      id: "technical-overview",
-      title: "Technical Overview",
-      excerpt: "Layer-0 architecture, fraud proofs, ZK verification, and the system model behind subfrost.",
-      href: "/docs/introduction/technical-overview",
+      id: "docs",
+      title: "Docs",
+      excerpt: "Canonical product guides, setup paths, protocol references, and technical components.",
+      href: externalLinks.docs,
       tags: [
         { slug: "developer", name: "Developer" },
         { slug: "protocol", name: "Protocol" },
@@ -65,7 +66,7 @@ const fallbackCards = {
       id: "api-docs",
       title: "subfrost API docs",
       excerpt: "Endpoint context for balances, wrapping state, transactions, market data, and integrations.",
-      href: "/docs/introduction/api-docs",
+      href: externalLinks.apiDocs,
       tags: [
         { slug: "developer", name: "Developer" },
         { slug: "api", name: "API" },
@@ -76,10 +77,10 @@ const fallbackCards = {
   ],
   zh: [
     {
-      id: "technical-overview",
-      title: "技术概览",
-      excerpt: "subfrost 的 Layer-0 架构、欺诈证明、ZK 验证与系统模型。",
-      href: "/docs/introduction/technical-overview?lang=zh",
+      id: "docs",
+      title: "文档",
+      excerpt: "产品指南、设置路径、协议参考与技术组件的权威入口。",
+      href: externalLinks.docs,
       tags: [
         { slug: "developer", name: "开发者" },
         { slug: "protocol", name: "协议" },
@@ -91,7 +92,7 @@ const fallbackCards = {
       id: "api-docs",
       title: "subfrost API 文档",
       excerpt: "余额、包装状态、交易、市场数据与集成端点说明。",
-      href: "/docs/introduction/api-docs?lang=zh",
+      href: externalLinks.apiDocs,
       tags: [
         { slug: "developer", name: "开发者" },
         { slug: "api", name: "API" },
@@ -110,7 +111,10 @@ export default function LatestArticles({
   articles?: HomepageArticlePreview[]
 }) {
   const t = copy[locale]
-  const withLocale = (href: string) => (locale === "zh" ? `${href}?lang=zh` : href)
+  const withLocale = (href: string) => {
+    if (href.startsWith("http")) return href
+    return locale === "zh" ? `${href}?lang=zh` : href
+  }
   const articleCards: DisplayCard[] = articles.slice(0, 3).map((article, index) => ({
     id: article.slug,
     title: article.title,

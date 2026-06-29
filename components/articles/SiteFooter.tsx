@@ -8,6 +8,7 @@ import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
 import { rememberEditorialLocale } from "./localePreference"
+import { externalLinks } from "@/lib/external-links"
 
 const LOCALE_EXIT_MS = 160
 
@@ -27,8 +28,9 @@ export function SiteFooter() {
             title: "开发者",
             links: [
               { label: "开发者入口", href: "/developer?lang=zh" },
-              { label: "技术概览", href: "/docs/introduction/technical-overview?lang=zh" },
-              { label: "API 文档", href: "/docs/introduction/api-docs?lang=zh" },
+              { label: "文档", href: externalLinks.docs },
+              { label: "API 文档", href: externalLinks.apiDocs },
+              { label: "API 登录", href: externalLinks.apiLogin },
             ],
           },
           {
@@ -54,8 +56,9 @@ export function SiteFooter() {
             title: "Developer",
             links: [
               { label: "Developer", href: "/developer" },
-              { label: "Technical overview", href: "/docs/introduction/technical-overview" },
-              { label: "API docs", href: "/docs/introduction/api-docs" },
+              { label: "Docs", href: externalLinks.docs },
+              { label: "API docs", href: externalLinks.apiDocs },
+              { label: "API login", href: externalLinks.apiLogin },
             ],
           },
           {

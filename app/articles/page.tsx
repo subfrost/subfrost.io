@@ -7,6 +7,7 @@ import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
+import { externalLinks } from "@/lib/external-links"
 import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
 import { ArrowRight } from "lucide-react"
 
@@ -114,22 +115,22 @@ const topicDefinitions = [
 
 const docsBackfill = [
   {
-    title: { en: "Subfrost Overview", zh: "Subfrost 概览" },
-    href: "https://docs.subfrost.io/",
-    excerpt: { en: "Bitcoin DeFi needs new rails for native BTC to power advanced L1 applications.", zh: "比特币 DeFi 需要新的原生 BTC 轨道，用来支撑更高级的 L1 应用。" },
+    title: { en: "Docs", zh: "文档" },
+    href: externalLinks.docs,
+    excerpt: { en: "Canonical product guides, setup paths, protocol references, and technical components.", zh: "产品指南、设置路径、协议参考与技术组件的权威入口。" },
   },
   {
-    title: { en: "Technical Overview", zh: "技术概览" },
-    href: "https://docs.subfrost.io/introduction/technical-overview",
+    title: { en: "API docs", zh: "API 文档" },
+    href: externalLinks.apiDocs,
     excerpt: {
-      en: "How Subfrost operates as Layer-0 infrastructure, using fraud proofs and ZK circuits to verify system integrity.",
-      zh: "Subfrost 如何作为 Layer-0 基础设施运行，并使用欺诈证明与 ZK 电路验证系统完整性。",
+      en: "Endpoint references for balances, wrapping state, transactions, and app integrations.",
+      zh: "余额、包装状态、交易与应用集成的端点参考。",
     },
   },
   {
-    title: { en: "Subfrost API Docs", zh: "Subfrost API 文档" },
-    href: "https://docs.subfrost.io/introduction/subfrost-api-docs",
-    excerpt: { en: "The entry point for Subfrost API documentation and Bitcoin-native app development paths.", zh: "Subfrost API 文档入口，以及构建比特币原生应用的开发路径。" },
+    title: { en: "API login", zh: "API 登录" },
+    href: externalLinks.apiLogin,
+    excerpt: { en: "Sign in to the live API dashboard.", zh: "登录实时 API 控制台。" },
   },
 ]
 
