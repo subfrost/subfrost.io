@@ -9,8 +9,8 @@ import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
 import { externalLinks } from "@/lib/external-links"
-import { absoluteUrl, absoluteUrlForHost, shouldUseArticlePreviewFallback } from "@/lib/seo"
-import { ArrowRight } from "lucide-react"
+import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, shouldUseArticlePreviewFallback } from "@/lib/seo"
+import { ArrowUpRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -27,10 +27,7 @@ export async function generateMetadata({
       ? "阅读 Subfrost 关于比特币原生收益、frBTC、协议设计、产品发布与技术文档的最新文章。"
       : "Read Subfrost research, protocol notes, product updates, and documentation for Bitcoin-native yield, frBTC, and Bitcoin DeFi infrastructure."
   const url = absoluteUrl(locale === "zh" ? "/articles?lang=zh" : "/articles")
-  const requestHeaders = await headers()
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
-  const proto = requestHeaders.get("x-forwarded-proto")
-  const image = absoluteUrlForHost("/articles/opengraph-image", host, proto)
+  const image = sharedUnfurlImageUrl
 
   return {
     title,
@@ -49,7 +46,7 @@ export async function generateMetadata({
       type: "website",
       url,
       siteName: "Subfrost",
-      images: [{ url: image, width: 1200, height: 630, alt: "Subfrost articles", type: "image/png" }],
+      images: [{ url: image, width: sharedUnfurlImageWidth, height: sharedUnfurlImageHeight, alt: "Subfrost articles", type: "image/jpeg" }],
       locale: locale === "zh" ? "zh_CN" : "en_US",
     },
     twitter: {
@@ -172,14 +169,13 @@ function primaryCategory(article: ArticlePreview, locale: CmsLocale) {
 function RecentMiniArticleCard({ a, locale, coverVariant }: { a: ArticlePreview; locale: CmsLocale; coverVariant: number | string }) {
   return (
     <article
-      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-3 transition-[background-color,filter,transform] duration-300 ease-out"
+      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-2 transition-[background-color,filter,transform] duration-300 ease-out"
       style={{
         background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
-        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--ed-ink) 5%, transparent)",
       }}
     >
-      <Link href={articleHref(a.slug, locale)} className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]" prefetch={false}>
-        <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant} />
+      <Link href={articleHref(a.slug, locale)} className="aspect-[16/9] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]" prefetch={false}>
+        <CmsCoverImage src={a.coverImage} className="h-full w-full object-cover" fallbackVariant={coverVariant} />
       </Link>
       <div className="min-w-0 flex-1">
         <Link href={articleHref(a.slug, locale)} prefetch={false}>
@@ -205,13 +201,12 @@ function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[n
       href={doc.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-3 transition-[background-color,filter,transform] duration-300 ease-out"
+      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-2 transition-[background-color,filter,transform] duration-300 ease-out"
       style={{
         background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
-        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--ed-ink) 5%, transparent)",
       }}
     >
-      <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]">
+      <div className="aspect-[16/9] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]">
         <CoverArt className="h-full w-full" variant={`recent-${doc.href}`} />
       </div>
       <div className="min-w-0 flex-1">
@@ -229,13 +224,16 @@ function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[n
 
 function DocsGridCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
   return (
-    <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card">
+    <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card ed-card-surface">
       <div className="ed-cover-frame aspect-[24/11]">
         <CoverArt className="h-full w-full" variant={doc.href} />
       </div>
       <div className="flex flex-1 flex-col pt-4">
         <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
-          {doc.title[locale]}
+          <span className="inline">
+            {doc.title[locale]}
+            <ArrowUpRight className="ml-1 inline h-4 w-4 align-baseline opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
+          </span>
         </h3>
         <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
           <span style={{ color: "var(--ed-ink)" }}>{copy.docsEyebrow}</span>
@@ -289,7 +287,7 @@ export default async function ArticlesIndex({
       <h1 className="sr-only">{copy.srTitle}</h1>
 
       <section style={{ background: "var(--ed-canvas)" }}>
-        <div className="mx-auto max-w-[1440px] px-6 pb-2 pt-7 sm:px-8 sm:pb-3 sm:pt-[44px]">
+        <div className="mx-auto max-w-[1440px] px-4 pb-2 pt-7 sm:px-8 sm:pb-3 sm:pt-[44px]">
           <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
             <nav className="flex flex-wrap gap-x-6 gap-y-3" aria-label={copy.browseByTopic}>
               {browseItems.map((item) => (
@@ -309,13 +307,14 @@ export default async function ArticlesIndex({
                 </Link>
               ))}
             </nav>
+            <TopSubscribeModalButton locale={locale} />
           </div>
         </div>
       </section>
 
       <ArticleSearchPrompt articles={articles} locale={locale} />
 
-      <div className="mx-auto max-w-[1440px] px-6 pt-0 sm:px-8 sm:pt-0">
+      <div className="mx-auto max-w-[1440px] px-4 pt-0 sm:px-8 sm:pt-0">
         {articles.length === 0 && !featuredLead ? (
           isDocsTopic ? (
             <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -335,9 +334,9 @@ export default async function ArticlesIndex({
           )
         ) : (
           <>
-            <section id="featured" className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(270px,0.8fr)] lg:items-start">
+            <section id="featured" className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(270px,0.8fr)] lg:items-stretch">
               {featuredLead ? (
-                <article className="rounded-[10px] p-4 sm:p-5" style={{ background: "color-mix(in srgb, var(--ed-surface) 58%, transparent)" }}>
+                <article className="h-full rounded-[10px] p-4 sm:p-5" style={{ background: "color-mix(in srgb, var(--ed-surface) 58%, transparent)" }}>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
                   <div className="ed-card">
                     <Link href={articleHref(featuredLead.slug, locale)} className="block" prefetch={false}>
@@ -372,22 +371,16 @@ export default async function ArticlesIndex({
               ) : null}
 
               {isAllTopic && hasRecent ? (
-                <aside className="rounded-[10px] p-4" style={{ background: "color-mix(in srgb, var(--ed-surface) 44%, transparent)" }}>
+                <aside className="flex h-full flex-col rounded-[10px] p-4" style={{ background: "color-mix(in srgb, var(--ed-surface) 44%, transparent)" }}>
                   <p className="ed-eyebrow mb-4">{copy.recentPosts}</p>
                   <div className="space-y-3">
                     {latest.slice(0, 3).map((a, index) => (
                       <RecentMiniArticleCard key={`featured-recent-${a.slug}`} a={a} locale={locale} coverVariant={`featured-recent-${index}`} />
                     ))}
-                    {recentDocs.slice(0, 3 - Math.min(3, latest.length)).map((doc) => (
-                      <RecentMiniDocCard key={`featured-recent-${doc.href}`} doc={doc} locale={locale} copy={copy} />
-                    ))}
-                  </div>
-                  <div
-                    className="mt-5 pt-5"
-                    style={{ borderTop: "1px solid color-mix(in srgb, var(--ed-ink) 7%, transparent)" }}
-                  >
-                    <TopSubscribeModalButton locale={locale} />
-                  </div>
+                  {recentDocs.slice(0, 3 - Math.min(3, latest.length)).map((doc) => (
+                    <RecentMiniDocCard key={`featured-recent-${doc.href}`} doc={doc} locale={locale} copy={copy} />
+                  ))}
+                </div>
                 </aside>
               ) : null}
             </section>

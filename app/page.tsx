@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import type { Metadata } from "next"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import HeroMarketTicker from "@/components/HeroMarketTicker"
@@ -221,7 +221,7 @@ const homeCopy = {
     teamEyebrow: "Team",
     teamHeading: "Builders with protocol credibility.",
     teamBody:
-      "The roster brings Alkanes and Protorunes engineering, BRC20 and BRC2.0 advisors, APAC distribution, Ordinals infrastructure, and operators with deployment history.",
+      "The roster matches a proven deployment history in protocol and crypto engineering with deep expertise in business and product strategy.",
     coreTeam: "Core team",
     advisors: "Advisors",
     faqHeading: "FAQ",
@@ -274,7 +274,7 @@ const homeCopy = {
     teamEyebrow: "团队",
     teamHeading: "具备协议可信度的建设者。",
     teamBody:
-      "团队阵容覆盖 Alkanes 与 Protorunes 工程、BRC20 与 BRC2.0 顾问、亚太分发、Ordinals 基础设施，以及有部署记录的运营团队。",
+      "我们是一支运营型团队，既交付协议，也经营其上的业务。工程、战略与执行集中在同一屋檐下。",
     coreTeam: "核心团队",
     advisors: "顾问",
     faqHeading: "常见问题",
@@ -576,7 +576,7 @@ export default async function Page({
               <a key={item.title} href={item.href} {...externalAnchorProps(item.href)} className="group">
                 <h3 className="font-display text-[21px] font-normal leading-[1.24]" style={{ color: "var(--ed-ink)" }}>
                   {item.title}
-                  <ArrowRight className="ml-1 inline h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.7} />
+                  <ArrowUpRight className="ml-1 inline h-4 w-4 opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.7} />
                 </h3>
                 <p className="mt-3 text-[15px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
                   {item.body}

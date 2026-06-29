@@ -27,7 +27,7 @@ export function ArticleCard({ a, locale = "en", coverVariant }: { a: ArticlePrev
   const href = locale === "zh" ? `/articles/${a.slug}?lang=zh` : `/articles/${a.slug}`
 
   return (
-    <article className="ed-card">
+    <article className="ed-card ed-card-surface">
       <Link href={href} className="block" prefetch={false}>
         <div className="ed-cover-frame aspect-[24/11]">
           <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant ?? a.slug} />

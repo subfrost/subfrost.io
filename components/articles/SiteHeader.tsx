@@ -74,7 +74,7 @@ export function SiteHeader() {
       apiLogin: "API login",
       apiLoginBody: "Sign in to the live API dashboard.",
       downloads: "Downloads",
-      chromeExtension: "Chrome extension",
+      chromeExtension: "Browser extension",
       chromeExtensionBody: "Available now in the Chrome Web Store.",
       ios: "iOS",
       iosBody: "Mobile app coming soon.",
@@ -731,19 +731,38 @@ export function SiteHeader() {
                       menu.resources ? "lg:grid-cols-[minmax(0,1fr)_minmax(240px,0.34fr)]" : ""
                     } ${isOpen ? "translate-y-0 opacity-100 delay-100" : "translate-y-3 opacity-0"}`}
                   >
-                    <div className={`grid gap-x-8 gap-y-9 ${menu.primary.length > 3 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+                    <div className={`grid gap-x-8 gap-y-9 ${menu.id === "downloads" ? "md:max-w-[1040px] md:grid-cols-3" : menu.primary.length > 3 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
                       {menu.primary.map((item) => {
+                        const splitBrowserExtension = item.id === "chrome-extension" && copy.chromeExtension === "Browser extension"
                         const content = (
                           <>
                             <span
-                              className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-none lg:text-[38px]"
+                              className="font-display block min-h-[42px] text-[34px] font-normal leading-none lg:text-[38px]"
                               style={{ color: item.href ? "var(--ed-ink)" : "var(--ed-muted)" }}
                             >
-                              {item.label}
-                              {item.href ? (
-                                <ArrowUpRight className="h-5 w-5 opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
-                              ) : item.status ? (
-                                <span className="text-[12px] font-medium uppercase tracking-[0.08em] opacity-65">{item.status}</span>
+                              <span className={splitBrowserExtension ? "inline-grid grid-cols-[auto_auto] items-center gap-x-2" : "inline"}>
+                                {splitBrowserExtension ? (
+                                  <>
+                                    <span>
+                                      Browser
+                                      <br />
+                                      extension
+                                    </span>
+                                    {item.href ? (
+                                      <ArrowUpRight className="h-5 w-5 opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
+                                    ) : null}
+                                  </>
+                                ) : (
+                                  <>
+                                    {item.label}
+                                    {item.href ? (
+                                      <ArrowUpRight className="ml-1 inline h-5 w-5 align-baseline opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" strokeWidth={1.8} />
+                                    ) : null}
+                                  </>
+                                )}
+                              </span>
+                              {!item.href && item.status ? (
+                                <span className="ml-2 inline align-middle text-[12px] font-medium uppercase tracking-[0.08em] opacity-65">{item.status}</span>
                               ) : null}
                             </span>
                             {item.body ? (

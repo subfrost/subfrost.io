@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { ArrowDownToLine, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
-import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImagePath, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
+import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
 
@@ -41,7 +41,7 @@ export async function generateMetadata({
       siteName: "subfrost",
       images: [
         {
-          url: sharedUnfurlImagePath,
+          url: sharedUnfurlImageUrl,
           width: sharedUnfurlImageWidth,
           height: sharedUnfurlImageHeight,
           alt: "subfrost",
@@ -52,7 +52,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [sharedUnfurlImagePath],
+      images: [sharedUnfurlImageUrl],
     },
   }
 }

@@ -1004,6 +1004,12 @@ div[data-netlify-deploy-id] {
   will-change: transform, filter;
 }
 
+.ed-card-surface {
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--ed-surface) 58%, transparent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .ed-card:hover {
     transform: translateY(-1px);

@@ -4,7 +4,7 @@ import { EditorialShell } from "@/components/articles/EditorialShell"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { externalLinks } from "@/lib/external-links"
 import { externalAnchorProps, isExternalHref } from "@/lib/link-behavior"
-import { absoluteUrl, sharedUnfurlImagePath, siteName, siteUrl } from "@/lib/seo"
+import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
 
@@ -44,13 +44,13 @@ export async function generateMetadata({
       type: "website",
       url,
       siteName: "subfrost",
-      images: [{ url: sharedUnfurlImagePath, alt: "subfrost" }],
+      images: [{ url: sharedUnfurlImageUrl, width: sharedUnfurlImageWidth, height: sharedUnfurlImageHeight, alt: "subfrost" }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [sharedUnfurlImagePath],
+      images: [sharedUnfurlImageUrl],
     },
   }
 }
