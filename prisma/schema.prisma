@@ -499,6 +499,7 @@ model OpReturnDaily {
   runestoneBytes  Int
   alkanesBytes    Int
   dieselMints     Int
+  // fee*Sats are Float (not Int): a single high-fee block can exceed Int4's ~2.1B range; integer sats stay exact within Float's 2^53.
   feeTotalSats    Float
   feeAlkanesSats  Float
   feeOpReturnSats Float

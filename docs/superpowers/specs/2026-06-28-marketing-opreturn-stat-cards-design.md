@@ -67,7 +67,7 @@ model OpReturnDaily {
   updatedAt      DateTime @updatedAt
 }
 ```
-Valores diários cabem em Int (máx ~125k tx, ~2M bytes, ~47M sats « 2.1B). Aditivo → `db push` ok.
+Valores diários: campos de contagem cabem em Int; **`fee*Sats` são `Float`** (não `Int`) porque um único bloco de alta taxa pode ultrapassar o limite Int4 de ~2.1B; sats inteiros permanecem exatos dentro do Float's 2^53. Aditivo → `db push` ok.
 
 ### 2. Sync (`lib/marketing/opreturn-sync.ts`)
 - `fetchHistoryCsv(): Promise<string>` — GET do CSV (Pages; fallback raw), timeout, throw em erro.
