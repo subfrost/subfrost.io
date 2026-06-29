@@ -32,7 +32,10 @@ function itemXml(it: RssItem): string {
     `      <pubDate>${it.pubDate.toUTCString()}</pubDate>`,
     `      <description>${esc(it.description)}</description>`,
   ]
-  if (it.contentHtml) parts.push(`      <content:encoded><![CDATA[${it.contentHtml}]]></content:encoded>`)
+  if (it.contentHtml) {
+    const safe = it.contentHtml.replace(/]]>/g, "]]]]><![CDATA[>")
+    parts.push(`      <content:encoded><![CDATA[${safe}]]></content:encoded>`)
+  }
   parts.push("    </item>")
   return parts.join("\n")
 }

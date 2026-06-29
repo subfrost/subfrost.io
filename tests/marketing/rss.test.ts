@@ -18,9 +18,10 @@ describe("buildRssXml", () => {
   })
 
   it("escapes XML special characters in titles", () => {
-    const xml = buildRssXml(channel, [{ ...base, title: 'A & B <c> "d"' }])
+    const xml = buildRssXml(channel, [{ ...base, title: 'A & B <c> "d" \'e\'' }])
     expect(xml).toContain("A &amp; B &lt;c&gt; &quot;d&quot;")
     expect(xml).not.toContain("<c>")
+    expect(xml).toContain("&apos;e&apos;")
   })
 
   it("wraps contentHtml in CDATA via content:encoded", () => {
@@ -31,5 +32,11 @@ describe("buildRssXml", () => {
   it("omits content:encoded when contentHtml is null", () => {
     const xml = buildRssXml(channel, [base])
     expect(xml).not.toContain("content:encoded")
+  })
+
+  it("neutralizes a ']]>' sequence inside contentHtml so the CDATA section can't close early", () => {
+    const xml = buildRssXml(channel, [{ ...base, contentHtml: "<p>a]]>b</p>" }])
+    expect(xml).toContain("]]]]><![CDATA[>")
+    expect(xml).not.toContain("a]]>b")
   })
 })
