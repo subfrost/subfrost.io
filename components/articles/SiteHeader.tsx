@@ -357,6 +357,10 @@ export function SiteHeader() {
     closeOverlays()
   }
 
+  function menuAnchorProps(menuId: MenuId | undefined, href: string) {
+    return menuId === "trade" ? { target: "_blank", rel: "noopener noreferrer" } : externalAnchorProps(href)
+  }
+
   return (
     <header
       className="sticky top-0 z-50"
@@ -519,7 +523,7 @@ export function SiteHeader() {
                     <a
                       key={item.label}
                       href={item.href}
-                      {...externalAnchorProps(item.href)}
+                      {...menuAnchorProps(activeMobileMenu?.id, item.href)}
                       onClick={() => setMobileMenuOpen(false)}
                       className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                     >
@@ -754,7 +758,7 @@ export function SiteHeader() {
                           <a
                             key={item.id}
                             href={item.href}
-                            {...externalAnchorProps(item.href)}
+                            {...menuAnchorProps(menu.id, item.href)}
                             onClick={() => setActiveMenu(null)}
                             className="group outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                           >
