@@ -485,6 +485,27 @@ model MarketingSnapshot {
   @@index([createdAt])
 }
 
+// Daily OP_RETURN decoder stats — synced from the public CSV dashboard.
+// One row per calendar date (ISO date string as PK).
+model OpReturnDaily {
+  date            String   @id
+  fromHeight      Int
+  toHeight        Int
+  blocksScanned   Int
+  totalTx         Int
+  txWithOpReturn  Int
+  txAlkanes       Int
+  opReturnBytes   Int
+  runestoneBytes  Int
+  alkanesBytes    Int
+  dieselMints     Int
+  feeTotalSats    Int
+  feeAlkanesSats  Int
+  feeOpReturnSats Int
+  btcUsd          Float
+  updatedAt       DateTime @updatedAt
+}
+
 // Bearer keys for the admin upload API (POST /api/admin/articles).
 model ApiKey {
   id         String    @id @default(cuid())
