@@ -518,6 +518,9 @@ model Folder {
   parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    Folder[] @relation("FolderTree")
   files       DriveFile[]
+  // Which drive this folder lives in. SUBFROST is the default drive; OYL is the
+  // separate "OYL Drive" nav section. Mirrors LegalScope on entities.
+  scope       LegalScope @default(SUBFROST)
   createdById String?
   createdBy   User?    @relation("FolderCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -526,6 +529,7 @@ model Folder {
   // unique name within a parent (root = parentId null)
   @@unique([parentId, name])
   @@index([parentId])
+  @@index([scope])
 }
 
 model DriveFile {
@@ -533,12 +537,17 @@ model DriveFile {
   name        String
   folderId    String?
   folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  // Which drive this file lives in (denormalized from its folder so root-level
+  // files and scope filtering are unambiguous).
+  scope       LegalScope @default(SUBFROST)
   // Object key in the subfrost-docs bucket (stable across rename/move).
   gcsObject   String   @unique
   mimeType    String
   size        BigInt
   metadata    Json     @default("{}")
   tags        String[] @default([])
+  // graph links to the entities/people this file concerns (signatories, etc.)
+  entityLinks EntityFileLink[]
   createdById String?
   createdBy   User?    @relation("FileCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -546,6 +555,35 @@ model DriveFile {
 
   @@unique([folderId, name])
   @@index([folderId])
+  @@index([scope])
+}
+
+// How an entity/person relates to a document. SIGNATORY = signed it,
+// COUNTERPARTY = the other side, SUBJECT = the doc is about them, MENTIONED =
+// named but not a party. This is the "graph matrix of labels/annotations" that
+// ties registry entities to the files we hold on them.
+enum EntityFileRole {
+  SIGNATORY
+  COUNTERPARTY
+  SUBJECT
+  MENTIONED
+}
+
+model EntityFileLink {
+  id          String         @id @default(cuid())
+  fileId      String
+  file        DriveFile      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  entityId    String
+  entity      LegalEntity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  role        EntityFileRole @default(SUBJECT)
+  annotation  String?
+  // loose ref to the admin User who created the link (no FK, like LegalEntity.userId)
+  createdById String?
+  createdAt   DateTime       @default(now())
+
+  @@unique([fileId, entityId, role])
+  @@index([fileId])
+  @@index([entityId])
 }
 
 // ============================================
@@ -1251,6 +1289,7 @@ model LegalEntity {
   agreements LegalAgreement[]
   deserter   Deserter?
   obligation OylObligation?
+  fileLinks  EntityFileLink[]
 
   @@index([category])
   @@index([scope])

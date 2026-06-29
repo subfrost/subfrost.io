@@ -13,6 +13,7 @@ import {
   getFileUrlAction, listFolderAction, prepareUploadAction, updateFileAction, updateFolderAction,
 } from "@/actions/cms/files"
 import type { FileView, FolderView } from "@/lib/files/manager"
+import type { LegalScope } from "@prisma/client"
 import { humanSize, previewKind, relTime, typeLabel } from "./util"
 import { PreviewModal } from "./PreviewModal"
 import { DetailsPanel } from "./DetailsPanel"
@@ -20,6 +21,7 @@ import { FolderPicker } from "./FolderPicker"
 
 type View = {
   folderId: string | null
+  scope?: LegalScope
   breadcrumb: FolderView[]
   folders: FolderView[]
   files: FileView[]
@@ -38,7 +40,11 @@ function fileIcon(mime: string, name: string) {
   }
 }
 
-export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boolean }) {
+export function FilesManager({
+  initial, canEdit, scope = "SUBFROST", basePath = "/admin/files",
+}: {
+  initial: View; canEdit: boolean; scope?: LegalScope; basePath?: string
+}) {
   const [view, setView] = useState<View>(initial)
   const [navPending, startNav] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -57,21 +63,21 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
   const fileInput = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback((folderId: string | null = view.folderId) => {
-    return listFolderAction(folderId).then((r) => {
+    return listFolderAction(folderId, scope).then((r) => {
       if (r.ok) setView(r.data)
       else setError(r.error)
     })
-  }, [view.folderId])
+  }, [view.folderId, scope])
 
   const navigate = (folderId: string | null) => {
     setError(null)
     startNav(async () => {
-      const r = await listFolderAction(folderId)
+      const r = await listFolderAction(folderId, scope)
       if (r.ok) {
         setView(r.data)
         setDetails(null)
         const qs = folderId ? `?folder=${folderId}` : ""
-        window.history.replaceState(null, "", `/admin/files${qs}`)
+        window.history.replaceState(null, "", `${basePath}${qs}`)
       } else setError(r.error)
     })
   }
@@ -354,6 +360,7 @@ export function FilesManager({ initial, canEdit }: { initial: View; canEdit: boo
       {newFolder && (
         <NewFolderModal
           parentId={view.folderId}
+          scope={scope}
           onClose={() => setNewFolder(false)}
           onCreated={() => { setNewFolder(false); setNotice("Folder created"); void refresh() }}
           onError={setError}
@@ -405,15 +412,15 @@ function IconBtn({ children, title, onClick, danger }: { children: React.ReactNo
   )
 }
 
-function NewFolderModal({ parentId, onClose, onCreated, onError }: {
-  parentId: string | null; onClose: () => void; onCreated: () => void; onError: (m: string) => void
+function NewFolderModal({ parentId, scope, onClose, onCreated, onError }: {
+  parentId: string | null; scope: LegalScope; onClose: () => void; onCreated: () => void; onError: (m: string) => void
 }) {
   const [name, setName] = useState("")
   const [pending, start] = useTransition()
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     start(async () => {
-      const r = await createFolderAction(name, parentId)
+      const r = await createFolderAction(name, parentId, scope)
       if (r.ok) onCreated()
       else onError(r.error)
     })

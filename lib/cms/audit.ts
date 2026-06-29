@@ -78,6 +78,8 @@ export type AuditAction =
   | "balance_sheet_item_delete"
   | "file_upload"
   | "file_delete"
+  | "file_entity_link"
+  | "file_entity_unlink"
   | "marketing_snapshot_create"
   | "marketing_snapshot_delete"
   | "task_create"

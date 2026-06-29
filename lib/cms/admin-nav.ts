@@ -3,7 +3,7 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2,
+  KanbanSquare, Target, Package, Gavel, Building2, FolderArchive,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -47,6 +47,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "documents", label: "Documents", icon: FolderOpen, items: [
       { label: "Documents", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
+      { label: "OYL Drive", href: "/admin/oyl", icon: FolderArchive, privilege: "files.read" },
     ],
   },
   {
