@@ -50,7 +50,7 @@ export function computeMetric(rows: OpReturnRow[], metric: MetricKey, window: Wi
     const denSum = win.reduce((s, r) => s + den(r), 0)
     value = denSum === 0 ? null : numSum / denSum
   } else if (metric === "alkanesFeeUsdCumulative") {
-    value = win.reduce((s, r) => s + NUM[metric](r), 0)
+    value = win.length ? win.reduce((s, r) => s + NUM[metric](r), 0) : null
   } else {
     value = win.length ? win.reduce((s, r) => s + NUM[metric](r), 0) / win.length : null
   }

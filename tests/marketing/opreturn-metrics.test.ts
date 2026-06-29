@@ -35,3 +35,17 @@ it("computeBytesComposition splits alkanes/runes/other by ratio-of-sums", () => 
   expect(c.runes).toBeCloseTo(0.2)
   expect(c.other).toBeCloseTo(0.1)
 })
+
+it("alkanesFeeUsdDaily aggregates as the mean daily USD over the window", () => {
+  const rows = [row({ feeAlkanesSats: 100_000_000, btcUsd: 50000 }), row({ date: "2026-01-02", feeAlkanesSats: 300_000_000, btcUsd: 50000 })]
+  // daily USD = 50000 and 150000 -> mean = 100000
+  expect(computeMetric(rows, "alkanesFeeUsdDaily", "full").value).toBeCloseTo(100000)
+})
+
+it("computeMetric ratio returns null when the window denominator is all zero", () => {
+  expect(computeMetric([row({ totalTx: 0, txAlkanes: 0 })], "alkanesTxShare", "full").value).toBeNull()
+})
+
+it("computeBytesComposition returns zeros when there are no OP_RETURN bytes", () => {
+  expect(computeBytesComposition([row({ opReturnBytes: 0, alkanesBytes: 0, runestoneBytes: 0 })], "full")).toEqual({ alkanes: 0, runes: 0, other: 0 })
+})
