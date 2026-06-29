@@ -7,11 +7,12 @@ interface SubscribePanelProps {
   locale: "en" | "zh"
   fullBleed?: boolean
   footer?: boolean
+  compact?: boolean
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function SubscribePanel({ locale, fullBleed = false, footer = false }: SubscribePanelProps) {
+export function SubscribePanel({ locale, fullBleed = false, footer = false, compact = false }: SubscribePanelProps) {
   const [email, setEmail] = useState("")
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [message, setMessage] = useState("")
@@ -83,16 +84,18 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
       }}
     >
       <div className={`relative flex flex-col ${footer ? "" : "items-center text-center"} ${fullBleed ? "mx-auto max-w-[1180px]" : ""}`}>
-        <h2 className={`font-display font-semibold leading-[1.08] ${footer ? "text-[18px]" : "text-[27px] sm:text-[34px]"}`} style={{ color: "var(--ed-ink)" }}>
+        <h2 className={`font-display font-semibold leading-[1.08] ${footer || compact ? "text-[18px]" : "text-[27px] sm:text-[34px]"}`} style={{ color: "var(--ed-ink)" }}>
           {copy.title}
         </h2>
-        <p className={`font-reading mt-2 ${footer ? "max-w-[260px] text-[14px] leading-[1.5]" : "text-[16px] sm:text-[18px]"}`} style={{ color: "var(--ed-body)" }}>
-          {copy.subtitle}
-        </p>
+        {!compact ? (
+          <p className={`font-reading mt-2 ${footer ? "max-w-[260px] text-[14px] leading-[1.5]" : "text-[16px] sm:text-[18px]"}`} style={{ color: "var(--ed-body)" }}>
+            {copy.subtitle}
+          </p>
+        ) : null}
 
         <form
           onSubmit={onSubmit}
-          className={`box-border flex flex-row items-center rounded-[6px] border ${footer ? "mt-4 w-full max-w-[244px] gap-2 px-3 py-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3 px-4 py-3"}`}
+          className={`box-border flex flex-row items-center rounded-[6px] border ${footer || compact ? "mt-4 w-full max-w-[244px] gap-2 px-3 py-2" : "mx-auto mt-7 w-full max-w-[390px] gap-3 px-4 py-3"}`}
           style={{
             borderColor: "color-mix(in srgb, var(--ed-ink) 10%, transparent)",
             background: "color-mix(in srgb, var(--ed-canvas) 92%, var(--ed-surface))",
@@ -104,7 +107,7 @@ export function SubscribePanel({ locale, fullBleed = false, footer = false }: Su
             onChange={(e) => setEmail(e.target.value)}
             placeholder={copy.placeholder}
             autoComplete="email"
-            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer ? "h-7 w-0 flex-1 text-[14px]" : "h-8 w-full text-[16px]"}`}
+            className={`ed-subscribe-input font-display min-w-0 bg-transparent px-0 outline-none transition-opacity ${footer || compact ? "h-7 w-0 flex-1 text-[14px]" : "h-8 w-full text-[16px]"}`}
             style={{
               color: "var(--ed-ink)",
             }}

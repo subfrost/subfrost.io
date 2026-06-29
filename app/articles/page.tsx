@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib/cms/articles"
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
+import { AuthorByline } from "@/components/articles/AuthorByline"
 import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
@@ -170,26 +171,46 @@ function primaryCategory(article: ArticlePreview, locale: CmsLocale) {
 
 function RecentMiniArticleCard({ a, locale, coverVariant }: { a: ArticlePreview; locale: CmsLocale; coverVariant: number | string }) {
   return (
-    <Link href={articleHref(a.slug, locale)} className="flex items-start gap-3 overflow-hidden rounded-[8px] border p-3" style={{ borderColor: "color-mix(in srgb, var(--ed-ink) 8%, transparent)", background: "color-mix(in srgb, var(--ed-surface) 52%, transparent)" }} prefetch={false}>
-      <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]">
+    <article
+      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-3 transition-[background-color,filter,transform] duration-300 ease-out"
+      style={{
+        background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
+        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--ed-ink) 5%, transparent)",
+      }}
+    >
+      <Link href={articleHref(a.slug, locale)} className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]" prefetch={false}>
         <CmsCoverImage src={a.coverImage} className="h-full w-full" fallbackVariant={coverVariant} />
-      </div>
+      </Link>
       <div className="min-w-0 flex-1">
-        <h3 className="font-display line-clamp-2 text-[15px] font-normal leading-[1.25]" style={{ color: "var(--ed-ink)" }}>
-          {a.title}
-        </h3>
+        <Link href={articleHref(a.slug, locale)} prefetch={false}>
+          <h3 className="font-display line-clamp-2 text-[15px] font-normal leading-[1.25]" style={{ color: "var(--ed-ink)" }}>
+            {a.title}
+          </h3>
+        </Link>
         <div className="font-display mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-medium" style={{ color: "var(--ed-muted)" }}>
           <span style={{ color: "var(--ed-ink)" }}>{primaryCategory(a, locale)}</span>
           {a.publishedAt ? <span>{articleDate(a.publishedAt, locale)}</span> : null}
         </div>
+        <div className="mt-3">
+          <AuthorByline author={a.author} publishedAt={null} readingMinutes={a.readingMinutes} size={24} variant="compact" locale={locale} coAuthors={a.coAuthors} />
+        </div>
       </div>
-    </Link>
+    </article>
   )
 }
 
 function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
   return (
-    <a href={doc.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 overflow-hidden rounded-[8px] border p-3" style={{ borderColor: "color-mix(in srgb, var(--ed-ink) 8%, transparent)", background: "color-mix(in srgb, var(--ed-surface) 52%, transparent)" }}>
+    <a
+      href={doc.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-start gap-3 overflow-hidden rounded-[8px] p-3 transition-[background-color,filter,transform] duration-300 ease-out"
+      style={{
+        background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
+        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--ed-ink) 5%, transparent)",
+      }}
+    >
       <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[6px]">
         <CoverArt className="h-full w-full" variant={`recent-${doc.href}`} />
       </div>
@@ -288,7 +309,6 @@ export default async function ArticlesIndex({
                 </Link>
               ))}
             </nav>
-            <TopSubscribeModalButton locale={locale} />
           </div>
         </div>
       </section>
@@ -319,28 +339,35 @@ export default async function ArticlesIndex({
               {featuredLead ? (
                 <article className="rounded-[10px] p-4 sm:p-5" style={{ background: "color-mix(in srgb, var(--ed-surface) 58%, transparent)" }}>
                   <p className="ed-eyebrow mb-5">{copy.featured}</p>
-                  <Link href={articleHref(featuredLead.slug, locale)} className="ed-card" prefetch={false}>
-                    <div className="ed-cover-frame aspect-[24/11]">
-                      <CmsCoverImage
-                        src={featuredLead.coverImage}
-                        className="h-full w-full"
-                        fallbackVariant={0}
-                        priority
-                      />
-                    </div>
+                  <div className="ed-card">
+                    <Link href={articleHref(featuredLead.slug, locale)} className="block" prefetch={false}>
+                      <div className="ed-cover-frame aspect-[24/11]">
+                        <CmsCoverImage
+                          src={featuredLead.coverImage}
+                          className="h-full w-full"
+                          fallbackVariant={0}
+                          priority
+                        />
+                      </div>
+                    </Link>
                     <div className="flex flex-1 flex-col pt-5">
-                      <h2
-                        className="font-display text-balance text-[24px] font-normal leading-[1.2] sm:text-[28px]"
-                        style={{ color: "var(--ed-ink)" }}
-                      >
-                        {featuredLead.title}
-                      </h2>
+                      <Link href={articleHref(featuredLead.slug, locale)} prefetch={false}>
+                        <h2
+                          className="font-display text-balance text-[24px] font-normal leading-[1.2] sm:text-[28px]"
+                          style={{ color: "var(--ed-ink)" }}
+                        >
+                          {featuredLead.title}
+                        </h2>
+                      </Link>
                       <div className="font-display mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
                         <span style={{ color: "var(--ed-ink)" }}>{primaryCategory(featuredLead, locale)}</span>
                         {featuredLead.publishedAt ? <span>{articleDate(featuredLead.publishedAt, locale)}</span> : null}
                       </div>
+                      <div className="mt-5">
+                        <AuthorByline author={featuredLead.author} publishedAt={null} readingMinutes={featuredLead.readingMinutes} size={32} variant="compact" locale={locale} coAuthors={featuredLead.coAuthors} />
+                      </div>
                     </div>
-                  </Link>
+                  </div>
                 </article>
               ) : null}
 
@@ -354,6 +381,12 @@ export default async function ArticlesIndex({
                     {recentDocs.slice(0, 3 - Math.min(3, latest.length)).map((doc) => (
                       <RecentMiniDocCard key={`featured-recent-${doc.href}`} doc={doc} locale={locale} copy={copy} />
                     ))}
+                  </div>
+                  <div
+                    className="mt-5 pt-5"
+                    style={{ borderTop: "1px solid color-mix(in srgb, var(--ed-ink) 7%, transparent)" }}
+                  >
+                    <TopSubscribeModalButton locale={locale} />
                   </div>
                 </aside>
               ) : null}
