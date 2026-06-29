@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { getFileUrlAction, updateFileAction } from "@/actions/cms/files"
 import type { FileView } from "@/lib/files/manager"
 import { humanSize, relTime, typeLabel } from "./util"
+import { FileEntityLinks } from "./FileEntityLinks"
 
 // Details panel for a selected file: read-only metadata plus, when canEdit,
 // editable tags and a free-form notes field stored on metadata.notes. On large
@@ -94,6 +95,13 @@ export function DetailsPanel({
         <div className="flex justify-between gap-3"><dt className="text-zinc-500">Created</dt><dd className="text-zinc-300" title={new Date(file.createdAt).toLocaleString()}>{relTime(file.createdAt)}</dd></div>
         <div className="flex justify-between gap-3"><dt className="text-zinc-500">Modified</dt><dd className="text-zinc-300" title={new Date(file.updatedAt).toLocaleString()}>{relTime(file.updatedAt)}</dd></div>
       </dl>
+
+      <FileEntityLinks
+        fileId={file.id}
+        canEdit={canEdit}
+        suggested={Array.isArray(file.metadata?.suggestedEntities) ? (file.metadata.suggestedEntities as string[]) : []}
+        onError={onError}
+      />
 
       <div className="space-y-2">
         <Label className="flex items-center gap-1.5 text-xs text-zinc-400"><Tag size={12} /> Tags</Label>

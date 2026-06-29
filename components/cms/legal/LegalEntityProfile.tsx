@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useTransition, type ReactNode } from "react"
+import { useEffect, useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, Pencil, FileText } from "lucide-react"
+import { ArrowLeft, Pencil, FileText, Download, Loader2 } from "lucide-react"
 import {
   entityProfileAction, updateEntityAction, createAgreementAction, deleteAgreementAction,
   upsertDeserterAction, upsertObligationAction,
 } from "@/actions/cms/legal"
+import { listEntityFilesAction, getFileUrlAction, unlinkEntityFileAction } from "@/actions/cms/files"
+import type { EntityFileView } from "@/lib/files/manager"
 import {
   LEGAL_ENTITY_CATEGORY_LABELS, LEGAL_AGREEMENT_TYPES, LEGAL_AGREEMENT_TYPE_LABELS,
   SWAP_STATUS_LABELS, DESERTION_STATUS_LABELS, dieselFromSafe, swapEligible,
@@ -137,7 +139,74 @@ export function LegalEntityProfile({ profile: initial, canEdit, viewerHasFinanci
           </ul>
         )}
       </Section>
+
+      {/* Linked documents (the file↔entity graph, from the drive ingest) */}
+      <EntityDocuments entityId={entity.id} canEdit={canEdit} onError={setError} />
     </div>
+  )
+}
+
+const DOC_ROLE_LABEL: Record<string, string> = {
+  SIGNATORY: "Signatory", COUNTERPARTY: "Counterparty", SUBJECT: "Subject", MENTIONED: "Mentioned",
+}
+
+function EntityDocuments({ entityId, canEdit, onError }: {
+  entityId: string; canEdit: boolean; onError: (m: string) => void
+}) {
+  const [docs, setDocs] = useState<EntityFileView[] | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setDocs(null)
+    listEntityFilesAction(entityId).then((r) => {
+      if (r.ok) setDocs(r.files)
+      else { onError(r.error); setDocs([]) }
+    })
+  }, [entityId, onError])
+
+  const download = async (fileId: string) => {
+    const r = await getFileUrlAction(fileId, true)
+    if (r.ok) window.open(r.url, "_blank", "noopener")
+    else onError(r.error)
+  }
+  const unlink = async (linkId: string) => {
+    setBusy(true)
+    const r = await unlinkEntityFileAction(linkId)
+    setBusy(false)
+    if (r.ok) setDocs((cur) => (cur ?? []).filter((d) => d.id !== linkId))
+    else onError(r.error)
+  }
+
+  return (
+    <Section title={`Documents${docs ? ` (${docs.length})` : ""}`}>
+      {docs === null ? (
+        <div className="flex items-center gap-2 text-sm text-zinc-500"><Loader2 size={13} className="animate-spin" /> Loading…</div>
+      ) : docs.length === 0 ? (
+        <Empty>No documents linked to this entity yet. Link them from the Documents drive (file → Entities &amp; signatories).</Empty>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <FileText size={15} className="shrink-0 text-zinc-500" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm text-zinc-200">{d.file.name}</div>
+                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                    <span className="rounded bg-zinc-800 px-1 py-0.5 text-zinc-300">{DOC_ROLE_LABEL[d.role] ?? d.role}</span>
+                    <span>{d.file.scope}</span>
+                    {d.annotation && <span className="truncate italic">{d.annotation}</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button aria-label="Download" onClick={() => download(d.file.id)} className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"><Download size={14} /></button>
+                {canEdit && <button onClick={() => unlink(d.id)} disabled={busy} className="text-xs text-zinc-500 hover:text-red-300">Unlink</button>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   )
 }
 
