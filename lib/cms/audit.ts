@@ -108,6 +108,7 @@ export type AuditAction =
   | "legal_deserter_swap_signoff"
   | "legal_obligation_upsert"
   | "legal_reconciliation_view"
+  | "marketing_opreturn_sync"
 
 export async function audit(
   action: AuditAction,
