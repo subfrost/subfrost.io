@@ -3,6 +3,7 @@ import { getStats, type HomeStats } from "@/lib/stats"
 const CANONICAL_STATS_URL = "https://subfrost.io/api/stats"
 const CANONICAL_VOLUME_URL = "https://subfrost.io/api/volume/stats?source=both"
 const FETCH_TIMEOUT_MS = 10_000
+const VOLUME_FETCH_TIMEOUT_MS = 1_500
 
 export type InitialVolumeStats = {
   wrap_24h_sats?: string
@@ -19,11 +20,11 @@ function hasStats(payload: HomeStats | null | undefined) {
   )
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<T | null> {
   try {
     const response = await fetch(url, {
       headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       next: { revalidate: 60 },
     })
     if (!response.ok) return null
@@ -45,5 +46,5 @@ export async function loadInitialHomeStats() {
 }
 
 export async function loadInitialVolumeStats() {
-  return fetchJson<InitialVolumeStats>(CANONICAL_VOLUME_URL)
+  return fetchJson<InitialVolumeStats>(CANONICAL_VOLUME_URL, VOLUME_FETCH_TIMEOUT_MS)
 }

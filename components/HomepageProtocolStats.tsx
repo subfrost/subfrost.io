@@ -172,13 +172,23 @@ export default function HomepageProtocolStats({
     return typeof wrap === "number" && typeof unwrap === "number" ? wrap + unwrap : null
   })()
 
-  return (
-    <div className="homepage-protocol-stats grid grid-cols-2 gap-x-6 gap-y-7 sm:gap-6 lg:grid-cols-4">
-      {t.items.map((item, index) => {
-        const nativeValue = item.key === "volume24hBtc" ? volume24hBtc : metricValue(data, item.key as keyof StatsPayload)
-        const convertedUsd = usdValue(data, nativeValue)
-        const hasUsd = typeof convertedUsd === "number" && Number.isFinite(convertedUsd)
+  const items = t.items
+    .map((item) => {
+      const nativeValue = item.key === "volume24hBtc" ? volume24hBtc : metricValue(data, item.key as keyof StatsPayload)
+      const convertedUsd = usdValue(data, nativeValue)
 
+      return {
+        ...item,
+        nativeValue,
+        convertedUsd,
+        hasUsd: typeof convertedUsd === "number" && Number.isFinite(convertedUsd),
+      }
+    })
+    .filter((item) => item.key !== "volume24hBtc" || typeof item.nativeValue === "number")
+
+  return (
+    <div className={`homepage-protocol-stats grid grid-cols-2 gap-x-6 gap-y-7 sm:gap-6 ${items.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+      {items.map((item, index) => {
         return (
           <a
             key={item.key}
@@ -195,15 +205,15 @@ export default function HomepageProtocolStats({
                 <ArrowUpRight className="h-4 w-4 opacity-45 transition-opacity duration-200 group-hover:opacity-100" strokeWidth={1.8} style={{ color: "var(--ed-muted)" }} />
               </span>
               <span
-                className={`homepage-protocol-stat-value mt-3 font-mono text-[clamp(17px,4.6vw,22px)] font-semibold tabular-nums sm:text-[22px] ${hasUsd ? "homepage-protocol-stat-value-cycle" : ""}`}
+                className={`homepage-protocol-stat-value mt-3 font-mono text-[clamp(17px,4.6vw,22px)] font-semibold tabular-nums sm:text-[22px] ${item.hasUsd ? "homepage-protocol-stat-value-cycle" : ""}`}
                 style={{ color: "var(--ed-ink)" }}
               >
                 <span className="homepage-protocol-stat-native">
-                  {formatMetric(nativeValue, item.suffix, t.fallback)}
+                  {formatMetric(item.nativeValue, item.suffix, t.fallback)}
                 </span>
-                {hasUsd ? (
+                {item.hasUsd ? (
                   <span className="homepage-protocol-stat-usd">
-                    {formatMetric(convertedUsd, "USD", t.fallback)}
+                    {formatMetric(item.convertedUsd, "USD", t.fallback)}
                   </span>
                 ) : null}
               </span>
