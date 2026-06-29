@@ -17,6 +17,11 @@ it("renders a live preview whose src reflects the chosen metric and window", () 
 })
 
 it("shows an empty-state hint when no data has been synced", () => {
-  const { getByText } = render(<StatCardStudio meta={{ count: 0, latestDate: null, latestUpdatedAt: null }} />)
-  expect(getByText(/Sync now/i)).toBeTruthy()
+  const { getByText, queryByText } = render(<StatCardStudio meta={{ count: 0, latestDate: null, latestUpdatedAt: null }} />)
+  expect(getByText(/No on-chain data yet/i)).toBeTruthy()
+})
+
+it("does NOT show the empty-state hint when data exists", () => {
+  const { queryByText } = render(<StatCardStudio meta={{ count: 183, latestDate: "2026-06-28", latestUpdatedAt: null }} />)
+  expect(queryByText(/No on-chain data yet/i)).toBeNull()
 })
