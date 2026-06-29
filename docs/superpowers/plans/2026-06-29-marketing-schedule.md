@@ -1001,6 +1001,8 @@ git commit -m "feat(marketing): public RSS feed + autodiscovery"
 
 ### Task 8: Nav entry + schedule page (server component)
 
+> **Execution order:** run **Task 9 before this task** — the page imports `ScheduleClient`, which Task 9 creates. This keeps every commit green.
+
 **Files:**
 - Modify: `lib/cms/admin-nav.ts` (add one `NavLeaf` to the `marketing` group)
 - Create: `app/admin/marketing/schedule/page.tsx`
@@ -1073,10 +1075,10 @@ export default async function SchedulePage() {
 }
 ```
 
-- [ ] **Step 6: Typecheck** (will fail until Task 9 creates `ScheduleClient` — that is expected; do Task 9 next)
+- [ ] **Step 6: Typecheck** (Task 9 already created `ScheduleClient`, so this passes)
 
 Run: `pnpm exec tsc --noEmit`
-Expected: error "Cannot find module '@/components/cms/marketing/ScheduleClient'" — resolved by Task 9.
+Expected: exits 0.
 
 - [ ] **Step 7: Commit**
 
