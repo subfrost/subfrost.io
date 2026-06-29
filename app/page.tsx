@@ -8,6 +8,7 @@ import LatestArticles from "@/components/articles/LatestArticles"
 import ScrollRevealStatement from "@/components/ScrollRevealStatement"
 import { getPublishedPreviews } from "@/lib/cms/articles"
 import { loadInitialHomeStats, loadInitialVolumeStats } from "@/lib/homepage-initial-data"
+import { externalAnchorProps } from "@/lib/link-behavior"
 import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
@@ -162,8 +163,7 @@ function TeamMemberCard({ member, locale }: { member: TeamMember; locale: Locale
   return (
     <a
       href={member.href}
-      target="_blank"
-      rel="noopener noreferrer"
+      {...externalAnchorProps(member.href)}
       className="group grid h-full grid-cols-[56px_1fr] gap-4 py-5"
     >
       <img
@@ -525,6 +525,7 @@ export default async function Page({
           <div className="homepage-cascade-item homepage-cascade-3 mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
             <a
               href="https://app.subfrost.io/"
+              {...externalAnchorProps("https://app.subfrost.io/")}
               className="font-display inline-flex h-10 w-[132px] items-center justify-center gap-2 rounded-[6px] border px-0 text-[14px] font-medium"
               style={{
                 background: "var(--ed-action-bg)",
@@ -572,7 +573,7 @@ export default async function Page({
           </div>
           <div className="grid gap-8 sm:grid-cols-3">
             {copy.products.map((item) => (
-              <a key={item.title} href={item.href} className="group">
+              <a key={item.title} href={item.href} {...externalAnchorProps(item.href)} className="group">
                 <h3 className="font-display text-[21px] font-normal leading-[1.24]" style={{ color: "var(--ed-ink)" }}>
                   {item.title}
                   <ArrowRight className="ml-1 inline h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.7} />

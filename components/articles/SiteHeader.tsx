@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { ArrowUp, ArrowUpRight, PanelRight, Search, X } from "lucide-react"
 import { LocaleToggle } from "./LocaleToggle"
 import { externalLinks } from "@/lib/external-links"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 type MenuId = "trade" | "developer" | "downloads"
 
@@ -454,6 +455,7 @@ export function SiteHeader() {
           </span>
           <a
             href="https://app.subfrost.io/"
+            {...externalAnchorProps("https://app.subfrost.io/")}
             onMouseEnter={closeDesktopMenu}
             onFocus={closeDesktopMenu}
             className="font-display inline-flex h-9 w-[122px] items-center justify-center gap-1.5 rounded-[6px] border px-0 text-[13px] font-medium"
@@ -517,6 +519,7 @@ export function SiteHeader() {
                     <a
                       key={item.label}
                       href={item.href}
+                      {...externalAnchorProps(item.href)}
                       onClick={() => setMobileMenuOpen(false)}
                       className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-[1.12] text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                     >
@@ -541,6 +544,7 @@ export function SiteHeader() {
                       <a
                         key={item.id}
                         href={item.href}
+                        {...externalAnchorProps(item.href)}
                         onClick={() => setMobileMenuOpen(false)}
                         className="font-display inline-flex items-center gap-1.5 text-[16px] font-medium text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                       >
@@ -584,6 +588,7 @@ export function SiteHeader() {
 
               <a
                 href="https://app.subfrost.io/"
+                {...externalAnchorProps("https://app.subfrost.io/")}
                 onClick={() => setMobileMenuOpen(false)}
                 className="font-display inline-flex items-center gap-2 text-[34px] font-normal leading-none text-[color:var(--ed-ink)] outline-none transition-colors duration-200 hover:text-[color:var(--ed-muted)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
               >
@@ -663,6 +668,7 @@ export function SiteHeader() {
                   <a
                     key={result.id}
                     href={result.href}
+                    {...externalAnchorProps(result.href)}
                     onClick={closeSearch}
                     className="site-search-result group grid gap-3 rounded-[6px] px-0 py-3 outline-none transition-[background,transform] duration-300 hover:translate-x-1 focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-6 sm:px-3"
                     style={{ "--search-result-index": index } as CSSProperties}
@@ -748,6 +754,7 @@ export function SiteHeader() {
                           <a
                             key={item.id}
                             href={item.href}
+                            {...externalAnchorProps(item.href)}
                             onClick={() => setActiveMenu(null)}
                             className="group outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                           >
@@ -770,6 +777,7 @@ export function SiteHeader() {
                             <a
                               key={item.id}
                               href={item.href}
+                              {...externalAnchorProps(item.href)}
                               onClick={() => setActiveMenu(null)}
                               className="group font-display inline-flex items-center text-[15px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
                               style={{ color: "var(--ed-ink)" }}

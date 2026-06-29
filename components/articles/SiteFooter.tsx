@@ -9,6 +9,7 @@ import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
 import { rememberEditorialLocale } from "./localePreference"
 import { externalLinks } from "@/lib/external-links"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 const LOCALE_EXIT_MS = 160
 
@@ -112,6 +113,7 @@ export function SiteFooter() {
                 <a
                   key={link.href}
                   href={link.href}
+                  {...externalAnchorProps(link.href)}
                   className="font-display text-[14px] font-normal transition-opacity hover:opacity-65"
                   style={{ color: "var(--ed-ink)" }}
                 >

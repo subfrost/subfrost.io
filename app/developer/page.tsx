@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { CoverArt } from "@/components/articles/CoverArt"
 import { externalLinks } from "@/lib/external-links"
+import { externalAnchorProps, isExternalHref } from "@/lib/link-behavior"
 import { absoluteUrl, sharedUnfurlImagePath, siteName, siteUrl } from "@/lib/seo"
 
 type Locale = "en" | "zh"
@@ -169,10 +170,6 @@ const copy = {
   surfaces: Array<{ title: string; meta: string; href: string }>
 }>
 
-function isExternalHref(href: string) {
-  return /^https?:\/\//.test(href)
-}
-
 function LinkArrow({ external }: { external: boolean }) {
   const Icon = external ? ArrowUpRight : ArrowRight
   return (
@@ -244,8 +241,7 @@ export default async function DeveloperPage({
                   <a
                     key={item.href}
                     href={item.href}
-                    target={isExternalHref(item.href) ? "_blank" : undefined}
-                    rel={isExternalHref(item.href) ? "noopener noreferrer" : undefined}
+                    {...externalAnchorProps(item.href)}
                     className="font-display inline-flex items-center text-[17px]"
                     style={{ color: "var(--ed-muted)" }}
                   >
@@ -295,8 +291,7 @@ export default async function DeveloperPage({
                 <a
                   key={card.href}
                   href={card.href}
-                  target={isExternalHref(card.href) ? "_blank" : undefined}
-                  rel={isExternalHref(card.href) ? "noopener noreferrer" : undefined}
+                  {...externalAnchorProps(card.href)}
                   className="ed-card"
                 >
                   <CoverArt variant={card.variant} sizes="(min-width: 768px) 28vw, 100vw" className="ed-cover-frame aspect-[4/3]" />
@@ -333,8 +328,7 @@ export default async function DeveloperPage({
                 <a
                   key={surface.href}
                   href={surface.href}
-                  target={isExternalHref(surface.href) ? "_blank" : undefined}
-                  rel={isExternalHref(surface.href) ? "noopener noreferrer" : undefined}
+                  {...externalAnchorProps(surface.href)}
                   className="group block"
                 >
                   <h3 className="font-display text-[24px] font-normal leading-tight" style={{ color: "var(--ed-ink)" }}>

@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react"
 import { CoverArt } from "./CoverArt"
 import { externalLinks } from "@/lib/external-links"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 // Homepage widget: top published articles from the same-origin API. Renders
 // nothing if empty, so the homepage degrades gracefully.
@@ -151,7 +152,7 @@ export default function LatestArticles({
       <div className="grid gap-x-8 gap-y-10 lg:grid-cols-3">
         {cards.map((card) => (
           <article key={card.id} className="ed-card">
-            <a href={card.href} className="ed-cover-frame aspect-[16/9]">
+            <a href={card.href} {...externalAnchorProps(card.href)} className="ed-cover-frame aspect-[16/9]">
               {card.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -174,7 +175,7 @@ export default function LatestArticles({
                 ))}
               </div>
               <h4 className="font-display text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
-                <a href={card.href}>
+                <a href={card.href} {...externalAnchorProps(card.href)}>
                   {card.title}
                 </a>
               </h4>

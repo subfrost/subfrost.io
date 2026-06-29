@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react"
 import useSWR from "swr"
 import { ArrowUpRight } from "lucide-react"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 type Locale = "en" | "zh"
 
@@ -182,6 +183,7 @@ export default function HomepageProtocolStats({
           <a
             key={item.key}
             href={item.href}
+            {...externalAnchorProps(item.href)}
             className="homepage-protocol-stat group border-t pt-4 sm:pt-5"
             style={{ "--stat-index": index, borderColor: "var(--ed-hair)" } as CSSProperties}
           >

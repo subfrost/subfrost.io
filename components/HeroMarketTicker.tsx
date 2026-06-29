@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react"
 import useSWR from "swr"
 import { Activity, ArrowUpRight, Bitcoin, Flame, Fuel, RadioTower } from "lucide-react"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 export type HomepagePayload = {
   btcUsd?: number | null
@@ -138,6 +139,7 @@ export default function HeroMarketTicker({
             <a
               key={item.label}
               href={item.href}
+              {...externalAnchorProps(item.href)}
               className="hero-market-ticker-item group flex min-w-0 justify-start rounded-[6px] py-1.5 transition-colors duration-200 last:col-span-2 last:justify-center md:flex-none md:py-2 md:last:col-span-1"
               style={{ "--ticker-index": index, color: "var(--ed-ink)" } as CSSProperties}
             >
