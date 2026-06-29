@@ -169,8 +169,10 @@ function usePreviewFallback(force = false) {
     force ||
     process.env.CONTEXT === "deploy-preview" ||
     process.env.NETLIFY === "true" ||
+    process.env.VERCEL_ENV === "preview" ||
     process.env.DEPLOY_PRIME_URL?.includes("deploy-preview-") === true ||
     process.env.DEPLOY_URL?.includes("deploy-preview-") === true ||
+    process.env.VERCEL_URL?.endsWith(".vercel.app") === true ||
     process.env.URL?.includes("deploy-preview-") === true ||
     process.env.NEXT_PUBLIC_ENABLE_ARTICLE_PREVIEW_FALLBACK === "true"
   )
@@ -249,6 +251,23 @@ async function remotePreviewPreviews(opts: {
     if (!res.ok) return null
     const data = (await res.json()) as { articles?: ArticlePreview[] }
     return Array.isArray(data.articles) ? data.articles : null
+  } catch {
+    return null
+  }
+}
+
+async function remotePreviewArticle(slug: string, locale: CmsLocale): Promise<ArticleFull | null> {
+  const apiUrl = process.env.ARTICLE_PREVIEW_API_URL
+  if (!apiUrl) return null
+
+  try {
+    const url = new URL(`${apiUrl.replace(/\/$/, "")}/${encodeURIComponent(slug)}`)
+    url.searchParams.set("locale", locale)
+
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { article?: ArticleFull }
+    return data.article ?? null
   } catch {
     return null
   }
@@ -418,7 +437,7 @@ export async function getPublishedArticle(
   opts: { previewFallback?: boolean } = {},
 ): Promise<ArticleFull | null> {
   const previewFallback = opts.previewFallback ?? false
-  if (usePreviewFallback(previewFallback)) return previewArticle(slug, locale)
+  if (usePreviewFallback(previewFallback)) return (await remotePreviewArticle(slug, locale)) ?? previewArticle(slug, locale)
 
   try {
     const a = (await prisma.article.findFirst({

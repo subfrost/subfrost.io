@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe("AdminShell", () => {
   it("renders the brand, the nav tree and its children", () => {
-    const { getAllByAltText, getByText } = render(
+    const { getAllByAltText, getAllByText, getByText } = render(
       <AdminShell user={user}>
         <p>page body</p>
       </AdminShell>,

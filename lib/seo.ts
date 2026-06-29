@@ -32,7 +32,10 @@ export function authorUrl(id: string, locale: "en" | "zh" = "en") {
 
 export function isDeployPreviewHost(host: string | null) {
   const normalized = host?.toLowerCase() ?? ""
-  return Boolean(normalized.includes("deploy-preview-") && normalized.endsWith(".netlify.app"))
+  return Boolean(
+    (normalized.includes("deploy-preview-") && normalized.endsWith(".netlify.app")) ||
+      normalized.endsWith(".vercel.app"),
+  )
 }
 
 export function isLocalPreviewHost(host: string | null) {
