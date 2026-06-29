@@ -296,6 +296,8 @@ model User {
   folders            Folder[]             @relation("FolderCreator")
   driveFiles         DriveFile[]          @relation("FileCreator")
   marketingSnapshots MarketingSnapshot[]  @relation("SnapshotCreator")
+  marketingPushes    MarketingPush[]      @relation("PushCreator")
+  recurringPushes    RecurringPush[]      @relation("RecurringPushCreator")
   tasksOwned         Task[]               @relation("TaskOwner")
   taskComments       TaskComment[]        @relation("TaskCommentAuthor")
 
@@ -386,6 +388,7 @@ model Article {
   translations       ArticleTranslation[]
   revisions          Revision[]
   marketingSnapshots MarketingSnapshot[]
+  marketingPushes    MarketingPush[]
 
   publishedAt DateTime?
   notifiedAt  DateTime?
@@ -1513,4 +1516,71 @@ model TaskComment {
   createdAt DateTime @default(now())
 
   @@index([taskId])
+}
+
+enum PushChannel {
+  ARTICLE
+  X
+  EMAIL
+  STAT_CARD
+  OTHER
+}
+
+enum PushStatus {
+  IDEA
+  SCHEDULED
+  PUBLISHED
+  CANCELED
+}
+
+enum PushFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model MarketingPush {
+  id             String         @id @default(cuid())
+  title          String
+  channel        PushChannel
+  status         PushStatus     @default(IDEA)
+  scheduledFor   DateTime?
+  publishedAt    DateTime?
+  articleId      String?
+  article        Article?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  refUrl         String?
+  notes          String?
+  metrics        Json?
+  screenshotUrl  String?
+  recurrenceId   String?
+  recurrence     RecurringPush? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  recurrenceDate DateTime?
+  createdById    String?
+  createdBy      User?          @relation("PushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([recurrenceId, recurrenceDate])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([status])
+  @@index([articleId])
+}
+
+model RecurringPush {
+  id           String          @id @default(cuid())
+  title        String
+  channel      PushChannel     @default(ARTICLE)
+  frequency    PushFrequency   @default(WEEKLY)
+  dayOfWeek    Int
+  dayOfMonth   Int?
+  active       Boolean         @default(true)
+  defaultNotes String?
+  startDate    DateTime
+  endDate      DateTime?
+  instances    MarketingPush[]
+  createdById  String?
+  createdBy    User?           @relation("RecurringPushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
