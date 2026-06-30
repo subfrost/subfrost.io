@@ -18,6 +18,7 @@ export async function createXPostSnapshot(payload: XPostSnapshotPayload): Promis
       refUrl: payload.url,
       payload: payload as unknown as Prisma.InputJsonValue,
     },
+    select: { id: true, createdAt: true, refUrl: true, payload: true },
   })) as DbRow
   return map(r)
 }
@@ -46,17 +47,18 @@ export async function updateMatchedPushMetrics(latestByTweetId: Map<string, XPos
     where: { channel: "X", refUrl: { not: null } },
     select: { id: true, refUrl: true },
   })) as { id: string; refUrl: string | null }[]
-  let updated = 0
-  for (const p of pushes) {
+  const matched = pushes.flatMap((p) => {
     const tid = extractTweetId(p.refUrl)
-    if (!tid) continue
+    if (!tid) return []
     const m = latestByTweetId.get(tid)
-    if (!m) continue
-    await prisma.marketingPush.update({
-      where: { id: p.id },
-      data: { metrics: { impressions: m.impressions, likes: m.likes, reposts: m.reposts, clicks: null } as unknown as Prisma.InputJsonValue },
-    })
-    updated++
-  }
-  return updated
+    if (!m) return []
+    return [
+      prisma.marketingPush.update({
+        where: { id: p.id },
+        data: { metrics: { impressions: m.impressions, likes: m.likes, reposts: m.reposts, clicks: null } as unknown as Prisma.InputJsonValue },
+      }),
+    ]
+  })
+  await Promise.all(matched)
+  return matched.length
 }
