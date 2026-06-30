@@ -166,14 +166,19 @@ function StatsCards({
 
   const loading = isLoading
 
-  const renderValue = (value: string | undefined, colorClass: string, decimals: number = 4) => (
+  const renderValue = (
+    value: string | undefined,
+    colorClass: string,
+    decimals: number = 4,
+    unitClassName = "text-xs"
+  ) => (
     <p className={cn("text-lg sm:text-xl font-semibold tabular-nums", colorClass)}>
       {loading ? (
         <span className="text-[#6b7280]/50">--</span>
       ) : (
         <>
           {satsToBtc(value || "0", decimals)}{" "}
-          <span className="text-xs text-[#6b7280]">BTC</span>
+          <span className={cn(unitClassName, "text-[#6b7280]")}>BTC</span>
         </>
       )}
     </p>
@@ -184,13 +189,11 @@ function StatsCards({
       {
         label: t("volume.wraps"),
         value: data?.[wrapKey],
-        colorClass: "text-[#16a34a]",
         decimals: valueDecimals,
       },
       {
         label: t("volume.unwraps"),
         value: data?.[unwrapKey],
-        colorClass: "text-[#dc2626]",
         decimals: valueDecimals,
       },
     ]
@@ -235,13 +238,18 @@ function StatsCards({
             All
           </button>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-6 md:gap-10">
+        <div className="mt-7 grid max-w-[720px] grid-cols-2 gap-8 sm:gap-12">
           {periodStats.map((stat) => (
             <div key={`period-${stat.label}`}>
-              <p className="font-display text-[14px] leading-tight" style={{ color: "var(--ed-muted)" }}>
+              <p className="font-display text-[15px] leading-tight sm:text-[16px]" style={{ color: "var(--ed-muted)" }}>
                 {stat.label}
               </p>
-              {renderValue(stat.value, cn("mt-4 font-mono text-[28px] leading-none sm:text-[34px]", stat.colorClass), stat.decimals)}
+              {renderValue(
+                stat.value,
+                "mt-4 font-mono text-[34px] leading-none text-[var(--ed-ink)] sm:text-[44px]",
+                stat.decimals,
+                "text-sm sm:text-base"
+              )}
             </div>
           ))}
         </div>
