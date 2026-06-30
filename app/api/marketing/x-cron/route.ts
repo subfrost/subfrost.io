@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const pushesUpdated = await updateMatchedPushMetrics(latest)
     return NextResponse.json({ ok: true, captured, skipped, failed, pushesUpdated, backfill })
   } catch (err) {
-    const code = err instanceof XApiError ? err.message : String(err)
-    return NextResponse.json({ ok: false, error: code }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ ok: false, error: message }, { status: 500 })
   }
 }

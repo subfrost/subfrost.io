@@ -40,6 +40,7 @@ describe("GET /api/marketing/x-cron", () => {
     vi.stubEnv("PREFETCH_SECRET", "s3cr3t")
     const res = await GET(req(undefined, "Bearer nope"))
     expect(res.status).toBe(401)
+    expect((await res.json()).error).toBeTruthy()
   })
 
   it("captures new posts, skips existing, and updates matched pushes", async () => {
@@ -72,6 +73,8 @@ describe("GET /api/marketing/x-cron", () => {
     vi.mocked(xc.resolveAccountId).mockRejectedValue(new xc.XApiError("boom"))
     const res = await GET(req())
     expect(res.status).toBe(500)
-    expect((await res.json()).ok).toBe(false)
+    const body = await res.json()
+    expect(body.ok).toBe(false)
+    expect(body.error).toBeTruthy()
   })
 })
