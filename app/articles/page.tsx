@@ -270,7 +270,9 @@ export default async function ArticlesIndex({
   const latest = allArticles.slice(1, 6)
   const recentDocs: Array<(typeof docsBackfill)[number]> = []
   const hasRecent = latest.length + recentDocs.length > 0
-  const feedArticles = isAllTopic ? allArticles.slice(1) : articles
+  const feedArticles = isAllTopic ? allArticles.slice(0, 3) : articles
+  const showArticleGrid = feedArticles.length > 0
+  const showDocsGrid = isDocsTopic || isAllTopic
   const articleIndexHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
   const topicHref = (id: string) => {
     const params = new URLSearchParams()
@@ -385,14 +387,19 @@ export default async function ArticlesIndex({
               ) : null}
             </section>
 
-            {feedArticles.length > 0 || isDocsTopic || isAllTopic ? (
+            {showArticleGrid ? (
               <section className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {feedArticles.map((a, index) => (
                   <ArticleCard key={a.slug} a={a} locale={locale} coverVariant={index + 2} />
                 ))}
-                {(isDocsTopic || isAllTopic) ? docsBackfill.map((doc) => (
+              </section>
+            ) : null}
+
+            {showDocsGrid ? (
+              <section className={showArticleGrid ? "mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" : "mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
+                {docsBackfill.map((doc) => (
                   <DocsGridCard key={doc.href} doc={doc} locale={locale} copy={copy} />
-                )) : null}
+                ))}
               </section>
             ) : null}
 
