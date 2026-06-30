@@ -61,14 +61,16 @@ async function fetchTopPages(r: DateRange): Promise<TopPageRow[]> {
 // ---- traffic sources ----
 export function normalizeTrafficSources(res: any): TrafficSourceRow[] {
   const buckets = res?.aggregations?.by_referer?.buckets ?? []
-  const byChannel = new Map<string, { source: string | null; sessions: number }>()
+  const byChannel = new Map<string, { source: string | null; sessions: number; topSessions: number }>()
   for (const b of buckets) {
     const referer = b.key === "__none__" ? null : b.key
     const channel = classifyChannel(referer, null, null)
     const sessions = num(b.sessions?.value)
     const prev = byChannel.get(channel)
-    if (prev) prev.sessions += sessions
-    else byChannel.set(channel, { source: referer, sessions })
+    if (prev) {
+      prev.sessions += sessions
+      if (sessions > prev.topSessions) { prev.source = referer; prev.topSessions = sessions }
+    } else byChannel.set(channel, { source: referer, sessions, topSessions: sessions })
   }
   return [...byChannel.entries()]
     .map(([channel, v]) => ({ channel, source: v.source, campaign: null, sessions: v.sessions }))
