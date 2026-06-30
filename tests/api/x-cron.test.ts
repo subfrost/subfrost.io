@@ -77,4 +77,24 @@ describe("GET /api/marketing/x-cron", () => {
     expect(body.ok).toBe(false)
     expect(body.error).toBeTruthy()
   })
+
+  it("degrades to pushesUpdated:0 when updateMatchedPushMetrics fails, still 200 with captured count", async () => {
+    vi.mocked(xc.resolveAccountId).mockResolvedValue("acc")
+    vi.mocked(xc.fetchRecentPosts).mockResolvedValue([{ id: "1", text: "a" }, { id: "2", text: "b" }] as never)
+    vi.mocked(xc.mapApiTweetToPayload).mockImplementation((t: { id: string }) => ({
+      capturedAt: "2026-06-30T00:05:00Z", tweetId: t.id, url: `https://x.com/subfrost_news/status/${t.id}`,
+      postedAt: "2026-06-29T00:00:00Z", text: "x",
+      metrics: { impressions: 1, likes: 1, reposts: 1, replies: 1, quotes: 1, bookmarks: 1 }, partial: false,
+    }) as never)
+    vi.mocked(xs.xPostSnapshotExistsOn).mockResolvedValue(false)
+    vi.mocked(xs.createXPostSnapshot).mockResolvedValue({ id: "s" } as never)
+    vi.mocked(xs.updateMatchedPushMetrics).mockRejectedValue(new Error("db down"))
+
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.pushesUpdated).toBe(0)
+    expect(body.captured).toBe(2)
+  })
 })

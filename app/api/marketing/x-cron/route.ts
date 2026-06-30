@@ -45,7 +45,12 @@ export async function GET(request: NextRequest) {
         failed++
       }
     }
-    const pushesUpdated = await updateMatchedPushMetrics(latest)
+    let pushesUpdated = 0
+    try {
+      pushesUpdated = await updateMatchedPushMetrics(latest)
+    } catch {
+      pushesUpdated = 0
+    }
     return NextResponse.json({ ok: true, captured, skipped, failed, pushesUpdated, backfill })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
