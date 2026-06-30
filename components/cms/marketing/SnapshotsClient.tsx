@@ -26,11 +26,11 @@ export function SnapshotsClient({ snapshots, articles }: { snapshots: SnapshotRo
   async function submit() {
     setBusy(true); setError(null)
     const r = await captureSnapshotAction({
-      label, context: context as "GENERAL" | "X_POST" | "ARTICLE", refUrl: refUrl || undefined, articleId: articleId || undefined, note: note || undefined,
+      label, context, refUrl: refUrl || undefined, articleId: articleId || undefined, note: note || undefined,
     })
     setBusy(false)
     if (!r || !r.ok) { setError(r?.error ?? "Unknown error"); return }
-    setOpen(false); setLabel(""); setRefUrl(""); setArticleId(""); setNote(""); setContext("GENERAL" as ManualSnapshotContext)
+    setOpen(false); setLabel(""); setRefUrl(""); setArticleId(""); setNote(""); setContext("GENERAL")
     router.refresh()
   }
 

@@ -1,5 +1,5 @@
 export type SnapshotContext = "GENERAL" | "X_POST" | "ARTICLE" | "DAILY"
-export const SNAPSHOT_CONTEXTS: SnapshotContext[] = ["GENERAL", "X_POST", "ARTICLE"]
+export const SNAPSHOT_CONTEXTS = ["GENERAL", "X_POST", "ARTICLE"] as const
 
 export const DIESEL_ID = "2:0"
 export const FIRE_ID = "2:77623"
