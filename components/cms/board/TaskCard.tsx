@@ -62,7 +62,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       onDragEnd={() => onDragEnd?.()}
       onClick={cardClick}
       style={task.color ? { borderLeftColor: task.color, borderLeftWidth: 3 } : undefined}
-      className={`cursor-pointer rounded-md border border-zinc-800 bg-zinc-900 p-3 transition-shadow hover:border-zinc-700 hover:shadow-md ${dragging ? "opacity-40" : ""} ${canEdit ? "active:cursor-grabbing" : ""}`}
+      className={`cursor-pointer rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-3.5 shadow-[0_12px_40px_rgba(7,17,31,0.04)] transition-[border-color,box-shadow,opacity,transform] hover:border-[color:var(--ed-muted)] hover:shadow-[0_18px_55px_rgba(7,17,31,0.08)] ${dragging ? "opacity-40" : ""} ${canEdit ? "active:cursor-grabbing" : ""}`}
     >
       {canEdit ? (
         <div className="mb-2">
@@ -71,7 +71,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
             title="Initiative"
             value={task.initiativeId ?? ""}
             onChange={(e) => run(() => updateTaskAction(task.id, { initiativeId: e.target.value || null }))}
-            className="max-w-full rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[11px] focus:outline-none"
+            className="max-w-full rounded-[4px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-1.5 py-0.5 text-[11px] text-[color:var(--ed-ink)] outline-none"
             style={{ color: initiative ? initiative.color : undefined }}
           >
             <option value="">— No initiative —</option>
@@ -90,7 +90,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
           <button
             onClick={() => onOpen(task.id)}
             title="Open details"
-            className={`text-left text-sm leading-snug hover:text-sky-300 ${task.status === "DONE" ? "text-zinc-500 line-through" : "text-zinc-100"}`}
+            className={`text-left text-[15px] leading-snug transition-colors hover:text-[color:var(--ed-ink)] ${task.status === "DONE" ? "text-[color:var(--ed-muted)] line-through" : "text-[color:var(--ed-ink)]"}`}
           >
             {task.title}
           </button>
@@ -105,7 +105,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
               title="Priority"
               value={task.priority}
               onChange={(e) => run(() => updateTaskAction(task.id, { priority: e.target.value as TaskPriority }))}
-              className={`shrink-0 rounded px-1 py-0.5 text-[11px] font-medium focus:outline-none ${pr.cls}`}
+              className={`shrink-0 rounded-[4px] px-1 py-0.5 text-[11px] font-medium outline-none ${pr.cls}`}
               style={{ colorScheme: "dark" }}
             >
               {PRIORITY_ORDER.map((p) => (
@@ -113,7 +113,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
               ))}
             </select>
           ) : (
-            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${pr.cls}`}>{pr.label}</span>
+            <span className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${pr.cls}`}>{pr.label}</span>
           )}
         </span>
       </div>
@@ -123,19 +123,19 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
           {task.labels.map((l) => (
             <span
               key={l}
-              className={`rounded px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-zinc-800 text-zinc-400"}`}
+              className={`rounded-[4px] px-1.5 py-0.5 text-[11px] ${task.color ? "border" : "bg-[color:var(--ed-surface)] text-[color:var(--ed-muted)]"}`}
               style={task.color ? { borderColor: task.color, color: task.color } : undefined}
             >
               {l}
             </span>
           ))}
           {cl.total > 0 && (
-            <span title="Checklist" className={`inline-flex items-center gap-0.5 text-[11px] ${cl.done === cl.total ? "text-emerald-400" : "text-zinc-500"}`}>
+            <span title="Checklist" className={`inline-flex items-center gap-0.5 text-[11px] ${cl.done === cl.total ? "text-emerald-400" : "text-[color:var(--ed-muted)]"}`}>
               <CheckSquare size={11} /> {cl.done}/{cl.total}
             </span>
           )}
           {task.commentCount > 0 && (
-            <span title="Comments" className="inline-flex items-center gap-0.5 text-[11px] text-zinc-500">
+            <span title="Comments" className="inline-flex items-center gap-0.5 text-[11px] text-[color:var(--ed-muted)]">
               <MessageSquare size={11} /> {task.commentCount}
             </span>
           )}
@@ -145,14 +145,14 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
       <div className="flex items-center gap-1.5">
         {task.owner && (
           <>
-            <span title={ownerName(task.owner)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-medium text-sky-300">{ownerInitials(task.owner)}</span>
-            <span title={ownerName(task.owner)} className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{ownerName(task.owner)}</span>
+            <span title={ownerName(task.owner)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--ed-surface)] text-[10px] font-medium text-[color:var(--ed-ink)]">{ownerInitials(task.owner)}</span>
+            <span title={ownerName(task.owner)} className="min-w-0 flex-1 truncate text-[11px] text-[color:var(--ed-body)]">{ownerName(task.owner)}</span>
           </>
         )}
         {canEdit ? (
           <>
             {!task.owner && (
-              <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-sky-400 hover:text-sky-300">
+              <button onClick={() => run(() => claimTaskAction(task.id))} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-[color:var(--ed-ink)] hover:opacity-70">
                 <UserPlus size={12} /> Self-assign
               </button>
             )}
@@ -161,7 +161,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
               title={task.owner ? "Reassign to a member" : "Assign to a member"}
               value=""
               onChange={(e) => { const v = e.target.value; if (v) run(() => assignTaskAction(task.id, v === "__none__" ? null : v)) }}
-              className="ml-auto shrink-0 rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 focus:outline-none"
+              className="ml-auto shrink-0 rounded-[4px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-1 py-0.5 text-[11px] text-[color:var(--ed-muted)] outline-none"
               style={{ colorScheme: "dark" }}
             >
               <option value="">{task.owner ? "Reassign" : "Assign…"}</option>
@@ -170,7 +170,7 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
             </select>
           </>
         ) : !task.owner ? (
-          <span className="ml-auto shrink-0 text-[11px] text-zinc-600">Unassigned</span>
+          <span className="ml-auto shrink-0 text-[11px] text-[color:var(--ed-muted)]">Unassigned</span>
         ) : null}
       </div>
 
@@ -193,13 +193,13 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-2 border-t border-zinc-800 pt-2">
+      <div className="mt-3 flex items-center gap-2 border-t border-[color:var(--ed-hair)] pt-3">
         {canEdit && (
           <select
             aria-label="Status"
             value={task.status}
             onChange={(e) => run(() => moveTaskAction(task.id, e.target.value as TaskStatus))}
-            className="rounded border border-zinc-700 bg-zinc-900 px-1.5 py-1 text-[11px] text-zinc-300 focus:outline-none"
+            className="rounded-[4px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-1.5 py-1 text-[11px] text-[color:var(--ed-ink)] outline-none"
           >
             {STATUS_ORDER.map((s) => <option key={s} value={s}>{TASK_STATUS[s].label}</option>)}
           </select>
@@ -209,14 +209,14 @@ export function TaskCard({ task, initiative, selectableInitiatives, members, can
             onClick={() => run(() => updateTaskAction(task.id, { blocked: !task.blocked }))}
             aria-label={task.blocked ? "Unmark blocked" : "Mark blocked"}
             title={task.blocked ? "Unmark blocked" : "Mark blocked"}
-            className={`inline-flex items-center gap-1 rounded border px-1.5 py-1 text-[11px] ${task.blocked ? "border-rose-500/40 text-rose-300 hover:bg-rose-500/10" : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`}
+            className={`inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-1 text-[11px] ${task.blocked ? "border-rose-500/40 text-rose-300 hover:bg-rose-500/10" : "border-[color:var(--ed-hair)] text-[color:var(--ed-muted)] hover:bg-[color:var(--ed-surface)]"}`}
           >
             <Ban size={12} /> {task.blocked ? "Blocked" : "Block"}
           </button>
         )}
-        <span className="ml-auto text-[10px] tabular-nums text-zinc-600" title={`Created ${task.createdAt.toLocaleString()}`}>{formatAge(task.createdAt)}</span>
+        <span className="ml-auto font-mono text-[10px] tabular-nums text-[color:var(--ed-muted)]" title={`Created ${task.createdAt.toLocaleString()}`}>{formatAge(task.createdAt)}</span>
         {canEdit && (
-          <button onClick={() => run(() => deleteTaskAction(task.id))} aria-label="Delete task" className="text-zinc-600 hover:text-rose-400">
+          <button onClick={() => run(() => deleteTaskAction(task.id))} aria-label="Delete task" className="text-[color:var(--ed-muted)] hover:text-rose-400">
             <Trash2 size={13} />
           </button>
         )}

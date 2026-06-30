@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { externalLinks } from "@/lib/external-links"
 
 const Footer: React.FC = () => {
   const { t } = useTranslation()
@@ -55,7 +56,7 @@ const Footer: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="https://docs.subfrost.io/"
+                    href={externalLinks.docs}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "footer" })}
@@ -75,7 +76,7 @@ const Footer: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="https://api.subfrost.io/docs"
+                    href={externalLinks.apiDocs}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "footer" })}
@@ -86,7 +87,7 @@ const Footer: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="https://api.subfrost.io"
+                    href={externalLinks.apiLogin}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "footer" })}

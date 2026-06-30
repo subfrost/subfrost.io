@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { StaticPage } from "@/components/articles/StaticPage"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 export const metadata: Metadata = {
   title: "Support | SUBFROST",
@@ -36,13 +37,28 @@ export default function SupportPage() {
         <h2>Helpful links</h2>
         <ul>
           <li>
-            <a href="https://docs.subfrost.io/">Docs</a>
+            <a
+              href="https://docs.subfrost.io/"
+              {...externalAnchorProps("https://docs.subfrost.io/")}
+            >
+              Docs
+            </a>
           </li>
           <li>
-            <a href="https://docs.subfrost.io/introduction/technical-overview">Technical overview</a>
+            <a
+              href="https://docs.subfrost.io/introduction/technical-overview"
+              {...externalAnchorProps("https://docs.subfrost.io/introduction/technical-overview")}
+            >
+              Technical overview
+            </a>
           </li>
           <li>
-            <a href="https://app.subfrost.io/">Launch App</a>
+            <a
+              href="https://app.subfrost.io/"
+              {...externalAnchorProps("https://app.subfrost.io/")}
+            >
+              Launch App
+            </a>
           </li>
         </ul>
       </section>

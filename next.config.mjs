@@ -17,6 +17,8 @@ const nextConfig = {
     unoptimized: true,
   },
 
+  devIndicators: false,
+
   // Turbopack configuration (Next.js 16+)
   // Pin root so Next doesn't infer from parent lockfiles and accidentally
   // resolve dependencies from outside this repo.

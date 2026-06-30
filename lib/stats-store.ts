@@ -1,11 +1,11 @@
 /**
- * Durable last-known-good store for the home stat set (Postgres `HomeStat`).
- * One row per stat key. `storeSet` is called by the warmer only after a
- * successful fetch, so a failed upstream leaves the prior value intact.
- * `storeGetAll` is read at SSR + /api/stats — one query, never the live cascade.
+ * Durable last-known-good store for the home stat set.
+ *
+ * One row per stat key. /api/prefetch writes only after a successful upstream
+ * fetch, and /api/stats reads this store without touching the live cascade.
  */
-import prisma from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
+import prisma from "@/lib/prisma"
+import type { Prisma } from "@prisma/client"
 
 type HomeStatDelegate = {
   upsert: (args: {
@@ -59,4 +59,12 @@ export async function storeGetAll(): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {}
   for (const row of rows) out[row.key] = row.value
   return out
+}
+
+export async function storeGetLatestUpdatedAt(): Promise<string | null> {
+  const latest = await prisma.homeStat.findFirst({
+    orderBy: { updatedAt: "desc" },
+    select: { updatedAt: true },
+  })
+  return latest?.updatedAt.toISOString() ?? null
 }

@@ -66,21 +66,21 @@ export function CommentList({ taskId, canEdit, onCountChange }: {
 
   return (
     <div className="space-y-3">
-      {loading && <p className="text-sm text-zinc-500">Loading comments…</p>}
-      {!loading && comments.length === 0 && <p className="text-sm text-zinc-600">No comments yet.</p>}
+      {loading && <p className="text-sm text-[color:var(--ed-muted)]">Loading comments...</p>}
+      {!loading && comments.length === 0 && <p className="text-sm text-[color:var(--ed-muted)]">No comments yet.</p>}
 
       {comments.map((c) => (
         <div key={c.id} className="group text-sm">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-zinc-300">{ownerName(c.author)}</span>
-            <span className="text-[11px] text-zinc-600">{formatTime(c.createdAt)}</span>
+            <span className="font-medium text-[color:var(--ed-ink)]">{ownerName(c.author)}</span>
+            <span className="text-[11px] text-[color:var(--ed-muted)]">{formatTime(c.createdAt)}</span>
             {canEdit && (
-              <button onClick={() => remove(c.id)} aria-label="Delete comment" className="ml-auto text-zinc-600 opacity-0 transition group-hover:opacity-100 hover:text-rose-400">
+              <button onClick={() => remove(c.id)} aria-label="Delete comment" className="ml-auto text-[color:var(--ed-muted)] opacity-0 transition group-hover:opacity-100 hover:text-rose-400">
                 <Trash2 size={13} />
               </button>
             )}
           </div>
-          <p className="mt-0.5 whitespace-pre-wrap text-zinc-400">{c.body}</p>
+          <p className="mt-0.5 whitespace-pre-wrap text-[color:var(--ed-body)]">{c.body}</p>
         </div>
       ))}
 
@@ -90,9 +90,9 @@ export function CommentList({ taskId, canEdit, onCountChange }: {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Add a comment…"
-            className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-500 focus:outline-none"
+            className="flex-1 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-1.5 text-sm text-[color:var(--ed-ink)] placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)] focus:outline-none"
           />
-          <button type="submit" disabled={busy} className="inline-flex items-center gap-1 rounded border border-sky-500/40 px-2.5 py-1.5 text-sm text-sky-300 hover:bg-sky-500/10 disabled:opacity-50">
+          <button type="submit" disabled={busy || !draft.trim()} className="inline-flex items-center gap-1 rounded-[6px] bg-[color:var(--ed-action-bg)] px-2.5 py-1.5 text-sm text-[color:var(--ed-action-fg)] hover:opacity-85 disabled:opacity-45">
             <Send size={13} />
           </button>
         </form>

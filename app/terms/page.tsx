@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { StaticPage } from "@/components/articles/StaticPage"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 export const metadata: Metadata = {
   title: "Terms of Service | SUBFROST",
@@ -155,7 +156,7 @@ export default function TermsOfServicePage() {
                   support@subfrost.io
                 </a>{" "}
                 —{" "}
-                <a href="https://subfrost.io">
+                <a href="https://subfrost.io" {...externalAnchorProps("https://subfrost.io")}>
                   https://subfrost.io
                 </a>
               </p>

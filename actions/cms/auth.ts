@@ -46,32 +46,37 @@ const RL_MAX_PER_EMAIL = 5
 const RL_MAX_PER_IP = 20
 
 async function tooManyAttempts(email: string, ip: string | null): Promise<boolean> {
-  const auditLog = (prisma as unknown as {
-    auditLog?: {
-      count: (args: {
-        where: {
-          action: string
-          target?: string
-          ip?: string
-          createdAt: { gt: Date }
-        }
-      }) => Promise<number>
-    }
-  }).auditLog
+  try {
+    const auditLog = (prisma as unknown as {
+      auditLog?: {
+        count: (args: {
+          where: {
+            action: string
+            target?: string
+            ip?: string
+            createdAt: { gt: Date }
+          }
+        }) => Promise<number>
+      }
+    }).auditLog
 
-  // During local dev, a stale generated Prisma client (or hot-reload race)
-  // can momentarily miss a model delegate. Fail open for rate-limiting instead
-  // of crashing the entire login flow.
-  if (!auditLog?.count) return false
+    // During local dev, a stale generated Prisma client (or hot-reload race)
+    // can momentarily miss a model delegate. Fail open for rate-limiting instead
+    // of crashing the entire login flow.
+    if (!auditLog?.count) return false
 
-  const since = new Date(Date.now() - RL_WINDOW_MS)
-  const [byEmail, byIp] = await Promise.all([
-    auditLog.count({ where: { action: "login_failed", target: email, createdAt: { gt: since } } }),
-    ip
-      ? auditLog.count({ where: { action: "login_failed", ip, createdAt: { gt: since } } })
-      : Promise.resolve(0),
-  ])
-  return byEmail >= RL_MAX_PER_EMAIL || byIp >= RL_MAX_PER_IP
+    const since = new Date(Date.now() - RL_WINDOW_MS)
+    const [byEmail, byIp] = await Promise.all([
+      auditLog.count({ where: { action: "login_failed", target: email, createdAt: { gt: since } } }),
+      ip
+        ? auditLog.count({ where: { action: "login_failed", ip, createdAt: { gt: since } } })
+        : Promise.resolve(0),
+    ])
+    return byEmail >= RL_MAX_PER_EMAIL || byIp >= RL_MAX_PER_IP
+  } catch (error) {
+    console.error("[admin-login] rate-limit check failed", error)
+    return false
+  }
 }
 
 /** Captures client IP, user-agent, and (when the fingerprint-capable tlsd ingress
@@ -111,83 +116,93 @@ async function issueSession(user: {
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const parsed = loginSchema.safeParse({ email, password })
-  if (!parsed.success) return { ok: false, error: "Enter a valid email and password" }
-  const lowerEmail = parsed.data.email.toLowerCase()
+  try {
+    const parsed = loginSchema.safeParse({ email, password })
+    if (!parsed.success) return { ok: false, error: "Enter a valid email and password" }
+    const lowerEmail = parsed.data.email.toLowerCase()
 
-  const { ip: clientIp } = await reqMeta()
-  if (await tooManyAttempts(lowerEmail, clientIp)) {
-    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
+    const { ip: clientIp } = await reqMeta()
+    if (await tooManyAttempts(lowerEmail, clientIp)) {
+      return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: lowerEmail } })
+    if (!user || !user.active) {
+      await audit("login_failed", { target: lowerEmail, ip: clientIp })
+      return { ok: false, error: "Invalid email or password" }
+    }
+
+    const ok = await bcrypt.compare(parsed.data.password, user.passwordHash)
+    if (!ok) {
+      await audit("login_failed", { actorId: user.id, target: user.email, ip: clientIp })
+      return { ok: false, error: "Invalid email or password" }
+    }
+
+    // Second factor required: stash a short-lived pending token, don't issue a
+    // real session until the TOTP step succeeds.
+    if (user.totpEnabled) {
+      const pending = await signSession(
+        { sub: user.id, email: user.email, role: user.role as "ADMIN" | "EDITOR" | "AUTHOR", pending2fa: true },
+        "5m",
+      )
+      const jar = await cookies()
+      jar.set(PENDING_2FA_COOKIE, pending, { ...COOKIE_OPTS, maxAge: 300 })
+      return { ok: true, twofa: true }
+    }
+
+    const ip = await issueSession(user)
+    await audit("login", { actorId: user.id, target: user.email, ip })
+    return { ok: true }
+  } catch (error) {
+    console.error("[admin-login] login unavailable", error)
+    return { ok: false, error: "Admin sign-in is temporarily unavailable. Check preview database and auth configuration." }
   }
-
-  const user = await prisma.user.findUnique({ where: { email: lowerEmail } })
-  if (!user || !user.active) {
-    await audit("login_failed", { target: lowerEmail, ip: clientIp })
-    return { ok: false, error: "Invalid email or password" }
-  }
-
-  const ok = await bcrypt.compare(parsed.data.password, user.passwordHash)
-  if (!ok) {
-    await audit("login_failed", { actorId: user.id, target: user.email, ip: clientIp })
-    return { ok: false, error: "Invalid email or password" }
-  }
-
-  // Second factor required: stash a short-lived pending token, don't issue a
-  // real session until the TOTP step succeeds.
-  if (user.totpEnabled) {
-    const pending = await signSession(
-      { sub: user.id, email: user.email, role: user.role as "ADMIN" | "EDITOR" | "AUTHOR", pending2fa: true },
-      "5m",
-    )
-    const jar = await cookies()
-    jar.set(PENDING_2FA_COOKIE, pending, { ...COOKIE_OPTS, maxAge: 300 })
-    return { ok: true, twofa: true }
-  }
-
-  const ip = await issueSession(user)
-  await audit("login", { actorId: user.id, target: user.email, ip })
-  return { ok: true }
 }
 
 /** Second login step: verify a TOTP code or recovery code against the pending
  *  token, then issue the real session. */
 export async function loginVerify2fa(code: string): Promise<LoginResult> {
-  const jar = await cookies()
-  const pending = await verifySession(jar.get(PENDING_2FA_COOKIE)?.value)
-  if (!pending?.pending2fa || !pending.sub) {
-    return { ok: false, error: "Your login session expired — please sign in again" }
-  }
-  const user = await prisma.user.findUnique({ where: { id: pending.sub } })
-  if (!user || !user.active || !user.totpEnabled || !user.totpSecret) {
-    return { ok: false, error: "Two-factor is not available for this account" }
-  }
-
-  const { ip: clientIp } = await reqMeta()
-  if (await tooManyAttempts(user.email, clientIp)) {
-    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
-  }
-
-  const clean = code.replace(/\s+/g, "")
-  let verified = validateCode(user.totpSecret, user.email, clean)
-  if (!verified) {
-    // Try a single-use recovery code.
-    const match = await prisma.totpRecoveryCode.findFirst({
-      where: { userId: user.id, used: false, codeHash: hashRecoveryCode(clean) },
-    })
-    if (match) {
-      await prisma.totpRecoveryCode.update({ where: { id: match.id }, data: { used: true } })
-      verified = true
+  try {
+    const jar = await cookies()
+    const pending = await verifySession(jar.get(PENDING_2FA_COOKIE)?.value)
+    if (!pending?.pending2fa || !pending.sub) {
+      return { ok: false, error: "Your login session expired — please sign in again" }
     }
-  }
-  if (!verified) {
-    await audit("login_failed", { actorId: user.id, target: user.email, details: { stage: "2fa" }, ip: clientIp })
-    return { ok: false, error: "Incorrect code" }
-  }
+    const user = await prisma.user.findUnique({ where: { id: pending.sub } })
+    if (!user || !user.active || !user.totpEnabled || !user.totpSecret) {
+      return { ok: false, error: "Two-factor is not available for this account" }
+    }
 
-  jar.delete(PENDING_2FA_COOKIE)
-  const ip = await issueSession(user)
-  await audit("login_2fa", { actorId: user.id, target: user.email, ip })
-  return { ok: true }
+    const { ip: clientIp } = await reqMeta()
+    if (await tooManyAttempts(user.email, clientIp)) {
+      return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." }
+    }
+
+    const clean = code.replace(/\s+/g, "")
+    let verified = validateCode(user.totpSecret, user.email, clean)
+    if (!verified) {
+      // Try a single-use recovery code.
+      const match = await prisma.totpRecoveryCode.findFirst({
+        where: { userId: user.id, used: false, codeHash: hashRecoveryCode(clean) },
+      })
+      if (match) {
+        await prisma.totpRecoveryCode.update({ where: { id: match.id }, data: { used: true } })
+        verified = true
+      }
+    }
+    if (!verified) {
+      await audit("login_failed", { actorId: user.id, target: user.email, details: { stage: "2fa" }, ip: clientIp })
+      return { ok: false, error: "Incorrect code" }
+    }
+
+    jar.delete(PENDING_2FA_COOKIE)
+    const ip = await issueSession(user)
+    await audit("login_2fa", { actorId: user.id, target: user.email, ip })
+    return { ok: true }
+  } catch (error) {
+    console.error("[admin-login] 2fa unavailable", error)
+    return { ok: false, error: "Admin sign-in is temporarily unavailable. Check preview database and auth configuration." }
+  }
 }
 
 export async function logout() {

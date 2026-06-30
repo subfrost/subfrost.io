@@ -15,9 +15,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const staticRoutes: MetadataRoute.Sitemap = [
     sitemapEntry(absoluteUrl("/"), { lastModified: now, changeFrequency: "daily", priority: 1 }),
+    sitemapEntry(absoluteUrl("/?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
     sitemapEntry(absoluteUrl("/articles"), { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
     sitemapEntry(absoluteUrl("/articles?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.8 }),
+    sitemapEntry(absoluteUrl("/developer"), { lastModified: now, changeFrequency: "weekly", priority: 0.8 }),
+    sitemapEntry(absoluteUrl("/developer?lang=zh"), { lastModified: now, changeFrequency: "weekly", priority: 0.7 }),
+    sitemapEntry(absoluteUrl("/volume"), { lastModified: now, changeFrequency: "daily", priority: 0.75 }),
+    sitemapEntry(absoluteUrl("/volume?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.65 }),
+    sitemapEntry(absoluteUrl("/brand"), { lastModified: now, changeFrequency: "monthly", priority: 0.55 }),
+    sitemapEntry(absoluteUrl("/brand?lang=zh"), { lastModified: now, changeFrequency: "monthly", priority: 0.45 }),
     sitemapEntry(absoluteUrl("/support"), { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
+    sitemapEntry(absoluteUrl("/support?lang=zh"), { lastModified: now, changeFrequency: "monthly", priority: 0.4 }),
     sitemapEntry(absoluteUrl("/privacy"), { lastModified: now, changeFrequency: "yearly", priority: 0.3 }),
     sitemapEntry(absoluteUrl("/terms"), { lastModified: now, changeFrequency: "yearly", priority: 0.3 }),
     sitemapEntry(absoluteUrl("/delete-account"), { lastModified: now, changeFrequency: "yearly", priority: 0.2 }),

@@ -1,6 +1,6 @@
-# SUBFROST Brand Kit
+# subfrost Brand Kit
 
-This folder preserves the client-provided SUBFROST brand package for git-managed site design work.
+This folder preserves the client-provided subfrost brand package for git-managed site design work.
 
 Source: `subfrost branding`
 
@@ -19,6 +19,9 @@ Runtime note:
 
 Implementation notes from the guidelines:
 
+- Preferred public wordmark casing is lowercase `subfrost`.
+- Use `SUBFROST` only for existing all-caps assets, legacy product/legal copy, or constrained system contexts.
+- Do not use title-case `Subfrost` as a visual brand lockup.
 - Use Geist as the primary typeface and Geist Mono only for technical/data UI.
 - Use the logotype as the primary brand mark. Minimum recommended logotype height is 32px.
 - Use the standalone logomark for icons, favicons, social avatars, and compact placements.
