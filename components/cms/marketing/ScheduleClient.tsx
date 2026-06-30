@@ -10,6 +10,8 @@ import { expandOccurrences } from "@/lib/cms/recurring-pushes"
 import { resolvePushAnalytics, type PushMetrics } from "@/lib/cms/marketing-analytics"
 import { CHANNEL_META, channelLabel } from "./pushChannel"
 import { savePush, deletePush, materializeRecurrence, type PushInput } from "@/actions/cms/marketing-pushes"
+import { publishedCalendarDate } from "@/lib/cms/push-calendar"
+import { Check } from "lucide-react"
 
 interface Props {
   pushes: PushRow[]
@@ -67,6 +69,7 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
     ),
     [pushes],
   )
+  const publishedByDate = useMemo(() => bucketByDate(published, publishedCalendarDate), [published])
 
   function shiftMonth(delta: number) {
     setCursor((c) => {
@@ -137,6 +140,16 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
                           <div key={`${g.ruleId}:${key}`} className="mt-0.5 rounded px-1 truncate border border-dashed" style={{ color: meta.fg }}
                                onClick={(e) => { e.stopPropagation(); void openGhost(g) }}>
                             {g.title} · auto
+                          </div>
+                        )
+                      })}
+                      {(publishedByDate.get(key) ?? []).map((p) => {
+                        const meta = CHANNEL_META[p.channel]
+                        return (
+                          <div key={`done-${p.id}`} className="mt-0.5 rounded px-1 truncate flex items-center gap-1" style={{ background: meta.bg, color: meta.fg }}
+                               onClick={(e) => { e.stopPropagation(); setEditing(p) }}>
+                            <Check size={11} style={{ color: "#3B6D11", flexShrink: 0 }} aria-label="done" />
+                            <span className="truncate">{p.title}</span>
                           </div>
                         )
                       })}
