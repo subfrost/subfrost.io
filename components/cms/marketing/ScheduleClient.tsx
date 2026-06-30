@@ -14,6 +14,7 @@ import { publishedCalendarDate } from "@/lib/cms/push-calendar"
 import { Check } from "lucide-react"
 import { ArticleCombobox } from "./ArticleCombobox"
 import { PushMetricsFields } from "./PushMetricsFields"
+import { RecurrenceEditorDialog } from "./RecurrenceEditorDialog"
 
 interface Props {
   pushes: PushRow[]
@@ -31,6 +32,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
   const today = useMemo(() => new Date(), [])
   const [cursor, setCursor] = useState({ year: today.getUTCFullYear(), month: today.getUTCMonth() })
   const [editing, setEditing] = useState<Partial<PushRow> | null>(null)
+  const [showRecurring, setShowRecurring] = useState(false)
 
   const weeks = useMemo(() => buildMonthGrid(cursor.year, cursor.month), [cursor])
   const rangeStart = weeks[0][0]
@@ -113,6 +115,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
                 <span className="text-sm font-medium">{MONTHS[cursor.month]} {cursor.year}</span>
                 <button aria-label="Next month" onClick={() => shiftMonth(1)}>›</button>
                 <button className="ml-2 text-xs border rounded px-2 py-0.5" onClick={() => setCursor({ year: today.getUTCFullYear(), month: today.getUTCMonth() })}>Today</button>
+                <button className="ml-auto text-xs border rounded px-2 py-0.5" onClick={() => setShowRecurring(true)}>Recurring</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-1">
                 {DOW.map((d) => <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
@@ -202,6 +205,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
           onClose={() => setEditing(null)}
         />
       )}
+      {showRecurring && <RecurrenceEditorDialog rules={rules} onClose={() => setShowRecurring(false)} />}
     </div>
   )
 }
