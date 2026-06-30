@@ -16,11 +16,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const payload = await captureSnapshot()
-  const row = await createSnapshot(
-    { label: `Daily ${now.toISOString().slice(0, 10)}`, context: "DAILY", refUrl: null, articleId: null, note: null },
-    payload,
-    null,
-  )
-  return NextResponse.json({ ok: true, id: row.id, partial: payload.partial })
+  try {
+    const payload = await captureSnapshot()
+    const row = await createSnapshot(
+      { label: `Daily ${now.toISOString().slice(0, 10)}`, context: "DAILY", refUrl: null, articleId: null, note: null },
+      payload,
+      null,
+    )
+    return NextResponse.json({ ok: true, id: row.id, partial: payload.partial })
+  } catch (err) {
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+  }
 }
