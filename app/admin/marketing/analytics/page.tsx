@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
-import { ga4Source } from "@/lib/analytics/ga4"
+import { getAnalyticsSource } from "@/lib/analytics/select"
 import { parseRange } from "@/lib/analytics/range"
 import { AnalyticsClient } from "@/components/cms/marketing/AnalyticsClient"
 
@@ -17,6 +17,6 @@ export default async function AnalyticsPage({
 
   const { range: rangeParam } = await searchParams
   const range = parseRange(rangeParam)
-  const dashboard = await ga4Source.getDashboard(range)
+  const dashboard = await getAnalyticsSource().getDashboard(range)
   return <AnalyticsClient dashboard={dashboard} />
 }
