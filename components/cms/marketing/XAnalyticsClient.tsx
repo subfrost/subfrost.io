@@ -110,7 +110,7 @@ function PerformanceView({ posts, curves }: { posts: XPostTableRow[]; curves: Re
 
       {open && curves[open] && (
         <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-          <div className="mb-2 text-xs text-zinc-500">Curva diária — {open}</div>
+          <div className="mb-2 text-xs text-zinc-500">Curva diária — {posts.find((p) => p.tweetId === open)?.text ?? open}</div>
           <ChartContainer config={curveConfig} className="h-[240px] w-full">
             <LineChart data={curves[open]}>
               <CartesianGrid vertical={false} />

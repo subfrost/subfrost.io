@@ -26,7 +26,7 @@ describe("XAnalyticsClient", () => {
   it("renders the post table in the Performance view", () => {
     render(<XAnalyticsClient posts={[post]} curves={curves} attribution={attribution} protocolSeries={series} configured />)
     expect(screen.getByText("Alkanes by the numbers")).toBeInTheDocument()
-    expect(screen.getAllByText("1,000").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("1,000")).toHaveLength(3)
   })
 
   it("switches to the Attribution view and shows the caveat + deltas", () => {
