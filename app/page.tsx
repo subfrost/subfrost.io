@@ -205,7 +205,7 @@ const homeCopy = {
       {
         title: "Markets",
         body: "Live BTC, DIESEL, FIRE, and protocol market data with block-height context beside every decision.",
-        href: "https://app.subfrost.io/markets",
+        href: "https://app.subfrost.io/",
       },
       {
         title: "Swap",
@@ -258,7 +258,7 @@ const homeCopy = {
       {
         title: "市场",
         body: "实时查看 BTC、DIESEL、FIRE 与协议市场数据，并把区块高度放在每次决策旁边。",
-        href: "https://app.subfrost.io/markets",
+        href: "https://app.subfrost.io/",
       },
       {
         title: "兑换",
@@ -403,7 +403,7 @@ export default async function Page({
   const [initialStats, initialVolumeStats, initialArticles] = await Promise.all([
     loadInitialHomeStats(),
     loadInitialVolumeStats(),
-    getPublishedPreviews({ limit: 3, locale, previewFallback: true }).catch(() => []),
+    getPublishedPreviews({ limit: 3, locale }).catch(() => []),
   ])
   const coreTeam = teamMembers.filter((member) => member.group === "core")
   const advisors = teamMembers.filter((member) => member.group === "advisor")
@@ -506,7 +506,7 @@ export default async function Page({
       />
       <EditorialShell>
         <main className="homepage-shell relative overflow-hidden" style={{ background: "var(--ed-canvas)" }}>
-        <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-14 sm:px-8 sm:pb-16 sm:pt-[88px]">
+        <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-[66px]">
           <div className="max-w-[980px]">
             <p className="homepage-cascade-item homepage-cascade-0 font-display text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
               {copy.eyebrow}

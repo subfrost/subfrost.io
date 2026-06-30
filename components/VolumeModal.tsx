@@ -678,11 +678,92 @@ interface VolumeModalProps {
   onClose: () => void
 }
 
-export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
+export function VolumeChartPanel({
+  variant = "modal",
+  onClose,
+}: {
+  variant?: "modal" | "page"
+  onClose?: () => void
+}) {
   const { t } = useTranslation()
   const [period, setPeriod] = useState("24h")
   const [chartType, setChartType] = useState("volume")
   const [source, setSource] = useState("both")
+  const isPage = variant === "page"
+
+  return (
+    <div
+      className={cn(
+        "relative flex w-full flex-col overflow-hidden rounded-2xl bg-[#f0f7ff] shadow-xl shadow-[#284372]/10",
+        isPage
+          ? "min-h-[720px] border border-[#d7e2f0]"
+          : "max-h-[90vh] max-w-5xl sm:h-[90vh]",
+      )}
+    >
+      {/* Header */}
+      <div className="flex-shrink-0 bg-white/50 px-6 py-5 shadow-[0_2px_8px_rgba(40,67,114,0.15)]">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-extrabold uppercase tracking-wider text-[#284372]">
+            {t("volume.title")}
+          </h2>
+          {onClose ? (
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-[#284372]/70 shadow-[0_2px_8px_rgba(40,67,114,0.15)] outline-none transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none"
+              aria-label={t("volume.close")}
+            >
+              <X size={18} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto p-4 sm:flex sm:flex-col sm:overflow-hidden sm:p-6">
+
+        {/* Tab selectors */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 sm:shrink-0">
+          <ButtonGroup
+            options={[
+              { value: "both", label: t("volume.both") },
+              { value: "alkanes", label: t("volume.alkanes") },
+              { value: "brc20", label: t("volume.brc20") },
+            ]}
+            value={source}
+            onChange={setSource}
+          />
+        </div>
+
+        {/* Stats cards */}
+        <div className="mb-6 sm:shrink-0">
+          <StatsCards period={period} source={source} onPeriodChange={setPeriod} />
+        </div>
+
+        {/* Chart — key forces remount when interval changes */}
+        <div className="relative sm:flex sm:min-h-0 sm:flex-1 sm:flex-col">
+          <div className="mb-3 flex justify-end sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0">
+            <ButtonGroup
+              small
+              options={[
+                { value: "volume", label: t("volume.volume") },
+                { value: "cumulative", label: t("volume.cumulative") },
+              ]}
+              value={chartType}
+              onChange={setChartType}
+            />
+          </div>
+          {chartType === "volume" ? (
+            <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
+          ) : (
+            <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -715,66 +796,10 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={modalRef}
-          className="bg-[#f0f7ff] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden sm:h-[90vh] flex flex-col relative pointer-events-auto shadow-xl shadow-[#284372]/10"
+          className="w-full max-w-5xl pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 bg-white/50 shadow-[0_2px_8px_rgba(40,67,114,0.15)] px-6 py-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-extrabold tracking-wider uppercase text-[#284372]">
-                {t("volume.title")}
-              </h2>
-              <button
-                onClick={onClose}
-                className="flex items-center justify-center h-8 w-8 rounded-xl bg-white shadow-[0_2px_8px_rgba(40,67,114,0.15)] text-[#284372]/70 transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none outline-none"
-                aria-label={t("volume.close")}
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6">
-
-          {/* Tab selectors */}
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-6 sm:shrink-0">
-            <ButtonGroup
-              options={[
-                { value: "both", label: t("volume.both") },
-                { value: "alkanes", label: t("volume.alkanes") },
-                { value: "brc20", label: t("volume.brc20") },
-              ]}
-              value={source}
-              onChange={setSource}
-            />
-          </div>
-
-          {/* Stats cards */}
-          <div className="mb-6 sm:shrink-0">
-            <StatsCards period={period} source={source} onPeriodChange={setPeriod} />
-          </div>
-
-          {/* Chart — key forces remount when interval changes */}
-          <div className="relative sm:flex-1 sm:min-h-0 sm:flex sm:flex-col">
-            <div className="absolute top-0 right-0 z-10">
-              <ButtonGroup
-                small
-                options={[
-                  { value: "volume", label: t("volume.volume") },
-                  { value: "cumulative", label: t("volume.cumulative") },
-                ]}
-                value={chartType}
-                onChange={setChartType}
-              />
-            </div>
-            {chartType === "volume" ? (
-              <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-            ) : (
-              <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-            )}
-          </div>
-          </div>
+          <VolumeChartPanel onClose={onClose} />
         </div>
       </div>
     </>

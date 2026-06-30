@@ -40,18 +40,18 @@ const copy = {
   en: {
     fallback: "—",
     items: [
-      { key: "totalBtcLocked", label: "Total BTC locked", suffix: "BTC", href: "https://app.subfrost.io/markets" },
-      { key: "currentFrbtcSupply", label: "Current frBTC supply", suffix: "frBTC", href: "https://app.subfrost.io/vaults" },
-      { key: "lifetimeTxValueBtc", label: "Lifetime tx value", suffix: "BTC", href: "https://app.subfrost.io/markets" },
+      { key: "totalBtcLocked", label: "Total BTC locked", suffix: "BTC", href: "https://app.subfrost.io/" },
+      { key: "currentFrbtcSupply", label: "Current frBTC supply", suffix: "frBTC", href: "https://app.subfrost.io/" },
+      { key: "lifetimeTxValueBtc", label: "Lifetime tx value", suffix: "BTC", href: "https://app.subfrost.io/" },
       { key: "volume24hBtc", label: "24H volume", suffix: "BTC", href: "/volume" },
     ],
   },
   zh: {
     fallback: "—",
     items: [
-      { key: "totalBtcLocked", label: "锁定 BTC 总量", suffix: "BTC", href: "https://app.subfrost.io/markets" },
-      { key: "currentFrbtcSupply", label: "当前 frBTC 供应", suffix: "frBTC", href: "https://app.subfrost.io/vaults" },
-      { key: "lifetimeTxValueBtc", label: "累计交易价值", suffix: "BTC", href: "https://app.subfrost.io/markets" },
+      { key: "totalBtcLocked", label: "锁定 BTC 总量", suffix: "BTC", href: "https://app.subfrost.io/" },
+      { key: "currentFrbtcSupply", label: "当前 frBTC 供应", suffix: "frBTC", href: "https://app.subfrost.io/" },
+      { key: "lifetimeTxValueBtc", label: "累计交易价值", suffix: "BTC", href: "https://app.subfrost.io/" },
       { key: "volume24hBtc", label: "24H 交易量", suffix: "BTC", href: "/volume?lang=zh" },
     ],
   },

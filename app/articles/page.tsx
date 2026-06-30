@@ -287,7 +287,7 @@ export default async function ArticlesIndex({
       <h1 className="sr-only">{copy.srTitle}</h1>
 
       <section style={{ background: "var(--ed-canvas)" }}>
-        <div className="mx-auto max-w-[1440px] px-4 pb-2 pt-7 sm:px-8 sm:pb-3 sm:pt-[44px]">
+        <div className="mx-auto max-w-[1440px] px-4 pb-2 pt-5 sm:px-8 sm:pb-3 sm:pt-[33px]">
           <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
             <nav className="flex flex-wrap gap-x-6 gap-y-3" aria-label={copy.browseByTopic}>
               {browseItems.map((item) => (
