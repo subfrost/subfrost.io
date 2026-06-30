@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import type { NextRequest, NextFetchEvent } from "next/server"
 import { SESSION_COOKIE, verifySession } from "@/lib/cms/session"
 import {
   EDITORIAL_LOCALE_COOKIE,
@@ -7,12 +7,18 @@ import {
   isEditorialLocale,
   prefersChineseLocale,
 } from "@/lib/editorial-locale"
+import { buildAccessEvent, emitAccessEvent, hasFingerprint } from "@/lib/telemetry/access-event"
+import { isCapturablePageview } from "@/lib/telemetry/capture-path"
 
 const PUBLIC_ADMIN = ["/admin/login", "/admin/set-password", "/admin/forgot-password"]
 const CHINESE_MARKETS = new Set(["CN", "HK"])
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event?: NextFetchEvent) {
   const { pathname } = request.nextUrl
+
+  // First-party telemetry: one access event per public pageview, from the
+  // tlsd-injected fingerprint. Fire-and-forget; never affects the response.
+  capturePageview(request, event)
 
   // Gate the /admin CMS. Public auth pages (login + the emailed
   // set-password / forgot-password flows) are exempt. Edge-only signature
@@ -55,6 +61,37 @@ export async function middleware(request: NextRequest) {
   }
 
   return withSecurityHeaders(NextResponse.next(), pathname)
+}
+
+function capturePageview(request: NextRequest, event?: NextFetchEvent) {
+  if (!event) return
+  const { pathname, searchParams } = request.nextUrl
+  if (!isCapturablePageview(pathname)) return
+  const h = request.headers
+  const ja3 = h.get("x-tls-ja3-hash") || ""
+  const ja3_full = h.get("x-tls-ja3") || ""
+  const ja4 = h.get("x-tls-ja4") || ""
+  if (!hasFingerprint(ja3, ja3_full, ja4)) return
+  const xff = h.get("x-forwarded-for") || ""
+  const utm: Record<string, string> = {}
+  for (const k of ["utm_source", "utm_medium", "utm_campaign"]) {
+    const v = searchParams.get(k); if (v) utm[k] = v
+  }
+  const ev = buildAccessEvent({
+    ja3, ja3_full, ja4,
+    host: h.get("host") || "subfrost.io",
+    path: pathname,
+    method: request.method,
+    status: 200, // middleware runs before the handler; assume served
+    sourceIp: xff.split(",")[0]?.trim() || h.get("x-real-ip") || "",
+    userAgent: h.get("user-agent") || "",
+    xff,
+    referer: h.get("referer") || undefined,
+    utm: Object.keys(utm).length ? utm : undefined,
+    instance: "edge-middleware",
+    latencyMs: 0,
+  }, new Date())
+  event.waitUntil(emitAccessEvent(ev))
 }
 
 function redirectToLocale(request: NextRequest, locale: "en" | "zh") {
