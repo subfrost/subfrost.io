@@ -3,7 +3,7 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2, Github, FolderArchive,
+  KanbanSquare, Target, Package, Gavel, Building2, Github, FolderArchive, CalendarClock,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -62,6 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "marketing", label: "Marketing", icon: LineChart, items: [
       { label: "Protocol snapshots", href: "/admin/marketing/snapshots", icon: Camera, privilege: "marketing.view" },
       { label: "Site analytics", href: "/admin/marketing/analytics", icon: BarChart3, privilege: "marketing.view" },
+      { label: "Schedule", href: "/admin/marketing/schedule", icon: CalendarClock, privilege: "marketing.view" },
     ],
   },
   {
