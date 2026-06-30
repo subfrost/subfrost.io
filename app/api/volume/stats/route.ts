@@ -42,7 +42,12 @@ async function fetchCanonicalVolume(request: NextRequest, source: SourceFilter) 
 
 function shouldPreferCanonical(request: NextRequest) {
   const host = request.nextUrl.host.toLowerCase();
-  return host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.includes('netlify.app');
+  return (
+    host.startsWith('localhost') ||
+    host.startsWith('127.0.0.1') ||
+    host.includes('netlify.app') ||
+    host.includes('vercel.app')
+  );
 }
 
 export async function GET(request: NextRequest) {

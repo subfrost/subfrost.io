@@ -5,7 +5,7 @@ import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfur
 
 export const metadata: Metadata = {
   title: "Volume charts | subfrost",
-  description: "subfrost protocol volume charts for wrap and unwrap activity across Both, Alkanes, and BRC2.0 sources.",
+  description: "subfrost protocol volume charts for wrap and unwrap activity across both Alkanes and BRC20.",
   alternates: {
     canonical: absoluteUrl("/volume"),
     languages: {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Volume charts | subfrost",
-    description: "subfrost protocol volume charts for wrap and unwrap activity across Both, Alkanes, and BRC2.0 sources.",
+    description: "subfrost protocol volume charts for wrap and unwrap activity across both Alkanes and BRC20.",
     type: "website",
     url: absoluteUrl("/volume"),
     siteName: "subfrost",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Volume charts | subfrost",
-    description: "subfrost protocol volume charts for wrap and unwrap activity across Both, Alkanes, and BRC2.0 sources.",
+    description: "subfrost protocol volume charts for wrap and unwrap activity across both Alkanes and BRC20.",
     images: [{ url: sharedUnfurlImageUrl, alt: "subfrost" }],
   },
 }
@@ -68,8 +68,8 @@ export default async function VolumePage({
               </h1>
               <p className="mt-5 max-w-[560px] text-[17px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
                 {locale === "zh"
-                  ? "查看 Both、Alkanes 与 BRC2.0 来源的包装和解包活动。"
-                  : "Wrap and unwrap activity across Both, Alkanes, and BRC2.0 sources."}
+                  ? "查看 Alkanes 与 BRC20 的包装和解包活动。"
+                  : "Wrap and unwrap activity across both Alkanes and BRC20."}
               </p>
             </div>
             <VolumeChartPanel variant="page" />
