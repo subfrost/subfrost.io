@@ -12,6 +12,7 @@ import { CHANNEL_META, channelLabel } from "./pushChannel"
 import { savePush, deletePush, materializeRecurrence, type PushInput } from "@/actions/cms/marketing-pushes"
 import { publishedCalendarDate } from "@/lib/cms/push-calendar"
 import { Check } from "lucide-react"
+import { ArticleCombobox } from "./ArticleCombobox"
 
 interface Props {
   pushes: PushRow[]
@@ -211,6 +212,7 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
   const [scheduledFor, setScheduledFor] = useState(initial.scheduledFor ? toDateKey(new Date(initial.scheduledFor)) : "")
   const [refUrl, setRefUrl] = useState(initial.refUrl ?? "")
   const [notes, setNotes] = useState(initial.notes ?? "")
+  const [articleId, setArticleId] = useState<string | null>(initial.articleId ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -220,7 +222,7 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
       id: initial.id, title, channel, status,
       scheduledFor: scheduledFor || null,
       refUrl: refUrl || null, notes: notes || null,
-      articleId: initial.articleId ?? null,
+      articleId: articleId,
     }
     const res = await savePush(input)
     setSaving(false)
@@ -251,7 +253,8 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
         <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} />
         <input className="w-full border rounded px-2 py-1 text-sm" placeholder="Reference URL (X post, etc.)" value={refUrl} onChange={(e) => setRefUrl(e.target.value)} />
         <textarea className="w-full border rounded px-2 py-1 text-sm" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        {initial.articleId && <a className="text-sm text-blue-600 underline" href={`/admin/articles/${initial.articleId}`}>Open draft</a>}
+        <ArticleCombobox options={articleOptions} value={articleId} onChange={setArticleId} />
+        {articleId && <a className="text-sm text-blue-600 underline" href={`/admin/articles/${articleId}`}>Open draft</a>}
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="flex justify-between">
           {initial.id ? <button className="text-sm text-red-600" onClick={remove} disabled={saving}>Delete</button> : <span />}
