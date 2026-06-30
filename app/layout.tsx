@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
   alternates: {
     canonical: "https://subfrost.io",
+    types: { "application/rss+xml": "https://subfrost.io/feed.xml" },
   },
   keywords: [
     "SUBFROST",
