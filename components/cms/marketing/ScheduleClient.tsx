@@ -115,7 +115,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
                 <span className="text-sm font-medium">{MONTHS[cursor.month]} {cursor.year}</span>
                 <button aria-label="Next month" onClick={() => shiftMonth(1)}>›</button>
                 <button className="ml-2 text-xs border rounded px-2 py-0.5" onClick={() => setCursor({ year: today.getUTCFullYear(), month: today.getUTCMonth() })}>Today</button>
-                <button className="ml-auto text-xs border rounded px-2 py-0.5" onClick={() => setShowRecurring(true)}>Recurring</button>
+                <button type="button" className="ml-auto text-xs border rounded px-2 py-0.5" onClick={() => setShowRecurring(true)}>Recurring</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-1">
                 {DOW.map((d) => <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}

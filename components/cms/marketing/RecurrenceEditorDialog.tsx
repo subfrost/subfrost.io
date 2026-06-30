@@ -37,7 +37,7 @@ export function RecurrenceEditorDialog({ rules, onClose }: { rules: RecurringPus
         <div className="flex items-center justify-between">
           <h2 className="text-base font-medium">Recurring pushes</h2>
           <button type="button" className="text-sm border rounded px-2 py-1"
-            onClick={() => setEditing({ title: "", channel: "ARTICLE", frequency: "WEEKLY", dayOfWeek: 5, active: true })}>
+            onClick={() => { setEditing({ title: "", channel: "ARTICLE", frequency: "WEEKLY", dayOfWeek: 5, active: true }); setError(null) }}>
             New rule
           </button>
         </div>
@@ -59,7 +59,7 @@ export function RecurrenceEditorDialog({ rules, onClose }: { rules: RecurringPus
           <RecurrenceForm
             initial={editing}
             saving={saving}
-            onCancel={() => setEditing(null)}
+            onCancel={() => { setEditing(null); setError(null) }}
             onSave={save}
             onDelete={editing.id ? () => remove(editing.id as string) : undefined}
           />
