@@ -32,8 +32,9 @@ export function XAnalyticsClient(props: {
   attribution: AttributionRow[]
   protocolSeries: SeriesPoint[]
   configured: boolean
+  scheduledTweetIds: string[]
 }) {
-  const { posts, curves, attribution, protocolSeries, configured } = props
+  const { posts, curves, attribution, protocolSeries, configured, scheduledTweetIds } = props
   const [view, setView] = useState<View>("performance")
 
   return (
@@ -63,7 +64,7 @@ export function XAnalyticsClient(props: {
           Nenhum post capturado ainda — a ingestão diária roda quando o <code>X_BEARER_TOKEN</code> estiver populado.
         </p>
       ) : view === "performance" ? (
-        <PerformanceView posts={posts} curves={curves} />
+        <PerformanceView posts={posts} curves={curves} scheduled={new Set(scheduledTweetIds)} />
       ) : (
         <AttributionView attribution={attribution} protocolSeries={protocolSeries} />
       )}
@@ -71,8 +72,10 @@ export function XAnalyticsClient(props: {
   )
 }
 
-function PerformanceView({ posts, curves }: { posts: XPostTableRow[]; curves: Record<string, XCurvePoint[]> }) {
+function PerformanceView({ posts, curves, scheduled }: { posts: XPostTableRow[]; curves: Record<string, XCurvePoint[]>; scheduled: Set<string> }) {
   const [open, setOpen] = useState<string | null>(null)
+  const [onlyScheduled, setOnlyScheduled] = useState(false)
+  const shown = onlyScheduled ? posts.filter((p) => scheduled.has(p.tweetId)) : posts
   const totalImpressions = posts.reduce((s, p) => s + (p.metrics.impressions ?? 0), 0)
   const top = posts.reduce<XPostTableRow | null>((best, p) => (!best || (p.metrics.impressions ?? 0) > (best.metrics.impressions ?? 0) ? p : best), null)
   const rates = posts.map((p) => p.engagementRate).filter((v): v is number => v !== null)
@@ -86,6 +89,11 @@ function PerformanceView({ posts, curves }: { posts: XPostTableRow[]; curves: Re
         <Hero label="Engajamento médio" value={pct(avgRate)} hint="(likes+reposts+replies+quotes+bookmarks)/impressions" />
       </div>
 
+      <label className="mb-2 flex items-center gap-2 text-sm text-zinc-400">
+        <input type="checkbox" checked={onlyScheduled} onChange={(e) => setOnlyScheduled(e.target.checked)} />
+        Só do schedule
+      </label>
+
       <table className="w-full text-sm">
         <thead className="text-left text-zinc-500">
           <tr>
@@ -93,11 +101,12 @@ function PerformanceView({ posts, curves }: { posts: XPostTableRow[]; curves: Re
           </tr>
         </thead>
         <tbody>
-          {posts.map((p) => (
+          {shown.map((p) => (
             <tr key={p.tweetId} className="cursor-pointer border-t border-zinc-800 text-zinc-300 hover:bg-zinc-800/40" onClick={() => setOpen(open === p.tweetId ? null : p.tweetId)}>
               <td className="max-w-[280px] truncate py-1">
                 <a href={p.url} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline" onClick={(e) => e.stopPropagation()}>↗</a>{" "}
                 {p.text}
+                {scheduled.has(p.tweetId) && <span className="ml-2 rounded bg-sky-900/60 px-1.5 py-0.5 text-xs text-sky-300">schedule</span>}
               </td>
               <td>{p.postedAt.slice(0, 10)}</td>
               <td>{int(p.metrics.impressions)}</td><td>{int(p.metrics.likes)}</td><td>{int(p.metrics.reposts)}</td>

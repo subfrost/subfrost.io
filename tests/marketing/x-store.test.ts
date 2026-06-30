@@ -75,3 +75,16 @@ describe("listXPostSnapshots", () => {
     expect(arg.orderBy).toMatchObject({ createdAt: "asc" })
   })
 })
+
+describe("listMatchedTweetIds", () => {
+  it("returns the set of tweetIds that have an X push", async () => {
+    vi.mocked(prisma.marketingPush.findMany).mockResolvedValueOnce([
+      { refUrl: "https://x.com/subfrost_news/status/999" },
+      { refUrl: "https://example.com/x" },
+    ] as never)
+    const { listMatchedTweetIds } = await import("@/lib/marketing/x-store")
+    const set = await listMatchedTweetIds()
+    expect(set.has("999")).toBe(true)
+    expect(set.size).toBe(1)
+  })
+})

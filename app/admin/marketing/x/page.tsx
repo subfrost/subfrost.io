@@ -1,7 +1,7 @@
 // app/admin/marketing/x/page.tsx
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
-import { listXPostSnapshots } from "@/lib/marketing/x-store"
+import { listXPostSnapshots, listMatchedTweetIds } from "@/lib/marketing/x-store"
 import { listDailySnapshots } from "@/lib/marketing/snapshot-store"
 import { buildProtocolSeries } from "@/lib/marketing/protocol-series"
 import { buildXPostTable, buildXPostCurve, buildAttributionRows, type XCurvePoint } from "@/lib/marketing/x-series"
@@ -14,7 +14,7 @@ export default async function XAnalyticsPage() {
   if (!me) redirect("/admin/login")
   if (!me.privileges.includes("marketing.view")) redirect("/admin")
 
-  const [xRows, dailyRows] = await Promise.all([listXPostSnapshots(), listDailySnapshots()])
+  const [xRows, dailyRows, scheduledTweetIds] = await Promise.all([listXPostSnapshots(), listDailySnapshots(), listMatchedTweetIds()])
   const posts = buildXPostTable(xRows)
   const protocolSeries = buildProtocolSeries(dailyRows)
   const attribution = buildAttributionRows(posts, protocolSeries)
@@ -30,6 +30,7 @@ export default async function XAnalyticsPage() {
       attribution={attribution}
       protocolSeries={protocolSeries}
       configured={configured}
+      scheduledTweetIds={[...scheduledTweetIds]}
     />
   )
 }

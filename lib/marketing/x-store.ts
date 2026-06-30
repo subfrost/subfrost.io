@@ -42,6 +42,19 @@ export async function listXPostSnapshots(): Promise<XPostSnapshotRow[]> {
   return rows.map(map)
 }
 
+export async function listMatchedTweetIds(): Promise<Set<string>> {
+  const pushes = (await prisma.marketingPush.findMany({
+    where: { channel: "X", refUrl: { not: null } },
+    select: { refUrl: true },
+  })) as { refUrl: string | null }[]
+  const set = new Set<string>()
+  for (const p of pushes) {
+    const tid = extractTweetId(p.refUrl)
+    if (tid) set.add(tid)
+  }
+  return set
+}
+
 export async function updateMatchedPushMetrics(latestByTweetId: Map<string, XPostMetrics>): Promise<number> {
   const pushes = (await prisma.marketingPush.findMany({
     where: { channel: "X", refUrl: { not: null } },
