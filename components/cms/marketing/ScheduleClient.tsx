@@ -3,17 +3,23 @@
 import { useMemo, useState } from "react"
 import * as Tabs from "@radix-ui/react-tabs"
 import type { MarketingPush, RecurringPush, PushChannel, PushStatus } from "@prisma/client"
-import type { PushRow } from "@/lib/cms/marketing-pushes"
+import type { PushRow, ArticleOption } from "@/lib/cms/marketing-pushes"
 import type { ArticleEngagementRow } from "@/lib/analytics/source"
 import { buildMonthGrid, toDateKey, bucketByDate } from "@/lib/cms/calendar-grid"
 import { expandOccurrences } from "@/lib/cms/recurring-pushes"
 import { resolvePushAnalytics, type PushMetrics } from "@/lib/cms/marketing-analytics"
 import { CHANNEL_META, channelLabel } from "./pushChannel"
 import { savePush, deletePush, materializeRecurrence, type PushInput } from "@/actions/cms/marketing-pushes"
+import { publishedCalendarDate } from "@/lib/cms/push-calendar"
+import { Check } from "lucide-react"
+import { ArticleCombobox } from "./ArticleCombobox"
+import { PushMetricsFields } from "./PushMetricsFields"
+import { RecurrenceEditorDialog } from "./RecurrenceEditorDialog"
 
 interface Props {
   pushes: PushRow[]
   rules: RecurringPush[]
+  articleOptions: ArticleOption[]
   articleEngagement: ArticleEngagementRow[]
 }
 
@@ -22,10 +28,11 @@ interface Ghost { ruleId: string; date: Date; title: string; channel: PushChanne
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 
-export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
+export function ScheduleClient({ pushes, rules, articleOptions, articleEngagement }: Props) {
   const today = useMemo(() => new Date(), [])
   const [cursor, setCursor] = useState({ year: today.getUTCFullYear(), month: today.getUTCMonth() })
   const [editing, setEditing] = useState<Partial<PushRow> | null>(null)
+  const [showRecurring, setShowRecurring] = useState(false)
 
   const weeks = useMemo(() => buildMonthGrid(cursor.year, cursor.month), [cursor])
   const rangeStart = weeks[0][0]
@@ -67,6 +74,7 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
     ),
     [pushes],
   )
+  const publishedByDate = useMemo(() => bucketByDate(published, publishedCalendarDate), [published])
 
   function shiftMonth(delta: number) {
     setCursor((c) => {
@@ -107,6 +115,7 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
                 <span className="text-sm font-medium">{MONTHS[cursor.month]} {cursor.year}</span>
                 <button aria-label="Next month" onClick={() => shiftMonth(1)}>›</button>
                 <button className="ml-2 text-xs border rounded px-2 py-0.5" onClick={() => setCursor({ year: today.getUTCFullYear(), month: today.getUTCMonth() })}>Today</button>
+                <button type="button" className="ml-auto text-xs border rounded px-2 py-0.5" onClick={() => setShowRecurring(true)}>Recurring</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-1">
                 {DOW.map((d) => <div key={d} className="text-center text-xs text-muted-foreground">{d}</div>)}
@@ -137,6 +146,16 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
                           <div key={`${g.ruleId}:${key}`} className="mt-0.5 rounded px-1 truncate border border-dashed" style={{ color: meta.fg }}
                                onClick={(e) => { e.stopPropagation(); void openGhost(g) }}>
                             {g.title} · auto
+                          </div>
+                        )
+                      })}
+                      {(publishedByDate.get(key) ?? []).map((p) => {
+                        const meta = CHANNEL_META[p.channel]
+                        return (
+                          <div key={`done-${p.id}`} className="mt-0.5 rounded px-1 truncate flex items-center gap-1" style={{ background: meta.bg, color: meta.fg }}
+                               onClick={(e) => { e.stopPropagation(); setEditing(p) }}>
+                            <Check size={11} style={{ color: "#3B6D11", flexShrink: 0 }} aria-label="done" />
+                            <span className="truncate">{p.title}</span>
                           </div>
                         )
                       })}
@@ -182,20 +201,25 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
       {editing && (
         <PushEditor
           initial={editing}
+          articleOptions={articleOptions}
           onClose={() => setEditing(null)}
         />
       )}
+      {showRecurring && <RecurrenceEditorDialog rules={rules} onClose={() => setShowRecurring(false)} />}
     </div>
   )
 }
 
-function PushEditor({ initial, onClose }: { initial: Partial<PushRow>; onClose: () => void }) {
+function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<PushRow>; articleOptions: ArticleOption[]; onClose: () => void }) {
   const [title, setTitle] = useState(initial.title ?? "")
   const [channel, setChannel] = useState<PushChannel>((initial.channel as PushChannel) ?? "ARTICLE")
   const [status, setStatus] = useState<PushStatus>((initial.status as PushStatus) ?? "IDEA")
   const [scheduledFor, setScheduledFor] = useState(initial.scheduledFor ? toDateKey(new Date(initial.scheduledFor)) : "")
   const [refUrl, setRefUrl] = useState(initial.refUrl ?? "")
   const [notes, setNotes] = useState(initial.notes ?? "")
+  const [articleId, setArticleId] = useState<string | null>(initial.articleId ?? null)
+  const [metrics, setMetrics] = useState<PushMetrics>((initial.metrics as PushMetrics | null) ?? {})
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(initial.screenshotUrl ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -205,7 +229,9 @@ function PushEditor({ initial, onClose }: { initial: Partial<PushRow>; onClose: 
       id: initial.id, title, channel, status,
       scheduledFor: scheduledFor || null,
       refUrl: refUrl || null, notes: notes || null,
-      articleId: initial.articleId ?? null,
+      articleId: articleId,
+      metrics,
+      screenshotUrl,
     }
     const res = await savePush(input)
     setSaving(false)
@@ -236,7 +262,9 @@ function PushEditor({ initial, onClose }: { initial: Partial<PushRow>; onClose: 
         <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} />
         <input className="w-full border rounded px-2 py-1 text-sm" placeholder="Reference URL (X post, etc.)" value={refUrl} onChange={(e) => setRefUrl(e.target.value)} />
         <textarea className="w-full border rounded px-2 py-1 text-sm" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        {initial.articleId && <a className="text-sm text-blue-600 underline" href={`/admin/articles/${initial.articleId}`}>Open draft</a>}
+        <ArticleCombobox options={articleOptions} value={articleId} onChange={setArticleId} />
+        {articleId && <a className="text-sm text-blue-600 underline" href={`/admin/articles/${articleId}`}>Open draft</a>}
+        <PushMetricsFields metrics={metrics} screenshotUrl={screenshotUrl} onMetrics={setMetrics} onScreenshot={setScreenshotUrl} />
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="flex justify-between">
           {initial.id ? <button className="text-sm text-red-600" onClick={remove} disabled={saving}>Delete</button> : <span />}
