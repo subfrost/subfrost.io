@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { analyticsFilters } from "@/lib/analytics/es"
+import { analyticsFilters, analyticsQuery } from "@/lib/analytics/es"
 import type { DateRange } from "@/lib/analytics/source"
 
 const R: DateRange = { start: "28daysAgo", end: "today", preset: "28d" }
@@ -29,5 +29,9 @@ describe("analyticsFilters", () => {
     expect(f).toHaveLength(3)
     expect(f[1]).toEqual({ term: { instance: "tlsd-core" } })
     expect(f[2]).toEqual({ term: { kind: "page" } })
+  })
+
+  it("analyticsQuery envelopa analyticsFilters em bool.filter", () => {
+    expect(analyticsQuery(R)).toEqual({ bool: { filter: analyticsFilters(R) } })
   })
 })

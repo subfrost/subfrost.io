@@ -4,13 +4,13 @@
 
 **Goal:** Preparar o lado subfrost.io pra Peça C — adicionar o campo `kind` ao template ES e fazer o `esSource` filtrar por `instance`/`kind` — de forma **forward-compatible** (no-op em prod até o cutover), sem tocar no tlsd.
 
-**Architecture:** Duas mudanças isoladas e seguras: (1) o índice template `subfrost-cdn` (`dynamic=strict`) ganha o campo `kind` (keyword) pra aceitar os docs do tlsd; (2) o `esSource` (lib/analytics/es.ts) compõe os filtros de query a partir de um helper puro `analyticsFilters(range)` que lê `process.env.ANALYTICS_INSTANCE` — quando setado, filtra por `instance`, e quando for um produtor tlsd (≠ `edge-middleware`), também por `kind:page`. Com a env **unset** (default de prod), o comportamento é **idêntico ao de hoje**.
+**Architecture:** Duas mudanças isoladas e seguras: (1) o índice template `subfrost-cdn` (`dynamic=strict`) ganha o campo `kind` (keyword) pra aceitar os docs do tlsd; (2) o `esSource` (lib/analytics/es.ts) compõe os filtros de query a partir de um helper puro `analyticsFilters(range)` que lê `process.env.ANALYTICS_INSTANCE` — quando setado, filtra por `instance`, e quando for um produtor tlsd (≠ `edge-middleware`), também por `kind:page`. Com a env **unset** (default de prod), o comportamento é **semanticamente equivalente ao de hoje** (o filtro de range passa a vir envolto num `bool.filter` de cláusula única — idêntico em matching/agregação, sem scoring).
 
 **Tech Stack:** Next.js 16, TypeScript, vitest (testes), Elasticsearch index template (JSON em ConfigMap k8s), Flux/GitOps.
 
 ## Global Constraints
 
-- **Sem regressão em prod.** Com `ANALYTICS_INSTANCE` **não setado**, o `esSource` deve produzir exatamente as mesmas queries de hoje (só o filtro de `range`). Esse é o comportamento atual em produção e não pode mudar até o cutover (Plano 2).
+- **Sem regressão em prod.** Com `ANALYTICS_INSTANCE` **não setado**, o `esSource` deve produzir queries **semanticamente equivalentes** às de hoje (o filtro de range passa a vir envolto num `bool.filter` de cláusula única — idêntico em matching/agregação, sem scoring). Esse é o comportamento atual em produção e não pode mudar até o cutover (Plano 2).
 - **Mapping é `dynamic=strict` no topo.** Campo novo (`kind`) tem que entrar no template **antes** de qualquer doc com `kind` chegar, senão o ES rejeita o doc.
 - **Paridade de métricas.** Todas as métricas do dashboard (visitors, sessions, pageviews, top-pages, article-engagement) filtram `kind:page` quando lendo docs do tlsd — preserva os números da era-middleware. A base completa (bots/assets) fica no ES pra views futuras, fora deste plano.
 - **PR obrigatório** (branch→PR→merge; nunca push direto na main). Branch já criada: `feat/tlsd-access-log-shipper`.

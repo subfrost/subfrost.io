@@ -26,7 +26,7 @@ export function analyticsFilters(r: DateRange): Array<Record<string, unknown>> {
   }
   return filters
 }
-const analyticsQuery = (r: DateRange) => ({ bool: { filter: analyticsFilters(r) } })
+export const analyticsQuery = (r: DateRange) => ({ bool: { filter: analyticsFilters(r) } })
 
 // ---- visitors ----
 export function normalizeVisitors(res: any): VisitorsSeries {
