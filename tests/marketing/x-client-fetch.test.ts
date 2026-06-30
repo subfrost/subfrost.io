@@ -46,11 +46,39 @@ describe("fetchRecentPosts", () => {
     const url0 = String(fetchMock.mock.calls[0][0])
     expect(url0).toContain("/users/acc/tweets")
     expect(url0).toContain("tweet.fields=public_metrics")
+    expect(url0).toContain("tweet.fields=public_metrics%2Ccreated_at%2Ctext")
+    expect(url0).toContain("max_results=100")
     expect(url0).toContain("exclude=retweets%2Creplies")
     expect(String(fetchMock.mock.calls[1][0])).toContain("pagination_token=P2")
   })
   it("throws not_configured without a bearer token", async () => {
     vi.stubEnv("X_BEARER_TOKEN", "")
     await expect(fetchRecentPosts("acc")).rejects.toBeInstanceOf(XApiError)
+  })
+  it("sinceDays: filters out-of-window tweets and early-stops pagination", async () => {
+    const recentTweet = { id: "r1", text: "recent", created_at: new Date(Date.now() - 1 * 86400000).toISOString() }
+    const oldTweet = { id: "o1", text: "old", created_at: new Date(Date.now() - 30 * 86400000).toISOString() }
+    // Page 1: newest-first as X returns; oldest is last — that triggers early-stop
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(json({ data: [recentTweet, oldTweet], meta: { next_token: "P2" } }))
+    vi.stubGlobal("fetch", fetchMock)
+    const out = await fetchRecentPosts("acc", { sinceDays: 7 })
+    // (a) only recent tweet in result
+    expect(out.map((t) => t.id)).toEqual(["r1"])
+    // (b) fetch was NOT called a second time (early-stop fired)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("resolveAccountId error cases", () => {
+  it("throws XApiError on !res.ok (e.g. 401)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) } as Response)
+    vi.stubGlobal("fetch", fetchMock)
+    await expect(resolveAccountId()).rejects.toBeInstanceOf(XApiError)
+  })
+  it("throws XApiError when response has no id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ data: {} }) } as Response)
+    vi.stubGlobal("fetch", fetchMock)
+    await expect(resolveAccountId()).rejects.toBeInstanceOf(XApiError)
   })
 })
