@@ -4,9 +4,11 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { captureSnapshotAction, deleteSnapshotAction } from "@/actions/marketing/snapshots"
-import { SNAPSHOT_CONTEXTS, type SnapshotContext } from "@/lib/marketing/types"
+import { SNAPSHOT_CONTEXTS } from "@/lib/marketing/types"
 import type { SnapshotRow } from "@/lib/marketing/snapshot-store"
 import { fmtInt, fmtUsd } from "@/lib/marketing/format"
+
+type ManualSnapshotContext = (typeof SNAPSHOT_CONTEXTS)[number]
 
 export interface ArticleOption { id: string; title: string }
 
@@ -16,7 +18,7 @@ export function SnapshotsClient({ snapshots, articles }: { snapshots: SnapshotRo
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [label, setLabel] = useState("")
-  const [context, setContext] = useState<SnapshotContext>("GENERAL")
+  const [context, setContext] = useState<ManualSnapshotContext>("GENERAL")
   const [refUrl, setRefUrl] = useState("")
   const [articleId, setArticleId] = useState("")
   const [note, setNote] = useState("")
@@ -54,7 +56,7 @@ export function SnapshotsClient({ snapshots, articles }: { snapshots: SnapshotRo
                 className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-white" />
             </label>
             <label className="text-sm text-zinc-400">Context
-              <select aria-label="Context" value={context} onChange={(e) => setContext(e.target.value as SnapshotContext)}
+              <select aria-label="Context" value={context} onChange={(e) => setContext(e.target.value as ManualSnapshotContext)}
                 className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-white">
                 {SNAPSHOT_CONTEXTS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
