@@ -54,6 +54,15 @@ describe("buildXPostCurve", () => {
     expect(curve.map((c) => c.date)).toEqual(["2026-06-28", "2026-06-29"])
     expect(curve[1].impressions).toBe(200)
   })
+  it("returns dates ascending even when input rows are out of order", () => {
+    const rows = [
+      row("A", "2026-06-29", "2026-06-29T00:05:00Z", m({ impressions: 200 })),
+      row("A", "2026-06-27", "2026-06-27T00:05:00Z", m({ impressions: 80 })),
+      row("A", "2026-06-28", "2026-06-28T00:05:00Z", m({ impressions: 100 })),
+    ]
+    const curve = buildXPostCurve(rows, "A")
+    expect(curve.map((c) => c.date)).toEqual(["2026-06-27", "2026-06-28", "2026-06-29"])
+  })
 })
 
 const series: SeriesPoint[] = [
@@ -70,6 +79,11 @@ describe("attributionDelta", () => {
   })
   it("returns null when there is no series point at/after the post", () => {
     expect(attributionDelta(series, "2026-07-10T00:00:00Z", 3, "dieselHolders")).toBeNull()
+  })
+  it("returns the same delta when series is shuffled (out of order)", () => {
+    // same fixture as the sorted case but points reversed
+    const shuffled = [series[3], series[1], series[2], series[0]]
+    expect(attributionDelta(shuffled, "2026-06-20T10:00:00Z", 3, "dieselHolders")).toBe(40)
   })
 })
 

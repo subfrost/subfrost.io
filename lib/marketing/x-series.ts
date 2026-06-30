@@ -48,18 +48,20 @@ export function buildXPostCurve(rows: XPostSnapshotRow[], tweetId: string): XCur
   return rows
     .filter((r) => r.payload.tweetId === tweetId)
     .map((r) => ({ date: r.createdAt.toISOString().slice(0, 10), ...r.payload.metrics }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
 }
 
 type AttrKey = "dieselHolders" | "btcLocked" | "dieselPrice"
 
 export function attributionDelta(series: SeriesPoint[], postDateISO: string, days: number, key: AttrKey): number | null {
   if (series.length === 0) return null
+  const s = [...series].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   const postDay = postDateISO.slice(0, 10)
-  const start = series.find((p) => p.date >= postDay)
+  const start = s.find((p) => p.date >= postDay)
   if (!start) return null
   const targetDay = new Date(new Date(`${start.date}T00:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10)
   let end: SeriesPoint | null = null
-  for (const p of series) {
+  for (const p of s) {
     if (p.date <= targetDay) end = p
     else break
   }
