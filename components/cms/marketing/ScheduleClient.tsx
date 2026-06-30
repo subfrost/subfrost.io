@@ -31,7 +31,10 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
   const rangeStart = weeks[0][0]
   const rangeEnd = weeks[weeks.length - 1][6]
 
-  const scheduled = pushes.filter((p) => p.status === "SCHEDULED" && p.scheduledFor)
+  const scheduled = useMemo(
+    () => pushes.filter((p) => p.status === "SCHEDULED" && p.scheduledFor),
+    [pushes],
+  )
   const byDate = useMemo(() => bucketByDate(scheduled, (p) => (p.scheduledFor ? new Date(p.scheduledFor) : null)), [scheduled])
 
   const materializedKeys = useMemo(() => {
@@ -57,9 +60,12 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
     return map
   }, [rules, rangeStart, rangeEnd, materializedKeys])
 
-  const backlog = pushes.filter((p) => p.status === "IDEA")
-  const published = pushes.filter((p) => p.status === "PUBLISHED").sort(
-    (a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime(),
+  const backlog = useMemo(() => pushes.filter((p) => p.status === "IDEA"), [pushes])
+  const published = useMemo(
+    () => pushes.filter((p) => p.status === "PUBLISHED").sort(
+      (a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime(),
+    ),
+    [pushes],
   )
 
   function shiftMonth(delta: number) {
