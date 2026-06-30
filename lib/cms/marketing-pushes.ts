@@ -4,11 +4,18 @@ import type { MarketingPush, RecurringPush } from "@prisma/client"
 export type PushRow = MarketingPush & { article: { slug: string; title: string | null } | null }
 
 const includeArticle = {
-  article: { select: { slug: true, translations: { select: { title: true, locale: true }, take: 1 } } },
+  article: { select: { slug: true, primaryLocale: true, translations: { select: { title: true, locale: true } } } },
 } as const
 
-function normalize(row: MarketingPush & { article: { slug: string; translations: { title: string }[] } | null }): PushRow {
-  return { ...row, article: row.article ? { slug: row.article.slug, title: row.article.translations[0]?.title ?? null } : null }
+function normalize(
+  row: MarketingPush & {
+    article: { slug: string; primaryLocale: string; translations: { title: string; locale: string }[] } | null
+  },
+): PushRow {
+  if (!row.article) return { ...row, article: null }
+  const { slug, primaryLocale, translations } = row.article
+  const title = translations.find((t) => t.locale === primaryLocale)?.title ?? translations[0]?.title ?? null
+  return { ...row, article: { slug, title } }
 }
 
 export async function listPushes(): Promise<PushRow[]> {
