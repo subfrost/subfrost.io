@@ -36,3 +36,26 @@ export async function getPublishedPushesForFeed(limit = 30): Promise<PushRow[]> 
   })
   return rows.map(normalize)
 }
+
+export interface ArticleOption { id: string; title: string; status: string }
+
+export async function listArticleOptions(): Promise<ArticleOption[]> {
+  const rows = await prisma.article.findMany({
+    select: {
+      id: true,
+      status: true,
+      primaryLocale: true,
+      translations: { select: { title: true, locale: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 100,
+  })
+  return rows.map((a) => ({
+    id: a.id,
+    status: a.status,
+    title:
+      a.translations.find((t) => t.locale === a.primaryLocale)?.title ??
+      a.translations[0]?.title ??
+      "(untitled)",
+  }))
+}

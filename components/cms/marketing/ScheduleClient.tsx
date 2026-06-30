@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import * as Tabs from "@radix-ui/react-tabs"
 import type { MarketingPush, RecurringPush, PushChannel, PushStatus } from "@prisma/client"
-import type { PushRow } from "@/lib/cms/marketing-pushes"
+import type { PushRow, ArticleOption } from "@/lib/cms/marketing-pushes"
 import type { ArticleEngagementRow } from "@/lib/analytics/source"
 import { buildMonthGrid, toDateKey, bucketByDate } from "@/lib/cms/calendar-grid"
 import { expandOccurrences } from "@/lib/cms/recurring-pushes"
@@ -16,6 +16,7 @@ import { Check } from "lucide-react"
 interface Props {
   pushes: PushRow[]
   rules: RecurringPush[]
+  articleOptions: ArticleOption[]
   articleEngagement: ArticleEngagementRow[]
 }
 
@@ -24,7 +25,7 @@ interface Ghost { ruleId: string; date: Date; title: string; channel: PushChanne
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 
-export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
+export function ScheduleClient({ pushes, rules, articleOptions, articleEngagement }: Props) {
   const today = useMemo(() => new Date(), [])
   const [cursor, setCursor] = useState({ year: today.getUTCFullYear(), month: today.getUTCMonth() })
   const [editing, setEditing] = useState<Partial<PushRow> | null>(null)
@@ -195,6 +196,7 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
       {editing && (
         <PushEditor
           initial={editing}
+          articleOptions={articleOptions}
           onClose={() => setEditing(null)}
         />
       )}
@@ -202,7 +204,7 @@ export function ScheduleClient({ pushes, rules, articleEngagement }: Props) {
   )
 }
 
-function PushEditor({ initial, onClose }: { initial: Partial<PushRow>; onClose: () => void }) {
+function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<PushRow>; articleOptions: ArticleOption[]; onClose: () => void }) {
   const [title, setTitle] = useState(initial.title ?? "")
   const [channel, setChannel] = useState<PushChannel>((initial.channel as PushChannel) ?? "ARTICLE")
   const [status, setStatus] = useState<PushStatus>((initial.status as PushStatus) ?? "IDEA")
