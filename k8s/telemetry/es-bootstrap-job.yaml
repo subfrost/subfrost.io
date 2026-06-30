@@ -54,6 +54,10 @@ spec:
               curl -fsS -X PUT "$ES_URL/_index_template/subfrost-diagnostics" \
                 -H 'Content-Type: application/json' \
                 --data-binary @/templates/es-template-diagnostics.json
+              echo "healing single-node yellow: replicas=0 on existing indices..."
+              curl -fsS -X PUT "$ES_URL/subfrost-cdn-*,subfrost-diagnostics-*/_settings" \
+                -H 'Content-Type: application/json' \
+                -d '{"index":{"number_of_replicas":0}}'
               echo "bootstrap OK"
           volumeMounts:
             - { name: templates, mountPath: /templates, readOnly: true }

@@ -48,9 +48,23 @@ spec:
   # The `tlsd-tls` Secret (LE cert) is created out-of-band and never managed
   # here, so prune will not touch it (Flux only prunes what it applied).
 
-# NOTE: k8s/telemetry is intentionally NOT Flux-managed yet. It is still a
-# SCAFFOLD — the live telemetry pipeline is the direct path (tlsd JA4 ->
-# /api/fp -> Elasticsearch), but the overlay also carries an unintegrated
-# RabbitMQ + cdn-telemetry-sink + secretstore that a reconcile would deploy.
-# Apply it by hand (kubectl apply -k k8s/telemetry) and add a Kustomization
-# here only once the scaffold components are finished or removed.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: telemetry
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./k8s/telemetry
+  prune: true
+  wait: true
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: subfrost-io
+  # k8s/telemetry runs in its own `telemetry` namespace; gate on the root
+  # subfrost-io Kustomization existing first (consistent with cdn).
+  dependsOn:
+    - name: subfrost-io

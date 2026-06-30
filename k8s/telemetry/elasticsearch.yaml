@@ -89,6 +89,9 @@ spec:
         cloud.google.com/gke-spot: "true"
       securityContext:
         fsGroup: 1000
+      # Spot: exit fast so GKE graceful node-shutdown detaches the RWO PVC
+      # cleanly, shrinking the Multi-Attach window on reschedule.
+      terminationGracePeriodSeconds: 30
       # ES needs vm.max_map_count >= 262144. GKE COS nodes default lower;
       # set it via a privileged init container (node-level sysctl).
       initContainers:
@@ -116,6 +119,13 @@ spec:
           resources:
             requests: { cpu: "250m", memory: "1280Mi" }
             limits:   { cpu: "1", memory: "1792Mi" }
+          # On reschedule (spot pre-emption) ES recovers from disk; give it room
+          # to come up before liveness can kill it.
+          startupProbe:
+            httpGet: { path: "/_cluster/health?local=true", port: http }
+            failureThreshold: 30
+            periodSeconds: 10
+            initialDelaySeconds: 10
           readinessProbe:
             httpGet: { path: "/_cluster/health?local=true", port: http }
             initialDelaySeconds: 20
