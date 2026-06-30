@@ -13,6 +13,7 @@ import { savePush, deletePush, materializeRecurrence, type PushInput } from "@/a
 import { publishedCalendarDate } from "@/lib/cms/push-calendar"
 import { Check } from "lucide-react"
 import { ArticleCombobox } from "./ArticleCombobox"
+import { PushMetricsFields } from "./PushMetricsFields"
 
 interface Props {
   pushes: PushRow[]
@@ -213,6 +214,8 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
   const [refUrl, setRefUrl] = useState(initial.refUrl ?? "")
   const [notes, setNotes] = useState(initial.notes ?? "")
   const [articleId, setArticleId] = useState<string | null>(initial.articleId ?? null)
+  const [metrics, setMetrics] = useState<PushMetrics>((initial.metrics as PushMetrics | null) ?? {})
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(initial.screenshotUrl ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -223,6 +226,8 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
       scheduledFor: scheduledFor || null,
       refUrl: refUrl || null, notes: notes || null,
       articleId: articleId,
+      metrics,
+      screenshotUrl,
     }
     const res = await savePush(input)
     setSaving(false)
@@ -255,6 +260,7 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
         <textarea className="w-full border rounded px-2 py-1 text-sm" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
         <ArticleCombobox options={articleOptions} value={articleId} onChange={setArticleId} />
         {articleId && <a className="text-sm text-blue-600 underline" href={`/admin/articles/${articleId}`}>Open draft</a>}
+        <PushMetricsFields metrics={metrics} screenshotUrl={screenshotUrl} onMetrics={setMetrics} onScreenshot={setScreenshotUrl} />
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="flex justify-between">
           {initial.id ? <button className="text-sm text-red-600" onClick={remove} disabled={saving}>Delete</button> : <span />}
