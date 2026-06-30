@@ -100,6 +100,8 @@ function RecurrenceForm({
       active,
       startDate: toDateInput(initial.startDate ?? null) || new Date().toISOString().slice(0, 10),
       endDate: endDate || null,
+      dayOfMonth: initial.dayOfMonth ?? null,
+      defaultNotes: initial.defaultNotes ?? null,
     })
   }
 
