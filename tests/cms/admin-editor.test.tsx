@@ -95,4 +95,9 @@ describe("AdminEditor -- AI translation", () => {
     const { queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
     expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
   })
+
+  it("hides the translate button when the translation service is disabled", () => {
+    const { queryByRole } = render(<AdminEditor initial={initial} canPublish translationEnabled={false} />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
+  })
 })

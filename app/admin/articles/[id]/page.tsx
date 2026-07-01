@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { currentUser } from "@/lib/cms/authz"
 import { AdminEditor } from "@/components/cms/AdminEditor"
+import { translationUnavailable } from "@/lib/cms/translate"
 
 export const dynamic = "force-dynamic"
 
@@ -44,6 +45,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   return (
     <AdminEditor
       canPublish={canPublish}
+      translationEnabled={!translationUnavailable()}
       initial={{
         id: article.id,
         slug: article.slug,

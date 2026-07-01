@@ -72,10 +72,12 @@ export function AdminEditor({
   initial,
   canPublish,
   members = [],
+  translationEnabled = true,
 }: {
   initial: EditorInitial
   canPublish: boolean
   members?: EditorMember[]
+  translationEnabled?: boolean
 }) {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -97,7 +99,7 @@ export function AdminEditor({
 
   const cur = content[activeLocale]
   const otherLocale: Locale = activeLocale === "en" ? "zh" : "en"
-  const canTranslate = Boolean(initial.id) && cur.title.trim().length > 0
+  const canTranslate = translationEnabled && Boolean(initial.id) && cur.title.trim().length > 0
   const wordCount = cur.body.trim() ? cur.body.trim().split(/\s+/).length : 0
   const hasUnsavedShape = initial.status !== "PUBLISHED" ? STATUS_COPY[initial.status] : "Published"
   const publicHref = slug ? `/articles/${slug}` : null
