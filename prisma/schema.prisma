@@ -592,7 +592,10 @@ model Folder {
 
   // unique name within a parent (root = parentId null)
   @@unique([parentId, name])
-  @@unique([parentId, slug])
+  // slug uniqueness is enforced in app code (uniqueFolderSlug); a plain index
+  // keeps the automated `prisma db push` (k8s migrate initContainer, no
+  // --accept-data-loss) purely additive rather than adding a unique constraint.
+  @@index([parentId, slug])
   @@index([parentId])
   @@index([scope])
 }
@@ -624,7 +627,9 @@ model DriveFile {
   updatedAt   DateTime @updatedAt
 
   @@unique([folderId, name])
-  @@unique([folderId, slug])
+  // slug uniqueness enforced in app code (uniqueFileSlug); plain index so the
+  // automated db push stays additive (see Folder.slug note).
+  @@index([folderId, slug])
   @@index([folderId])
   @@index([scope])
 }
