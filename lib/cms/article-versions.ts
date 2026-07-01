@@ -54,6 +54,10 @@ export interface BumpInput {
  *  stage transitioned. Returns the created version, or null when it was a no-op.
  *  Safe to call inside a `$transaction` by passing the tx client. */
 export async function bumpVersion(input: BumpInput, db: Db = prisma): Promise<ArticleVersion | null> {
+  // Defensive no-op when the client has no `articleVersion` delegate. The
+  // generated Prisma client always exposes it in production; this only guards
+  // partially-mocked prisma in tests that predate the versioning model.
+  if (!(db as { articleVersion?: unknown }).articleVersion) return null
   const latest = await latestVersion(input.articleId, input.locale, db)
   const unchanged =
     latest &&

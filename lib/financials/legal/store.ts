@@ -175,13 +175,14 @@ export async function loadEntityDossier(id: string): Promise<EntityDossier | nul
 
   // ---- on-chain settlement ----
   const onchain: DossierOnchainTx[] = []
-  if (row.obligation?.onchainTxid) {
-    const o = row.obligation
+  const ob = row.obligation
+  if (ob?.onchainTxid) {
+    const txid = ob.onchainTxid
     onchain.push({
-      source: "OYL_OBLIGATION", chain: "ethereum", txid: o.onchainTxid,
-      address: o.onchainAddress, amount: o.dieselOwed || null, unit: "DIESEL",
-      date: o.fundedAt, txUrl: explorerTxUrl("ethereum", o.onchainTxid),
-      addrUrl: o.onchainAddress ? explorerAddrUrl("ethereum", o.onchainAddress) : null,
+      source: "OYL_OBLIGATION", chain: "ethereum", txid,
+      address: ob.onchainAddress, amount: ob.dieselOwed || null, unit: "DIESEL",
+      date: ob.fundedAt, txUrl: explorerTxUrl("ethereum", txid),
+      addrUrl: ob.onchainAddress ? explorerAddrUrl("ethereum", ob.onchainAddress) : null,
     })
   }
   // DIESEL payments (BTC): those settling the linked payee's invoices, plus any
