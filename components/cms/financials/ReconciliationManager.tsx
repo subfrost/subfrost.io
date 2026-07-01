@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import type { InvoiceRow, PaymentRow, InvoiceStatus } from "@/lib/financials/accounting/shapes"
+import { explorerTxUrl } from "@/lib/explorers"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
 const dsl = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 8 })
@@ -67,7 +68,7 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
                     <div className="space-y-1">
                       {settling.map((p) => (
                         <div key={p.id} className="flex items-center gap-2 text-xs">
-                          <a href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(p.txid)}</a>
+                          <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(p.txid)}</a>
                           <span className="text-zinc-300">{dsl(p.amountDiesel)} DIESEL</span>
                           <span className="text-zinc-500">{p.paidAt.slice(0, 10)}</span>
                           {p.blockHeight ? <span className="text-zinc-600">#{p.blockHeight}</span> : null}
@@ -93,7 +94,7 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
               <tbody>
                 {unlinked.map((p) => (
                   <tr key={p.id} className="border-t border-zinc-900">
-                    <td className="px-3 py-2 font-mono text-xs"><a href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(p.txid)}</a></td>
+                    <td className="px-3 py-2 font-mono text-xs"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(p.txid)}</a></td>
                     <td className="text-right text-zinc-200">{dsl(p.amountDiesel)}</td>
                     <td className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
                     <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>

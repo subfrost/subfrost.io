@@ -27,6 +27,42 @@ export function hasFingerprint(ja3: string, ja3_full: string, ja4: string): bool
   return Boolean(ja3 || ja3_full || ja4)
 }
 
+// TLS fingerprint + client context read off the tlsd-injected request headers.
+// Same header names the /api/fp route + Edge middleware read; shared so the
+// e-sign signing-proxy (app/sign/[token]) captures identical forensics.
+export interface TlsForensics {
+  ja3: string | null
+  ja4: string | null
+  ip: string | null
+  userAgent: string | null
+  headers: Record<string, string>
+}
+
+const FORENSIC_HEADER_KEYS = [
+  "x-tls-ja4",
+  "x-tls-ja3",
+  "x-tls-ja3-hash",
+  "x-forwarded-for",
+  "x-real-ip",
+  "user-agent",
+  "referer",
+] as const
+
+export function extractTlsForensics(h: Headers): TlsForensics {
+  const ja4 = h.get("x-tls-ja4") || null
+  // Prefer the compact JA3 hash; fall back to the full string when the hash
+  // header is absent.
+  const ja3 = h.get("x-tls-ja3-hash") || h.get("x-tls-ja3") || null
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null
+  const userAgent = h.get("user-agent") || null
+  const headers: Record<string, string> = {}
+  for (const k of FORENSIC_HEADER_KEYS) {
+    const v = h.get(k)
+    if (v) headers[k] = v
+  }
+  return { ja3, ja4, ip, userAgent, headers }
+}
+
 export function dailyIndex(d: Date): string {
   const y = d.getUTCFullYear()
   const m = String(d.getUTCMonth() + 1).padStart(2, "0")

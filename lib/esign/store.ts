@@ -33,7 +33,11 @@ import {
   type Field,
   type Recipient,
   type RecipientInput,
+  type SignatureEventRecord,
+  type SignatureEventKindT,
+  type TimelineRow,
 } from "./types"
+import { extractTlsForensics, type TlsForensics } from "@/lib/telemetry/access-event"
 
 export class EsignError extends Error {}
 
@@ -41,6 +45,45 @@ export class EsignError extends Error {}
 export interface EsignActor {
   id: string | null
   email: string
+}
+
+// A read-scope descriptor. When `canViewAll` is false the list is narrowed to
+// envelopes the viewer created (documents.view_all gates the see-all scope).
+export interface EsignViewer {
+  email: string
+  canViewAll: boolean
+}
+
+// ---------- Signing-proxy token ---------------------------------------
+//
+// We wrap each recipient's Documenso signingUrl behind /sign/<token> on our
+// own domain so the tlsd ingress injects the signer's TLS fingerprint headers
+// before we 302 them onward. Token = base64url("<envelopeId>:<recipientEmail>").
+// Not a secret — it only names which recipient viewed; the redirect target is
+// still the unguessable Documenso signing URL.
+
+export function encodeSigningToken(envelopeId: string, recipientEmail: string): string {
+  return Buffer.from(`${envelopeId}:${recipientEmail}`, "utf8").toString("base64url")
+}
+
+export function decodeSigningToken(
+  token: string,
+): { envelopeId: string; recipientEmail: string } | null {
+  let decoded: string
+  try {
+    decoded = Buffer.from(token, "base64url").toString("utf8")
+  } catch {
+    return null
+  }
+  const idx = decoded.indexOf(":")
+  if (idx <= 0 || idx === decoded.length - 1) return null
+  return { envelopeId: decoded.slice(0, idx), recipientEmail: decoded.slice(idx + 1) }
+}
+
+/** The wrapped signing link to hand a recipient (records forensics, then
+ *  redirects to their Documenso signingUrl). */
+export function signingProxyUrl(envelopeId: string, recipientEmail: string): string {
+  return `/sign/${encodeSigningToken(envelopeId, recipientEmail)}`
 }
 
 // ---------- Row ⇄ record mapping -------------------------------------
@@ -69,11 +112,32 @@ function mapRow(r: EnvelopeRow): EnvelopeRecord {
     signedDocumentPath: r.signedDocumentObject ?? undefined,
     notes: r.notes ?? undefined,
     payeeId: r.payeeId ?? null,
+    sourceFileId: r.sourceFileId ?? null,
+    entityId: r.entityId ?? null,
+    agreementKey: r.agreementKey ?? null,
+    version: r.version,
+    parentEnvelopeId: r.parentEnvelopeId ?? null,
     fields: (r.fields as unknown as Field[] | null) ?? undefined,
     signingOrderEnabled: r.signingOrderEnabled,
     fieldsAppliedAt: r.fieldsAppliedAt?.toISOString(),
     fieldsAppliedCount: r.fieldsAppliedCount,
     appliedEventIds: r.appliedEventIds,
+  }
+}
+
+type SignatureEventRow = Prisma.SignatureEventGetPayload<{}>
+
+function mapSignatureEvent(r: SignatureEventRow): SignatureEventRecord {
+  return {
+    id: r.id,
+    envelopeId: r.envelopeId,
+    recipientEmail: r.recipientEmail,
+    kind: r.kind as SignatureEventKindT,
+    ip: r.ip ?? null,
+    userAgent: r.userAgent ?? null,
+    ja3: r.ja3 ?? null,
+    ja4: r.ja4 ?? null,
+    createdAt: r.createdAt.toISOString(),
   }
 }
 
@@ -94,6 +158,11 @@ interface EnvelopePatch {
   fieldsAppliedAt?: string
   fieldsAppliedCount?: number
   appliedEventIds?: string[]
+  agreementKey?: string
+  version?: number
+  parentEnvelopeId?: string
+  sourceFileId?: string | null
+  entityId?: string | null
 }
 
 function toData(patch: EnvelopePatch): Prisma.EnvelopeUncheckedUpdateInput {
@@ -112,6 +181,11 @@ function toData(patch: EnvelopePatch): Prisma.EnvelopeUncheckedUpdateInput {
   if (patch.fieldsAppliedAt !== undefined) d.fieldsAppliedAt = new Date(patch.fieldsAppliedAt)
   if (patch.fieldsAppliedCount !== undefined) d.fieldsAppliedCount = patch.fieldsAppliedCount
   if (patch.appliedEventIds !== undefined) d.appliedEventIds = patch.appliedEventIds
+  if (patch.agreementKey !== undefined) d.agreementKey = patch.agreementKey
+  if (patch.version !== undefined) d.version = patch.version
+  if (patch.parentEnvelopeId !== undefined) d.parentEnvelopeId = patch.parentEnvelopeId
+  if (patch.sourceFileId !== undefined) d.sourceFileId = patch.sourceFileId
+  if (patch.entityId !== undefined) d.entityId = patch.entityId
   return d
 }
 
@@ -169,9 +243,16 @@ function applyRecipientUpdate(
 // ---------- envelopes (CRUD) -----------------------------------------
 
 export const envelopes = {
-  async list(filters: { payeeId?: string } = {}): Promise<EnvelopeRecord[]> {
+  async list(
+    filters: { payeeId?: string } = {},
+    viewer?: EsignViewer,
+  ): Promise<EnvelopeRecord[]> {
+    const where: Prisma.EnvelopeWhereInput = {}
+    if (filters.payeeId) where.payeeId = filters.payeeId
+    // Read-scope: viewers without documents.view_all only see what they created.
+    if (viewer && !viewer.canViewAll) where.createdBy = viewer.email
     const rows = await prisma.envelope.findMany({
-      where: filters.payeeId ? { payeeId: filters.payeeId } : {},
+      where,
       orderBy: { createdAt: "desc" },
     })
     return rows.map(mapRow)
@@ -192,6 +273,13 @@ export const envelopes = {
     expiresAt?: string
     fields?: Field[]
     signingOrderEnabled?: boolean
+    sourceFileId?: string | null
+    entityId?: string | null
+    // Versioning: supplied by reissue(); left blank on a first envelope, in
+    // which case agreementKey defaults to the row's own id (version 1).
+    agreementKey?: string | null
+    version?: number
+    parentEnvelopeId?: string | null
   }): Promise<EnvelopeRecord> {
     const recipients: Recipient[] = input.recipients.map((r) => ({
       name: r.name,
@@ -215,8 +303,22 @@ export const envelopes = {
             ? (input.fields as unknown as Prisma.InputJsonValue)
             : Prisma.DbNull,
         signingOrderEnabled: input.signingOrderEnabled ?? false,
+        sourceFileId: input.sourceFileId ?? null,
+        entityId: input.entityId ?? null,
+        agreementKey: input.agreementKey ?? null,
+        version: input.version ?? 1,
+        parentEnvelopeId: input.parentEnvelopeId ?? null,
       },
     })
+    // First envelope of an agreement: stamp agreementKey to its own id so all
+    // future reissues share a stable group id.
+    if (!input.agreementKey) {
+      const stamped = await prisma.envelope.update({
+        where: { id: row.id },
+        data: { agreementKey: row.id, updatedAt: new Date() },
+      })
+      return mapRow(stamped)
+    }
     return mapRow(row)
   },
 
@@ -503,6 +605,7 @@ export const esign = {
       recipients: recipientsWithIds,
       status: "sent",
       sentAt: new Date().toISOString(),
+      agreementKey: envId,
     })
   },
 
@@ -576,6 +679,11 @@ export const esign = {
       detail?: string
     }> = []
 
+    // Forensic events to persist after the state update. The webhook can't see
+    // the signer's TLS fingerprint (only our /sign proxy can), so ja3/ja4 stay
+    // null here.
+    const sigEvents: Array<{ recipientEmail: string; kind: SignatureEventKindT }> = []
+
     switch (event.event) {
       case "DOCUMENT_OPENED":
         if (triggeringRecipient?.email) {
@@ -583,6 +691,7 @@ export const esign = {
             status: "viewed",
             viewedAt: now,
           })
+          sigEvents.push({ recipientEmail: triggeringRecipient.email, kind: "VIEWED" })
         }
         break
       case "DOCUMENT_SIGNED":
@@ -599,6 +708,7 @@ export const esign = {
             action: "document_signed",
             detail: recipientIdx >= 0 ? `recipient#${recipientIdx + 1}` : undefined,
           })
+          sigEvents.push({ recipientEmail: triggeringRecipient.email, kind: "SIGNED" })
         }
         break
       case "DOCUMENT_COMPLETED":
@@ -629,6 +739,7 @@ export const esign = {
             action: "document_declined",
             detail: reason ? `${tag}: ${reason}` : tag,
           })
+          sigEvents.push({ recipientEmail: triggeringRecipient.email, kind: "DECLINED" })
         }
         break
       case "DOCUMENT_CANCELLED":
@@ -697,8 +808,242 @@ export const esign = {
     for (const entry of auditEntries) {
       await audit(entry.action, { actorId: null, target: match.id, details: entry.detail ? { detail: entry.detail } : undefined })
     }
+    // Best-effort forensic events (no TLS fingerprint available at the webhook
+    // — that's only captured by the /sign proxy). Never fail the webhook on a
+    // SignatureEvent write.
+    for (const se of sigEvents) {
+      try {
+        await recordSignatureEvent({
+          envelopeId: match.id,
+          recipientEmail: se.recipientEmail,
+          kind: se.kind,
+        })
+      } catch {
+        // swallow — the envelope-state update already succeeded
+      }
+    }
     return updated
   },
+
+  // ---------- Launch from a file (WS3.1) -----------------------------
+  //
+  // Creates a draft envelope whose PDF comes from an existing DriveFile's
+  // stored GCS object instead of an operator upload. Otherwise identical to
+  // the create → attach path so `esign.send` works unchanged.
+  async createFromFile(
+    input: {
+      fileId: string
+      subject: string
+      message?: string
+      recipients: RecipientInput[]
+      kind?: EnvelopeKind
+      fields?: Field[]
+      signingOrderEnabled?: boolean
+      expiresAt?: string
+      entityId?: string | null
+      payeeId?: string | null
+    },
+    actor: EsignActor,
+  ): Promise<EnvelopeRecord> {
+    const file = await prisma.driveFile.findUnique({ where: { id: input.fileId } })
+    if (!file) throw new EsignError(`file ${input.fileId} not found`)
+    if (!(await objectExists(file.gcsObject))) {
+      throw new EsignError(`file ${input.fileId} has no stored object in GCS`)
+    }
+    const bytes = await downloadObject(file.gcsObject)
+    const created = await envelopes.create({
+      kind: input.kind ?? "other",
+      subject: input.subject,
+      message: input.message,
+      recipients: input.recipients,
+      fields: input.fields,
+      signingOrderEnabled: input.signingOrderEnabled,
+      expiresAt: input.expiresAt,
+      createdBy: actor.email,
+      payeeId: input.payeeId ?? null,
+      sourceFileId: file.id,
+      entityId: input.entityId ?? null,
+    })
+    return envelopes.attachPdf(created.id, {
+      filename: file.name,
+      mimeType: file.mimeType,
+      bytes,
+    })
+  },
+
+  // ---------- Versioning (WS3.2) -------------------------------------
+  //
+  // Re-issue an agreement after edits: a NEW envelope sharing the prior's
+  // agreementKey, version = max(version)+1, parentEnvelopeId = prior id.
+  async reissue(
+    envelopeId: string,
+    changes: {
+      subject?: string
+      message?: string
+      recipients?: RecipientInput[]
+      fields?: Field[]
+      signingOrderEnabled?: boolean
+      expiresAt?: string
+      kind?: EnvelopeKind
+      entityId?: string | null
+      payeeId?: string | null
+    },
+    actor: EsignActor,
+  ): Promise<EnvelopeRecord> {
+    const prior = await envelopes.get(envelopeId)
+    if (!prior) throw new EsignError(`envelope ${envelopeId} not found`)
+    const agreementKey = prior.agreementKey ?? prior.id
+    const versions = await esign.listVersions(agreementKey)
+    const maxVersion = versions.reduce(
+      (m, v) => Math.max(m, v.version ?? 1),
+      prior.version ?? 1,
+    )
+    const recipients: RecipientInput[] =
+      changes.recipients ??
+      prior.recipients.map((r) => ({
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        signingOrder: r.signingOrder,
+      }))
+    return envelopes.create({
+      kind: changes.kind ?? prior.kind,
+      subject: changes.subject ?? prior.subject,
+      message: changes.message ?? prior.message,
+      recipients,
+      fields: changes.fields ?? prior.fields,
+      signingOrderEnabled: changes.signingOrderEnabled ?? prior.signingOrderEnabled,
+      expiresAt: changes.expiresAt ?? prior.expiresAt,
+      createdBy: actor.email,
+      payeeId: changes.payeeId ?? prior.payeeId ?? null,
+      sourceFileId: prior.sourceFileId ?? null,
+      entityId: changes.entityId ?? prior.entityId ?? null,
+      agreementKey,
+      version: maxVersion + 1,
+      parentEnvelopeId: prior.id,
+    })
+  },
+
+  async listVersions(agreementKey: string): Promise<EnvelopeRecord[]> {
+    const rows = await prisma.envelope.findMany({
+      where: { agreementKey },
+      orderBy: { version: "asc" },
+    })
+    return rows.map(mapRow)
+  },
+}
+
+// ---------- Forensic capture (WS3.3) ---------------------------------
+
+/** Persist a per-recipient forensic event. `forensics` comes from the /sign
+ *  proxy (TLS fingerprint + IP + headers); the webhook path passes none. */
+export async function recordSignatureEvent(input: {
+  envelopeId: string
+  recipientEmail: string
+  kind: SignatureEventKindT
+  forensics?: TlsForensics
+}): Promise<SignatureEventRecord> {
+  const f = input.forensics
+  const row = await prisma.signatureEvent.create({
+    data: {
+      envelopeId: input.envelopeId,
+      recipientEmail: input.recipientEmail,
+      kind: input.kind,
+      ip: f?.ip ?? null,
+      userAgent: f?.userAgent ?? null,
+      ja3: f?.ja3 ?? null,
+      ja4: f?.ja4 ?? null,
+      headers: (f?.headers ?? {}) as unknown as Prisma.InputJsonValue,
+    },
+  })
+  return mapSignatureEvent(row)
+}
+
+/** All forensic events for one envelope, oldest first. */
+export async function listSignatureEvents(envelopeId: string): Promise<SignatureEventRecord[]> {
+  const rows = await prisma.signatureEvent.findMany({
+    where: { envelopeId },
+    orderBy: { createdAt: "asc" },
+  })
+  return rows.map(mapSignatureEvent)
+}
+
+/** Records a VIEWED event for a recipient of an envelope and returns their
+ *  Documenso signing URL (or undefined when the envelope/recipient/URL is
+ *  missing). Used by the /sign/[token] proxy. */
+export async function captureViewAndResolve(
+  envelopeId: string,
+  recipientEmail: string,
+  forensics: TlsForensics,
+): Promise<string | undefined> {
+  const rec = await envelopes.get(envelopeId)
+  if (!rec) return undefined
+  const recipient = rec.recipients.find(
+    (r) => r.email.toLowerCase() === recipientEmail.toLowerCase(),
+  )
+  if (!recipient) return undefined
+  await recordSignatureEvent({ envelopeId, recipientEmail: recipient.email, kind: "VIEWED", forensics })
+  return recipient.signingUrl
+}
+
+// ---------- Timeline (WS3.4) -----------------------------------------
+
+/** Aggregate lifecycle + forensic activity across every envelope visible to
+ *  the viewer, newest first. Merges Envelope stamps (created/sent/version/
+ *  resend), SignatureEvent rows (viewed/signed/declined, with JA3/JA4/IP), and
+ *  recipient-JSON timestamps that predate the forensic capture. */
+export async function documentsTimeline(viewer?: EsignViewer): Promise<TimelineRow[]> {
+  const list = await envelopes.list({}, viewer)
+  const ids = list.map((e) => e.id)
+  const events = ids.length
+    ? await prisma.signatureEvent.findMany({
+        where: { envelopeId: { in: ids } },
+        orderBy: { createdAt: "asc" },
+      })
+    : []
+  const byId = new Map(list.map((e) => [e.id, e]))
+  const rows: TimelineRow[] = []
+  // (envelopeId|recipientEmail|kind) already covered by a forensic event, so we
+  // don't double-count the recipient-JSON fallback below.
+  const covered = new Set<string>()
+
+  for (const ev of events) {
+    const env = byId.get(ev.envelopeId)
+    const kind = ev.kind.toLowerCase() as TimelineRow["kind"]
+    covered.add(`${ev.envelopeId}|${ev.recipientEmail.toLowerCase()}|${kind}`)
+    rows.push({
+      envelopeId: ev.envelopeId,
+      subject: env?.subject ?? ev.envelopeId,
+      kind,
+      recipient: ev.recipientEmail,
+      timestamp: ev.createdAt.toISOString(),
+      ja3: ev.ja3 ?? null,
+      ja4: ev.ja4 ?? null,
+      ip: ev.ip ?? null,
+    })
+  }
+
+  for (const e of list) {
+    rows.push({ envelopeId: e.id, subject: e.subject, kind: "created", actor: e.createdBy, timestamp: e.createdAt, version: e.version })
+    if (e.sentAt) rows.push({ envelopeId: e.id, subject: e.subject, kind: "sent", actor: e.createdBy, timestamp: e.sentAt, version: e.version })
+    if ((e.version ?? 1) > 1) rows.push({ envelopeId: e.id, subject: e.subject, kind: "version", actor: e.createdBy, timestamp: e.createdAt, version: e.version })
+    if (e.lastResendAt) rows.push({ envelopeId: e.id, subject: e.subject, kind: "resend", actor: e.createdBy, timestamp: e.lastResendAt, version: e.version })
+    // Recipient-JSON fallback for envelopes signed/viewed/declined before the
+    // forensic proxy existed (or without a matching SignatureEvent).
+    for (const r of e.recipients) {
+      const push = (kind: TimelineRow["kind"], ts?: string) => {
+        if (!ts) return
+        if (covered.has(`${e.id}|${r.email.toLowerCase()}|${kind}`)) return
+        rows.push({ envelopeId: e.id, subject: e.subject, kind, recipient: r.email, timestamp: ts })
+      }
+      push("signed", r.signedAt)
+      push("viewed", r.viewedAt)
+      push("declined", r.declinedAt)
+    }
+  }
+
+  rows.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+  return rows
 }
 
 // ---------- Pure helpers (verbatim from source) ----------------------

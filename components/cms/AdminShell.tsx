@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { AdminNav } from "@/components/cms/AdminNav"
+import type { NavTreeDrive } from "@/lib/files/manager"
 import { UserMenu } from "@/components/cms/UserMenu"
 import { SystemThemeSync } from "@/components/articles/SystemThemeSync"
 import { ThemeToggle } from "@/components/articles/ThemeToggle"
@@ -18,7 +19,7 @@ export interface ShellUser {
   status?: string | null
 }
 
-export function AdminShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
+export function AdminShell({ user, children, filesTree = [] }: { user: ShellUser; children: React.ReactNode; filesTree?: NavTreeDrive[] }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname() ?? ""
   const immersiveEditor =
@@ -51,7 +52,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
 
   const body = (onNavigate?: () => void) => (
     <>
-      <AdminNav privileges={user.privileges} onNavigate={onNavigate} />
+      <AdminNav privileges={user.privileges} onNavigate={onNavigate} filesTree={filesTree} />
       <div className="mt-10">
         <UserMenu name={user.name} email={user.email} role={user.role} avatarUrl={user.avatarUrl} status={user.status} />
       </div>

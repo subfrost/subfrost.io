@@ -6,7 +6,13 @@ import type {
   LegalEntityRow, LegalEntityProfile, LegalAgreementRow, DeserterRow, OylObligationRow,
   LegalEntityKind, LegalEntityCategory, LegalScope,
   LegalAgreementType, LegalAgreementStatus, DesertionStatus, SwapStatus, OylFunding,
+  EntityDossier, DossierEnvelope, DossierFile, DossierOnchainTx, DossierFuel,
 } from "./shapes"
+import { groupEnvelopeVersions } from "./shapes"
+import { loadPayeeProfile } from "@/lib/financials/accounting/store"
+import { listEntityFiles } from "@/lib/files/manager"
+import { explorerTxUrl, explorerAddrUrl } from "@/lib/explorers"
+import { KIND_LABELS } from "@/lib/esign/types"
 
 export class LegalError extends Error {}
 
@@ -75,6 +81,7 @@ async function resolveLinks(entities: { userId: string | null; payeeId: string |
 type EntityModel = {
   id: string; name: string; kind: string; category: string; scope: string; email: string | null
   userId: string | null; payeeId: string | null; shareholderId: string | null; notes: string | null
+  tags?: string[]; addresses?: string[]
   createdAt: Date
   deserter?: DeserterModel | null
   obligation?: ObligationModel | null
@@ -87,7 +94,9 @@ function mapEntity(
   return {
     id: e.id, name: e.name, kind: e.kind as LegalEntityKind, category: e.category as LegalEntityCategory,
     scope: e.scope as LegalScope, email: e.email, userId: e.userId, payeeId: e.payeeId,
-    shareholderId: e.shareholderId, notes: e.notes, createdAt: e.createdAt.toISOString(),
+    shareholderId: e.shareholderId, notes: e.notes,
+    tags: e.tags ?? [], addresses: e.addresses ?? [],
+    createdAt: e.createdAt.toISOString(),
     userName: e.userId ? links.user.get(e.userId) ?? null : null,
     payeeName: e.payeeId ? links.payee.get(e.payeeId) ?? null : null,
     shareholderName: e.shareholderId ? links.shareholder.get(e.shareholderId) ?? null : null,
@@ -119,6 +128,105 @@ export async function loadEntityProfile(id: string): Promise<LegalEntityProfile 
   return { entity: mapEntity(entity, links), agreements: agreements.map(mapAgreement) }
 }
 
+// Unified dossier: one LegalEntity + everything linked to it. Aggregates the
+// linked Payee's invoices/payments, e-sign envelopes (as version chains) +
+// signed files, on-chain settlement (BTC DIESEL payments + ETH OYL obligation),
+// and FUEL allocations matched against the entity's addresses. Everything
+// degrades gracefully when links/addresses are absent.
+export async function loadEntityDossier(id: string): Promise<EntityDossier | null> {
+  const entity = await prisma.legalEntity.findUnique({ where: { id }, include: ENTITY_INCLUDE })
+  if (!entity) return null
+  const links = await resolveLinks([entity])
+  const row = mapEntity(entity, links)
+  const addresses = row.addresses
+
+  const [agreementRows, envelopeRows, fileLinks, payee] = await Promise.all([
+    prisma.legalAgreement.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" } }),
+    prisma.envelope.findMany({
+      where: { entityId: id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true, subject: true, kind: true, status: true, version: true,
+        agreementKey: true, createdAt: true, completedAt: true,
+      },
+    }),
+    listEntityFiles(id),
+    row.payeeId ? loadPayeeProfile(row.payeeId) : Promise.resolve(null),
+  ])
+
+  const envelopes: DossierEnvelope[] = envelopeRows.map((e) => ({
+    id: e.id, subject: e.subject, kind: e.kind, status: e.status,
+    version: e.version ?? 1, agreementKey: e.agreementKey ?? null,
+    createdAt: e.createdAt.toISOString(), completedAt: e.completedAt?.toISOString() ?? null,
+    href: `/admin/documents/${e.id}`,
+  }))
+  const docGroups = groupEnvelopeVersions(envelopes).map((g) => ({
+    ...g,
+    label: g.label || (KIND_LABELS as Record<string, string>)[g.versions[0].kind] || g.versions[0].kind,
+  }))
+
+  // "Signed docs" = files the entity signed or is a counterparty to.
+  const signedFiles: DossierFile[] = fileLinks
+    .filter((l) => l.role === "SIGNATORY" || l.role === "COUNTERPARTY")
+    .map((l) => ({
+      linkId: l.id, fileId: l.file.id, name: l.file.name,
+      role: l.role, scope: l.file.scope, annotation: l.annotation,
+    }))
+
+  // ---- on-chain settlement ----
+  const onchain: DossierOnchainTx[] = []
+  const ob = row.obligation
+  if (ob?.onchainTxid) {
+    const txid = ob.onchainTxid
+    onchain.push({
+      source: "OYL_OBLIGATION", chain: "ethereum", txid,
+      address: ob.onchainAddress, amount: ob.dieselOwed || null, unit: "DIESEL",
+      date: ob.fundedAt, txUrl: explorerTxUrl("ethereum", txid),
+      addrUrl: ob.onchainAddress ? explorerAddrUrl("ethereum", ob.onchainAddress) : null,
+    })
+  }
+  // DIESEL payments (BTC): those settling the linked payee's invoices, plus any
+  // whose recipient matches one of the entity's addresses (deduped by id).
+  const btcPayments = new Map<string, { txid: string; recipientAddress: string; amountDiesel: number; paidAt: string }>()
+  for (const p of payee?.payments ?? []) {
+    btcPayments.set(p.id, { txid: p.txid, recipientAddress: p.recipientAddress, amountDiesel: p.amountDiesel, paidAt: p.paidAt })
+  }
+  if (addresses.length) {
+    const addrPays = await prisma.dieselPayment.findMany({ where: { recipientAddress: { in: addresses } } })
+    for (const p of addrPays) {
+      btcPayments.set(p.id, {
+        txid: p.txid, recipientAddress: p.recipientAddress, amountDiesel: p.amountDiesel,
+        paidAt: p.paidAt.toISOString(),
+      })
+    }
+  }
+  for (const p of btcPayments.values()) {
+    onchain.push({
+      source: "DIESEL_PAYMENT", chain: "bitcoin", txid: p.txid,
+      address: p.recipientAddress, amount: p.amountDiesel, unit: "DIESEL",
+      date: p.paidAt, txUrl: explorerTxUrl("bitcoin", p.txid),
+      addrUrl: p.recipientAddress ? explorerAddrUrl("bitcoin", p.recipientAddress) : null,
+    })
+  }
+
+  // ---- FUEL (address join) ----
+  let fuel: DossierFuel[] = []
+  if (addresses.length) {
+    const allocs = await prisma.fuelAllocation.findMany({ where: { address: { in: addresses } } })
+    fuel = allocs.map((a) => ({
+      address: a.address, amount: a.amount, note: a.note,
+      addrUrl: explorerAddrUrl("bitcoin", a.address),
+    }))
+  }
+  const fuelTotal = fuel.reduce((s, f) => s + f.amount, 0)
+
+  return {
+    entity: row, tags: row.tags, addresses,
+    agreements: agreementRows.map(mapAgreement),
+    payee, docGroups, signedFiles, onchain, fuel, fuelTotal,
+  }
+}
+
 export interface EntityInput {
   name: string
   kind: LegalEntityKind
@@ -129,6 +237,14 @@ export interface EntityInput {
   payeeId?: string | null
   shareholderId?: string | null
   notes?: string | null
+  tags?: string[]
+  addresses?: string[]
+}
+
+/** Trim + dedupe + drop empties from a tag/address list. */
+function cleanList(xs: string[] | undefined): string[] {
+  if (!xs) return []
+  return [...new Set(xs.map((s) => s.trim()).filter(Boolean))]
 }
 
 async function reload(id: string): Promise<LegalEntityRow> {
@@ -146,6 +262,7 @@ export async function createEntity(input: EntityInput): Promise<LegalEntityRow> 
       email: input.email?.trim() || null, userId: input.userId || null,
       payeeId: input.payeeId || null, shareholderId: input.shareholderId || null,
       notes: input.notes?.trim() || null,
+      tags: cleanList(input.tags), addresses: cleanList(input.addresses),
     },
   })
   return reload(row.id)
@@ -164,6 +281,8 @@ export async function updateEntity(id: string, patch: Partial<EntityInput>): Pro
   if ("payeeId" in patch) data.payeeId = patch.payeeId || null
   if ("shareholderId" in patch) data.shareholderId = patch.shareholderId || null
   if ("notes" in patch) data.notes = patch.notes?.trim() || null
+  if ("tags" in patch) data.tags = cleanList(patch.tags)
+  if ("addresses" in patch) data.addresses = cleanList(patch.addresses)
   await prisma.legalEntity.update({ where: { id }, data })
   return reload(id)
 }

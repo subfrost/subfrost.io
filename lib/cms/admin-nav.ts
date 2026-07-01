@@ -3,7 +3,8 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2, Github, FolderArchive, CalendarClock, TrendingUp, AtSign,
+  KanbanSquare, Target, Package, Gavel, Building2, Github, CalendarClock, TrendingUp, AtSign,
+  Contact,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -46,9 +47,8 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "documents", label: "Documents", icon: FolderOpen, items: [
-      { label: "Documents", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
-      { label: "OYL Drive", href: "/admin/oyl", icon: FolderArchive, privilege: "files.read" },
+    key: "documents", label: "Files", icon: FolderOpen, items: [
+      { label: "Files", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
     ],
   },
   {
@@ -101,6 +101,11 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "entities", label: "Entities", icon: Contact, items: [
+      { label: "Entities", href: "/admin/entities", icon: Contact, privilege: "legal.view" },
+    ],
+  },
+  {
     key: "legal", label: "Legal", icon: Gavel, items: [
       { label: "Entities", href: "/admin/legal", icon: Building2, privilege: "legal.view" },
     ],
@@ -140,6 +145,12 @@ export function isItemActive(href: string, pathname: string): boolean {
   }
   if (href === "/admin/documents") {
     return pathname === "/admin/documents" || pathname.startsWith("/admin/documents/")
+  }
+  if (href === "/admin/files") {
+    return pathname === "/admin/files" || pathname.startsWith("/admin/files/")
+  }
+  if (href === "/admin/entities") {
+    return pathname === "/admin/entities" || pathname.startsWith("/admin/entities/")
   }
   if (href === "/admin/legal") {
     return pathname === "/admin/legal" || pathname.startsWith("/admin/legal/")

@@ -9,6 +9,7 @@ import {
 } from "@/actions/cms/legal"
 import { listEntityFilesAction, getFileUrlAction, unlinkEntityFileAction } from "@/actions/cms/files"
 import type { EntityFileView } from "@/lib/files/manager"
+import { explorerTxUrl } from "@/lib/explorers"
 import {
   LEGAL_ENTITY_CATEGORY_LABELS, LEGAL_AGREEMENT_TYPES, LEGAL_AGREEMENT_TYPE_LABELS,
   SWAP_STATUS_LABELS, DESERTION_STATUS_LABELS, dieselFromSafe, swapEligible,
@@ -308,7 +309,7 @@ function ObligationCard({ entity, canEdit, onSave, disabled, viewerHasFinancials
         {o?.onchainTxid ? (
           <div className="mt-3 text-xs text-zinc-400">
             On-chain:{" "}
-            <a href={`https://etherscan.io/tx/${o.onchainTxid}`} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(o.onchainTxid)}</a>
+            <a href={explorerTxUrl("ethereum", o.onchainTxid)} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(o.onchainTxid)}</a>
             {o.fundedAt ? ` · ${o.fundedAt.slice(0, 10)}` : ""}{viewerHasFinancials && o.onchainAddress ? ` · ${short(o.onchainAddress)}` : ""}
           </div>
         ) : <div className="mt-3 text-xs text-zinc-600">No on-chain settlement recorded.</div>}
