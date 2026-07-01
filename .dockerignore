@@ -46,3 +46,6 @@ yarn-error.log*
 
 # Reference files (alkanes.build)
 reference/
+
+# Rust admin CLI — not part of the Next.js image
+cli/

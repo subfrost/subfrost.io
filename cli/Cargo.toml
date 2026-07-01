@@ -1,0 +1,146 @@
+[workspace]
+resolver = "2"
+# subfrost.io admin/IAM CLI (binary `subfrost`), vendored into the monorepo
+# together with the minimal slice of the pyrosec/tlsfetch workspace it needs.
+# The fork crates below are what make the Chrome ClientHello + JA3/JA4
+# emulation take effect on the wire: they are swapped in for the upstream
+# crates via the [patch.crates-io] block at the bottom of this file, exactly
+# as they are in the tlsfetch workspace. Keep this set in sync with
+# ~/tlsfetch (source of truth) when bumping.
+members = [
+    "crates/subfrost-cli",
+    # tlsfetch HTTP client slice
+    "crates/tlsfetch-common",
+    "crates/tlsfetch-sys",
+    "crates/tlsfetch-timeout",
+    # Vendored rustls/h2/quinn/h3 forks (JA3/JA4 fingerprint emulation).
+    "crates/rustls-tlsfetch",
+    "crates/h2-tlsfetch",
+    "crates/h3-tlsfetch",
+    "crates/h3-quinn-tlsfetch",
+    "crates/quinn-tlsfetch",
+    "crates/quinn-proto-tlsfetch",
+    "crates/quinn-udp-tlsfetch",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["pyrosec"]
+repository = "https://github.com/pyrosec/tlsfetch"
+
+[workspace.dependencies]
+# Pure-Rust TLS implementation. Native uses the `ring` provider;
+# wasm uses the `rustls-rustcrypto` provider which is a pure-Rust
+# CryptoProvider built on the RustCrypto ecosystem with no native
+# deps. Both are gated per-target in tlsfetch-common.
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12"] }
+rustls-pki-types = { version = "1", features = ["web"] }
+webpki-roots = "0.26"
+rustls-rustcrypto = "0.0.2-alpha"
+
+# Crypto + utilities used by the JA3 fingerprint customization layer.
+sha2 = "0.10"
+# MD5 for the JA3 hash (JA3 is, by spec, the MD5 of the JA3 string).
+# md-5 is the RustCrypto crate; we alias it to `md5` at the crate level.
+md-5 = "0.10"
+hkdf = "0.12"
+hmac = "0.12"
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+x25519-dalek = "2"
+ring = "0.17"
+
+# Common utilities
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+bytes = "1"
+url = "2"
+http = "1"
+httparse = "1"
+ipnet = "2"
+
+# Async runtime — only used by tlsfetch-sys / tlsfetch-cli for the
+# native side. tlsfetch-common is sync over Read+Write so it stays
+# wasm-friendly.
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "net", "io-util", "macros", "time"] }
+tokio-rustls = { version = "0.26", default-features = false }
+h2 = "0.4"
+http-body-util = "0.1"
+futures-util = "0.3"
+# HTTP/3 stack: quinn (QUIC over tokio UDP) + h3 (RFC 9114) +
+# h3-quinn (the glue). All rustls-based and pure Rust — no
+# boringssl/cmake build dep, unlike `quiche`. Default features
+# off so we don't pull in `runtime-tokio` twice; we re-enable
+# what we need explicitly.
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls", "ring"] }
+h3 = "0.0.8"
+h3-quinn = "0.0.10"
+
+# wasm-bindgen ecosystem
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = "0.3"
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = "0.1"
+
+# CLI
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+env_logger = "0.11"
+flate2 = "1"
+percent-encoding = "2"
+base64 = "0.22"
+ntlmclient = "0.2"
+
+# Sync WebSocket client for the WS-tunnel test bed (ws-tunnel/) —
+# the relay-side connector that lets a Rust HTTP client dial TCP
+# and UDP through a WebSocket gateway. Used by tlsfetch-sys behind
+# the `ws-tunnel` feature.
+tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
+
+# WebTransport bridge sidecar deps. tokio-tungstenite is the async
+# WebSocket client the bridge uses to forward WT streams to the
+# cluster's /api/stream endpoint. tracing/tracing-subscriber are
+# used by the binary for structured logs.
+tokio-tungstenite = { version = "0.21", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rustls-pemfile = "2"
+
+# Protobuf encode/decode used by tlsfetch-grpc. Pure Rust; no native
+# protoc invocation at consumer-build time (we only use prost runtime
+# types, not prost-build, in this workspace — application protos are
+# code-gen'd in their own repos).
+prost = { version = "0.13", default-features = false, features = ["std", "derive"] }
+# prost-build used at build-time by hyflaria-common to compile the
+# Hyflaria TunnelFrame .proto. Pure Rust; pulls protoc-prebuilt via
+# prost-build's bundled vendored protoc-bin so consumers don't need
+# system protoc installed.
+prost-build = "0.13"
+# Trait-only crate for pluggable RNGs; hyflaria-common's
+# `build_auth_frame` takes `&mut impl RngCore` so tests can seed a
+# deterministic RNG and production callers can pass `OsRng`.
+rand_core = { version = "0.6", default-features = false }
+async-trait = "0.1"
+
+# Vendored rustls fork. Replaces upstream rustls 0.23 across the
+# entire workspace dependency graph (including transitively via
+# tokio-rustls, quinn, rustls-rustcrypto) so the same type-identity
+# is shared everywhere. Our fork is byte-identical to upstream
+# 0.23.37 with one additive surface: an opt-in
+# `ClientConfig::client_hello_mutator` hook.
+[patch.crates-io]
+rustls = { path = "crates/rustls-tlsfetch" }
+# Forked h2 0.4.6 with the SETTINGS-order hook for persona
+# fingerprint matching.
+h2 = { path = "crates/h2-tlsfetch" }
+h3 = { path = "crates/h3-tlsfetch" }
+h3-quinn = { path = "crates/h3-quinn-tlsfetch" }
+quinn-proto = { path = "crates/quinn-proto-tlsfetch" }
+quinn-udp = { path = "crates/quinn-udp-tlsfetch" }
+quinn = { path = "crates/quinn-tlsfetch" }

@@ -1,0 +1,78 @@
+# Forked from rustls 0.23.37
+# (https://github.com/rustls/rustls @ v/0.23.37, crates.io rustls-0.23.37).
+#
+# The only material change is the addition of an opt-in
+# `client_hello_mutator: Option<Arc<dyn ClientHelloMutator>>` field on
+# `ClientConfig`, plus the call-site that consults it inside
+# `client/hs.rs::emit_client_hello_for_retry` to rewrite the
+# ClientHello bytes (and re-sync the transcript hash) before they're
+# committed to the wire. Everything else is byte-identical to upstream.
+#
+# License: same as upstream (Apache-2.0 OR ISC OR MIT). See
+# LICENSE-APACHE / LICENSE-ISC / LICENSE-MIT in this directory.
+#
+# The crate ships under a renamed package so consumers can keep the
+# real `rustls 0.23` alongside us (e.g. tokio-rustls links upstream).
+# Internally the library is still named `rustls` so the source tree
+# requires zero patching beyond the mutator hook itself.
+
+[package]
+# We keep the upstream package name `rustls` so the workspace can
+# pick this up via `[patch.crates-io] rustls = { path = ... }` without
+# every downstream consumer (tokio-rustls, quinn, rustls-rustcrypto)
+# needing a Cargo.toml edit. The directory is named
+# `rustls-tlsfetch` to make the divergence obvious on disk; the
+# package name stays `rustls` for `[patch]` plumbing.
+name = "rustls"
+version = "0.23.38"
+edition = "2021"
+rust-version = "1.71"
+license = "Apache-2.0 OR ISC OR MIT"
+description = "rustls 0.23 fork with an opt-in ClientHello-mutator hook for JA3/JA4 emulation. Used by tlsfetch."
+repository = "https://github.com/pyrosec/tlsfetch"
+build = "build.rs"
+exclude = ["src/testdata", "tests/**", "benches", "examples"]
+
+[lib]
+name = "rustls"
+path = "src/lib.rs"
+
+[features]
+# Upstream defaults sans the aws-lc-rs / ring providers: tlsfetch
+# brings its own pure-Rust provider (rustls-rustcrypto), so we don't
+# want to pull aws-lc-rs into the dependency tree by default. Consumers
+# that need ring or aws-lc-rs can opt in.
+default = ["logging", "std", "tls12"]
+
+aws-lc-rs = ["aws_lc_rs"]
+aws_lc_rs = ["dep:aws-lc-rs", "webpki/aws-lc-rs", "aws-lc-rs/aws-lc-sys", "aws-lc-rs/prebuilt-nasm"]
+brotli = ["dep:brotli", "dep:brotli-decompressor", "std"]
+custom-provider = []
+fips = ["aws_lc_rs", "aws-lc-rs?/fips", "webpki/aws-lc-rs-fips"]
+logging = ["dep:log"]
+prefer-post-quantum = ["aws_lc_rs"]
+read_buf = ["dep:rustversion", "std"]
+ring = ["dep:ring", "webpki/ring"]
+std = ["webpki/std", "pki-types/std", "once_cell/std"]
+tls12 = []
+zlib = ["dep:zlib-rs"]
+
+[dependencies]
+aws-lc-rs = { version = "1.14", default-features = false, optional = true }
+brotli = { version = "8", default-features = false, features = ["std"], optional = true }
+brotli-decompressor = { version = "5.0.0", optional = true }
+hashbrown = { version = "0.15", default-features = false, features = ["default-hasher", "inline-more"], optional = true }
+log = { version = "0.4.8", optional = true }
+once_cell = { version = "1.16", default-features = false, features = ["alloc", "race"] }
+pki-types = { version = "1.12", features = ["alloc"], package = "rustls-pki-types" }
+ring = { version = "0.17", optional = true }
+subtle = { version = "2.5.0", default-features = false }
+webpki = { version = "0.103.5", default-features = false, features = ["alloc"], package = "rustls-webpki" }
+zeroize = "1.8"
+zlib-rs = { version = "0.6", optional = true }
+
+[build-dependencies]
+rustversion = { version = "1.0.6", optional = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(bench)", "cfg(coverage_nightly)", "cfg(read_buf)", "cfg(rustls_docsrs)"] }
