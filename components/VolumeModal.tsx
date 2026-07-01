@@ -72,7 +72,12 @@ function ButtonGroup({
   const isPage = variant === "page"
 
   return (
-    <div className={cn("inline-flex items-center p-0.5 rounded-lg gap-2", small ? null : "p-1")}>
+    <div
+      className={cn(
+        "inline-flex items-center rounded-lg",
+        isPage ? "gap-4 p-0" : cn("gap-2 p-0.5", small ? null : "p-1")
+      )}
+    >
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -206,7 +211,7 @@ function StatsCards({
 
     return (
       <div className="border-t pt-4" style={{ borderColor: "var(--ed-hair)" }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => onPeriodChange("24h")}
@@ -215,9 +220,6 @@ function StatsCards({
           >
             24H
           </button>
-          <span className="font-display text-[14px]" style={{ color: "var(--ed-muted)" }}>
-            /
-          </span>
           <button
             type="button"
             onClick={() => onPeriodChange("7d")}
@@ -226,9 +228,6 @@ function StatsCards({
           >
             7D
           </button>
-          <span className="font-display text-[14px]" style={{ color: "var(--ed-muted)" }}>
-            /
-          </span>
           <button
             type="button"
             onClick={() => onPeriodChange("all")}
