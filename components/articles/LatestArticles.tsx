@@ -1,6 +1,5 @@
 import { ArrowRight } from "lucide-react"
 import { CoverArt } from "./CoverArt"
-import { externalLinks } from "@/lib/external-links"
 import { externalAnchorProps } from "@/lib/link-behavior"
 
 // Homepage widget: top published articles from the same-origin API. Renders
@@ -49,61 +48,6 @@ const copy = {
   },
 } satisfies Record<Locale, { title: string; description: string; readAll: string; minute: string }>
 
-const fallbackCards = {
-  en: [
-    {
-      id: "docs",
-      title: "Docs",
-      excerpt: "Canonical product guides, setup paths, protocol references, and technical components.",
-      href: externalLinks.docs,
-      tags: [
-        { slug: "developer", name: "Developer" },
-        { slug: "protocol", name: "Protocol" },
-      ],
-      meta: "subfrost docs",
-      coverVariant: 4,
-    },
-    {
-      id: "api-docs",
-      title: "subfrost API docs",
-      excerpt: "Endpoint context for balances, wrapping state, transactions, market data, and integrations.",
-      href: externalLinks.apiDocs,
-      tags: [
-        { slug: "developer", name: "Developer" },
-        { slug: "api", name: "API" },
-      ],
-      meta: "subfrost docs",
-      coverVariant: 5,
-    },
-  ],
-  zh: [
-    {
-      id: "docs",
-      title: "文档",
-      excerpt: "产品指南、设置路径、协议参考与技术组件的权威入口。",
-      href: externalLinks.docs,
-      tags: [
-        { slug: "developer", name: "开发者" },
-        { slug: "protocol", name: "协议" },
-      ],
-      meta: "subfrost 文档",
-      coverVariant: 4,
-    },
-    {
-      id: "api-docs",
-      title: "subfrost API 文档",
-      excerpt: "余额、包装状态、交易、市场数据与集成端点说明。",
-      href: externalLinks.apiDocs,
-      tags: [
-        { slug: "developer", name: "开发者" },
-        { slug: "api", name: "API" },
-      ],
-      meta: "subfrost 文档",
-      coverVariant: 5,
-    },
-  ],
-} satisfies Record<Locale, Array<Omit<DisplayCard, "coverImage">>>
-
 export default function LatestArticles({
   locale = "en",
   articles = [],
@@ -129,14 +73,9 @@ export default function LatestArticles({
     coAuthors: article.coAuthors,
     readingMinutes: article.readingMinutes,
   }))
-  const cards: DisplayCard[] = [
-    ...articleCards,
-    ...fallbackCards[locale].filter((card) => !articleCards.some((article) => article.href === card.href)).map((card, index) => ({
-      ...card,
-      coverImage: null,
-      coverVariant: articleCards.length + index,
-    })),
-  ].slice(0, 3)
+  const cards: DisplayCard[] = articleCards
+
+  if (cards.length === 0) return null
 
   return (
     <div id="articles" className="w-full">

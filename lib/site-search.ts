@@ -228,7 +228,7 @@ function staticEntries(locale: CmsLocale): SearchableEntry[] {
   const copy = staticCopy[locale]
   const entries: SearchableEntry[] = [
     { id: "home", type: "page", section: "subfrost", href: "/", priority: 4, ...copy.home },
-    { id: "markets", type: "product", section: "Trade", href: "https://app.subfrost.io/markets", priority: 5, ...copy.markets },
+    { id: "markets", type: "product", section: "Trade", href: "https://app.subfrost.io/", priority: 5, ...copy.markets },
     { id: "swap", type: "product", section: "Trade", href: "https://app.subfrost.io/swap", priority: 5, ...copy.swap },
     { id: "vaults", type: "product", section: "Trade", href: "https://app.subfrost.io/vaults", priority: 5, ...copy.vaults },
     { id: "volume", type: "product", section: "Trade", href: "/volume", priority: 4, ...copy.volume },

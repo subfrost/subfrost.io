@@ -278,7 +278,7 @@ async function buildHomepagePayload(locale: CmsLocale) {
     fetchMetashrewHeightWithHealthFallback(healthTask),
     fetchJson<{ usd?: number; bitcoin?: { usd?: number } }>(SUBPRICER_URL),
     fetchAmmPrices(),
-    getPublishedPreviews({ limit: 3, locale, previewFallback: true }).catch(() => []),
+    getPublishedPreviews({ limit: 3, locale }).catch(() => []),
   ])
 
   const btcPrice = typeof btcPriceData?.usd === "number" ? btcPriceData.usd : btcPriceData?.bitcoin?.usd ?? null

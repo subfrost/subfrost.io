@@ -263,7 +263,7 @@ export default async function BrandPage({
       <EditorialShell>
         <main className="overflow-hidden">
         <section>
-          <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-14 sm:px-8 sm:pb-20 sm:pt-[92px]">
+          <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-10 sm:px-8 sm:pb-20 sm:pt-[69px]">
             <div className="mx-auto max-w-[900px] text-center">
               <h1 className="font-display text-balance text-[52px] font-normal leading-none sm:text-[82px]" style={{ color: "var(--ed-ink)" }}>
                 {String(t.title)}

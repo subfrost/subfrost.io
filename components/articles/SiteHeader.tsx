@@ -150,7 +150,7 @@ export function SiteHeader() {
     },
   }[locale]
   const tradeItems = [
-    { id: "markets", label: copy.markets, body: copy.marketsBody, href: "https://app.subfrost.io/markets" },
+    { id: "markets", label: copy.markets, body: copy.marketsBody, href: "https://app.subfrost.io/" },
     { id: "swap", label: copy.swap, body: copy.swapBody, href: "https://app.subfrost.io/swap" },
     { id: "vaults", label: copy.vaults, body: copy.vaultsBody, href: "https://app.subfrost.io/vaults" },
     { id: "volume", label: copy.volumeCharts, body: copy.volumeChartsBody, href: volumeHref },
