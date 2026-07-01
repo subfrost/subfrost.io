@@ -156,7 +156,7 @@ const en: Record<string, string> = {
   'footer.legal': 'Legal',
   'footer.terms': 'Terms of Service',
   'footer.privacy': 'Privacy Policy',
-  'footer.copyright': '© 2025 Subzero Research Inc. All rights reserved.',
+  'footer.copyright': '© 2026 Subzero Research Inc. All rights reserved.',
   'footer.disclaimer': 'Not financial advice. Use at your own risk.',
 
   // Live page

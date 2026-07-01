@@ -159,7 +159,7 @@ export function SiteFooter() {
         </div>
 
         <div className="font-display flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-          <span>&copy; 2025 Subzero Research Inc.</span>
+          <span>&copy; 2026 Subzero Research Inc.</span>
         </div>
 
         <div className="font-display flex items-center justify-center gap-2 lg:justify-end">

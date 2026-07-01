@@ -156,7 +156,7 @@ const zh: Record<string, string> = {
   'footer.legal': '法律',
   'footer.terms': '服务条款',
   'footer.privacy': '隐私政策',
-  'footer.copyright': '© 2025 Subzero Research Inc. 版权所有。',
+  'footer.copyright': '© 2026 Subzero Research Inc. 版权所有。',
   'footer.disclaimer': '非财务建议。风险自负。',
 
   // Live page
