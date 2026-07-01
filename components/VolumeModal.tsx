@@ -85,7 +85,7 @@ function ButtonGroup({
           className={cn(
             "transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none",
             isPage
-              ? cn("font-display font-medium tracking-normal", small ? "px-2.5 py-1 text-[12px]" : "px-1 py-2 text-[14px]")
+              ? cn("font-display font-medium tracking-normal", small ? "px-2.5 py-1 text-[12px]" : "px-0 py-2 text-[14px]")
               : cn("font-bold uppercase tracking-wide", small ? "px-2.5 py-1 text-[10px] rounded" : "px-5 py-2 text-sm rounded-md"),
             isPage
               ? value === opt.value
