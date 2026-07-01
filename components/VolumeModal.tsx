@@ -210,7 +210,7 @@ function StatsCards({
       )
 
     return (
-      <div className="border-t pt-4" style={{ borderColor: "var(--ed-hair)" }}>
+      <div>
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -877,7 +877,7 @@ export function VolumeChartPanel({
         {/* Tab selectors */}
         <div className={cn(
           "flex flex-wrap items-center justify-between gap-4 sm:shrink-0",
-          isPage ? "mb-8" : "mb-6"
+          isPage ? "mb-4" : "mb-6"
         )}>
           <ButtonGroup
             options={[
