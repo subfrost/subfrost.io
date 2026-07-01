@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowDown, ArrowRight } from "lucide-react"
+import { ArrowDown, ArrowRight, Folder } from "lucide-react"
 import { visibleNav, isItemActive, groupHasActive } from "@/lib/cms/admin-nav"
+import type { NavTreeDrive, NavTreeNode } from "@/lib/files/manager"
 
 const STORAGE_KEY = "subfrost.adminNav.open"
 
@@ -29,9 +30,11 @@ function writeStored(state: Record<string, boolean>) {
 export function AdminNav({
   privileges,
   onNavigate,
+  filesTree = [],
 }: {
   privileges: string[]
   onNavigate?: () => void
+  filesTree?: NavTreeDrive[]
 }) {
   const pathname = usePathname() ?? ""
   // Explicit user toggles only. Read from storage after mount to avoid a
@@ -81,20 +84,24 @@ export function AdminNav({
                 {group.items.map((item) => {
                   const active = isItemActive(item.href, pathname)
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onNavigate}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-2 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] ${
-                        active
-                          ? "font-medium text-[color:var(--ed-ink)]"
-                          : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
-                      }`}
-                    >
-                      <span className="flex-1">{item.label}</span>
-                      {active && <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ed-ink)]" aria-hidden />}
-                    </Link>
+                    <div key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onNavigate}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-2 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] ${
+                          active
+                            ? "font-medium text-[color:var(--ed-ink)]"
+                            : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+                        }`}
+                      >
+                        <span className="flex-1">{item.label}</span>
+                        {active && <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ed-ink)]" aria-hidden />}
+                      </Link>
+                      {item.href === "/admin/files" && filesTree.length > 0 && (
+                        <FilesTree tree={filesTree} pathname={pathname} onNavigate={onNavigate} />
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -103,5 +110,79 @@ export function AdminNav({
         )
       })}
     </nav>
+  )
+}
+
+// Collapsible 2-level folder tree rendered under the Files nav item. Drives
+// (SUBFROST / OYL) → root folders → their immediate children. Deeper navigation
+// happens in the explorer. Open state is local + auto-opens the active path.
+function FilesTree({ tree, pathname, onNavigate }: { tree: NavTreeDrive[]; pathname: string; onNavigate?: () => void }) {
+  return (
+    <div className="mt-1 space-y-0.5 border-l border-[color:var(--ed-hair)] pl-2">
+      {tree.map((drive) => (
+        <TreeRow
+          key={drive.slug}
+          label={drive.label}
+          href={drive.path}
+          children_={drive.children}
+          pathname={pathname}
+          onNavigate={onNavigate}
+          depth={0}
+        />
+      ))}
+    </div>
+  )
+}
+
+function TreeRow({
+  label, href, children_, pathname, onNavigate, depth,
+}: {
+  label: string; href: string; children_: NavTreeNode[]; pathname: string; onNavigate?: () => void; depth: number
+}) {
+  const onPath = pathname === href || pathname.startsWith(href + "/")
+  const [open, setOpen] = useState(onPath)
+  const hasChildren = children_.length > 0
+  return (
+    <div>
+      <div className="flex items-center gap-1" style={{ paddingLeft: depth * 8 }}>
+        {hasChildren ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+            className="shrink-0 text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+          >
+            {open ? <ArrowDown size={12} /> : <ArrowRight size={12} />}
+          </button>
+        ) : (
+          <span className="w-3 shrink-0" />
+        )}
+        <Link
+          href={href}
+          onClick={onNavigate}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 truncate py-1 text-xs transition-colors ${
+            onPath ? "font-medium text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+          }`}
+        >
+          <Folder size={12} className="shrink-0 text-amber-400/70" />
+          <span className="truncate">{label}</span>
+        </Link>
+      </div>
+      {open && hasChildren && (
+        <div className="space-y-0.5">
+          {children_.map((c) => (
+            <TreeRow
+              key={c.path}
+              label={c.name}
+              href={c.path}
+              children_={c.children}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

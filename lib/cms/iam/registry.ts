@@ -87,6 +87,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "aml.edit", label: "Compliance — edit", description: "Disposition KYC, draft/queue FinCEN filings, and manage MTL records.", category: "compliance", implies: ["aml.read"] },
   { code: "documents.read", label: "Documents — view", description: "View the e-sign document inbox: envelopes, recipients, and signing status.", category: "compliance", implies: [] },
   { code: "documents.write", label: "Documents — send", description: "Create and send envelopes for signature, void, resend, and link signed paperwork to payees.", category: "compliance", implies: ["documents.read"] },
+  { code: "documents.view_all", label: "Documents — view all", description: "See every e-sign envelope and the org-wide activity timeline, not just ones you created.", category: "compliance", implies: ["documents.read"] },
   { code: "compliance.reviews", label: "Reviewer links — manage", description: "Mint, list, and revoke delegated external-reviewer links to the compliance surfaces.", category: "compliance", implies: [] },
 
   // --- Billing ---

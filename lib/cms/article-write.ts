@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import type { Privilege } from "@/lib/cms/privileges"
 import { toSlug } from "@/lib/cms/slug"
 import { notifyNewArticle } from "@/lib/cms/article-notify"
+import { bumpVersion, stageForStatus } from "@/lib/cms/article-versions"
 
 const translationSchema = z.object({
   title: z.string().max(200).optional().default(""),
@@ -116,6 +117,12 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
           create: { articleId: existing.id, locale: t.locale, title: t.title, excerpt: t.excerpt, body: t.body, sources: t.sources },
         })
         await tx.revision.create({ data: { articleId: existing.id, locale: t.locale, title: t.title, body: t.body, editorId: actor.id } })
+        // Lifecycle version snapshot — only bumps on a real title/body change or
+        // a stage transition (see bumpVersion). Kept alongside Revision.
+        await bumpVersion(
+          { articleId: existing.id, locale: t.locale, title: t.title, body: t.body, stage: stageForStatus(status), editorId: actor.id },
+          tx,
+        )
       }
     })
     if (becomingPublished) void notifyNewArticle(existing.id).catch((e) => console.error("[notify] update", e))
@@ -135,6 +142,9 @@ export async function upsertArticle(actor: Actor, input: ArticleInput): Promise<
       revisions: { create: translations.map((t) => ({ locale: t.locale, title: t.title, body: t.body, editorId: actor.id })) },
     },
   })
+  for (const t of translations) {
+    await bumpVersion({ articleId: created.id, locale: t.locale, title: t.title, body: t.body, stage: stageForStatus(status), editorId: actor.id })
+  }
   if (status === "PUBLISHED") void notifyNewArticle(created.id).catch((e) => console.error("[notify] create", e))
   return { ok: true, slug, id: created.id, authorId: created.authorId }
 }

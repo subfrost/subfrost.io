@@ -1,6 +1,9 @@
 import { randomUUID } from "crypto"
-import type { LegalScope, EntityFileRole } from "@prisma/client"
+import { Prisma } from "@prisma/client"
+import type { LegalScope, EntityFileRole, Folder, DriveFile } from "@prisma/client"
 import prisma from "@/lib/prisma"
+import { toSlug } from "@/lib/cms/slug"
+import { filesPath } from "@/lib/files/paths"
 import {
   signedUploadUrl,
   signedDownloadUrl,
@@ -9,6 +12,24 @@ import {
   objectSize,
 } from "@/lib/files/store"
 
+// The two drives, addressed by URL slug. SUBFROST is the default drive; OYL is
+// the (formerly separate) "OYL Drive". Both live under one /admin/files tree.
+export const DRIVES = [
+  { slug: "subfrost", scope: "SUBFROST" as LegalScope, label: "SUBFROST" },
+  { slug: "oyl", scope: "OYL" as LegalScope, label: "OYL" },
+]
+export function driveScopeFromSlug(slug: string): LegalScope | null {
+  return DRIVES.find((d) => d.slug === slug)?.scope ?? null
+}
+export function driveSlugFromScope(scope: LegalScope): string {
+  return DRIVES.find((d) => d.scope === scope)?.slug ?? "subfrost"
+}
+/** Effective slug for a row: stored slug, else derived from name (so path
+ *  resolution works before the backfill has run). */
+function effSlug(row: { slug: string | null; name: string }): string {
+  return row.slug || toSlug(row.name)
+}
+
 // Business logic for the "Documents" file manager. Actor-agnostic (takes an
 // actorId) so the cookie-session server actions (actions/cms/files.ts) and the
 // Bearer REST routes (/api/v1/files) both reuse it. GCS lives in ./store.
@@ -16,6 +37,7 @@ import {
 export interface FolderView {
   id: string
   name: string
+  slug: string
   parentId: string | null
   scope: LegalScope
   createdAt: string
@@ -23,6 +45,7 @@ export interface FolderView {
 export interface FileView {
   id: string
   name: string
+  slug: string
   folderId: string | null
   scope: LegalScope
   mimeType: string
@@ -33,17 +56,45 @@ export interface FileView {
   updatedAt: string
 }
 
-function fview(f: { id: string; name: string; parentId: string | null; scope: LegalScope; createdAt: Date }): FolderView {
-  return { id: f.id, name: f.name, parentId: f.parentId, scope: f.scope, createdAt: f.createdAt.toISOString() }
+function fview(f: { id: string; name: string; slug: string | null; parentId: string | null; scope: LegalScope; createdAt: Date }): FolderView {
+  return { id: f.id, name: f.name, slug: effSlug(f), parentId: f.parentId, scope: f.scope, createdAt: f.createdAt.toISOString() }
 }
 function dview(f: {
-  id: string; name: string; folderId: string | null; scope: LegalScope; mimeType: string; size: bigint
+  id: string; name: string; slug: string | null; folderId: string | null; scope: LegalScope; mimeType: string; size: bigint
   tags: string[]; metadata: unknown; createdAt: Date; updatedAt: Date
 }): FileView {
   return {
-    id: f.id, name: f.name, folderId: f.folderId, scope: f.scope, mimeType: f.mimeType, size: f.size.toString(),
+    id: f.id, name: f.name, slug: effSlug(f), folderId: f.folderId, scope: f.scope, mimeType: f.mimeType, size: f.size.toString(),
     tags: f.tags, metadata: (f.metadata as Record<string, unknown>) ?? {},
     createdAt: f.createdAt.toISOString(), updatedAt: f.updatedAt.toISOString(),
+  }
+}
+
+// --- slug helpers ----------------------------------------------------------
+
+/** A slug unique within a parent folder, appending -2, -3, … on collision. */
+async function uniqueFolderSlug(parentId: string | null, base: string, ignoreId?: string): Promise<string> {
+  const seed = toSlug(base)
+  let slug = seed
+  let n = 1
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await prisma.folder.findFirst({ where: { parentId, slug }, select: { id: true } })
+    if (!existing || existing.id === ignoreId) return slug
+    n += 1
+    slug = `${seed}-${n}`
+  }
+}
+async function uniqueFileSlug(folderId: string | null, base: string, ignoreId?: string): Promise<string> {
+  const seed = toSlug(base)
+  let slug = seed
+  let n = 1
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await prisma.driveFile.findFirst({ where: { folderId, slug }, select: { id: true } })
+    if (!existing || existing.id === ignoreId) return slug
+    n += 1
+    slug = `${seed}-${n}`
   }
 }
 
@@ -81,6 +132,91 @@ export async function listFolder(folderId: string | null, scope: LegalScope = "S
   return { folderId, scope, breadcrumb: crumbs, folders: folders.map(fview), files: files.map(dview) }
 }
 
+export { filesPath }
+
+export interface ResolvedPath {
+  scope: LegalScope
+  driveSlug: string
+  /** Root → current folder (inclusive). Empty at a drive root. */
+  folderChain: FolderView[]
+  /** The folder being viewed (null = drive root). */
+  folderId: string | null
+  /** Set when the terminal segment addressed a file rather than a folder. */
+  file: FileView | null
+}
+
+/** Resolve a `/admin/files/<drive>/<slug>/…` path to a folder (explorer) or a
+ *  terminal file (renderer). Matches by stored slug, falling back to a slug
+ *  derived from the name so legacy rows resolve before the backfill runs. */
+export async function resolvePath(driveSlug: string, segments: string[]): Promise<ResolvedPath> {
+  const scope = driveScopeFromSlug(driveSlug)
+  if (!scope) throw new FilesError("Unknown drive", 404)
+
+  let parentId: string | null = null
+  const folderChain: FolderView[] = []
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
+    const atRoot: boolean = parentId === null
+    // scope only constrains root-level rows (children inherit their parent's drive)
+    const scopeAtRoot = atRoot ? { scope } : {}
+    // Try to descend into a child folder.
+    const folderWhere: Prisma.FolderWhereInput = { parentId, slug: seg, ...scopeAtRoot }
+    let folder: Folder | null = await prisma.folder.findFirst({ where: folderWhere })
+    if (!folder) {
+      const kidsWhere: Prisma.FolderWhereInput = { parentId, ...scopeAtRoot }
+      const kids: Folder[] = await prisma.folder.findMany({ where: kidsWhere })
+      folder = kids.find((k) => effSlug(k) === seg) ?? null
+    }
+    if (folder) {
+      folderChain.push(fview(folder))
+      parentId = folder.id
+      continue
+    }
+    // Not a folder — the last segment may be a file in the current folder.
+    if (i === segments.length - 1) {
+      const fileWhere: Prisma.DriveFileWhereInput = { folderId: parentId, slug: seg, ...scopeAtRoot }
+      let file: DriveFile | null = await prisma.driveFile.findFirst({ where: fileWhere })
+      if (!file) {
+        const dfsWhere: Prisma.DriveFileWhereInput = { folderId: parentId, ...scopeAtRoot }
+        const dfs: DriveFile[] = await prisma.driveFile.findMany({ where: dfsWhere })
+        file = dfs.find((d) => effSlug(d) === seg) ?? null
+      }
+      if (file) return { scope, driveSlug, folderChain, folderId: parentId, file: dview(file) }
+    }
+    throw new FilesError("Not found", 404)
+  }
+
+  return { scope, driveSlug, folderChain, folderId: parentId, file: null }
+}
+
+export interface NavTreeNode { name: string; slug: string; path: string; children: NavTreeNode[] }
+export interface NavTreeDrive { slug: string; label: string; path: string; children: NavTreeNode[] }
+
+/** The top two folder levels of each drive, for the collapsible nav tree. */
+export async function filesNavTree(): Promise<NavTreeDrive[]> {
+  const out: NavTreeDrive[] = []
+  for (const drive of DRIVES) {
+    const roots = await prisma.folder.findMany({
+      where: { parentId: null, scope: drive.scope }, orderBy: { name: "asc" },
+    })
+    const level1: NavTreeNode[] = []
+    for (const r of roots) {
+      const rSlug = effSlug(r)
+      const kids = await prisma.folder.findMany({ where: { parentId: r.id }, orderBy: { name: "asc" } })
+      level1.push({
+        name: r.name, slug: rSlug, path: filesPath(drive.slug, [rSlug]),
+        children: kids.map((k) => {
+          const kSlug = effSlug(k)
+          return { name: k.name, slug: kSlug, path: filesPath(drive.slug, [rSlug, kSlug]), children: [] }
+        }),
+      })
+    }
+    out.push({ slug: drive.slug, label: drive.label, path: filesPath(drive.slug), children: level1 })
+  }
+  return out
+}
+
 export async function createFolder(
   actorId: string, name: string, parentId: string | null, scope: LegalScope = "SUBFROST",
 ): Promise<FolderView> {
@@ -94,7 +230,8 @@ export async function createFolder(
   }
   const dup = await prisma.folder.findFirst({ where: { parentId, name } })
   if (dup) throw new FilesError("A folder with that name already exists here", 409)
-  const f = await prisma.folder.create({ data: { name, parentId, scope, createdById: actorId } })
+  const slug = await uniqueFolderSlug(parentId, name)
+  const f = await prisma.folder.create({ data: { name, slug, parentId, scope, createdById: actorId } })
   return fview(f)
 }
 
@@ -110,9 +247,10 @@ export async function prepareUpload(
   const scope = await folderScope(input.folderId)
   await assertUniqueFileName(input.folderId, name)
   const gcsObject = `files/${randomUUID()}`
+  const slug = await uniqueFileSlug(input.folderId, name)
   const file = await prisma.driveFile.create({
     data: {
-      name, folderId: input.folderId, scope, mimeType: input.mimeType || "application/octet-stream",
+      name, slug, folderId: input.folderId, scope, mimeType: input.mimeType || "application/octet-stream",
       size: BigInt(0), gcsObject, createdById: actorId,
     },
   })
@@ -143,9 +281,10 @@ export async function serverUpload(
   const gcsObject = `files/${randomUUID()}`
   const mimeType = input.mimeType || "application/octet-stream"
   await uploadObject(gcsObject, mimeType, input.data)
+  const slug = await uniqueFileSlug(input.folderId, name)
   const file = await prisma.driveFile.create({
     data: {
-      name, folderId: input.folderId, scope, mimeType, size: BigInt(input.data.byteLength),
+      name, slug, folderId: input.folderId, scope, mimeType, size: BigInt(input.data.byteLength),
       gcsObject, createdById: actorId,
     },
   })

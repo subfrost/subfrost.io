@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useRef, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import {
   ChevronRight, Download, File as FileIcon, FileText, Film, Folder, FolderPlus,
   Image as ImageIcon, Info, Loader2, Music, Pencil, Trash2, Upload, FolderInput, X,
@@ -10,12 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   createFolderAction, deleteFileAction, deleteFolderAction, finalizeUploadAction,
-  getFileUrlAction, listFolderAction, prepareUploadAction, updateFileAction, updateFolderAction,
+  getFileUrlAction, prepareUploadAction, updateFileAction, updateFolderAction,
 } from "@/actions/cms/files"
 import type { FileView, FolderView } from "@/lib/files/manager"
+import { filesPath } from "@/lib/files/paths"
 import type { LegalScope } from "@prisma/client"
 import { humanSize, previewKind, relTime, typeLabel } from "./util"
-import { PreviewModal } from "./PreviewModal"
 import { DetailsPanel } from "./DetailsPanel"
 import { FolderPicker } from "./FolderPicker"
 
@@ -41,17 +42,18 @@ function fileIcon(mime: string, name: string) {
 }
 
 export function FilesManager({
-  initial, canEdit, scope = "SUBFROST", basePath = "/admin/files",
+  initial, canEdit, driveSlug,
 }: {
-  initial: View; canEdit: boolean; scope?: LegalScope; basePath?: string
+  initial: View; canEdit: boolean; driveSlug: string
 }) {
-  const [view, setView] = useState<View>(initial)
+  const view = initial
+  const scope: LegalScope = view.scope ?? "SUBFROST"
+  const router = useRouter()
   const [navPending, startNav] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   // modals / panels
-  const [preview, setPreview] = useState<FileView | null>(null)
   const [details, setDetails] = useState<FileView | null>(null)
   const [renaming, setRenaming] = useState<{ kind: "file" | "folder"; id: string; name: string } | null>(null)
   const [moving, setMoving] = useState<{ kind: "file" | "folder"; id: string; name: string; currentParent: string | null } | null>(null)
@@ -62,24 +64,22 @@ export function FilesManager({
   const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const refresh = useCallback((folderId: string | null = view.folderId) => {
-    return listFolderAction(folderId, scope).then((r) => {
-      if (r.ok) setView(r.data)
-      else setError(r.error)
-    })
-  }, [view.folderId, scope])
+  // Slug chain to the folder currently in view (empty at a drive root).
+  const crumbSlugs = view.breadcrumb.map((c) => c.slug)
+  const refresh = useCallback(() => router.refresh(), [router])
 
-  const navigate = (folderId: string | null) => {
+  const goRoot = () => { setError(null); startNav(() => router.push(filesPath(driveSlug))) }
+  const goCrumb = (i: number) => {
     setError(null)
-    startNav(async () => {
-      const r = await listFolderAction(folderId, scope)
-      if (r.ok) {
-        setView(r.data)
-        setDetails(null)
-        const qs = folderId ? `?folder=${folderId}` : ""
-        window.history.replaceState(null, "", `${basePath}${qs}`)
-      } else setError(r.error)
-    })
+    startNav(() => router.push(filesPath(driveSlug, view.breadcrumb.slice(0, i + 1).map((c) => c.slug))))
+  }
+  const goFolder = (f: FolderView) => {
+    setError(null)
+    startNav(() => router.push(filesPath(driveSlug, [...crumbSlugs, f.slug])))
+  }
+  const goFile = (f: FileView) => {
+    setError(null)
+    startNav(() => router.push(filesPath(driveSlug, [...crumbSlugs, f.slug])))
   }
 
   // --- uploads -------------------------------------------------------------
@@ -108,7 +108,7 @@ export function FilesManager({
     if (!list.length) return
     setError(null)
     await Promise.all(list.map(uploadOne))
-    await refresh()
+    refresh()
   }, [uploadOne, refresh])
 
   const onDrop = (e: React.DragEvent) => {
@@ -123,7 +123,7 @@ export function FilesManager({
     startNav(async () => {
       const r = await deleteFileAction(f.id)
       if (!r.ok) setError(r.error)
-      else { if (details?.id === f.id) setDetails(null); setNotice(`Deleted ${f.name}`); await refresh() }
+      else { if (details?.id === f.id) setDetails(null); setNotice(`Deleted ${f.name}`); refresh() }
     })
   }
   const doDeleteFolder = (f: FolderView) => {
@@ -131,7 +131,7 @@ export function FilesManager({
     startNav(async () => {
       const r = await deleteFolderAction(f.id)
       if (!r.ok) setError(r.error)
-      else { setNotice(`Deleted folder ${f.name}`); await refresh() }
+      else { setNotice(`Deleted folder ${f.name}`); refresh() }
     })
   }
 
@@ -143,14 +143,14 @@ export function FilesManager({
       {/* Breadcrumb + toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <nav className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-sm">
-          <button className="rounded px-1 py-1.5 text-zinc-300 hover:text-white disabled:opacity-50" disabled={busy} onClick={() => navigate(null)}>Root</button>
+          <button className="rounded px-1 py-1.5 text-zinc-300 hover:text-white disabled:opacity-50" disabled={busy} onClick={goRoot}>{driveSlug.toUpperCase()}</button>
           {view.breadcrumb.map((c, i) => (
             <span key={c.id} className="flex min-w-0 items-center gap-1 text-zinc-500">
               <ChevronRight size={14} className="shrink-0" />
               <button
                 className={`max-w-[12rem] truncate rounded px-1 py-1.5 hover:text-white disabled:opacity-50 ${i === view.breadcrumb.length - 1 ? "text-white" : "text-zinc-300"}`}
                 disabled={busy}
-                onClick={() => navigate(c.id)}
+                onClick={() => goCrumb(i)}
               >
                 {c.name}
               </button>
@@ -239,7 +239,7 @@ export function FilesManager({
               <ul className="divide-y divide-zinc-800 sm:hidden">
                 {view.folders.map((f) => (
                   <li key={f.id} className="flex items-center gap-2 px-3 py-2.5">
-                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => navigate(f.id)}>
+                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => goFolder(f)}>
                       <Folder size={20} className="shrink-0 text-amber-400/80" />
                       <span className="min-w-0">
                         <span className="block truncate">{f.name}</span>
@@ -257,7 +257,7 @@ export function FilesManager({
                 ))}
                 {view.files.map((f) => (
                   <li key={f.id} className="flex items-center gap-2 px-3 py-2.5">
-                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => setPreview(f)}>
+                    <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => goFile(f)}>
                       <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
                       <span className="min-w-0">
                         <span className="block truncate">{f.name}</span>
@@ -291,7 +291,7 @@ export function FilesManager({
                     {view.folders.map((f) => (
                       <tr key={f.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
                         <td className="px-4 py-3">
-                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => navigate(f.id)}>
+                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => goFolder(f)}>
                             <Folder size={18} className="shrink-0 text-amber-400/80" />
                             <span className="truncate">{f.name}</span>
                           </button>
@@ -313,7 +313,7 @@ export function FilesManager({
                     {view.files.map((f) => (
                       <tr key={f.id} className={`border-t border-zinc-800 hover:bg-zinc-900/40 ${details?.id === f.id ? "bg-zinc-900/60" : ""}`}>
                         <td className="px-4 py-3">
-                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => setPreview(f)}>
+                          <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => goFile(f)}>
                             <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
                             <span className="truncate">{f.name}</span>
                           </button>
@@ -346,7 +346,7 @@ export function FilesManager({
             file={details}
             canEdit={canEdit}
             onClose={() => setDetails(null)}
-            onSaved={(f) => { setDetails(f); setNotice("Details saved"); void refresh() }}
+            onSaved={(f) => { setDetails(f); setNotice("Details saved"); refresh() }}
             onError={setError}
             onRename={() => setRenaming({ kind: "file", id: details.id, name: details.name })}
             onMove={() => setMoving({ kind: "file", id: details.id, name: details.name, currentParent: details.folderId })}
@@ -354,15 +354,12 @@ export function FilesManager({
         )}
       </div>
 
-      {/* modals */}
-      {preview && <PreviewModal file={preview} onClose={() => setPreview(null)} />}
-
       {newFolder && (
         <NewFolderModal
           parentId={view.folderId}
           scope={scope}
           onClose={() => setNewFolder(false)}
-          onCreated={() => { setNewFolder(false); setNotice("Folder created"); void refresh() }}
+          onCreated={() => { setNewFolder(false); setNotice("Folder created"); refresh() }}
           onError={setError}
         />
       )}
@@ -371,7 +368,7 @@ export function FilesManager({
         <RenameModal
           item={renaming}
           onClose={() => setRenaming(null)}
-          onSaved={() => { setRenaming(null); setNotice("Renamed"); void refresh() }}
+          onSaved={() => { setRenaming(null); setNotice("Renamed"); refresh() }}
           onError={setError}
         />
       )}
@@ -390,7 +387,7 @@ export function FilesManager({
                 ? await updateFolderAction(item.id, { parentId: dest })
                 : await updateFileAction(item.id, { folderId: dest })
               if (!r.ok) setError(r.error)
-              else { setNotice(`Moved ${item.name}`); await refresh() }
+              else { setNotice(`Moved ${item.name}`); refresh() }
             })
           }}
         />

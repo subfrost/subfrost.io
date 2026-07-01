@@ -9,9 +9,10 @@ import * as files from "@/lib/files/manager"
 type Ok<T> = { ok: true } & T
 type Result<T = unknown> = Ok<T> | { ok: false; error: string }
 
-// Each drive has its own admin route; revalidate the one a mutation touched.
-function driveRevalidate(scope: LegalScope = "SUBFROST") {
-  revalidatePath(scope === "OYL" ? "/admin/oyl" : "/admin/files")
+// Both drives now live under one /admin/files tree; revalidate it after any
+// mutation. (The `scope` arg is kept for call-site compatibility.)
+function driveRevalidate(_scope: LegalScope = "SUBFROST") {
+  revalidatePath("/admin/files")
 }
 
 async function gate(write: boolean): Promise<{ ok: true; id: string } | { ok: false; error: string }> {

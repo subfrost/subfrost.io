@@ -387,6 +387,8 @@ model Article {
   tags               Tag[]                @relation("ArticleTags")
   translations       ArticleTranslation[]
   revisions          Revision[]
+  versions           ArticleVersion[]
+  comments           ArticleComment[]
   marketingSnapshots MarketingSnapshot[]
   marketingPushes    MarketingPush[]
 
@@ -437,6 +439,62 @@ model Revision {
   createdAt DateTime @default(now())
 
   @@index([articleId, createdAt])
+}
+
+// WS5 — lifecycle-aware version snapshot of an article translation. Unlike the
+// append-only Revision, versions carry a monotonic number (per article+locale)
+// and a lifecycle stage, and are the anchor target for review comments.
+model ArticleVersion {
+  id        String              @id @default(cuid())
+  article   Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  locale    Locale
+  number    Int // monotonic per (articleId, locale)
+  stage     ArticleVersionStage @default(DRAFT)
+  title     String
+  body      String // Markdown snapshot
+  // loose ref to the editing User (no FK, matching Revision-free models here)
+  editorId  String?
+  createdAt DateTime            @default(now())
+  comments  ArticleComment[]
+
+  @@unique([articleId, locale, number])
+  @@index([articleId, locale])
+}
+
+enum ArticleVersionStage {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+// WS5 — inline reviewer annotation anchored to a text range in a version, via a
+// W3C-TextQuoteSelector-style `anchor` (exact quote + prefix/suffix + block idx)
+// so it re-locates after edits. `status` ORPHANED when it can no longer anchor.
+model ArticleComment {
+  id        String               @id @default(cuid())
+  article   Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  version   ArticleVersion?      @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  versionId String?
+  locale    Locale
+  // loose ref to the commenting User; color is derived from this id client-side
+  authorId  String
+  anchor    Json // { quote, prefix, suffix, blockIndex, start, end }
+  body      String
+  status    ArticleCommentStatus @default(OPEN)
+  parentId  String? // thread parent (self-ref by id)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([articleId, versionId])
+  @@index([parentId])
+}
+
+enum ArticleCommentStatus {
+  OPEN
+  RESOLVED
+  ORPHANED
 }
 
 // Email subscribers for news/article updates.
@@ -517,6 +575,9 @@ model ApiKey {
 model Folder {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a parent. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   parentId    String?
   parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    Folder[] @relation("FolderTree")
@@ -531,6 +592,7 @@ model Folder {
 
   // unique name within a parent (root = parentId null)
   @@unique([parentId, name])
+  @@unique([parentId, slug])
   @@index([parentId])
   @@index([scope])
 }
@@ -538,6 +600,9 @@ model Folder {
 model DriveFile {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a folder. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   folderId    String?
   folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   // Which drive this file lives in (denormalized from its folder so root-level
@@ -551,12 +616,15 @@ model DriveFile {
   tags        String[] @default([])
   // graph links to the entities/people this file concerns (signatories, etc.)
   entityLinks EntityFileLink[]
+  // e-sign envelopes launched from this file (WS3 "Request Signatures").
+  envelopes   Envelope[] @relation("EnvelopeSource")
   createdById String?
   createdBy   User?    @relation("FileCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([folderId, name])
+  @@unique([folderId, slug])
   @@index([folderId])
   @@index([scope])
 }
@@ -998,6 +1066,19 @@ model Envelope {
   // "legal paperwork they've signed" section of the payee profile.
   payeeId              String?
   payee                Payee?    @relation(fields: [payeeId], references: [id], onDelete: SetNull)
+  // Optional source file this envelope was launched from ("Request Signatures"
+  // from the Files view), and the registry entity it concerns.
+  sourceFileId         String?
+  sourceFile           DriveFile?   @relation("EnvelopeSource", fields: [sourceFileId], references: [id], onDelete: SetNull)
+  entityId             String?
+  entity               LegalEntity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  // Versioning: all versions of one agreement share `agreementKey`; `version`
+  // increments; `parentEnvelopeId` points at the immediately-prior version.
+  agreementKey         String?
+  version              Int       @default(1)
+  parentEnvelopeId     String?
+  // Forensic capture of view/sign events (JA3/JA4/IP/headers).
+  signatureEvents      SignatureEvent[]
   createdBy            String // operator email
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -1006,6 +1087,35 @@ model Envelope {
   @@index([payeeId])
   @@index([externalDocumentId])
   @@index([createdAt])
+  @@index([agreementKey])
+  @@index([entityId])
+  @@index([sourceFileId])
+}
+
+// Per-recipient forensic record of a view/sign/decline, captured either at the
+// signing-proxy redirect (/sign/[token], which sees the tlsd-injected TLS
+// fingerprint headers) or from a Documenso webhook (no fingerprint there).
+model SignatureEvent {
+  id             String   @id @default(cuid())
+  envelope       Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId     String
+  recipientEmail String
+  kind           SignatureEventKind
+  ip             String?
+  userAgent      String?
+  ja3            String?
+  ja4            String?
+  headers        Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@index([envelopeId])
+  @@index([recipientEmail])
+}
+
+enum SignatureEventKind {
+  VIEWED
+  SIGNED
+  DECLINED
 }
 
 // ============================================
@@ -1286,6 +1396,11 @@ model LegalEntity {
   payeeId       String? // accounting Payee
   shareholderId String? // cap-table Shareholder
   notes         String?
+  // Free-form tags for the entity dossier (distinct from article Tag).
+  tags          String[]            @default([])
+  // Taproot / EVM addresses associated with this entity — used to join FUEL
+  // allocations and on-chain payments into the dossier.
+  addresses     String[]            @default([])
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
@@ -1293,6 +1408,7 @@ model LegalEntity {
   deserter   Deserter?
   obligation OylObligation?
   fileLinks  EntityFileLink[]
+  envelopes  Envelope[]
 
   @@index([category])
   @@index([scope])

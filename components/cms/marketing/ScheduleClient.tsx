@@ -108,9 +108,9 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
         </Tabs.List>
 
         <Tabs.Content value="calendar" className="pt-4">
-          <div className="flex gap-4 items-start">
+          <div className="flex flex-col gap-4 items-stretch lg:flex-row lg:items-start">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
                 <button aria-label="Previous month" onClick={() => shiftMonth(-1)}>‹</button>
                 <span className="text-sm font-medium">{MONTHS[cursor.month]} {cursor.year}</span>
                 <button aria-label="Next month" onClick={() => shiftMonth(1)}>›</button>
@@ -127,7 +127,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
                   const dayPushes = byDate.get(key) ?? []
                   const ghosts = ghostsByDate.get(key) ?? []
                   return (
-                    <div key={key} className={`min-h-[74px] rounded-md border p-1 text-xs ${inMonth ? "" : "opacity-50"} ${key === todayKey ? "border-blue-500" : ""}`}
+                    <div key={key} className={`min-h-[56px] sm:min-h-[74px] rounded-md border p-0.5 sm:p-1 text-[10px] sm:text-xs ${inMonth ? "" : "opacity-50"} ${key === todayKey ? "border-blue-500" : ""}`}
                          onClick={() => setEditing({ status: "SCHEDULED", channel: "ARTICLE", title: "", scheduledFor: d })}>
                       <div className="text-muted-foreground">{d.getUTCDate()}</div>
                       {dayPushes.map((p) => {
@@ -165,7 +165,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
               </div>
             </div>
 
-            <div className="w-40 shrink-0">
+            <div className="w-full lg:w-40 lg:shrink-0">
               <div className="text-xs font-medium text-muted-foreground mb-1">Backlog</div>
               <div className="rounded-md bg-muted p-2 space-y-1">
                 {backlog.length === 0 && <div className="text-xs text-muted-foreground">No ideas yet</div>}
@@ -247,8 +247,8 @@ function PushEditor({ initial, articleOptions, onClose }: { initial: Partial<Pus
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-background rounded-lg p-4 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3" onClick={onClose}>
+      <div className="bg-background rounded-lg p-4 w-full max-w-[420px] max-h-[90vh] overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-base font-medium">{initial.id ? "Edit push" : "New push"}</h2>
         <input className="w-full border rounded px-2 py-1 text-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <div className="flex gap-2">
