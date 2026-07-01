@@ -13,7 +13,20 @@ import prisma from "@/lib/prisma"
 
 const TTL = 900
 const num = (v: unknown): number => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
-const rangeQuery = (r: DateRange) => ({ range: { ts: esRangeBounds(r) } })
+/** Composição dos filtros de query do dashboard. ANALYTICS_INSTANCE unset =
+ *  comportamento de prod (só range, agrega todo subfrost-cdn-*). Setado =
+ *  filtra o produtor (instance); se for um produtor tlsd (≠ edge-middleware),
+ *  também filtra kind:page (paridade de métricas com a era-middleware). */
+export function analyticsFilters(r: DateRange): Array<Record<string, unknown>> {
+  const filters: Array<Record<string, unknown>> = [{ range: { ts: esRangeBounds(r) } }]
+  const instance = process.env.ANALYTICS_INSTANCE
+  if (instance) {
+    filters.push({ term: { instance } })
+    if (instance !== "edge-middleware") filters.push({ term: { kind: "page" } })
+  }
+  return filters
+}
+export const analyticsQuery = (r: DateRange) => ({ bool: { filter: analyticsFilters(r) } })
 
 // ---- visitors ----
 export function normalizeVisitors(res: any): VisitorsSeries {
@@ -32,7 +45,7 @@ export function normalizeVisitors(res: any): VisitorsSeries {
 async function fetchVisitors(r: DateRange): Promise<VisitorsSeries> {
   return cacheGetOrCompute(`analytics:es:visitors:${rangeKey(r)}`, async () =>
     normalizeVisitors(await esSearch({
-      size: 0, query: rangeQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
+      size: 0, query: analyticsQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
       aggs: { by_day: { date_histogram: { field: "ts", calendar_interval: "day" },
         aggs: { visitors: { cardinality: { field: "visitor_key" } }, sessions: { cardinality: { field: "session_key" } } } } },
     })), TTL)
@@ -50,7 +63,7 @@ async function articleTitles(slugs: string[]): Promise<Map<string, string | null
 async function fetchTopPages(r: DateRange): Promise<TopPageRow[]> {
   return cacheGetOrCompute(`analytics:es:toppages:${rangeKey(r)}`, async () => {
     const rows = normalizeTopPages(await esSearch({
-      size: 0, query: rangeQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
+      size: 0, query: analyticsQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
       aggs: { top_paths: { terms: { field: "path_src", size: 20 } } },
     }))
     const titles = await articleTitles(rows.map((x) => articleSlug(x.path)).filter((s): s is string => !!s))
@@ -79,7 +92,7 @@ export function normalizeTrafficSources(res: any): TrafficSourceRow[] {
 async function fetchTrafficSources(r: DateRange): Promise<TrafficSourceRow[]> {
   return cacheGetOrCompute(`analytics:es:traffic:${rangeKey(r)}`, async () =>
     normalizeTrafficSources(await esSearch({
-      size: 0, query: rangeQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
+      size: 0, query: analyticsQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
       aggs: { by_referer: { terms: { field: "referer_src", size: 50, missing: "__none__" },
         aggs: { sessions: { cardinality: { field: "session_key" } } } } },
     })), TTL)
@@ -92,7 +105,7 @@ async function collectArticleSessions(r: DateRange): Promise<SessionHit[][]> {
   let after: Record<string, unknown> | undefined
   for (let page = 0; page < MAX_SESSION_PAGES; page++) {
     const res: any = await esSearch({
-      size: 0, query: rangeQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
+      size: 0, query: analyticsQuery(r), runtime_mappings: RUNTIME_MAPPINGS,
       aggs: { sess: { composite: { size: 100, sources: [{ sk: { terms: { field: "session_key" } } }], ...(after ? { after } : {}) },
         aggs: { hits: { top_hits: { size: 50, _source: ["path", "ts"], sort: [{ ts: "asc" }] } } } } },
     })
@@ -112,7 +125,7 @@ async function fetchArticleEngagement(r: DateRange): Promise<ArticleEngagementRo
   return cacheGetOrCompute(`analytics:es:articles:${rangeKey(r)}`, async () => {
     const pvRes = await esSearch({
       size: 0, runtime_mappings: RUNTIME_MAPPINGS,
-      query: { bool: { filter: [rangeQuery(r), { prefix: { path_src: "/articles/" } }] } },
+      query: { bool: { filter: [...analyticsFilters(r), { prefix: { path_src: "/articles/" } }] } },
       aggs: { arts: { terms: { field: "path_src", size: 50 } } },
     })
     const pv = new Map<string, { path: string; pageViews: number }>()

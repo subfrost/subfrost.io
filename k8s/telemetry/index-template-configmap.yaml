@@ -64,6 +64,7 @@ data:
             "latency_ms":       { "type": "integer" },
             "service":          { "type": "keyword", "ignore_above": 64 },
             "instance":         { "type": "keyword", "ignore_above": 128 },
+            "kind":             { "type": "keyword", "ignore_above": 16 },
             "headers_truncated":{ "type": "boolean" },
             "headers":          { "type": "object", "dynamic": true }
           }
