@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Markdown } from "@/lib/cms/markdown"
-import { saveArticle, deleteArticle } from "@/actions/cms/articles"
+import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
 import { Button } from "@/components/ui/button"
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Heading3,
   ImagePlus,
   Italic,
+  Languages,
   List,
   ListOrdered,
   PanelRightClose,
@@ -95,6 +96,8 @@ export function AdminEditor({
   const [primaryLocale, setPrimaryLocale] = useState<Locale>(initial.primaryLocale)
 
   const cur = content[activeLocale]
+  const otherLocale: Locale = activeLocale === "en" ? "zh" : "en"
+  const canTranslate = Boolean(initial.id) && cur.title.trim().length > 0
   const wordCount = cur.body.trim() ? cur.body.trim().split(/\s+/).length : 0
   const hasUnsavedShape = initial.status !== "PUBLISHED" ? STATUS_COPY[initial.status] : "Published"
   const publicHref = slug ? `/articles/${slug}` : null
@@ -117,29 +120,64 @@ export function AdminEditor({
     setContent((c) => ({ ...c, [activeLocale]: { ...c[activeLocale], ...patch } }))
   }
 
+  function editorInput(status: Status) {
+    return {
+      id: initial.id,
+      slug: slug || undefined,
+      coverImage,
+      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+      coAuthorIds,
+      featured,
+      primaryLocale,
+      status,
+      translations: {
+        en: content.en.title.trim() ? content.en : undefined,
+        zh: content.zh.title.trim() ? content.zh : undefined,
+      },
+    }
+  }
+
   function submit(status: Status) {
     setError(null)
     startTransition(async () => {
-      const res = await saveArticle({
-        id: initial.id,
-        slug: slug || undefined,
-        coverImage,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-        coAuthorIds,
-        featured,
-        primaryLocale,
-        status,
-        translations: {
-          en: content.en.title.trim() ? content.en : undefined,
-          zh: content.zh.title.trim() ? content.zh : undefined,
-        },
-      })
+      const res = await saveArticle(editorInput(status))
       if (res.ok) {
         router.push("/admin/articles")
         router.refresh()
       } else {
         setError(res.error)
       }
+    })
+  }
+
+  // Human-triggered AI translation: persist the source locale so the newest text
+  // is what gets translated, then run the existing Claude-backed action and drop
+  // the result into the other language's tab (still a draft until you save).
+  function translateActive(to: Locale) {
+    const from = activeLocale
+    if (!initial.id || from === to) return
+    setError(null)
+    startTransition(async () => {
+      const saved = await saveArticle(editorInput(initial.status))
+      if (!saved.ok) {
+        setError(saved.error)
+        return
+      }
+      const res = await translateArticleAction(saved.id, from, to)
+      if (!res.ok) {
+        setError(res.unavailable ? "Translation isn't configured yet (ANTHROPIC_API_KEY)." : res.error)
+        return
+      }
+      setContent((c) => ({
+        ...c,
+        [to]: {
+          title: res.translation.title,
+          excerpt: res.translation.excerpt,
+          body: res.translation.body,
+          sources: res.translation.sources,
+        },
+      }))
+      setActiveLocale(to)
     })
   }
 
@@ -288,6 +326,18 @@ export function AdminEditor({
                   {content[loc].title.trim() && <span className="h-1.5 w-1.5 rounded-full bg-[#1ea463]" />}
                 </button>
               ))}
+              {canTranslate && (
+                <button
+                  type="button"
+                  onClick={() => translateActive(otherLocale)}
+                  disabled={pending}
+                  title={`Translate the ${LOCALE_LABEL[activeLocale]} draft into ${LOCALE_LABEL[otherLocale]} with AI`}
+                  className="ml-auto inline-flex h-8 items-center gap-2 rounded-[6px] border border-[color:var(--ed-hair)] px-3 text-sm text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)] disabled:opacity-45"
+                >
+                  <Languages size={14} />
+                  {pending ? "Translating..." : `Translate to ${LOCALE_LABEL[otherLocale]}`}
+                </button>
+              )}
             </div>
 
             <label className="sr-only" htmlFor="post-title">Article title</label>
