@@ -4,7 +4,93 @@ Design system para capas de artigo 24:11 (1852×849) do subfrost.io. Fonte da ve
 `app/brand/page.tsx` + `public/brand/subfrost/`. Fonte da verdade da anatomia: os templates em
 `templates/` deste kit.
 
-## Como usar (fluxo completo)
+O kit tem **dois modos**:
+
+- **Modo foto (principal)** — capa fotográfica de gelo (o estilo das capas atuais) + overlay
+  canônico por cima. A foto vem de gerador externo via prompts calibrados. Ver "Modo foto".
+- **Modo vetorial (alternativo)** — capa 100% SVG a partir dos 4 templates vetoriais, quando
+  não houver foto ou o artigo pedir o look geométrico. Ver "Como usar — modo vetorial".
+
+## Modo foto (principal)
+
+Estilo-alvo: macro fotográfico de gelo glacial — azul translúcido profundo, texturas
+rachadas, iluminação fria direcional, sombras quase-pretas (referência: capas atuais em
+`public/articles/`). Fluxo:
+
+1. **Gere a foto** num gerador externo com os prompts abaixo (Gemini/Nano Banana ou Grok).
+2. **Aceite a foto** pelos critérios: paleta fria azul/ciano, sombras quase-pretas; uma zona
+   escura contínua (≥1/3 do quadro, de preferência à esquerda) pro bloco de texto; sem
+   pessoas, animais, texto, logos ou objetos; textura nítida; o mais largo possível
+   (21:9 > 16:9) na maior resolução oferecida.
+3. **Componha o overlay canônico** (`templates/photo-overlay.svg`) por cima com a receita de
+   composição abaixo → PNG 1852×849 → upload no `/admin`. Arquive o SVG de composição em
+   `covers/<slug>.svg` e a foto original como `covers/<slug>-photo.<ext>`.
+
+### Prompt de foto — Gemini / Nano Banana (preferido)
+
+Anexe uma capa existente como referência de estilo (aumenta a consistência; sem anexo o
+prompt também funciona) e cole:
+
+> Generate a photorealistic image in the exact photographic style of the attached reference:
+> an extreme macro photograph of glacial ice, deep translucent blue ice with intricate
+> cracked textures and facets, dramatic directional cold lighting, moody near-black shadows,
+> cold cyan-blue color grade. Composition: keep the left third of the frame in deep shadow
+> (almost black) as clean negative space; the detailed ice fills the center and right. No
+> people, no animals, no text, no logos, no man-made objects. Widescreen 21:9, highest
+> resolution. Subject: [ice cave interior | field of deep fissures | underside of an iceberg
+> meeting dark water | wall of layered blue ice | macro of ice crystals].
+
+### Prompt de foto — Grok
+
+> Photorealistic extreme macro photograph of glacial ice: deep translucent blue ice,
+> intricate cracked textures and facets, dramatic cold directional light, near-black moody
+> shadows, cold cyan-blue color grade, left third of the frame in deep clean shadow for text
+> overlay, no people, no text, no logos, no man-made objects, cinematic widescreen.
+
+Gere 2–4 variações e escolha pela zona escura mais limpa atrás do texto.
+
+### Receita de composição (foto + overlay → PNG publicado)
+
+No scratchpad (NÃO commitar): `npm i @resvg/resvg-js sharp`, depois
+`node compose.mjs <foto> <overlay.svg> <out.png>`:
+
+```js
+import { Resvg } from '@resvg/resvg-js'
+import sharp from 'sharp'
+import { readFileSync, writeFileSync } from 'node:fs'
+
+const [,, photo, overlaySvg, outPng] = process.argv
+const FONTS = '<raiz-do-repo>/node_modules/geist/dist/fonts'
+
+// 1) foto -> cover 1852x849 (troque `position` p/ 'centre'/'right' se o enquadramento sair errado)
+const base = await sharp(photo).resize(1852, 849, { fit: 'cover', position: 'attention' })
+  .png().toBuffer()
+
+// 2) SVG efemero de composicao: foto embutida + overlay canonico por cima
+const overlay = readFileSync(overlaySvg, 'utf8').replace(/<svg[^>]*>/, '').replace('</svg>', '')
+const svg = `<svg width="1852" height="849" viewBox="0 0 1852 849"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <image x="0" y="0" width="1852" height="849" xlink:href="data:image/png;base64,${base.toString('base64')}"/>
+  ${overlay}
+</svg>`
+
+// 3) rasteriza com Geist real
+const r = new Resvg(svg, { fitTo: { mode: 'width', value: 1852 }, font: {
+  fontFiles: [
+    `${FONTS}/geist-sans/Geist-Bold.ttf`, `${FONTS}/geist-sans/Geist-SemiBold.ttf`,
+    `${FONTS}/geist-sans/Geist-Medium.ttf`, `${FONTS}/geist-sans/Geist-Regular.ttf`,
+    `${FONTS}/geist-mono/GeistMono-SemiBold.ttf`, `${FONTS}/geist-mono/GeistMono-Bold.ttf`,
+  ], loadSystemFonts: false, defaultFontFamily: 'Geist' } })
+writeFileSync(outPng, r.render().asPng())
+```
+
+O `photo-overlay.svg` traz um **véu de legibilidade** (gradiente de opacidade sobre a coluna
+do texto) num padrão suave (stops 0.55) que preserva a textura da foto. Ajuste pela foto:
+zona escura já limpa → reduza/remova o `<rect>` do véu; foto ocupada atrás do texto → suba
+até ~0.97 (apaga o fundo, como no banner do incidente de 2026-07-02). Regra prática: o
+título precisa de contraste AA — na dúvida, o véu fica.
+
+## Como usar — modo vetorial (alternativo)
 
 1. Escolha o template pelo tipo de artigo (tabela abaixo).
 2. Copie o SVG do template e substitua os textos (regras de escala abaixo).
@@ -24,6 +110,7 @@ Design system para capas de artigo 24:11 (1852×849) do subfrost.io. Fonte da ve
 | `stat-hero.svg` | Artigo data-heavy; um número resume a história. | "Alkanes by the Numbers" |
 | `concept.svg` | Artigo com um conceito visualizável. | "Why BIP-110 Doesn't Stop Alkanes" |
 | `quote.svg` | Artigo opinativo/visão; uma frase carrega. | manifesto |
+| `photo-overlay.svg` | (Modo foto) overlay canônico transparente pra compor sobre foto. | "Why BIP-110 Doesn't Stop Alkanes" |
 
 ## Brand sheet (condensado)
 
@@ -98,10 +185,12 @@ do npm traz TTFs (além de woff2) — use os TTFs. A lista de `fontFiles` precis
 ## Prompt pronto (cole numa sessão nova do Claude)
 
 > Você vai criar a capa 24:11 de um artigo do subfrost.io usando o banner-kit do repo.
-> Leia `docs/brand/banner-kit/BANNER-KIT.md` e siga o fluxo "Como usar". Inputs:
+> Leia `docs/brand/banner-kit/BANNER-KIT.md`. Modo foto (principal) se eu te der uma foto;
+> senão, modo vetorial. Inputs:
 > - **Título**: <título exato do artigo>
 > - **Número do artigo**: <N>
-> - **Tipo**: <default | data-heavy | conceito | opinião> → escolha o template pela tabela.
+> - **Foto** (modo foto): <path da foto gerada no Gemini/Grok>
+> - **Tipo** (modo vetorial): <default | data-heavy | conceito | opinião> → template pela tabela.
 > - **Conceito da arte** (só p/ concept): <uma frase, ex. "rachaduras que param na borda">
 > - **Stat** (só p/ stat-hero): <número + label>
 >
@@ -119,5 +208,8 @@ do npm traz TTFs (além de woff2) — use os TTFs. A lista de `fontFiles` precis
 - [ ] Nenhum stroke/faceta sob o texto; coluna de texto respira.
 - [ ] Contraste título/fundo ≥ WCAG AA (branco sobre quase-preto passa folgado).
 - [ ] SVG self-contained: sem `<image>`, `<script>`, `<foreignObject>`, refs externas.
+  (Exceção documentada: o SVG **efêmero de composição** do modo foto embute a foto via
+  `<image>` base64 — ele nunca é commitado como template e só existe pra rasterizar.)
+- [ ] Modo foto: foto atende os critérios de aceitação; véu ajustado pro contraste AA.
 - [ ] Render final: PNG 1852×849, tipografia Geist real (não fallback), conferido visualmente.
-- [ ] SVG-fonte salvo em `covers/<slug>.svg`.
+- [ ] SVG-fonte salvo em `covers/<slug>.svg` (+ foto original em `covers/<slug>-photo.<ext>` no modo foto).

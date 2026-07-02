@@ -24,6 +24,7 @@ banners, e com tipografia fiel em todos os contextos onde a capa é consumida (s
 | 3 | Estética de fundo | **100% vetorial** (rachaduras/facetas de gelo em paths; evolui o look fotográfico das capas 1..9) |
 | 4 | Estrutura | **Kit documental puro** (sem script gerador mantido, sem página no site, sem Figma) |
 | 5 | Formato de publicação | **SVG é o formato-fonte, PNG 1852×849 é o publicado** (ver §5.4 — gotcha das fontes) |
+| 6 | **Revisão pós-galeria (2026-07-02)**: fonte da arte | **Modo FOTO é o caminho principal** — o Vitor quer capas no estilo fotográfico das capas atuais sem depender de terceiros pra foto. A foto é gerada por **prompt-kit calibrado pra geradores externos** (Gemini/Nano Banana e Grok, que o Vitor já assina) e o kit compõe o overlay canônico por cima (§5.6). O vetorial (decisão #3) vira **modo alternativo**, mantido no kit. |
 
 ## 3. Estado atual (confirmado por recon)
 
@@ -164,6 +165,31 @@ Cinco blocos:
 5. **Checklist de QA** (defesa contra deriva) — só cores da paleta; gradiente só de luminância;
    máx 3 linhas de título; margens respeitadas; logotype/floco intocados nas posições canônicas;
    contraste do título ≥ WCAG AA sobre o fundo; nenhuma referência externa no SVG.
+
+### 5.6. Modo foto (caminho principal — revisão da decisão #6)
+
+O estilo-alvo é o das capas fotográficas atuais: macro de gelo glacial azul-frio, sombras
+quase-pretas, iluminação dramática. Três peças:
+
+1. **Fonte da foto — prompt-kit externo**: seção no `BANNER-KIT.md` com prompts calibrados
+   (EN) pra **Gemini/Nano Banana** (incluindo o truque de anexar uma capa existente como
+   referência de estilo) e **Grok**, mais critérios de aceitação da foto (paleta fria,
+   zona escura pra texto, sem pessoas/texto/logos, o mais largo possível ≥16:9, alta
+   resolução). O Vitor gera e traz o arquivo.
+2. **Overlay canônico**: `templates/photo-overlay.svg` — template vetorial SEM fundo
+   (transparente): véu de legibilidade opcional (gradiente de opacidade, remove/reduz se a
+   foto já tem zona escura), logotype, eyebrow, título e floco nas posições canônicas de
+   §5.2.
+3. **Receita de composição** (documentada, não commitada): sharp faz `cover` da foto pra
+   1852×849 → embute como base64 num SVG efêmero de composição (foto + overlay) → resvg
+   rasteriza com Geist real → PNG publicado. Mesma cadeia validada no banner do incidente
+   de 2026-07-02. O SVG-fonte arquivado em `covers/` é o de composição (referencia a foto
+   por path local + overlay), e a foto original é guardada junto (`covers/<slug>-photo.*`)
+   quando o Vitor quiser reedição.
+
+A regra R4 (100% vetorial, sem raster) segue valendo **pros templates do kit** — o
+`photo-overlay.svg` é vetorial puro; a foto só entra no SVG efêmero de composição, que não
+é commitado como template.
 
 ## 6. Validação / aceite
 
