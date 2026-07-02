@@ -49,6 +49,12 @@ prompt também funciona) e cole:
 
 Gere 2–4 variações e escolha pela zona escura mais limpa atrás do texto.
 
+⚠️ **Marca d'água do Gemini**: as saídas trazem um sparkle no canto inferior direito e são
+~2.35:1 (mais largas que 24:11). Na composição, recorte **ancorado à esquerda**
+(`position: 'left'`) — preserva a zona escura do texto e descarta a faixa direita com a
+marca. Se sobrar resquício, cubra com patch escuro no SVG de composição. Baixe sempre a
+foto na **maior resolução** que o gerador oferecer (evita upscale na composição).
+
 ### Receita de composição (foto + overlay → PNG publicado)
 
 No scratchpad (NÃO commitar): `npm i @resvg/resvg-js sharp`, depois
@@ -62,8 +68,9 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const [,, photo, overlaySvg, outPng] = process.argv
 const FONTS = '<raiz-do-repo>/node_modules/geist/dist/fonts'
 
-// 1) foto -> cover 1852x849 (troque `position` p/ 'centre'/'right' se o enquadramento sair errado)
-const base = await sharp(photo).resize(1852, 849, { fit: 'cover', position: 'attention' })
+// 1) foto -> cover 1852x849. Fotos do Gemini: use 'left' (mantem a zona escura do texto e
+//    corta a marca d'agua da borda direita); troque p/ 'centre'/'attention' conforme a foto.
+const base = await sharp(photo).resize(1852, 849, { fit: 'cover', position: 'left' })
   .png().toBuffer()
 
 // 2) SVG efemero de composicao: foto embutida + overlay canonico por cima
