@@ -35,18 +35,22 @@ export async function publishPage(opts: {
   message: string
   title: string
   urgent: boolean
+  /** ACK button target — tapping it POSTs here from the notification. */
+  ackUrl?: string
 }): Promise<{ id: string }> {
+  const headers: Record<string, string> = {
+    "X-Title": opts.title,
+    "X-Priority": opts.urgent ? "5" : "3",
+    "X-Tags": opts.urgent ? "rotating_light" : "information_source",
+  }
+  if (opts.ackUrl) {
+    // `clear=true` dismisses the notification on tap; GET/POST both accepted
+    // by the ack route so the link also works from a browser.
+    headers["X-Actions"] = `http, ACK, ${opts.ackUrl}, method=POST, clear=true`
+  }
   const res = await ntfyFetch(
     `/${opts.topic}`,
-    {
-      method: "POST",
-      headers: {
-        "X-Title": opts.title,
-        "X-Priority": opts.urgent ? "5" : "3",
-        "X-Tags": opts.urgent ? "rotating_light" : "information_source",
-      },
-      body: opts.message,
-    },
+    { method: "POST", headers, body: opts.message },
     NTFY_TOKEN,
   )
   if (!res.ok) throw new Error(`ntfy publish failed (${res.status}): ${await res.text().catch(() => "")}`)

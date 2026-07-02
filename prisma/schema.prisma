@@ -1715,3 +1715,37 @@ model RecurringPush {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }
+
+// ============================================
+// TEAM PAGER (ntfy at page.subfrost.io)
+// ============================================
+
+// One row per page sent from /admin/pager (or a future bridge). Urgent pages
+// fan out to each member's personal topic with a per-member ACK action; the
+// repeat endpoint re-sends until acked or capped.
+model PagerPage {
+  id        String        @id @default(cuid())
+  message   String
+  urgent    Boolean       @default(true)
+  sentBy    String // CMS user email/name, for attribution
+  createdAt DateTime      @default(now())
+  targets   PagerTarget[]
+
+  @@index([createdAt])
+}
+
+// One row per (page, member): carries the unguessable ACK token embedded in
+// the notification's ACK button, and the ack/repeat state.
+model PagerTarget {
+  id          String    @id @default(cuid())
+  page        PagerPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId      String
+  memberId    String // ntfy username (page-<memberId>)
+  ackToken    String    @unique @default(cuid())
+  ackedAt     DateTime?
+  repeatCount Int       @default(0)
+  lastSentAt  DateTime  @default(now())
+
+  @@index([pageId])
+  @@index([memberId, ackedAt])
+}
