@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og"
+import { headers } from "next/headers"
 import { getPublishedArticle } from "@/lib/cms/articles"
+import { shouldUseArticlePreviewFallback } from "@/lib/seo"
 
 export const alt = "SUBFROST Article"
 export const size = { width: 1200, height: 630 }
@@ -7,7 +9,10 @@ export const contentType = "image/png"
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const a = await getPublishedArticle(slug, "en", { previewFallback: true }).catch(() => null)
+  const requestHeaders = await headers()
+  const a = await getPublishedArticle(slug, "en", {
+    previewFallback: shouldUseArticlePreviewFallback(requestHeaders.get("host")),
+  }).catch(() => null)
   const cover = a?.coverImage
   return new ImageResponse(
     (
