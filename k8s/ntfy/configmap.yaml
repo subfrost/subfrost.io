@@ -20,6 +20,9 @@ data:
     auth-default-access: "deny-all"
     enable-login: true
     enable-signup: false
+    # No interactive surface: humans use subfrost.io/admin/pager (behind the
+    # CMS session auth); devices speak the JSON API with read-only tokens.
+    web-root: "disable"
     # Required for instant delivery on iOS devices: the upstream ntfy.sh
     # relays a (content-free) poll request through APNS.
     upstream-base-url: "https://ntfy.sh"
