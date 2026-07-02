@@ -74,10 +74,11 @@ Troque só o trecho entre colchetes; o resto garante o brand:
 
 Gere 2–4 variações e escolha pela zona escura mais limpa atrás do texto.
 
-⚠️ **Marca d'água do Gemini**: as saídas trazem um sparkle no canto inferior direito e são
-~2.35:1 (mais largas que 24:11). Na composição, recorte **ancorado à esquerda**
-(`position: 'left'`) — preserva a zona escura do texto e descarta a faixa direita com a
-marca. Se sobrar resquício, cubra com patch escuro no SVG de composição. Baixe sempre a
+⚠️ **Marca d'água do Gemini**: as saídas trazem um sparkle no canto inferior direito —
+que pode ficar até ~10% pra dentro da borda — e são ~2.35:1 (mais largas que 24:11). A
+receita de composição corta **12% da direita** antes do cover ancorado à esquerda: mata a
+marca e preserva a zona escura do texto (validado na capa do artigo #4). Se ainda sobrar
+resquício em alguma foto, cubra com patch escuro no SVG de composição. Baixe sempre a
 foto na **maior resolução** que o gerador oferecer (evita upscale na composição).
 
 ### Receita de composição (foto + overlay → PNG publicado)
@@ -93,9 +94,12 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const [,, photo, overlaySvg, outPng] = process.argv
 const FONTS = '<raiz-do-repo>/node_modules/geist/dist/fonts'
 
-// 1) foto -> cover 1852x849. Fotos do Gemini: use 'left' (mantem a zona escura do texto e
-//    corta a marca d'agua da borda direita); troque p/ 'centre'/'attention' conforme a foto.
-const base = await sharp(photo).resize(1852, 849, { fit: 'cover', position: 'left' })
+// 1) foto -> trim 12% da direita (mata a marca d'agua do Gemini, que pode ficar ate ~10%
+//    pra dentro da borda) -> cover 1852x849 ancorado a esquerda (zona escura do texto).
+const meta = await sharp(photo).metadata()
+const base = await sharp(photo)
+  .extract({ left: 0, top: 0, width: Math.round(meta.width * 0.88), height: meta.height })
+  .resize(1852, 849, { fit: 'cover', position: 'left' })
   .png().toBuffer()
 
 // 2) SVG efemero de composicao: foto embutida + overlay canonico por cima
@@ -168,8 +172,17 @@ título precisa de contraste AA — na dúvida, o véu fica.
   2–3 linhas → 108px, avanço de baseline 124px. MÁXIMO 3 linhas, quebradas por sentido.
   (No stat-hero o título é subordinado: 84px, avanço 96px, máx 2 linhas. No quote, a frase
   usa Geist 600 76px, centralizada, 2 linhas.)
-- **Logomark** (floco): `<g transform="translate(1612,641) scale(0.381)">` + path `#A7C6DC`
-  do logotype_light.svg. NÃO mover.
+- **Logomark** (floco): 8 losangos `#A7C6DC` rotacionados de 45°, centro em (1673,701) —
+  copiar o bloco de qualquer template. NÃO mover.
+  ```xml
+  <g transform="translate(1673,701)">
+    <polygon points="0,-61 12.5,-33.5 0,-11 -12.5,-33.5" fill="#A7C6DC"/>
+    <!-- + 7 cópias com transform="rotate(45)" ... rotate(315) -->
+  </g>
+  ```
+  ⚠️ O floco das capas é ESTE (reconstruído pixel-perfect da capa do BIP-110). O
+  `logomark.svg`/favicon do brand folder tem um desenho DIFERENTE (pétalas curvas
+  conectadas) — não usar nas capas.
 - **Fundo**: gradiente vertical de luminância `#0B0F14 → #04060A`.
 - **Textura de gelo**: strokes `#A7C6DC` opacity 0.06–0.18 / width 1–3; facetas (polygons)
   opacity 0.03–0.06. Densidade à direita; a coluna de texto respira (nenhum stroke sob texto).
