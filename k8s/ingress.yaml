@@ -19,6 +19,18 @@ spec:
   domains:
     - subfrost.io
 ---
+# Separate cert for the pager host so adding it never touches (= recreates)
+# the main subfrost.io cert. Provisions once page.subfrost.io's A record
+# points at subfrost-io-ip (Cloudflare, DNS-only/gray cloud).
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: page-subfrost-io-cert
+  namespace: subfrost
+spec:
+  domains:
+    - page.subfrost.io
+---
 apiVersion: networking.gke.io/v1beta1
 kind: FrontendConfig
 metadata:
@@ -36,7 +48,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "subfrost-io-ip" # gcloud compute addresses create ... --global
-    networking.gke.io/managed-certificates: "subfrost-io-cert"
+    networking.gke.io/managed-certificates: "subfrost-io-cert,page-subfrost-io-cert"
     networking.gke.io/v1beta1.FrontendConfig: "subfrost-io-fc"
 spec:
   rules:
@@ -48,5 +60,18 @@ spec:
             backend:
               service:
                 name: subfrost-io
+                port:
+                  number: 80
+    # Team pager backbone (k8s/ntfy). ntfy must live at a host root — the
+    # phone apps and hardware pagers can't subscribe under a path prefix; the
+    # human console is /admin/pager on the main host.
+    - host: page.subfrost.io
+      http:
+        paths:
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ntfy
                 port:
                   number: 80

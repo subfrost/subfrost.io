@@ -211,6 +211,17 @@ spec:
                   name: anthropic-api-key
                   key: ANTHROPIC_API_KEY
                   optional: true
+            # Team pager (ntfy in-cluster; console at /admin/pager). The publish
+            # token lives in a STANDALONE Secret `ntfy-publish-token` (created
+            # out-of-band after minting it on the ntfy server — see
+            # k8s/ntfy/README.md), same pattern as anthropic-api-key.
+            # optional:true — absent => /admin/pager shows "not configured".
+            - name: NTFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_TOKEN
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM

@@ -10,6 +10,7 @@ resources:
   - service.yaml
   - ingress.yaml
   - pdb.yaml
+  - ntfy
 
 # Pin the image to an immutable SHORT_SHA tag (the Cloud Build trigger produces
 # one per commit). Bump this per release — Flux rolls out when the tag changes.
