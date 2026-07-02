@@ -9,6 +9,8 @@ Design system para capas de artigo 24:11 (1852×849) do subfrost.io. Fonte da ve
 1. Escolha o template pelo tipo de artigo (tabela abaixo).
 2. Copie o SVG do template e substitua os textos (regras de escala abaixo).
 3. Gere/adapte a arte variável (só no concept; nos outros, ajuste fino da textura é opcional).
+   A arte do concept segue a linguagem do kit: geométrica, linhas finas (1.5–3px), facetas,
+   monocromática Glacial/Frost sobre o fundo escuro — sem preenchimentos sólidos grandes.
 4. Salve o SVG-fonte em `covers/<slug-do-artigo>.svg` (commit via PR).
 5. Rasterize para PNG 1852×849 (receita abaixo) e suba o PNG no editor `/admin`.
    O pipeline do site otimiza (AVIF/WebP) e a OG automática reenquadra pro X — full-bleed,
@@ -110,7 +112,7 @@ do npm traz TTFs (além de woff2) — use os TTFs. A lista de `fontFiles` precis
 
 ## QA checklist (rodar antes de entregar qualquer banner)
 
-- [ ] Só cores da paleta (Carbon/derivados, Frost, Glacial, `#F4F7FA`; Flare no máx 1 elemento).
+- [ ] Só cores da paleta (Carbon/derivados, Frost, Glacial, `#F4F7FA`; Flare no máx 1 elemento). Branco do logotype é canônico (ok).
 - [ ] Gradientes só de luminância; zero neon/blob/bokeh.
 - [ ] Máx 3 linhas de título; quebras por sentido; nada de hífen.
 - [ ] Logotype e floco nas posições canônicas, intocados.

@@ -135,8 +135,9 @@ Todos herdam a anatomia comum; o que muda é o protagonista.
 
 Resolve o gotcha das fontes (§3) sem tocar no site:
 
-1. Claude gera/edita o **SVG-fonte** (editável, com `<text>`, font stack
-   `Geist, 'Helvetica Neue', Arial, sans-serif`) e salva em `covers/<slug>.svg`.
+1. Claude gera/edita o **SVG-fonte** (editável, com `<text>`, `font-family="Geist"` bare — sem
+   fallback stack, já que `loadSystemFonts:false` na receita torna fallbacks peso morto e
+   mascarariam falha de fonte em preview) e salva em `covers/<slug>.svg`.
 2. **Receita de rasterização** documentada no `BANNER-KIT.md`: ~10 linhas de Node com
    `@resvg/resvg-js`, rodadas **ad-hoc no scratchpad** (não é script mantido no repo), com
    `fontFiles` apontando pras Geist de `node_modules/geist/dist/fonts/`. Exporta **PNG

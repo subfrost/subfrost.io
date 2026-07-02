@@ -38,8 +38,8 @@
     <polygon points="1390,170 1607,295 1607,545 1390,670 1173,545 1173,295" stroke-width="3" opacity="0.55"/>
     <!-- facetas internas -->
     <path d="M1390 170 L1390 420 L1173 295 M1390 420 L1607 295 M1390 420 L1607 545 M1390 420 L1390 670 M1390 420 L1173 545" stroke-width="1.6" opacity="0.28"/>
-    <!-- preenchimentos de faceta -->
   </g>
+  <!-- preenchimentos de faceta -->
   <g fill="#A7C6DC" stroke="none">
     <polygon points="1390,170 1607,295 1390,420" opacity="0.06"/>
     <polygon points="1390,420 1607,545 1390,670" opacity="0.045"/>

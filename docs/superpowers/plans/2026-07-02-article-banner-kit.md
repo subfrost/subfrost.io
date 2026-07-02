@@ -23,7 +23,7 @@
   - Fundo: `<rect>` full-canvas com gradiente vertical `#0B0F14` (topo) → `#04060A` (base).
   - Texturas de gelo: strokes/facetas `#A7C6DC`, strokes opacity 0.06–0.18 width 1–3, facetas (polygons) opacity 0.03–0.06. Densidade à direita, respiro à esquerda (zona de texto livre de textura).
 - Harness de render (criado na Task 1, reusado por todas): `$SCRATCH/banner-kit/render.mjs`, onde `$SCRATCH = C:\Users\vdto8\AppData\Local\Temp\claude\C--Alkanes-Geral-Dev\a13c6d4b-469b-4425-82da-2ef75a761330\scratchpad` (em git-bash: `/c/Users/vdto8/AppData/Local/Temp/claude/C--Alkanes-Geral-Dev/a13c6d4b-469b-4425-82da-2ef75a761330/scratchpad`).
-- Checagem estática (todas as tasks de template): `grep -nE '<image|<script|<foreignObject|href="http|@import|url\(' <arquivo>` deve retornar **vazio** (exit 1).
+- Checagem estática (todas as tasks de template): a ÚNICA ocorrência permitida do grep `grep -nE '<image|<script|<foreignObject|href="http|@import|url\(' <arquivo>` é `fill="url(#bg)"` (gradiente local); qualquer outra = reprovado.
 - Números de artigo/estatísticas nos exemplos são ilustrativos; títulos usam artigos reais quando existem.
 
 ## File Structure
