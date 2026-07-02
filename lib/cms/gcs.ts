@@ -1,4 +1,5 @@
 import { Storage } from "@google-cloud/storage"
+import type { RasterSet } from "@/lib/cms/image-process"
 
 // Uploads (avatars, cover images) go to a public GCS bucket. On Cloud Run the
 // default service account is used via ADC; locally, GOOGLE_APPLICATION_CREDENTIALS
@@ -12,13 +13,21 @@ function storage() {
   return _storage
 }
 
-const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"])
+const ALLOWED = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+  "image/svg+xml",
+])
 const EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "image/gif": "gif",
   "image/avif": "avif",
+  "image/svg+xml": "svg",
 }
 
 export interface UploadResult {
@@ -107,4 +116,51 @@ export async function downloadObject(objectName: string): Promise<Buffer> {
 export async function objectExists(objectName: string): Promise<boolean> {
   const [exists] = await storage().bucket(BUCKET).file(objectName).exists()
   return exists
+}
+
+// --- Optimized image sets (avif/webp/fallback) + SVG -----------------------
+
+const PUBLIC = (name: string) => `https://storage.googleapis.com/${BUCKET}/${name}`
+
+/** Pure path builder for optimized/derivative objects, exported for tests. */
+export function objectPath(prefix: string, base: string, suffix: string): string {
+  return `${prefix}/${base}.${suffix}`
+}
+
+async function save(name: string, data: Buffer, contentType: string): Promise<void> {
+  await storage().bucket(BUCKET).file(name).save(data, {
+    contentType,
+    resumable: false,
+    metadata: { cacheControl: "public, max-age=31536000" },
+  })
+}
+
+const RASTER_CT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }
+
+/** Uploads the avif/webp/fallback derivative set produced by processRaster and
+ *  returns the fallback's public URL. */
+export async function uploadOptimizedSet(
+  prefix: "avatars" | "covers" | "inline",
+  base: string,
+  set: RasterSet,
+): Promise<UploadResult> {
+  await Promise.all([
+    save(objectPath(prefix, base, `opt.${set.ext}`), set.fallback, RASTER_CT[set.ext]),
+    save(objectPath(prefix, base, "opt.avif"), set.avif, "image/avif"),
+    save(objectPath(prefix, base, "opt.webp"), set.webp, "image/webp"),
+  ])
+  return { url: PUBLIC(objectPath(prefix, base, `opt.${set.ext}`)) }
+}
+
+/** Uploads a raw SVG (not rasterized) under `prefix/` and returns its public URL. */
+export async function uploadSvg(
+  prefix: "avatars" | "covers" | "inline",
+  idHint: string,
+  svg: string,
+): Promise<UploadResult> {
+  const data = Buffer.from(svg, "utf8")
+  const safe = idHint.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "img"
+  const name = objectPath(prefix, `${safe}-${data.byteLength}`, "svg")
+  await save(name, data, "image/svg+xml")
+  return { url: PUBLIC(name) }
 }
