@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@/lib/cms/authz"
-import { uploadImage } from "@/lib/cms/gcs"
+import { handleUpload } from "@/lib/cms/handle-upload"
 
 export const runtime = "nodejs"
 
@@ -16,12 +16,12 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file" }, { status: 400 })
   }
-  const prefix = kind === "avatar" ? "avatars" : kind === "cover" ? "covers" : "inline"
   const idHint = kind === "avatar" ? user.id : `${user.id}-${file.name}`
 
   try {
     const data = Buffer.from(await file.arrayBuffer())
-    const { url } = await uploadImage(prefix as "avatars" | "covers" | "inline", file.type, data, idHint)
+    const kind3 = (kind === "avatar" ? "avatar" : kind === "cover" ? "cover" : "inline") as "avatar" | "cover" | "inline"
+    const { url } = await handleUpload(kind3, file.type, data, idHint)
     return NextResponse.json({ url })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Upload failed" }, { status: 400 })
