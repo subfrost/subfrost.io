@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronRight, Download, File as FileIcon, FileText, Film, Folder, FolderPlus,
-  Image as ImageIcon, Info, Loader2, Music, Pencil, Trash2, Upload, FolderInput, X,
+  Image as ImageIcon, Info, Loader2, Music, Pencil, Search, Trash2, Upload, FolderInput, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,8 @@ import { filesPath } from "@/lib/files/paths"
 import type { LegalScope } from "@prisma/client"
 import { humanSize, previewKind, relTime, typeLabel } from "./util"
 import { DetailsPanel } from "./DetailsPanel"
+import { DocTypeBadge } from "./DocTypeBadge"
+import { DOC_TYPE_LABEL } from "@/lib/files/doc-types"
 import { FolderPicker } from "./FolderPicker"
 
 type View = {
@@ -63,6 +65,10 @@ export function FilesManager({
   const [uploads, setUploads] = useState<UploadJob[]>([])
   const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+
+  // classification filter (category + free text over name/summary/tags), applied to this folder's files
+  const [catFilter, setCatFilter] = useState<string>("")
+  const [query, setQuery] = useState<string>("")
 
   // Slug chain to the folder currently in view (empty at a drive root).
   const crumbSlugs = view.breadcrumb.map((c) => c.slug)
@@ -135,6 +141,22 @@ export function FilesManager({
     })
   }
 
+  // Document-types actually present in this folder, for the filter dropdown.
+  const typesPresent = Array.from(new Set(view.files.map((f) => f.docType).filter(Boolean) as string[]))
+    .sort((a, b) => (DOC_TYPE_LABEL[a] ?? a).localeCompare(DOC_TYPE_LABEL[b] ?? b))
+  const q = query.trim().toLowerCase()
+  const shownFiles = view.files.filter((f) => {
+    if (catFilter && f.docType !== catFilter) return false
+    if (q) {
+      const summary = typeof (f.metadata?.classification as { summary?: string } | undefined)?.summary === "string"
+        ? ((f.metadata!.classification as { summary?: string }).summary as string) : ""
+      const hay = [f.name, summary, ...(f.tags || []), f.docType ?? ""].join(" ").toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
+  const filterActive = !!catFilter || !!q
+
   const isEmpty = view.folders.length === 0 && view.files.length === 0
   const busy = navPending
 
@@ -206,6 +228,36 @@ export function FilesManager({
         </div>
       )}
 
+      {/* Classification filter — only when this folder has classified docs */}
+      {typesPresent.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            className="h-9 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+          >
+            <option value="">All types ({view.files.length})</option>
+            {typesPresent.map((t) => (
+              <option key={t} value={t}>{DOC_TYPE_LABEL[t] ?? t} ({view.files.filter((f) => f.docType === t).length})</option>
+            ))}
+          </select>
+          <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
+            <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, summary, tags…"
+              className="h-9 w-full rounded-md border border-zinc-700 bg-zinc-950 pl-7 pr-2 text-xs text-zinc-100"
+            />
+          </div>
+          {filterActive && (
+            <button className="text-xs text-zinc-400 hover:text-zinc-200" onClick={() => { setCatFilter(""); setQuery("") }}>
+              Clear · {shownFiles.length} shown
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 lg:flex-row">
         {/* Listing + dropzone */}
         <div
@@ -255,12 +307,13 @@ export function FilesManager({
                     )}
                   </li>
                 ))}
-                {view.files.map((f) => (
+                {shownFiles.map((f) => (
                   <li key={f.id} className="flex items-center gap-2 px-3 py-2.5">
                     <button className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left text-zinc-200" onClick={() => goFile(f)}>
                       <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
                       <span className="min-w-0">
                         <span className="block truncate">{f.name}</span>
+                        {(f.docType || f.docStatus) && <DocTypeBadge docType={f.docType} docStatus={f.docStatus} className="my-0.5" />}
                         <span className="block truncate text-xs text-zinc-500">{typeLabel(f.mimeType, f.name)} · {humanSize(f.size)} · {relTime(f.updatedAt)}</span>
                       </span>
                     </button>
@@ -310,12 +363,15 @@ export function FilesManager({
                         </td>
                       </tr>
                     ))}
-                    {view.files.map((f) => (
+                    {shownFiles.map((f) => (
                       <tr key={f.id} className={`border-t border-zinc-800 hover:bg-zinc-900/40 ${details?.id === f.id ? "bg-zinc-900/60" : ""}`}>
                         <td className="px-4 py-3">
                           <button className="flex items-center gap-2 text-left text-zinc-200 hover:text-white" onClick={() => goFile(f)}>
                             <span className="shrink-0">{fileIcon(f.mimeType, f.name)}</span>
-                            <span className="truncate">{f.name}</span>
+                            <span className="min-w-0">
+                              <span className="block truncate">{f.name}</span>
+                              {(f.docType || f.docStatus) && <DocTypeBadge docType={f.docType} docStatus={f.docStatus} className="mt-0.5" />}
+                            </span>
                           </button>
                         </td>
                         <td className="px-4 py-3 hidden text-zinc-500 sm:table-cell">{typeLabel(f.mimeType, f.name)}</td>

@@ -4,6 +4,7 @@ import type { LegalScope, EntityFileRole, Folder, DriveFile } from "@prisma/clie
 import prisma from "@/lib/prisma"
 import { toSlug } from "@/lib/cms/slug"
 import { filesPath } from "@/lib/files/paths"
+import { isDocType, isDocStatus } from "@/lib/files/doc-types"
 import {
   signedUploadUrl,
   signedDownloadUrl,
@@ -51,6 +52,8 @@ export interface FileView {
   mimeType: string
   size: string // BigInt → string (JSON-safe)
   tags: string[]
+  docType: string | null
+  docStatus: string | null
   metadata: Record<string, unknown>
   createdAt: string
   updatedAt: string
@@ -61,11 +64,11 @@ function fview(f: { id: string; name: string; slug: string | null; parentId: str
 }
 function dview(f: {
   id: string; name: string; slug: string | null; folderId: string | null; scope: LegalScope; mimeType: string; size: bigint
-  tags: string[]; metadata: unknown; createdAt: Date; updatedAt: Date
+  tags: string[]; docType?: string | null; docStatus?: string | null; metadata: unknown; createdAt: Date; updatedAt: Date
 }): FileView {
   return {
     id: f.id, name: f.name, slug: effSlug(f), folderId: f.folderId, scope: f.scope, mimeType: f.mimeType, size: f.size.toString(),
-    tags: f.tags, metadata: (f.metadata as Record<string, unknown>) ?? {},
+    tags: f.tags, docType: f.docType ?? null, docStatus: f.docStatus ?? null, metadata: (f.metadata as Record<string, unknown>) ?? {},
     createdAt: f.createdAt.toISOString(), updatedAt: f.updatedAt.toISOString(),
   }
 }
@@ -301,7 +304,7 @@ export async function getFile(fileId: string, asDownload = false): Promise<{ fil
 
 export async function updateFile(
   fileId: string,
-  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[] },
+  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[]; docType?: string | null; docStatus?: string | null },
 ): Promise<FileView> {
   const file = await prisma.driveFile.findUnique({ where: { id: fileId } })
   if (!file) throw new FilesError("File not found", 404)
@@ -317,6 +320,8 @@ export async function updateFile(
   }
   if (patch.metadata !== undefined) data.metadata = patch.metadata
   if (patch.tags !== undefined) data.tags = patch.tags
+  if (patch.docType !== undefined) data.docType = patch.docType && isDocType(patch.docType) ? patch.docType : null
+  if (patch.docStatus !== undefined) data.docStatus = patch.docStatus && isDocStatus(patch.docStatus) ? patch.docStatus : null
   // uniqueness check for the resulting (folder, name)
   const targetFolder = (data.folderId !== undefined ? data.folderId : file.folderId) as string | null
   const targetName = (data.name !== undefined ? data.name : file.name) as string
