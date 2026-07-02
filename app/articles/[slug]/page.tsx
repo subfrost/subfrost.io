@@ -43,10 +43,8 @@ export async function generateMetadata({
   const url = articleUrl(slug, locale)
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const proto = requestHeaders.get("x-forwarded-proto")
-  const image = a.coverImage ? absoluteUrlForHost(a.coverImage, host, proto) : absoluteUrlForHost("/articles/opengraph-image", host, proto)
-  const imageMeta = a.coverImage
-    ? { url: image, alt: a.title }
-    : { url: image, width: 1200, height: 630, alt: a.title, type: "image/png" }
+  const image = absoluteUrlForHost(`/articles/${slug}/opengraph-image`, host, proto)
+  const imageMeta = { url: image, width: 1200, height: 630, alt: a.title, type: "image/png" }
   const tagNames = a.tags.map((tag) => categoryLabel(tag, locale)).filter((tag): tag is string => Boolean(tag))
   return {
     title: `${a.title} — SUBFROST`,
