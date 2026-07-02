@@ -63,6 +63,15 @@ Sujeitos alternativos: frost veins branching across black glass · ice crystal n
 growing over dark water · frost tendrils radiating from the right edge like a slow
 explosion · macro frost patterns crystallizing on a black window.
 
+### Estilo livre (template pra estilos novos)
+
+Troque só o trecho entre colchetes; o resto garante o brand:
+
+> Generate a photorealistic image: [DESCREVA O ESTILO/CENA]. Cold cyan-blue color grade
+> with near-black moody shadows, deep dark negative space dominating the left third of the
+> frame as clean background for text, dramatic cold lighting, no people, no animals, no
+> text, no logos, no man-made objects. Widescreen 21:9, highest resolution.
+
 Gere 2–4 variações e escolha pela zona escura mais limpa atrás do texto.
 
 ⚠️ **Marca d'água do Gemini**: as saídas trazem um sparkle no canto inferior direito e são
@@ -164,6 +173,10 @@ título precisa de contraste AA — na dúvida, o véu fica.
 - **Fundo**: gradiente vertical de luminância `#0B0F14 → #04060A`.
 - **Textura de gelo**: strokes `#A7C6DC` opacity 0.06–0.18 / width 1–3; facetas (polygons)
   opacity 0.03–0.06. Densidade à direita; a coluna de texto respira (nenhum stroke sob texto).
+- **Artigo vs. não-artigo**: capa de **artigo** segue o padrão canônico à risca (eyebrow
+  `ARTICLE #N:` + título nas escalas acima). Banner **avulso** (incidente, anúncio, social)
+  mantém logotype, floco e paleta, mas o texto tem hierarquia/tamanhos livres (ex.: banner
+  do incidente de 2026-07-02).
 
 ## Receita de rasterização (SVG-fonte → PNG publicado)
 
