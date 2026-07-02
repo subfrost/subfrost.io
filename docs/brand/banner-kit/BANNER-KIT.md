@@ -47,6 +47,22 @@ prompt também funciona) e cole:
 > shadows, cold cyan-blue color grade, left third of the frame in deep clean shadow for text
 > overlay, no people, no text, no logos, no man-made objects, cinematic widescreen.
 
+### Variação de estilo — filamentos de gelo (estilo da capa do BIP-110)
+
+Alternativa ao gelo sólido macro: veias/teias de gelo luminosas contra preto, mais abstrata
+e etérea. Mesmo uso (Gemini com referência anexada, ou Grok direto):
+
+> Generate a photorealistic abstract macro image: delicate glowing filaments of frost and
+> ice branching like veins or lightning across a pure black background, wispy translucent
+> ice tendrils with fine sparkling frost particles, cold blue-white light tracing the
+> branching structures, deep black negative space dominating the left third of the frame,
+> cold cyan-blue color grade, ethereal and precise, no people, no text, no logos, no
+> man-made objects. Widescreen 21:9, highest resolution.
+
+Sujeitos alternativos: frost veins branching across black glass · ice crystal network
+growing over dark water · frost tendrils radiating from the right edge like a slow
+explosion · macro frost patterns crystallizing on a black window.
+
 Gere 2–4 variações e escolha pela zona escura mais limpa atrás do texto.
 
 ⚠️ **Marca d'água do Gemini**: as saídas trazem um sparkle no canto inferior direito e são
