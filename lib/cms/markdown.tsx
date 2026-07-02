@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm"
 import rehypeSanitize from "rehype-sanitize"
 import rehypeHighlight from "rehype-highlight"
 import { externalAnchorProps } from "@/lib/link-behavior"
+import { SmartPicture } from "@/components/articles/SmartPicture"
 
 // Server-side Markdown renderer. Sanitizes HTML and highlights fenced code.
 // `variant` switches between the Medium-style reading prose and the compact
@@ -32,6 +33,9 @@ export function Markdown({
               </a>
             )
           },
+          img: ({ src, alt }) => (
+            <SmartPicture src={typeof src === "string" ? src : ""} alt={typeof alt === "string" ? alt : ""} />
+          ),
         }}
       >
         {children}
