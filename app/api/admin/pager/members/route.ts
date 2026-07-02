@@ -2,7 +2,7 @@
  * Pager roster management — members ARE ntfy user accounts (lib/pager/ntfy.ts).
  *
  * GET    -> list members                                  (any admin session)
- * POST   {id} -> create member + device token (shown ONCE) (iam.modify_user)
+ * POST   {id} -> create member + login password (shown ONCE) (iam.modify_user)
  * DELETE {id} -> remove member and revoke their access     (iam.modify_user)
  */
 import { NextRequest, NextResponse } from "next/server"
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const member = await createMember(parsed.data.id)
-    return NextResponse.json(member) // includes the one-time device token
+    return NextResponse.json(member) // includes the one-time password
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
   }

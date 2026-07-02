@@ -77,11 +77,11 @@ async function grantRead(username: string, topic: string): Promise<void> {
 
 /** Create the member's ntfy user + read ACLs and mint their device token.
  *  The token is returned ONCE and stored nowhere on our side. */
-export async function createMember(id: string): Promise<{ id: string; topic: string; token: string }> {
-  // Random throwaway password: devices authenticate with the token; the
-  // password exists only because ntfy users require one (and to mint the
-  // token via the account API below).
-  const password = randomBytes(24).toString("base64url")
+/* Returns the generated password ONCE (stored nowhere on our side) — the
+ * phone apps require username + password; ntfy access tokens only work with
+ * an EMPTY username in basic auth, which the apps don't allow. */
+export async function createMember(id: string): Promise<{ id: string; topic: string; password: string }> {
+  const password = randomBytes(12).toString("base64url")
   const res = await ntfyFetch(
     "/v1/users",
     {
@@ -96,16 +96,7 @@ export async function createMember(id: string): Promise<{ id: string; topic: str
   await grantRead(id, topicFor(id))
   await grantRead(id, ALL_TOPIC)
 
-  // Mint the device token AS the new user (basic auth with the throwaway
-  // password) — the plain account API, nothing beta about it.
-  const tokenRes = await fetch(`${NTFY_URL}/v1/account/token`, {
-    method: "POST",
-    headers: { Authorization: `Basic ${Buffer.from(`${id}:${password}`).toString("base64")}` },
-    cache: "no-store",
-  })
-  if (!tokenRes.ok) throw new Error(`ntfy mint token failed (${tokenRes.status})`)
-  const { token } = (await tokenRes.json()) as { token: string }
-  return { id, topic: topicFor(id), token }
+  return { id, topic: topicFor(id), password }
 }
 
 export async function deleteMember(id: string): Promise<void> {

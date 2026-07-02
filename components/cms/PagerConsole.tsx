@@ -4,7 +4,7 @@
 //   Send:   pick a target (one teammate or everyone), type, page. Urgent
 //           (default) = ntfy priority 5: phones alarm through DND.
 //   Team:   roster = ntfy user accounts. Adding a member provisions their
-//           account + read ACLs and mints the device token, shown ONCE with
+//           account + read ACLs and generates the login password, shown ONCE with
 //           step-by-step phone setup. Removing revokes everything.
 //   History: last 72h from the ntfy message cache.
 
@@ -147,7 +147,7 @@ function SendPanel({ members, disabled }: { members: PagerMemberDisplay[]; disab
 interface NewMember {
   id: string
   topic: string
-  token: string
+  password: string
 }
 
 function TeamPanel({
@@ -189,7 +189,7 @@ function TeamPanel({
   }
 
   async function removeMember(id: string) {
-    if (!confirm(`Remove ${displayName(id)}? Their device token stops working immediately.`)) return
+    if (!confirm(`Remove ${displayName(id)}? Their login stops working immediately.`)) return
     setBusy(true)
     setError(null)
     try {
@@ -264,7 +264,7 @@ function TeamPanel({
   )
 }
 
-/* One-time onboarding card: shown right after creating a member. The token is
+/* One-time onboarding card: shown right after creating a member. The password is
  * NOT stored anywhere — once dismissed it is gone (remove + re-add to reissue). */
 function OnboardingCard({ member, onDismiss }: { member: NewMember; onDismiss: () => void }) {
   return (
@@ -272,15 +272,15 @@ function OnboardingCard({ member, onDismiss }: { member: NewMember; onDismiss: (
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-green-300">{displayName(member.id)} is set up — send them this</h3>
         <button onClick={onDismiss} className="text-xs text-white/50 hover:text-white">
-          dismiss (token shown only once)
+          dismiss (password shown only once)
         </button>
       </div>
       <CopyField label="Server" value={PAGER_URL} />
       <CopyField label="Username" value={member.id} />
-      <CopyField label="Access token (their password in the app)" value={member.token} />
+      <CopyField label="Password" value={member.password} />
       <ol className="list-decimal space-y-1 pl-5 text-sm text-white/80">
         <li>Install the <b>ntfy</b> app (Play Store / App Store).</li>
-        <li>Settings → <b>Default server</b>: enter the server URL, log in with the username + token.</li>
+        <li>Settings → <b>Default server</b>: enter the server URL, log in with the username + password.</li>
         <li>Subscribe to <code className="text-green-300">{member.topic}</code> and <code className="text-green-300">page-all</code>.</li>
         <li>
           For each topic: set priority to <b>alarm / override Do&nbsp;Not&nbsp;Disturb</b> with a loud sound
