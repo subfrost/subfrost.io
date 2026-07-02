@@ -1,0 +1,27 @@
+# ntfy server config — team pager at page.subfrost.io.
+# Auth DB and cache live on the ntfy-data PVC; users/ACLs are managed
+# imperatively via `kubectl exec deploy/ntfy -n subfrost -- ntfy user ...`
+# (see k8s/ntfy/README.md).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntfy-config
+  namespace: subfrost
+data:
+  server.yml: |
+    base-url: "https://page.subfrost.io"
+    listen-http: ":80"
+    behind-proxy: true
+    cache-file: /var/lib/ntfy/cache.db
+    cache-duration: "72h"
+    auth-file: /var/lib/ntfy/auth.db
+    # Pager topics are private: nothing is readable or writable without a
+    # user/token that has been granted access.
+    auth-default-access: "deny-all"
+    enable-login: true
+    enable-signup: false
+    # Required for instant delivery on iOS devices: the upstream ntfy.sh
+    # relays a (content-free) poll request through APNS.
+    upstream-base-url: "https://ntfy.sh"
+    # Keepalive/manager tuning is left at defaults; GCE LB idle timeout is
+    # raised via BackendConfig timeoutSec instead.

@@ -1,0 +1,14 @@
+# Persistent state for ntfy: auth.db (users/tokens/ACLs) and cache.db
+# (message cache — what makes missed pages redeliverable on reconnect).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ntfy-data
+  namespace: subfrost
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+    requests:
+      storage: 1Gi

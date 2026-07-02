@@ -4,7 +4,7 @@ import {
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
   KanbanSquare, Target, Package, Gavel, Building2, Github, CalendarClock, TrendingUp, AtSign,
-  Contact,
+  Contact, Siren,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -108,6 +108,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "legal", label: "Legal", icon: Gavel, items: [
       { label: "Entities", href: "/admin/legal", icon: Building2, privilege: "legal.view" },
+    ],
+  },
+  {
+    // Team pager (ntfy at page.subfrost.io). Ungated on purpose: anyone with an
+    // admin login may raise an emergency page.
+    key: "ops", label: "Ops", icon: Siren, items: [
+      { label: "Pager", href: "/admin/pager", icon: Siren },
     ],
   },
   {
