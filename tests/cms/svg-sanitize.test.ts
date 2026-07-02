@@ -21,4 +21,14 @@ describe("sanitizeSvg", () => {
     const out = sanitizeSvg(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>`))
     expect(out).toContain("<rect")
   })
+  it("strips javascript: URIs from href and xlink:href", () => {
+    const anchor = sanitizeSvg(
+      `<svg xmlns="http://www.w3.org/2000/svg"><a href="javascript:alert(1)"><rect width="1" height="1"/></a></svg>`,
+    )
+    expect(anchor).not.toMatch(/javascript:/i)
+    const image = sanitizeSvg(
+      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="javascript:alert(1)"/></svg>`,
+    )
+    expect(image).not.toMatch(/javascript:/i)
+  })
 })
