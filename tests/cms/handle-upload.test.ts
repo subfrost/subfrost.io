@@ -14,6 +14,7 @@ vi.mock("@/lib/cms/image-process", () => ({
 import { handleUpload } from "@/lib/cms/handle-upload"
 import { uploadOptimizedSet, uploadSvg, uploadImage } from "@/lib/cms/gcs"
 import { sanitizeSvg } from "@/lib/cms/svg-sanitize"
+import { processRaster } from "@/lib/cms/image-process"
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -32,5 +33,14 @@ describe("handleUpload", () => {
   it("falls back to raw upload for gif", async () => {
     await handleUpload("inline", "image/gif", Buffer.from("x"), "c")
     expect(uploadImage).toHaveBeenCalled()
+  })
+  it("rejects buffers over 8MB before any sanitize/transcode/upload call", async () => {
+    const big = Buffer.alloc(8 * 1024 * 1024 + 1)
+    await expect(handleUpload("cover", "image/png", big, "c")).rejects.toThrow("Image exceeds 8MB limit")
+    expect(sanitizeSvg).not.toHaveBeenCalled()
+    expect(processRaster).not.toHaveBeenCalled()
+    expect(uploadOptimizedSet).not.toHaveBeenCalled()
+    expect(uploadSvg).not.toHaveBeenCalled()
+    expect(uploadImage).not.toHaveBeenCalled()
   })
 })

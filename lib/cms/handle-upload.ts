@@ -13,6 +13,9 @@ const PREFIX: Record<Kind, "avatars" | "covers" | "inline"> = {
 export async function handleUpload(
   kind: Kind, contentType: string, data: Buffer, idHint: string,
 ): Promise<{ url: string }> {
+  if (data.byteLength > 8 * 1024 * 1024) {
+    throw new Error("Image exceeds 8MB limit")
+  }
   const prefix = PREFIX[kind]
   if (contentType === "image/svg+xml") {
     return uploadSvg(prefix, idHint, sanitizeSvg(data))
