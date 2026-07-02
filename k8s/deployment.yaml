@@ -222,6 +222,15 @@ spec:
                   name: ntfy-publish-token
                   key: NTFY_TOKEN
                   optional: true
+            # Admin-role ntfy token: powers roster management (create/remove
+            # teammates + mint device tokens) from /admin/pager. Same standalone
+            # secret; absent => the console is send-only.
+            - name: NTFY_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_ADMIN_TOKEN
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
