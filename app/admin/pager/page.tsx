@@ -1,18 +1,20 @@
 import { currentUser } from "@/lib/cms/authz"
 import { redirect } from "next/navigation"
-import { ALL_TOPIC, NTFY_TOKEN, NTFY_URL, PAGER_ROSTER, topicFor } from "@/lib/pager/config"
+import { ALL_TOPIC, NTFY_ADMIN_TOKEN, NTFY_TOKEN, NTFY_URL } from "@/lib/pager/config"
+import { listMembers, type PagerMemberInfo } from "@/lib/pager/ntfy"
 import { PagerConsole, type PageEvent } from "@/components/cms/PagerConsole"
 
 export const dynamic = "force-dynamic"
 
 // Pull the last 72h of pages straight from ntfy's message cache (all topics in
 // one poll request) so the console shows history without us persisting anything.
-async function recentPages(): Promise<PageEvent[]> {
-  if (!NTFY_TOKEN) return []
-  const topics = [ALL_TOPIC, ...PAGER_ROSTER.map((m) => topicFor(m.id))].join(",")
+async function recentPages(members: PagerMemberInfo[]): Promise<PageEvent[]> {
+  if (!NTFY_TOKEN && !NTFY_ADMIN_TOKEN) return []
+  const token = NTFY_ADMIN_TOKEN ?? NTFY_TOKEN
+  const topics = [ALL_TOPIC, ...members.map((m) => m.topic)].join(",")
   try {
     const res = await fetch(`${NTFY_URL}/${topics}/json?poll=1&since=72h`, {
-      headers: { Authorization: `Bearer ${NTFY_TOKEN}` },
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     })
     if (!res.ok) return []
@@ -41,23 +43,27 @@ export default async function PagerPage() {
   const me = await currentUser()
   if (!me) redirect("/admin/login")
 
-  const history = await recentPages()
-  const configured = Boolean(NTFY_TOKEN)
+  let members: PagerMemberInfo[] = []
+  let rosterError: string | null = null
+  if (NTFY_ADMIN_TOKEN) {
+    try {
+      members = await listMembers()
+    } catch (e) {
+      rosterError = e instanceof Error ? e.message : String(e)
+    }
+  }
+  const history = await recentPages(members)
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-white">Pager</h1>
-      {!configured && (
-        <p className="mb-6 rounded border border-yellow-600 bg-yellow-950/40 p-3 text-sm text-yellow-300">
-          NTFY_TOKEN is not configured — pages cannot be sent. Create the publish
-          token on the ntfy server and add it to the <code>ntfy-publish-token</code> secret
-          (see k8s/ntfy/README.md).
-        </p>
-      )}
       <PagerConsole
-        roster={PAGER_ROSTER}
+        members={members}
         history={history}
-        disabled={!configured}
+        canSend={Boolean(NTFY_TOKEN)}
+        canManage={Boolean(NTFY_ADMIN_TOKEN) && me.privileges.includes("iam.modify_user")}
+        adminConfigured={Boolean(NTFY_ADMIN_TOKEN)}
+        rosterError={rosterError}
       />
     </div>
   )
