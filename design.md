@@ -631,10 +631,11 @@ Header:
 - No cover image.
 - No author card.
 - No `All Articles` clutter unless a back link is explicitly needed for navigation.
-- Center metadata above the title.
+- Left-align metadata, title, excerpt, and byline to the article body column.
 - Metadata: date, category, optionally author only when needed.
-- Large centered title.
-- Concise centered excerpt below title.
+- When an author is shown, use a compact Medium-style inline avatar/name/date/read-time row, left-aligned to the article body column; do not add a Follow button to the reader header unless explicitly requested.
+- Large left-aligned title.
+- Concise left-aligned excerpt below title.
 
 Body:
 
@@ -644,6 +645,7 @@ Body:
 - No drop cap.
 - Markdown remains CMS-owned.
 - Body copy is never rewritten for design.
+- Body starts close to the byline, around 48-64px depending on breakpoint, so the article begins in the first viewport on mobile.
 
 Below article:
 
