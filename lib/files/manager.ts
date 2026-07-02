@@ -342,6 +342,81 @@ export async function deleteFile(fileId: string): Promise<void> {
   await prisma.driveFile.delete({ where: { id: fileId } })
 }
 
+// --- search ----------------------------------------------------------------
+export interface FileSearchHit {
+  file: FileView
+  folderPath: { id: string; name: string; slug: string }[] // breadcrumb (root → parent)
+  snippet: string // ts_headline of the match; hits wrapped in %%HL%%…%%EH%% sentinels (escape then convert to <mark> on render)
+  matchedName: boolean
+}
+
+type SearchRow = {
+  id: string; name: string; slug: string | null; folderId: string | null; scope: LegalScope
+  mimeType: string; size: bigint; tags: string[]; docType: string | null; docStatus: string | null
+  metadata: unknown; createdAt: Date; updatedAt: Date; rank: number; snippet: string | null; matched_name: boolean
+}
+
+/**
+ * Google-Drive-style search: matches the filename AND the text inside documents
+ * (plus the summary + tags), ranked, with a highlighted snippet. Full-text
+ * (websearch_to_tsquery) for word/phrase matching, OR ILIKE for substrings/prefixes.
+ */
+export async function searchFiles(query: string, opts?: { scope?: LegalScope; limit?: number }): Promise<FileSearchHit[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const limit = Math.min(Math.max(opts?.limit ?? 40, 1), 100)
+  const like = `%${q.replace(/[\\%_]/g, (m) => "\\" + m)}%`
+  const scopeCond = opts?.scope ? Prisma.sql`AND f.scope = ${opts.scope}::"LegalScope"` : Prisma.empty
+  const rows = await prisma.$queryRaw<SearchRow[]>(Prisma.sql`
+    WITH q AS (SELECT websearch_to_tsquery('english', ${q}) AS tsq)
+    SELECT f.id, f.name, f.slug, f."folderId", f.scope, f."mimeType", f.size, f.tags,
+           f."docType", f."docStatus", f.metadata, f."createdAt", f."updatedAt",
+           ts_rank(
+             to_tsvector('english', coalesce(f."contentText",'') || ' ' || f.name || ' ' || coalesce(f.metadata->'classification'->>'summary','')),
+             q.tsq
+           ) AS rank,
+           ts_headline('english',
+             coalesce(NULLIF(f."contentText",''), coalesce(f.metadata->'classification'->>'summary', f.name)),
+             q.tsq, 'StartSel=%%HL%%,StopSel=%%EH%%,MaxWords=22,MinWords=8,MaxFragments=1,ShortWord=2'
+           ) AS snippet,
+           (f.name ILIKE ${like}) AS matched_name
+    FROM "DriveFile" f, q
+    WHERE (
+      to_tsvector('english', coalesce(f."contentText",'') || ' ' || f.name || ' ' || coalesce(f.metadata->'classification'->>'summary','') || ' ' || array_to_string(f.tags,' ')) @@ q.tsq
+      OR f.name ILIKE ${like}
+      OR coalesce(f."contentText",'') ILIKE ${like}
+    )
+    ${scopeCond}
+    ORDER BY (f.name ILIKE ${like}) DESC, rank DESC, f."updatedAt" DESC
+    LIMIT ${limit}
+  `)
+
+  // resolve folder breadcrumbs for the hits (few folders total → one fetch)
+  const allFolders = await prisma.folder.findMany({ select: { id: true, name: true, slug: true, parentId: true } })
+  const byId = new Map(allFolders.map((f) => [f.id, f]))
+  const pathOf = (folderId: string | null) => {
+    const chain: { id: string; name: string; slug: string }[] = []
+    let cur = folderId ? byId.get(folderId) : undefined
+    let guard = 0
+    while (cur && guard++ < 30) {
+      chain.unshift({ id: cur.id, name: cur.name, slug: effSlug(cur) })
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined
+    }
+    return chain
+  }
+
+  return rows.map((r) => ({
+    file: dview({
+      id: r.id, name: r.name, slug: r.slug, folderId: r.folderId, scope: r.scope, mimeType: r.mimeType,
+      size: r.size, tags: r.tags, docType: r.docType, docStatus: r.docStatus, metadata: r.metadata,
+      createdAt: r.createdAt, updatedAt: r.updatedAt,
+    }),
+    folderPath: pathOf(r.folderId),
+    snippet: r.snippet ?? "",
+    matchedName: !!r.matched_name,
+  }))
+}
+
 export async function updateFolder(
   folderId: string,
   patch: { name?: string; parentId?: string | null },

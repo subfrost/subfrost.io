@@ -55,6 +55,19 @@ export function typeLabel(mime: string, name: string): string {
   return "FILE"
 }
 
+/**
+ * Turn a Postgres ts_headline snippet into safe highlight HTML. The DB wraps hits
+ * in %%HL%%…%%EH%% sentinels; document text can contain arbitrary markup, so we
+ * HTML-escape everything first, then convert only the sentinels to <mark>. Never
+ * emits attacker-controlled tags.
+ */
+export function highlightSnippet(s: string): string {
+  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return esc
+    .split("%%HL%%").join('<mark class="rounded bg-amber-400/25 px-0.5 text-amber-200">')
+    .split("%%EH%%").join("</mark>")
+}
+
 /** Minimal, dependency-free markdown → HTML for the preview pane. Escapes first. */
 export function renderMarkdown(src: string): string {
   const esc = (s: string) =>
