@@ -35,6 +35,15 @@ export async function listFolderAction(folderId: string | null, scope: LegalScop
   } catch (e) { return fail(e) }
 }
 
+// Google-Drive-style search across filename + document content + summary + tags.
+export async function searchFilesAction(query: string, scope?: LegalScope): Promise<Result<{ hits: files.FileSearchHit[] }>> {
+  const g = await gate(false)
+  if (!g.ok) return g
+  try {
+    return { ok: true, hits: await files.searchFiles(query, { scope }) }
+  } catch (e) { return fail(e) }
+}
+
 export async function createFolderAction(name: string, parentId: string | null, scope: LegalScope = "SUBFROST"): Promise<Result<{ folder: files.FolderView }>> {
   const g = await gate(true)
   if (!g.ok) return g

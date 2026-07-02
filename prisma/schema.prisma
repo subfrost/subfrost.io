@@ -622,6 +622,10 @@ model DriveFile {
   // additive; populated by the classifier + editable in the file details panel.
   docType     String?
   docStatus   String?
+  // Extracted, searchable plain text of the document body (capped), so search can
+  // match *inside* documents (Google-Drive style), not just the filename. Backfilled
+  // by scripts/backfill-content-text.mjs; refreshed on re-upload.
+  contentText String?
   // graph links to the entities/people this file concerns (signatories, etc.)
   entityLinks EntityFileLink[]
   // e-sign envelopes launched from this file (WS3 "Request Signatures").

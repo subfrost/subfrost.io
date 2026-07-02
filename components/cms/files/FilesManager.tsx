@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronRight, Download, File as FileIcon, FileText, Film, Folder, FolderPlus,
-  Image as ImageIcon, Info, Loader2, Music, Pencil, Search, Trash2, Upload, FolderInput, X,
+  Image as ImageIcon, Info, Loader2, Music, Pencil, Trash2, Upload, FolderInput, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ import type { LegalScope } from "@prisma/client"
 import { humanSize, previewKind, relTime, typeLabel } from "./util"
 import { DetailsPanel } from "./DetailsPanel"
 import { DocTypeBadge } from "./DocTypeBadge"
+import { FileSearch } from "./FileSearch"
 import { DOC_TYPE_LABEL } from "@/lib/files/doc-types"
 import { FolderPicker } from "./FolderPicker"
 
@@ -162,6 +163,9 @@ export function FilesManager({
 
   return (
     <div className="space-y-4">
+      {/* Global search — filename + text inside documents */}
+      <FileSearch scope={scope} onOpenFile={setDetails} />
+
       {/* Breadcrumb + toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <nav className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-sm">
@@ -241,15 +245,7 @@ export function FilesManager({
               <option key={t} value={t}>{DOC_TYPE_LABEL[t] ?? t} ({view.files.filter((f) => f.docType === t).length})</option>
             ))}
           </select>
-          <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
-            <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, summary, tags…"
-              className="h-9 w-full rounded-md border border-zinc-700 bg-zinc-950 pl-7 pr-2 text-xs text-zinc-100"
-            />
-          </div>
+          <span className="text-[11px] text-zinc-600">Filter this folder by type</span>
           {filterActive && (
             <button className="text-xs text-zinc-400 hover:text-zinc-200" onClick={() => { setCatFilter(""); setQuery("") }}>
               Clear · {shownFiles.length} shown
