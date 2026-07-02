@@ -155,7 +155,7 @@ Ao criar o arquivo real, substituir os dois comentários `COLAR AQUI` pelos path
 cd "/c/Alkanes Geral Dev/subfrost.io" && grep -nE '<image|<script|<foreignObject|href="http|@import|url\(' docs/brand/banner-kit/templates/typographic.svg; echo "exit=$?"
 ```
 
-Expected: nenhuma linha; `exit=1`. (`url(#bg)` interno NÃO é match do padrão `url\(` externo? É match — por isso o padrão exige revisão manual: a ÚNICA ocorrência aceitável é `fill="url(#bg)"` referenciando o gradiente local `#bg`. Qualquer outra = reprovado.)
+Expected: a ÚNICA ocorrência é `fill="url(#bg)"` (referência ao gradiente local `#bg`); qualquer outra linha = reprovado. (O padrão `url\(` pega o gradiente local de propósito — a checagem é grep + revisão manual da(s) ocorrência(s).)
 
 - [ ] **Step 4: Render + verificação de dimensões**
 
