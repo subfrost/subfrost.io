@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { getFileUrlAction } from "@/actions/cms/files"
 import type { FileView } from "@/lib/files/manager"
 import { humanSize, previewKind, renderMarkdown, typeLabel } from "./util"
+import { DocTypeBadge } from "./DocTypeBadge"
 
 export interface FileEntityLink {
   id: string
@@ -128,6 +129,14 @@ export function FileRenderer({
             <div className="flex justify-between gap-2"><dt className="text-zinc-500">Size</dt><dd>{humanSize(file.size)}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-zinc-500">Drive</dt><dd>{file.scope}</dd></div>
           </dl>
+          {(file.docType || file.docStatus) && (
+            <div className="mt-2">
+              <DocTypeBadge docType={file.docType} docStatus={file.docStatus} />
+              {typeof (file.metadata?.classification as { summary?: string } | undefined)?.summary === "string" && (
+                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{(file.metadata!.classification as { summary?: string }).summary}</p>
+              )}
+            </div>
+          )}
           {file.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {file.tags.map((t) => (

@@ -75,7 +75,7 @@ export async function getFileUrlAction(fileId: string, asDownload = false): Prom
 
 export async function updateFileAction(
   fileId: string,
-  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[] },
+  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[]; docType?: string | null; docStatus?: string | null },
 ): Promise<Result<{ file: files.FileView }>> {
   const g = await gate(true)
   if (!g.ok) return g

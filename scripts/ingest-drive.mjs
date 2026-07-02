@@ -50,6 +50,9 @@ const REPORT = has("--report")
 const RELINK = has("--relink")
 const DRY = has("--dry-run") || REPORT
 const LIMIT = arg("--limit") ? parseInt(arg("--limit"), 10) : Infinity
+// Read-only: resolve every planned file to its DB DriveFile.id + local abs path
+// and append them as JSONL to this file. Used to drive classification agents.
+const EMIT_MANIFEST = arg("--emit-manifest")
 
 if (!SOURCE || !["subfrost", "oyl"].includes(SOURCE)) {
   console.error("error: --source must be 'subfrost' or 'oyl'")
@@ -208,6 +211,38 @@ async function main() {
     console.log("\n(report mode — nothing written. Sample of planned files:)")
     for (const it of items.slice(0, 25)) console.log(`  [${it.destFolder}]  ${it.name}`)
     if (items.length > 25) console.log(`  … +${items.length - 25} more`)
+    return
+  }
+
+  // Read-only manifest emit: map each planned local file to its DB DriveFile row.
+  if (EMIT_MANIFEST) {
+    const { PrismaClient } = await import("@prisma/client")
+    const prisma = new PrismaClient()
+    const { appendFileSync } = await import("node:fs")
+    const folderIdCache = new Map() // "A/B/C" -> id (resolve existing only)
+    async function findFolderId(path) {
+      if (folderIdCache.has(path)) return folderIdCache.get(path)
+      const segs = path.split("/")
+      let parentId = null, acc = ""
+      for (const seg of segs) {
+        acc = acc ? `${acc}/${seg}` : seg
+        if (folderIdCache.has(acc)) { parentId = folderIdCache.get(acc); continue }
+        const f = await prisma.folder.findFirst({ where: { parentId, name: seg, scope: SCOPE } })
+        if (!f) { folderIdCache.set(acc, null); return null }
+        folderIdCache.set(acc, f.id); parentId = f.id
+      }
+      return parentId
+    }
+    let emitted = 0, missing = 0
+    for (const it of items) {
+      const folderId = await findFolderId(it.destFolder)
+      const file = folderId ? await prisma.driveFile.findFirst({ where: { folderId, name: it.name }, select: { id: true, tags: true, mimeType: true } }) : null
+      if (!file) { missing++; continue }
+      appendFileSync(EMIT_MANIFEST, JSON.stringify({ id: file.id, scope: SCOPE, folderPath: it.destFolder, name: it.name, abs: it.abs, ext: it.ext, mime: file.mimeType, tags: file.tags }) + "\n")
+      emitted++
+    }
+    console.log(`\nmanifest: emitted=${emitted} missing(no DB row)=${missing} -> ${EMIT_MANIFEST}`)
+    await prisma.$disconnect()
     return
   }
 

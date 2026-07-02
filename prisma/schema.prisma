@@ -617,6 +617,11 @@ model DriveFile {
   size        BigInt
   metadata    Json     @default("{}")
   tags        String[] @default([])
+  // Primary document-type classification (controlled slug, see lib/files/doc-types.ts)
+  // and execution status (executed/unsigned/draft/…). Nullable so `db push` stays
+  // additive; populated by the classifier + editable in the file details panel.
+  docType     String?
+  docStatus   String?
   // graph links to the entities/people this file concerns (signatories, etc.)
   entityLinks EntityFileLink[]
   // e-sign envelopes launched from this file (WS3 "Request Signatures").
@@ -632,6 +637,7 @@ model DriveFile {
   @@index([folderId, slug])
   @@index([folderId])
   @@index([scope])
+  @@index([docType])
 }
 
 // How an entity/person relates to a document. SIGNATORY = signed it,
