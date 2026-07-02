@@ -176,7 +176,7 @@ título precisa de contraste AA — na dúvida, o véu fica.
   copiar o bloco de qualquer template. NÃO mover.
   ```xml
   <g transform="translate(1673,701)">
-    <polygon points="0,-61 12.5,-33.5 0,-11 -12.5,-33.5" fill="#A7C6DC"/>
+    <polygon points="0,-61 11.2,-28.5 0,-5 -11.2,-28.5" fill="#A7C6DC"/>
     <!-- + 7 cópias com transform="rotate(45)" ... rotate(315) -->
   </g>
   ```
