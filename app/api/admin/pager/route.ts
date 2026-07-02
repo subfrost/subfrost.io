@@ -9,8 +9,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { currentUser } from "@/lib/cms/authz"
-import { ALL_TOPIC, NTFY_TOKEN, topicFor } from "@/lib/pager/config"
-import { MEMBER_ID_RE, listMembers, publishPage } from "@/lib/pager/ntfy"
+import { NTFY_TOKEN } from "@/lib/pager/config"
+import { MEMBER_ID_RE, listMembers } from "@/lib/pager/ntfy"
+import { sendPage } from "@/lib/pager/send"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -40,9 +41,19 @@ export async function POST(request: NextRequest) {
   }
   const { target, message, urgent } = parsed.data
 
-  let topic: string
+  // Resolve targets: "all" fans out to every member's PERSONAL topic (each
+  // notification carries that member's own ACK button — page-all can't do
+  // per-person acks, so it's reserved for token-less broadcast use).
+  let memberIds: string[]
   if (target === "all") {
-    topic = ALL_TOPIC
+    try {
+      memberIds = (await listMembers()).map((m) => m.id)
+    } catch (e) {
+      return NextResponse.json({ error: `Cannot resolve roster: ${e instanceof Error ? e.message : e}` }, { status: 502 })
+    }
+    if (memberIds.length === 0) {
+      return NextResponse.json({ error: "No members to page" }, { status: 400 })
+    }
   } else {
     if (!MEMBER_ID_RE.test(target)) {
       return NextResponse.json({ error: `Invalid target: ${target}` }, { status: 400 })
@@ -58,17 +69,17 @@ export async function POST(request: NextRequest) {
     } catch {
       /* no admin token — pattern check only */
     }
-    topic = topicFor(target)
+    memberIds = [target]
   }
 
   try {
-    const published = await publishPage({
-      topic,
+    const { pageId } = await sendPage({
+      memberIds,
       message,
-      title: `PAGE from ${me.name || me.email}`,
       urgent,
+      sentBy: me.name || me.email,
     })
-    return NextResponse.json({ ok: true, id: published.id, topic })
+    return NextResponse.json({ ok: true, pageId, memberIds })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
   }

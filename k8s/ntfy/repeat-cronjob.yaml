@@ -1,0 +1,52 @@
+# Repeat-until-ack driver: every minute, tells the app to re-send any urgent
+# page that hasn't been acknowledged (policy in lib/pager/send.ts: ≥75s apart,
+# max 8 repeats, 15-min window). This is what makes iOS insistent — Apple
+# won't loop one notification, but each re-send is a fresh ding.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pager-repeat
+  namespace: subfrost
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 55
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            cloud.google.com/gke-spot: "true"
+          tolerations:
+            - key: cloud.google.com/gke-spot
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          containers:
+            - name: tick
+              image: curlimages/curl:8.11.1
+              command:
+                - sh
+                - -c
+                # In-cluster service DNS — no public round-trip, works even if
+                # the ingress is having a bad day.
+                - >-
+                  curl -sf -X POST
+                  -H "x-admin-secret: $ADMIN_SECRET"
+                  http://subfrost-io.subfrost.svc.cluster.local/api/pager/repeat
+              env:
+                - name: ADMIN_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: subfrost-io-secrets
+                      key: ADMIN_SECRET
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 50m
+                  memory: 32Mi

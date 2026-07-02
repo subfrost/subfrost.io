@@ -6,7 +6,8 @@
 //   Team:   roster = ntfy user accounts. Adding a member provisions their
 //           account + read ACLs and generates the login password, shown ONCE with
 //           step-by-step phone setup. Removing revokes everything.
-//   History: last 72h from the ntfy message cache.
+//   History: last 72h of pages with per-member ACK status. Urgent pages
+//           repeat every ~90s until the recipient taps ACK (max 8, 15 min).
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -16,13 +17,13 @@ export interface PagerMemberDisplay {
   topic: string
 }
 
-export interface PageEvent {
+export interface PageRow {
   id: string
-  time: number
-  topic: string
+  time: string // ISO
   message: string
-  title: string
+  sentBy: string
   urgent: boolean
+  targets: { memberId: string; ackedAt: string | null; repeatCount: number }[]
 }
 
 const PAGER_URL = "https://page.subfrost.io"
@@ -31,6 +32,7 @@ const displayName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1)
 
 export function PagerConsole({
   members,
+  lastAcks,
   history,
   canSend,
   canManage,
@@ -38,15 +40,13 @@ export function PagerConsole({
   rosterError,
 }: {
   members: PagerMemberDisplay[]
-  history: PageEvent[]
+  lastAcks: Record<string, string>
+  history: PageRow[]
   canSend: boolean
   canManage: boolean
   adminConfigured: boolean
   rosterError: string | null
 }) {
-  const targetName = (topic: string) =>
-    topic === "page-all" ? "everyone" : displayName(members.find((m) => m.topic === topic)?.id ?? topic.replace(/^page-/, ""))
-
   return (
     <div className="max-w-3xl space-y-10">
       {!canSend && (
@@ -58,8 +58,8 @@ export function PagerConsole({
       {rosterError && <Banner tone="warn">Could not load the roster from ntfy: {rosterError}</Banner>}
 
       <SendPanel members={members} disabled={!canSend} />
-      <TeamPanel members={members} canManage={canManage} adminConfigured={adminConfigured} />
-      <HistoryPanel history={history} targetName={targetName} />
+      <TeamPanel members={members} lastAcks={lastAcks} canManage={canManage} adminConfigured={adminConfigured} />
+      <HistoryPanel history={history} />
     </div>
   )
 }
@@ -125,7 +125,7 @@ function SendPanel({ members, disabled }: { members: PagerMemberDisplay[]; disab
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm text-white/70">
             <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
-            Urgent — alarm through Do&nbsp;Not&nbsp;Disturb
+            Urgent — alarms through DND and repeats every ~90s until ACKed
           </label>
           <button
             onClick={send}
@@ -152,10 +152,12 @@ interface NewMember {
 
 function TeamPanel({
   members,
+  lastAcks,
   canManage,
   adminConfigured,
 }: {
   members: PagerMemberDisplay[]
+  lastAcks: Record<string, string>
   canManage: boolean
   adminConfigured: boolean
 }) {
@@ -225,6 +227,14 @@ function TeamPanel({
               <span className="ml-3 font-mono text-xs text-white/40">
                 {m.topic} + page-all
               </span>
+              {/* last ACK = proof their device is set up and receiving */}
+              {lastAcks[m.id] ? (
+                <span className="ml-3 text-xs text-green-400">
+                  ✓ last ack {new Date(lastAcks[m.id]).toLocaleString()}
+                </span>
+              ) : (
+                <span className="ml-3 text-xs text-yellow-400/80">never acked — unverified</span>
+              )}
             </div>
             {canManage && (
               <button
@@ -295,7 +305,7 @@ function OnboardingCard({ member, onDismiss }: { member: NewMember; onDismiss: (
 
 /* --------------------------------- History -------------------------------- */
 
-function HistoryPanel({ history, targetName }: { history: PageEvent[]; targetName: (topic: string) => string }) {
+function HistoryPanel({ history }: { history: PageRow[] }) {
   return (
     <section>
       <h2 className="mb-3 text-lg font-semibold text-white">Last 72 hours</h2>
@@ -303,16 +313,31 @@ function HistoryPanel({ history, targetName }: { history: PageEvent[]; targetNam
         <p className="text-sm text-white/50">No pages sent recently.</p>
       ) : (
         <ul className="space-y-2">
-          {history.map((e) => (
-            <li key={e.id} className="rounded border border-white/10 bg-white/5 p-3 text-sm">
+          {history.map((p) => (
+            <li key={p.id} className="rounded border border-white/10 bg-white/5 p-3 text-sm">
               <div className="flex items-center justify-between text-white/60">
                 <span>
-                  {e.urgent && <span className="mr-2 text-red-400">■</span>}
-                  {e.title || "Page"} → {targetName(e.topic)}
+                  {p.urgent && <span className="mr-2 text-red-400">■</span>}
+                  {p.sentBy} → {p.targets.length === 1 ? displayName(p.targets[0].memberId) : `${p.targets.length} people`}
                 </span>
-                <span>{new Date(e.time * 1000).toLocaleString()}</span>
+                <span>{new Date(p.time).toLocaleString()}</span>
               </div>
-              <p className="mt-1 text-white">{e.message}</p>
+              <p className="mt-1 text-white">{p.message}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {p.targets.map((t) => (
+                  <span
+                    key={t.memberId}
+                    title={t.ackedAt ? `acked ${new Date(t.ackedAt).toLocaleString()}` : `unacked (${t.repeatCount} repeats)`}
+                    className={`rounded-full border px-2 py-0.5 text-xs ${
+                      t.ackedAt
+                        ? "border-green-600/50 bg-green-950/40 text-green-300"
+                        : "border-yellow-600/50 bg-yellow-950/30 text-yellow-300"
+                    }`}
+                  >
+                    {t.ackedAt ? "✓" : "⏳"} {displayName(t.memberId)}
+                  </span>
+                ))}
+              </div>
             </li>
           ))}
         </ul>
