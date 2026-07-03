@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import { OPRETURN_COLUMNS, type OpReturnRow } from "./opreturn-types"
+import { OPRETURN_COLUMNS, OPRETURN_OPTIONAL_COLUMNS, type OpReturnRow } from "./opreturn-types"
 
 type DbRow = Record<string, unknown>
 
@@ -7,6 +7,10 @@ function map(r: DbRow): OpReturnRow {
   const out = { date: String(r.date) } as OpReturnRow
   for (let i = 1; i < OPRETURN_COLUMNS.length; i++) {
     ;(out as unknown as Record<string, number>)[OPRETURN_COLUMNS[i]] = Number(r[OPRETURN_COLUMNS[i]])
+  }
+  for (const name of OPRETURN_OPTIONAL_COLUMNS) {
+    const v = r[name]
+    ;(out as unknown as Record<string, number | null>)[name] = v === null || v === undefined ? null : Number(v)
   }
   return out
 }
