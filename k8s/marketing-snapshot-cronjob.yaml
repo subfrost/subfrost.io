@@ -1,0 +1,64 @@
+# Daily protocol snapshot driver: fires the idempotent snapshot-cron endpoint
+# at 00:05 UTC so /admin/marketing/protocol accrues one MarketingSnapshot
+# (context DAILY) per day. Replaces the Cloud Scheduler job from deploy.yml,
+# which was never created — the deploy SA lacks serviceusage permission, so
+# that step died on `gcloud services enable` on every run (masked by
+# continue-on-error).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: marketing-daily-snapshot
+  namespace: subfrost
+spec:
+  schedule: "5 0 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # The endpoint is idempotent per UTC day, so retries are safe.
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            cloud.google.com/gke-spot: "true"
+          tolerations:
+            - key: cloud.google.com/gke-spot
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          containers:
+            - name: tick
+              image: curlimages/curl:8.11.1
+              command:
+                - sh
+                - -c
+                # In-cluster service DNS — no public round-trip, works even if
+                # the ingress is having a bad day. The Bearer header is only
+                # sent once PREFETCH_SECRET lands in the ExternalSecret; until
+                # then the endpoint runs unauthenticated (same convention as
+                # /api/prefetch).
+                - |
+                  URL=http://subfrost-io.subfrost.svc.cluster.local/api/marketing/snapshot-cron
+                  if [ -n "${PREFETCH_SECRET:-}" ]; then
+                    curl -sf --max-time 540 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
+                  else
+                    curl -sf --max-time 540 "$URL"
+                  fi
+              env:
+                - name: PREFETCH_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: subfrost-io-secrets
+                      key: PREFETCH_SECRET
+                      optional: true
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 50m
+                  memory: 32Mi
