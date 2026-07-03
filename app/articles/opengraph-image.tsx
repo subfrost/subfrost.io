@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og"
-import { readFile } from "node:fs/promises"
-import { join } from "node:path"
+import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
 
 export const alt = "SUBFROST Articles"
 export const size = {
@@ -9,19 +8,9 @@ export const size = {
 }
 export const contentType = "image/png"
 
-async function getLogomarkDataUrl() {
-  const logoData = await readFile(join(process.cwd(), "public", "brand", "subfrost", "Logos", "svg", "logomark", "logomark.svg"))
-  return `data:image/svg+xml;base64,${logoData.toString("base64")}`
-}
-
-async function getGeistFont() {
-  const fontData = await readFile(join(process.cwd(), "node_modules", "geist", "dist", "fonts", "geist-sans", "Geist-Medium.ttf"))
-  return fontData.buffer.slice(fontData.byteOffset, fontData.byteOffset + fontData.byteLength)
-}
-
 export default async function Image() {
-  const logoSrc = await getLogomarkDataUrl()
-  const geistMedium = await getGeistFont()
+  const logoSrc = await loadOgLogomark()
+  const geistMedium = await loadOgFont()
 
   return new ImageResponse(
     (
