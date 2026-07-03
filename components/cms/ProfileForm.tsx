@@ -58,14 +58,14 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
   }
 
   return (
-    <div className="max-w-xl space-y-5">
+    <div className="ed-admin-reveal max-w-2xl space-y-6">
       {canEditBio && (
         <div className="flex items-center gap-4">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-400">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[color:var(--ed-surface)] text-2xl text-[color:var(--ed-muted)]">
               {(name || initial.email)[0]?.toUpperCase()}
             </div>
           )}
@@ -74,40 +74,40 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
               {uploading ? "Uploading…" : "Change avatar"}
             </Button>
-            <p className="mt-1 text-xs text-zinc-500">PNG/JPG/WebP, up to 8MB</p>
+            <p className="mt-1 text-xs text-[color:var(--ed-muted)]">PNG/JPG/WebP, up to 8MB</p>
           </div>
         </div>
       )}
 
       <div className="space-y-1.5">
-        <Label className="text-zinc-300">Display name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <Label className="text-[color:var(--ed-body)]">Display name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} className="border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-zinc-300">Status</Label>
-        <Input value={status} onChange={(e) => setStatus(e.target.value)} maxLength={140} placeholder="What you're working on…" className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <Label className="text-[color:var(--ed-body)]">Status</Label>
+        <Input value={status} onChange={(e) => setStatus(e.target.value)} maxLength={140} placeholder="What you're working on..." className="border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" />
       </div>
       {canEditBio ? (
         <>
           <div className="space-y-1.5">
-            <Label className="text-zinc-300">Bio</Label>
-            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+            <Label className="text-[color:var(--ed-body)]">Bio</Label>
+            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-zinc-300">X / Twitter handle</Label>
-            <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@subfrost" className="bg-zinc-900 text-zinc-100 border-zinc-700" />
+            <Label className="text-[color:var(--ed-body)]">X / Twitter handle</Label>
+            <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@subfrost" className="border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]" />
           </div>
         </>
       ) : (
-        <p className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 text-xs text-zinc-500">
+        <p className="rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] p-3 text-xs text-[color:var(--ed-muted)]">
           A public author profile (bio, avatar, social handle) is available once you have editor privileges.
         </p>
       )}
 
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={pending}>Save profile</Button>
-        {msg && <span className="text-sm text-emerald-400">{msg}</span>}
-        {error && <span className="text-sm text-red-400">{error}</span>}
+        {msg && <span className="text-sm text-[#1ea463]">{msg}</span>}
+        {error && <span className="text-sm text-[#b8321a]">{error}</span>}
       </div>
     </div>
   )

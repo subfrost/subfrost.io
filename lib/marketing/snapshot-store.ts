@@ -71,3 +71,22 @@ export async function getSnapshot(id: string): Promise<SnapshotRow | null> {
 export async function deleteSnapshot(id: string): Promise<void> {
   await prisma.marketingSnapshot.delete({ where: { id } })
 }
+
+export async function listDailySnapshots(): Promise<SnapshotRow[]> {
+  const rows = (await prisma.marketingSnapshot.findMany({
+    where: { context: "DAILY" },
+    orderBy: { createdAt: "asc" },
+    include: INCLUDE,
+  })) as DbRow[]
+  return rows.map(map)
+}
+
+export async function dailySnapshotExistsOn(day: Date): Promise<boolean> {
+  const gte = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()))
+  const lt = new Date(gte.getTime() + 24 * 60 * 60 * 1000)
+  const row = await prisma.marketingSnapshot.findFirst({
+    where: { context: "DAILY", createdAt: { gte, lt } },
+    select: { id: true },
+  })
+  return row !== null
+}

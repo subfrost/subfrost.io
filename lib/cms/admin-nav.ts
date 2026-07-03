@@ -3,7 +3,8 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2, Image,
+  KanbanSquare, Target, Package, Gavel, Building2, Image, Github, CalendarClock, TrendingUp, AtSign,
+  Contact, Siren,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -40,13 +41,14 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "board", label: "Board", icon: KanbanSquare, items: [
       { label: "Tasks", href: "/admin/board", icon: KanbanSquare, privilege: "tasks.view" },
+      { label: "Issue intake", href: "/admin/board/intake", icon: Github, privilege: "tasks.view" },
       { label: "Initiatives", href: "/admin/board/initiatives", icon: Target, privilege: "tasks.view" },
       { label: "Products", href: "/admin/board/products", icon: Package, privilege: "tasks.view" },
     ],
   },
   {
-    key: "documents", label: "Documents", icon: FolderOpen, items: [
-      { label: "Documents", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
+    key: "documents", label: "Files", icon: FolderOpen, items: [
+      { label: "Files", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
     ],
   },
   {
@@ -59,7 +61,10 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "marketing", label: "Marketing", icon: LineChart, items: [
       { label: "Protocol snapshots", href: "/admin/marketing/snapshots", icon: Camera, privilege: "marketing.view" },
+      { label: "Protocol analytics", href: "/admin/marketing/protocol", icon: TrendingUp, privilege: "marketing.view" },
+      { label: "X analytics", href: "/admin/marketing/x", icon: AtSign, privilege: "marketing.view" },
       { label: "Site analytics", href: "/admin/marketing/analytics", icon: BarChart3, privilege: "marketing.view" },
+      { label: "Schedule", href: "/admin/marketing/schedule", icon: CalendarClock, privilege: "marketing.view" },
       { label: "Stat cards", href: "/admin/marketing/cards", icon: Image, privilege: "marketing.view" },
     ],
   },
@@ -97,8 +102,20 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "entities", label: "Entities", icon: Contact, items: [
+      { label: "Entities", href: "/admin/entities", icon: Contact, privilege: "legal.view" },
+    ],
+  },
+  {
     key: "legal", label: "Legal", icon: Gavel, items: [
       { label: "Entities", href: "/admin/legal", icon: Building2, privilege: "legal.view" },
+    ],
+  },
+  {
+    // Team pager (ntfy at page.subfrost.io). Ungated on purpose: anyone with an
+    // admin login may raise an emergency page.
+    key: "ops", label: "Ops", icon: Siren, items: [
+      { label: "Pager", href: "/admin/pager", icon: Siren },
     ],
   },
   {
@@ -136,6 +153,12 @@ export function isItemActive(href: string, pathname: string): boolean {
   }
   if (href === "/admin/documents") {
     return pathname === "/admin/documents" || pathname.startsWith("/admin/documents/")
+  }
+  if (href === "/admin/files") {
+    return pathname === "/admin/files" || pathname.startsWith("/admin/files/")
+  }
+  if (href === "/admin/entities") {
+    return pathname === "/admin/entities" || pathname.startsWith("/admin/entities/")
   }
   if (href === "/admin/legal") {
     return pathname === "/admin/legal" || pathname.startsWith("/admin/legal/")

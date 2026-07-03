@@ -184,6 +184,21 @@ spec:
                   name: subfrost-io-secrets
                   key: DOCUMENSO_WEBHOOK_SECRET
                   optional: true
+            # GitHub Issues integration (board intake + PR/issue sync). optional:true
+            # so the pod starts without them; absent PAT => sync disabled, intake
+            # accept/deny still works. Webhook receiver at /api/webhooks/github.
+            - name: GITHUB_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: GITHUB_PAT
+                  optional: true
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: GITHUB_WEBHOOK_SECRET
+                  optional: true
             # Anthropic Claude key for article translation (lib/cms/translate.ts:
             # the editor's "Translate with Claude" button). Lives in a STANDALONE
             # k8s Secret `anthropic-api-key` (created out-of-band, NOT the
@@ -195,6 +210,26 @@ spec:
                 secretKeyRef:
                   name: anthropic-api-key
                   key: ANTHROPIC_API_KEY
+                  optional: true
+            # Team pager (ntfy in-cluster; console at /admin/pager). The publish
+            # token lives in a STANDALONE Secret `ntfy-publish-token` (created
+            # out-of-band after minting it on the ntfy server — see
+            # k8s/ntfy/README.md), same pattern as anthropic-api-key.
+            # optional:true — absent => /admin/pager shows "not configured".
+            - name: NTFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_TOKEN
+                  optional: true
+            # Admin-role ntfy token: powers roster management (create/remove
+            # teammates + mint device tokens) from /admin/pager. Same standalone
+            # secret; absent => the console is send-only.
+            - name: NTFY_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_ADMIN_TOKEN
                   optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"

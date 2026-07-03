@@ -43,10 +43,8 @@ export async function generateMetadata({
   const url = articleUrl(slug, locale)
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const proto = requestHeaders.get("x-forwarded-proto")
-  const image = a.coverImage ? absoluteUrlForHost(a.coverImage, host, proto) : absoluteUrlForHost("/articles/opengraph-image", host, proto)
-  const imageMeta = a.coverImage
-    ? { url: image, alt: a.title }
-    : { url: image, width: 1200, height: 630, alt: a.title, type: "image/png" }
+  const image = absoluteUrlForHost(`/articles/${slug}/opengraph-image`, host, proto)
+  const imageMeta = { url: image, width: 1200, height: 630, alt: a.title, type: "image/png" }
   const tagNames = a.tags.map((tag) => categoryLabel(tag, locale)).filter((tag): tag is string => Boolean(tag))
   return {
     title: `${a.title} — SUBFROST`,
@@ -133,12 +131,11 @@ export default async function ArticlePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <div className="mx-auto max-w-[920px] px-6 pb-2 pt-8 sm:px-8 sm:pt-10">
+      <div className="mx-auto max-w-[680px] px-6 pb-2 pt-8 sm:px-8 sm:pt-10">
         <div className="flex items-center justify-between gap-4">
           <Link
             href={articleIndexHref}
-            className="font-display inline-flex items-center gap-2 text-[14px] font-medium transition-opacity hover:opacity-70"
-            style={{ color: "var(--ed-ink)" }}
+            className="font-display inline-flex items-center gap-2 text-[14px] font-medium text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-ink)]"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
             <span>{copy.backToArticles}</span>

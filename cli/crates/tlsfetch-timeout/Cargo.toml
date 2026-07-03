@@ -1,0 +1,19 @@
+[package]
+name = "tlsfetch-timeout"
+version.workspace = true
+edition.workspace = true
+# Apache-2.0 (NOT the workspace's MIT) because this crate is a fork
+# of cloudflare/pingora-timeout (Apache-2.0). See README.md and
+# src/lib.rs for the divergence list.
+license = "Apache-2.0"
+description = "Lazy-init shared-timer timeout primitive — drop-in faster replacement for tokio::time::timeout. Adapted from cloudflare/pingora-timeout."
+
+[dependencies]
+tokio = { workspace = true, features = ["time", "sync", "rt"] }
+pin-project-lite = "0.2"
+once_cell = "1"
+parking_lot = "0.12"
+thread_local = "1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }

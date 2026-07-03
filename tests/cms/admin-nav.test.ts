@@ -21,10 +21,16 @@ describe("visibleNav", () => {
     ])
   })
 
-  it("shows all 11 groups for ADMIN (all privileges)", () => {
+  it("shows all 12 groups for ADMIN (all privileges)", () => {
     const groups = visibleNav([...ALL_PRIVILEGES])
     expect(groups.map((g) => g.key)).toEqual([
-      "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "legal", "settings",
+      "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "entities", "legal", "settings",
+    ])
+    expect(groups.find((g) => g.key === "board")!.items.map((i) => i.href)).toEqual([
+      "/admin/board", "/admin/board/intake", "/admin/board/initiatives", "/admin/board/products",
+    ])
+    expect(groups.find((g) => g.key === "documents")!.items.map((i) => i.href)).toEqual([
+      "/admin/files",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
     expect(groups.find((g) => g.key === "financials")!.items.map((i) => i.href)).toEqual([
@@ -32,6 +38,7 @@ describe("visibleNav", () => {
       "/admin/financials/cap-table", "/admin/financials/safes", "/admin/financials/balance-sheet",
       "/admin/financials/reconciliation",
     ])
+    expect(groups.find((g) => g.key === "entities")!.items.map((i) => i.href)).toEqual(["/admin/entities"])
     expect(groups.find((g) => g.key === "legal")!.items.map((i) => i.href)).toEqual(["/admin/legal"])
   })
 

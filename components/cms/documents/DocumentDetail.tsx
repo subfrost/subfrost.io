@@ -4,14 +4,20 @@ import Link from "next/link"
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useRouter } from "next/navigation"
 import {
   sendDocumentAction,
   voidDocumentAction,
   resendDocumentAction,
   refreshDocumentAction,
   attachToPayeeAction,
+  reissueDocumentAction,
 } from "@/actions/cms/documents"
-import { KIND_LABELS, type EnvelopeRecord } from "@/lib/esign/types"
+import {
+  KIND_LABELS,
+  type EnvelopeRecord,
+  type SignatureEventRecord,
+} from "@/lib/esign/types"
 import {
   ENVELOPE_STATUS_LABELS,
   statusTone,
@@ -39,12 +45,19 @@ export function DocumentDetail({
   canEdit,
   payees,
   linkedPayee,
+  versions,
+  events,
+  signLinks,
 }: {
   env: EnvelopeRecord
   canEdit: boolean
   payees: PayeeOption[]
   linkedPayee: { id: string; name: string } | null
+  versions: EnvelopeRecord[]
+  events: SignatureEventRecord[]
+  signLinks: Record<string, string>
 }) {
+  const router = useRouter()
   const [env, setEnv] = useState(initial)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -66,6 +79,25 @@ export function DocumentDetail({
     })
 
   const completed = env.status === "completed"
+
+  const reissue = () =>
+    startTransition(async () => {
+      setError(null)
+      setNotice(null)
+      const res = await reissueDocumentAction(env.id)
+      if (res.ok) {
+        router.push(`/admin/documents/${res.value.id}`)
+      } else {
+        setError(res.error)
+      }
+    })
+
+  // Group forensic events per recipient email for the per-recipient list.
+  const eventsByRecipient = events.reduce<Record<string, SignatureEventRecord[]>>((acc, e) => {
+    const key = e.recipientEmail.toLowerCase()
+    ;(acc[key] ??= []).push(e)
+    return acc
+  }, {})
 
   return (
     <div className="space-y-5">
@@ -97,26 +129,59 @@ export function DocumentDetail({
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
         <h2 className="mb-3 text-sm font-semibold text-white">Recipients</h2>
         <ul className="space-y-2">
-          {env.recipients.map((r, i) => (
-            <li key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800/60 pb-2 last:border-0">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">{r.name}</span>
-                  <span className="text-xs text-zinc-500">{r.role}</span>
-                  {typeof r.signingOrder === "number" && <span className="text-xs text-zinc-600">#{r.signingOrder}</span>}
+          {env.recipients.map((r, i) => {
+            const recEvents = eventsByRecipient[r.email.toLowerCase()] ?? []
+            return (
+              <li key={i} className="border-b border-zinc-800/60 pb-2 last:border-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">{r.name}</span>
+                      <span className="text-xs text-zinc-500">{r.role}</span>
+                      {typeof r.signingOrder === "number" && <span className="text-xs text-zinc-600">#{r.signingOrder}</span>}
+                    </div>
+                    <div className="truncate text-xs text-zinc-500">{r.email}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Tag label={r.status} tone={recipientStatusTone(r.status)} />
+                    {canEdit && envelopeIsInFlight(env) && r.status !== "signed" && r.status !== "declined" && (
+                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => resendDocumentAction(env.id, [r.email]), `Reminder sent to ${r.name}.`)}>
+                        Remind
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="truncate text-xs text-zinc-500">{r.email}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Tag label={r.status} tone={recipientStatusTone(r.status)} />
-                {canEdit && envelopeIsInFlight(env) && r.status !== "signed" && r.status !== "declined" && (
-                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => resendDocumentAction(env.id, [r.email]), `Reminder sent to ${r.name}.`)}>
-                    Remind
-                  </Button>
+                {canEdit && signLinks[r.email] && envelopeIsInFlight(env) && r.status !== "signed" && r.status !== "declined" && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="text-[11px] text-sky-500 hover:text-sky-300"
+                      onClick={() => {
+                        const url = `${window.location.origin}${signLinks[r.email]}`
+                        void navigator.clipboard?.writeText(url)
+                        setNotice(`Wrapped signing link for ${r.name} copied to clipboard.`)
+                      }}
+                    >
+                      Copy forensic signing link
+                    </button>
+                  </div>
                 )}
-              </div>
-            </li>
-          ))}
+                {recEvents.length > 0 && (
+                  <ul className="mt-2 space-y-1 border-l border-zinc-800 pl-3">
+                    {recEvents.map((ev) => (
+                      <li key={ev.id} className="text-[11px] text-zinc-500">
+                        <span className="font-medium text-zinc-400">{ev.kind.toLowerCase()}</span>
+                        {" · "}{new Date(ev.createdAt).toLocaleString()}
+                        {ev.ip && <> · IP {ev.ip}</>}
+                        {ev.ja4 && <> · JA4 <span className="font-mono text-zinc-600">{ev.ja4}</span></>}
+                        {ev.ja3 && <> · JA3 <span className="font-mono text-zinc-600">{ev.ja3}</span></>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )
+          })}
         </ul>
       </div>
 
@@ -157,6 +222,49 @@ export function DocumentDetail({
           )}
         </div>
       )}
+
+      {/* Versions */}
+      <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-white">Versions</h2>
+          {canEdit && (
+            <Button size="sm" variant="ghost" disabled={pending} onClick={reissue}>
+              Reissue (new version)
+            </Button>
+          )}
+        </div>
+        <ul className="space-y-1">
+          {versions.map((v) => {
+            const isCurrent = v.id === env.id
+            const recipientsLine = v.recipients.map((r) => r.name).join(", ")
+            return (
+              <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  {isCurrent ? (
+                    <span className="font-medium text-white">v{v.version} · {v.subject}</span>
+                  ) : (
+                    <Link href={`/admin/documents/${v.id}`} className="font-medium text-sky-400 hover:underline">
+                      v{v.version} · {v.subject}
+                    </Link>
+                  )}
+                  <span className="ml-2 text-zinc-600">
+                    {v.recipients.length} recipient{v.recipients.length === 1 ? "" : "s"}
+                    {recipientsLine && ` (${recipientsLine})`}
+                    {v.fields && v.fields.length > 0 && ` · ${v.fields.length} field${v.fields.length === 1 ? "" : "s"}`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isCurrent && <Tag label="current" tone="info" />}
+                  <span className="text-zinc-600">{new Date(v.createdAt).toLocaleDateString()}</span>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+        <p className="text-[11px] text-zinc-600">
+          All versions share agreement key <span className="font-mono">{env.agreementKey ?? env.id}</span>.
+        </p>
+      </div>
 
       {/* Payee link */}
       <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">

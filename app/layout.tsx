@@ -7,6 +7,7 @@ import "@/app/globals.css"
 import { LanguageProvider } from "@/context/LanguageContext"
 import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 import { htmlLang, type Locale } from "@/lib/i18n/detect"
+import { sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth } from "@/lib/seo"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://subfrost.io'),
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
   alternates: {
     canonical: "https://subfrost.io",
+    types: { "application/rss+xml": "https://subfrost.io/feed.xml" },
   },
   keywords: [
     "SUBFROST",
@@ -41,13 +43,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://subfrost.io",
     siteName: "SUBFROST",
-    images: [{ url: '/Logo.png', alt: "SUBFROST - Bitcoin's Next-Gen DeFi Experience" }],
+    images: [{ url: sharedUnfurlImageUrl, width: sharedUnfurlImageWidth, height: sharedUnfurlImageHeight, alt: "SUBFROST - Bitcoin-native markets, AMM liquidity, and vaults" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "SUBFROST | Bitcoin-native Layer 0",
     description: "SUBFROST is the Bitcoin-native Layer 0 unlocking seamless DeFi experiences. Trade native assets, access yield products, and bridge any EVM or UTXO asset directly to Bitcoin L1.",
-    images: ['/Logo.png'],
+    images: [sharedUnfurlImageUrl],
   },
   icons: {
     icon: [

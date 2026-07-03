@@ -12,6 +12,7 @@ import {
   type PayeeRow, type PayeeType, type PaymentRow, type PeriodGranularity,
 } from "@/lib/financials/accounting/shapes"
 import { PeriodReportChart } from "@/components/cms/financials/PeriodReportChart"
+import { explorerTxUrl } from "@/lib/explorers"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
@@ -150,7 +151,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                     <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
                     <td className="font-mono text-xs text-zinc-400">
                       {settling.length === 0 ? "—" : settling.map((p) => (
-                        <a key={p.id} href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
+                        <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
                       ))}
                     </td>
                     <td>{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
@@ -217,7 +218,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
               {payments.map((p) => (
                 <tr key={p.id} className="border-t border-zinc-900">
                   <td className="py-2 font-mono text-xs text-zinc-300">
-                    <a href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
+                    <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
                   </td>
                   <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
                   <td className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>

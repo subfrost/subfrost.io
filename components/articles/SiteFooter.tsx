@@ -2,15 +2,22 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Github, Globe2 } from "lucide-react"
+import { useState } from "react"
 import DiscordIcon from "@/components/DiscordIcon"
 import XIcon from "@/components/XIcon"
 import { SubscribePanel } from "./SubscribePanel"
 import { ThemeToggle } from "./ThemeToggle"
+import { rememberEditorialLocale } from "./localePreference"
+import { externalLinks } from "@/lib/external-links"
+import { externalAnchorProps } from "@/lib/link-behavior"
+
+const LOCALE_EXIT_MS = 160
 
 export function SiteFooter() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isLocaleNavigating, setIsLocaleNavigating] = useState(false)
   const locale = searchParams.get("lang") === "zh" ? "zh" : "en"
   const isZh = locale === "zh"
   const languageLabel = locale === "zh" ? "中文" : "English"
@@ -21,9 +28,10 @@ export function SiteFooter() {
           {
             title: "开发者",
             links: [
-              { label: "文档", href: "https://docs.subfrost.io/" },
-              { label: "技术概览", href: "https://docs.subfrost.io/introduction/technical-overview" },
-              { label: "API 文档", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+              { label: "开发者入口", href: "/developer?lang=zh" },
+              { label: "文档", href: externalLinks.docs },
+              { label: "API 文档", href: externalLinks.apiDocs },
+              { label: "API 登录", href: externalLinks.apiLogin },
             ],
           },
           {
@@ -37,10 +45,10 @@ export function SiteFooter() {
           {
             title: "公司",
             links: [
-              { label: "支持", href: "/support" },
+              { label: "支持", href: "/support?lang=zh" },
               { label: "品牌资源", href: "/brand?lang=zh" },
-              { label: "服务条款", href: "/terms" },
-              { label: "隐私政策", href: "/privacy" },
+              { label: "服务条款", href: "/terms?lang=zh" },
+              { label: "隐私政策", href: "/privacy?lang=zh" },
             ],
           },
         ]
@@ -48,9 +56,10 @@ export function SiteFooter() {
           {
             title: "Developer",
             links: [
-              { label: "Docs", href: "https://docs.subfrost.io/" },
-              { label: "Technical overview", href: "https://docs.subfrost.io/introduction/technical-overview" },
-              { label: "API docs", href: "https://docs.subfrost.io/introduction/subfrost-api-docs" },
+              { label: "Developer", href: "/developer" },
+              { label: "Docs", href: externalLinks.docs },
+              { label: "API docs", href: externalLinks.apiDocs },
+              { label: "API login", href: externalLinks.apiLogin },
             ],
           },
           {
@@ -73,9 +82,21 @@ export function SiteFooter() {
         ]
 
   function toggleLocale() {
+    if (isLocaleNavigating) return
+
+    const nextLocale = isZh ? "en" : "zh"
     const params = new URLSearchParams(searchParams.toString())
-    params.set("lang", isZh ? "en" : "zh")
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    params.set("lang", nextLocale)
+    rememberEditorialLocale(nextLocale)
+    setIsLocaleNavigating(true)
+
+    const root = document.getElementById("ed-root")
+    root?.classList.add("ed-page-exiting")
+
+    window.setTimeout(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false })
+      setIsLocaleNavigating(false)
+    }, LOCALE_EXIT_MS)
   }
 
   return (
@@ -92,6 +113,7 @@ export function SiteFooter() {
                 <a
                   key={link.href}
                   href={link.href}
+                  {...externalAnchorProps(link.href)}
                   className="font-display text-[14px] font-normal transition-opacity hover:opacity-65"
                   style={{ color: "var(--ed-ink)" }}
                 >
@@ -115,16 +137,6 @@ export function SiteFooter() {
             <XIcon className="h-4 w-4" />
           </a>
           <a
-            href="https://github.com/subfrost"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Subfrost on GitHub"
-            className="transition-opacity hover:opacity-65"
-            style={{ color: "var(--ed-ink)" }}
-          >
-            <Github className="h-4 w-4" strokeWidth={2.2} />
-          </a>
-          <a
             href="https://discord.gg/qrWgJgNAUj"
             target="_blank"
             rel="noopener noreferrer"
@@ -134,18 +146,30 @@ export function SiteFooter() {
           >
             <DiscordIcon className="h-4 w-4" />
           </a>
+          <a
+            href="https://github.com/subfrost"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Subfrost on GitHub"
+            className="transition-opacity hover:opacity-65"
+            style={{ color: "var(--ed-ink)" }}
+          >
+            <Github className="h-4 w-4" strokeWidth={2.2} />
+          </a>
         </div>
 
         <div className="font-display flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-          <span>&copy; 2025 Subzero Research Inc.</span>
+          <span>&copy; 2026 Subzero Research Inc.</span>
         </div>
 
         <div className="font-display flex items-center justify-center gap-2 lg:justify-end">
           <button
             type="button"
             onClick={toggleLocale}
+            disabled={isLocaleNavigating}
+            aria-busy={isLocaleNavigating}
             aria-label={`Switch to ${isZh ? "English" : "Chinese"}`}
-            className="inline-flex items-center gap-2 rounded-full px-4 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+            className="inline-flex h-10 items-center gap-2 rounded-full px-4 outline-none disabled:pointer-events-none disabled:opacity-55 focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
             style={{
               background: "color-mix(in srgb, var(--ed-ink) 7%, transparent)",
             }}

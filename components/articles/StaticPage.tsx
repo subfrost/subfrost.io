@@ -16,7 +16,7 @@ export function StaticPage({
     <EditorialShell>
       <main className="relative overflow-hidden">
         <section style={{ background: "var(--ed-canvas)" }}>
-          <div className="mx-auto max-w-[1440px] px-6 pb-14 pt-14 sm:px-8 sm:pb-20 sm:pt-[88px]">
+          <div className="mx-auto max-w-[1440px] px-6 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-[66px]">
             <div className="max-w-[920px]">
               <h1 className="font-display text-balance text-[44px] font-normal leading-none sm:text-[64px]" style={{ color: "var(--ed-ink)" }}>
                 {title}

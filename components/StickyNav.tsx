@@ -5,6 +5,7 @@ import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 import LanguageToggle from "@/components/LanguageToggle"
 import StableText from "@/components/StableText"
+import { externalLinks } from "@/lib/external-links"
 
 const NAV_HEIGHT = 58
 
@@ -89,7 +90,7 @@ export default function StickyNav() {
               <StableText textKey="nav.blog" />
             </a>
             <a
-              href="https://docs.subfrost.io/"
+              href={externalLinks.docs}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("docs_click", { event_category: "navigation", event_label: "sticky_nav" })}
@@ -98,7 +99,7 @@ export default function StickyNav() {
               <StableText textKey="nav.docs" />
             </a>
             <a
-              href="https://api.subfrost.io"
+              href={externalLinks.apiLogin}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "sticky_nav" })}

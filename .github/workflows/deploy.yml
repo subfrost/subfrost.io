@@ -151,6 +151,33 @@ jobs:
 
           echo "Prefetch scheduler job created/updated"
 
+      - name: Setup Daily Snapshot Scheduler
+        if: ${{ env.PREFETCH_SECRET != '' }}
+        # Non-fatal for the same reason as the prefetch scheduler (see above).
+        continue-on-error: true
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --quiet
+
+          if gcloud scheduler jobs describe subfrost-daily-snapshot --location=${{ env.REGION }} > /dev/null 2>&1; then
+            gcloud scheduler jobs delete subfrost-daily-snapshot --location=${{ env.REGION }} --quiet
+          fi
+
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+
+          gcloud scheduler jobs create http subfrost-daily-snapshot \
+            --location=${{ env.REGION }} \
+            --schedule="5 0 * * *" \
+            --uri="${SERVICE_URL}/api/marketing/snapshot-cron" \
+            --http-method=GET \
+            --headers="Authorization=Bearer ${{ secrets.PREFETCH_SECRET }}" \
+            --time-zone="UTC" \
+            --attempt-deadline="540s" \
+            --description="Captures one protocol snapshot per day at 00:05 UTC"
+
+          echo "Daily snapshot scheduler job created/updated"
+
       - name: Update Cloudflare DNS
         if: ${{ vars.CLOUDFLARE_DOMAIN != '' }}
         env:

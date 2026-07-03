@@ -47,6 +47,7 @@ function mapErr(e: unknown): { ok: false; error: string } {
 function revalidate() {
   revalidatePath(LEGAL_PATH)
   revalidatePath(SAFES_PATH)
+  revalidatePath("/admin/entities")
 }
 
 // ---------- reads ----------------------------------------------------
@@ -113,7 +114,7 @@ export async function updateEntityAction(id: string, patch: Partial<EntityInput>
   try {
     const value = await updateEntity(id, patch)
     await audit("legal_entity_update", { actorId: g.me.id, target: value.name, ip: await ip() })
-    revalidate(); revalidatePath(`/admin/legal/entities/${id}`)
+    revalidate(); revalidatePath(`/admin/legal/entities/${id}`); revalidatePath(`/admin/entities/${id}`)
     return { ok: true, value }
   } catch (e) { return mapErr(e) }
 }

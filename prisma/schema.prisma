@@ -296,6 +296,8 @@ model User {
   folders            Folder[]             @relation("FolderCreator")
   driveFiles         DriveFile[]          @relation("FileCreator")
   marketingSnapshots MarketingSnapshot[]  @relation("SnapshotCreator")
+  marketingPushes    MarketingPush[]      @relation("PushCreator")
+  recurringPushes    RecurringPush[]      @relation("RecurringPushCreator")
   tasksOwned         Task[]               @relation("TaskOwner")
   taskComments       TaskComment[]        @relation("TaskCommentAuthor")
 
@@ -385,7 +387,10 @@ model Article {
   tags               Tag[]                @relation("ArticleTags")
   translations       ArticleTranslation[]
   revisions          Revision[]
+  versions           ArticleVersion[]
+  comments           ArticleComment[]
   marketingSnapshots MarketingSnapshot[]
+  marketingPushes    MarketingPush[]
 
   publishedAt DateTime?
   notifiedAt  DateTime?
@@ -434,6 +439,62 @@ model Revision {
   createdAt DateTime @default(now())
 
   @@index([articleId, createdAt])
+}
+
+// WS5 — lifecycle-aware version snapshot of an article translation. Unlike the
+// append-only Revision, versions carry a monotonic number (per article+locale)
+// and a lifecycle stage, and are the anchor target for review comments.
+model ArticleVersion {
+  id        String              @id @default(cuid())
+  article   Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  locale    Locale
+  number    Int // monotonic per (articleId, locale)
+  stage     ArticleVersionStage @default(DRAFT)
+  title     String
+  body      String // Markdown snapshot
+  // loose ref to the editing User (no FK, matching Revision-free models here)
+  editorId  String?
+  createdAt DateTime            @default(now())
+  comments  ArticleComment[]
+
+  @@unique([articleId, locale, number])
+  @@index([articleId, locale])
+}
+
+enum ArticleVersionStage {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+// WS5 — inline reviewer annotation anchored to a text range in a version, via a
+// W3C-TextQuoteSelector-style `anchor` (exact quote + prefix/suffix + block idx)
+// so it re-locates after edits. `status` ORPHANED when it can no longer anchor.
+model ArticleComment {
+  id        String               @id @default(cuid())
+  article   Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  version   ArticleVersion?      @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  versionId String?
+  locale    Locale
+  // loose ref to the commenting User; color is derived from this id client-side
+  authorId  String
+  anchor    Json // { quote, prefix, suffix, blockIndex, start, end }
+  body      String
+  status    ArticleCommentStatus @default(OPEN)
+  parentId  String? // thread parent (self-ref by id)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([articleId, versionId])
+  @@index([parentId])
+}
+
+enum ArticleCommentStatus {
+  OPEN
+  RESOLVED
+  ORPHANED
 }
 
 // Email subscribers for news/article updates.
@@ -536,10 +597,16 @@ model ApiKey {
 model Folder {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a parent. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   parentId    String?
   parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    Folder[] @relation("FolderTree")
   files       DriveFile[]
+  // Which drive this folder lives in. SUBFROST is the default drive; OYL is the
+  // separate "OYL Drive" nav section. Mirrors LegalScope on entities.
+  scope       LegalScope @default(SUBFROST)
   createdById String?
   createdBy   User?    @relation("FolderCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -547,27 +614,84 @@ model Folder {
 
   // unique name within a parent (root = parentId null)
   @@unique([parentId, name])
+  // slug uniqueness is enforced in app code (uniqueFolderSlug); a plain index
+  // keeps the automated `prisma db push` (k8s migrate initContainer, no
+  // --accept-data-loss) purely additive rather than adding a unique constraint.
+  @@index([parentId, slug])
   @@index([parentId])
+  @@index([scope])
 }
 
 model DriveFile {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a folder. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   folderId    String?
   folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  // Which drive this file lives in (denormalized from its folder so root-level
+  // files and scope filtering are unambiguous).
+  scope       LegalScope @default(SUBFROST)
   // Object key in the subfrost-docs bucket (stable across rename/move).
   gcsObject   String   @unique
   mimeType    String
   size        BigInt
   metadata    Json     @default("{}")
   tags        String[] @default([])
+  // Primary document-type classification (controlled slug, see lib/files/doc-types.ts)
+  // and execution status (executed/unsigned/draft/…). Nullable so `db push` stays
+  // additive; populated by the classifier + editable in the file details panel.
+  docType     String?
+  docStatus   String?
+  // Extracted, searchable plain text of the document body (capped), so search can
+  // match *inside* documents (Google-Drive style), not just the filename. Backfilled
+  // by scripts/backfill-content-text.mjs; refreshed on re-upload.
+  contentText String?
+  // graph links to the entities/people this file concerns (signatories, etc.)
+  entityLinks EntityFileLink[]
+  // e-sign envelopes launched from this file (WS3 "Request Signatures").
+  envelopes   Envelope[] @relation("EnvelopeSource")
   createdById String?
   createdBy   User?    @relation("FileCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([folderId, name])
+  // slug uniqueness enforced in app code (uniqueFileSlug); plain index so the
+  // automated db push stays additive (see Folder.slug note).
+  @@index([folderId, slug])
   @@index([folderId])
+  @@index([scope])
+  @@index([docType])
+}
+
+// How an entity/person relates to a document. SIGNATORY = signed it,
+// COUNTERPARTY = the other side, SUBJECT = the doc is about them, MENTIONED =
+// named but not a party. This is the "graph matrix of labels/annotations" that
+// ties registry entities to the files we hold on them.
+enum EntityFileRole {
+  SIGNATORY
+  COUNTERPARTY
+  SUBJECT
+  MENTIONED
+}
+
+model EntityFileLink {
+  id          String         @id @default(cuid())
+  fileId      String
+  file        DriveFile      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  entityId    String
+  entity      LegalEntity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  role        EntityFileRole @default(SUBJECT)
+  annotation  String?
+  // loose ref to the admin User who created the link (no FK, like LegalEntity.userId)
+  createdById String?
+  createdAt   DateTime       @default(now())
+
+  @@unique([fileId, entityId, role])
+  @@index([fileId])
+  @@index([entityId])
 }
 
 // ============================================
@@ -979,6 +1103,19 @@ model Envelope {
   // "legal paperwork they've signed" section of the payee profile.
   payeeId              String?
   payee                Payee?    @relation(fields: [payeeId], references: [id], onDelete: SetNull)
+  // Optional source file this envelope was launched from ("Request Signatures"
+  // from the Files view), and the registry entity it concerns.
+  sourceFileId         String?
+  sourceFile           DriveFile?   @relation("EnvelopeSource", fields: [sourceFileId], references: [id], onDelete: SetNull)
+  entityId             String?
+  entity               LegalEntity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  // Versioning: all versions of one agreement share `agreementKey`; `version`
+  // increments; `parentEnvelopeId` points at the immediately-prior version.
+  agreementKey         String?
+  version              Int       @default(1)
+  parentEnvelopeId     String?
+  // Forensic capture of view/sign events (JA3/JA4/IP/headers).
+  signatureEvents      SignatureEvent[]
   createdBy            String // operator email
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -987,6 +1124,35 @@ model Envelope {
   @@index([payeeId])
   @@index([externalDocumentId])
   @@index([createdAt])
+  @@index([agreementKey])
+  @@index([entityId])
+  @@index([sourceFileId])
+}
+
+// Per-recipient forensic record of a view/sign/decline, captured either at the
+// signing-proxy redirect (/sign/[token], which sees the tlsd-injected TLS
+// fingerprint headers) or from a Documenso webhook (no fingerprint there).
+model SignatureEvent {
+  id             String   @id @default(cuid())
+  envelope       Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId     String
+  recipientEmail String
+  kind           SignatureEventKind
+  ip             String?
+  userAgent      String?
+  ja3            String?
+  ja4            String?
+  headers        Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@index([envelopeId])
+  @@index([recipientEmail])
+}
+
+enum SignatureEventKind {
+  VIEWED
+  SIGNED
+  DECLINED
 }
 
 // ============================================
@@ -1267,12 +1433,19 @@ model LegalEntity {
   payeeId       String? // accounting Payee
   shareholderId String? // cap-table Shareholder
   notes         String?
+  // Free-form tags for the entity dossier (distinct from article Tag).
+  tags          String[]            @default([])
+  // Taproot / EVM addresses associated with this entity — used to join FUEL
+  // allocations and on-chain payments into the dossier.
+  addresses     String[]            @default([])
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
   agreements LegalAgreement[]
   deserter   Deserter?
   obligation OylObligation?
+  fileLinks  EntityFileLink[]
+  envelopes  Envelope[]
 
   @@index([category])
   @@index([scope])
@@ -1427,6 +1600,16 @@ model Task {
   initiative   Initiative?  @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
   createdById  String?
   position     Float        @default(0)
+  // Optional GitHub linkage: an issue or PR (across the allow-listed repos) this
+  // task tracks. Set when an intake issue is accepted, or linked manually. The
+  // webhook pulls state changes here; moving to DONE can push-close the issue.
+  githubRepo   String?      // "subfrost/subfrost-app"
+  githubNumber Int?         // issue/PR number
+  githubUrl    String?      // html_url
+  githubKind   String?      // "ISSUE" | "PR"
+  githubState  String?      // open | closed | merged
+  githubSyncedAt DateTime?
+  intakeIssue  GithubIssue? // back-relation when this task came from triaged intake
   // Soft delete: non-null = in the recycle bin. Lists filter these out; the
   // recycle bin restores (clear) or purges (hard delete) them.
   deletedAt    DateTime?
@@ -1438,6 +1621,42 @@ model Task {
   @@index([initiativeId])
   @@index([ownerId])
   @@index([deletedAt])
+  @@index([githubRepo, githubNumber])
+}
+
+// External GitHub issues filed by non-team members across the allow-listed
+// repos. They land here (PENDING) via the webhook — NOT directly on the board —
+// so triage stays a deliberate accept/deny step and the board stays lightweight.
+// Accepting creates a board Task (status REQUESTED) linked back via taskId.
+enum GithubIntakeState {
+  PENDING
+  ACCEPTED
+  DENIED
+}
+
+model GithubIssue {
+  id          String            @id @default(cuid())
+  repo        String            // "subfrost/subfrost-app"
+  number      Int               // issue number within the repo
+  title       String
+  body        String            @default("")
+  author      String            @default("") // GitHub login of the opener
+  url         String            // html_url
+  state       String            @default("open") // GitHub issue state: open | closed
+  labels      String[]          @default([])
+  intake      GithubIntakeState @default(PENDING)
+  // when ACCEPTED, the board task this became:
+  taskId      String?           @unique
+  task        Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  triagedById String?           // admin User who accepted/denied
+  triagedAt   DateTime?
+  raw         Json?             // last webhook payload snapshot (for debugging)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([repo, number])
+  @@index([intake])
+  @@index([repo])
 }
 
 model TaskComment {
@@ -1450,4 +1669,115 @@ model TaskComment {
   createdAt DateTime @default(now())
 
   @@index([taskId])
+}
+
+enum PushChannel {
+  ARTICLE
+  X
+  EMAIL
+  STAT_CARD
+  OTHER
+}
+
+enum PushStatus {
+  IDEA
+  SCHEDULED
+  PUBLISHED
+  CANCELED
+}
+
+enum PushFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model MarketingPush {
+  id             String         @id @default(cuid())
+  title          String
+  channel        PushChannel
+  status         PushStatus     @default(IDEA)
+  scheduledFor   DateTime?
+  publishedAt    DateTime?
+  articleId      String?
+  article        Article?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  refUrl         String?
+  notes          String?
+  metrics        Json?
+  screenshotUrl  String?
+  recurrenceId   String?
+  recurrence     RecurringPush? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  recurrenceDate DateTime?
+  createdById    String?
+  createdBy      User?          @relation("PushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([recurrenceId, recurrenceDate])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([status])
+  @@index([articleId])
+}
+
+model RecurringPush {
+  id           String          @id @default(cuid())
+  title        String
+  channel      PushChannel     @default(ARTICLE)
+  frequency    PushFrequency   @default(WEEKLY)
+  dayOfWeek    Int
+  dayOfMonth   Int?
+  active       Boolean         @default(true)
+  defaultNotes String?
+  startDate    DateTime
+  endDate      DateTime?
+  instances    MarketingPush[]
+  createdById  String?
+  createdBy    User?           @relation("RecurringPushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+// ============================================
+// TEAM PAGER (ntfy at page.subfrost.io)
+// ============================================
+
+// One row per page sent from /admin/pager (or a future bridge). Urgent pages
+// fan out to each member's personal topic with a per-member ACK action; the
+// repeat endpoint re-sends until acked or capped.
+model PagerPage {
+  id        String        @id @default(cuid())
+  message   String
+  urgent    Boolean       @default(true)
+  sentBy    String // CMS user email/name, for attribution
+  createdAt DateTime      @default(now())
+  targets   PagerTarget[]
+
+  @@index([createdAt])
+}
+
+// One row per (page, member): carries the unguessable ACK token embedded in
+// the notification's ACK button, and the ack/repeat state.
+model PagerTarget {
+  id          String    @id @default(cuid())
+  page        PagerPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId      String
+  memberId    String // ntfy username (page-<memberId>)
+  ackToken    String    @unique @default(cuid())
+  ackedAt     DateTime?
+  repeatCount Int       @default(0)
+  lastSentAt  DateTime  @default(now())
+
+  @@index([pageId])
+  @@index([memberId, ackedAt])
+}
+
+// Pager member metadata overlaying the ntfy account: display nickname (shown
+// on chips/history/team) and the CMS email linkage that lets a member edit
+// their own nickname from /admin/pager.
+model PagerMember {
+  memberId  String   @id // ntfy username
+  nickname  String?
+  cmsEmail  String?  @unique
+  updatedAt DateTime @updatedAt
 }

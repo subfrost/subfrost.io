@@ -77,5 +77,6 @@ export async function POST(req: NextRequest) {
   revalidatePath("/")
   revalidatePath("/articles")
   revalidatePath(`/articles/${res.slug}`)
+  revalidatePath(`/authors/${res.authorId}`)
   return NextResponse.json({ ok: true, slug: res.slug, id: res.id, url: `/articles/${res.slug}` }, { status: 201 })
 }

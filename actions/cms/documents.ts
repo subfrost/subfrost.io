@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import { audit } from "@/lib/cms/audit"
-import { envelopes, esign, EsignError, type EsignActor } from "@/lib/esign/store"
+import {
+  envelopes,
+  esign,
+  EsignError,
+  documentsTimeline,
+  listSignatureEvents,
+  type EsignActor,
+  type EsignViewer,
+} from "@/lib/esign/store"
 import { documenso } from "@/lib/esign/documenso"
 import {
   EnvelopeCreateSchema,
@@ -14,10 +22,13 @@ import {
   type Field,
   type TemplateRecord,
   type EnvelopeFromTemplateInput,
+  type SignatureEventRecord,
+  type TimelineRow,
 } from "@/lib/esign/types"
 
 const DOCS_READ = "documents.read"
 const DOCS_WRITE = "documents.write"
+const DOCS_VIEW_ALL = "documents.view_all"
 const PATH = "/admin/documents"
 
 async function ip(): Promise<string | null> {
@@ -36,6 +47,12 @@ async function gate(
 
 function actorOf(me: CmsUser): EsignActor {
   return { id: me.id, email: me.email }
+}
+
+// Read-scope: ADMIN (and anyone granted documents.view_all) sees every
+// envelope; everyone else sees only what they created.
+function viewerOf(me: CmsUser): EsignViewer {
+  return { email: me.email, canViewAll: me.privileges.includes(DOCS_VIEW_ALL) }
 }
 
 export type MutResult<T> = { ok: true; value: T } | { ok: false; error: string }
@@ -59,7 +76,7 @@ export async function documentsOverviewAction(): Promise<DocumentsOverviewResult
   } catch {
     templates = []
   }
-  const list = await envelopes.list()
+  const list = await envelopes.list({}, viewerOf(g.me))
   return {
     ok: true,
     overview: { envelopes: list, templates, documensoLive: list.length >= 0 && hasCreds() },
@@ -216,6 +233,119 @@ export async function listTemplatesAction(): Promise<ListTemplatesResult> {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not load templates" }
   }
+}
+
+export async function createFromFileAction(input: {
+  fileId: string
+  kind?: EnvelopeKind
+  subject: string
+  message?: string
+  recipients: RecipientInput[]
+  fields?: Field[]
+  signingOrderEnabled?: boolean
+  expiresAt?: string
+  entityId?: string | null
+  payeeId?: string | null
+}): Promise<MutResult<{ id: string }>> {
+  const g = await gate("write")
+  if (!g.ok) return { ok: false, error: "unauthorized" }
+  // Reuse the shared schema for recipient/field/expiry validation (the PDF
+  // comes from the DriveFile, so no upload — sendNow ignored here).
+  const parsed = EnvelopeCreateSchema.safeParse({
+    kind: input.kind ?? "other",
+    subject: input.subject,
+    message: input.message,
+    recipients: input.recipients,
+    fields: input.fields,
+    signingOrderEnabled: input.signingOrderEnabled ?? false,
+    expiresAt: input.expiresAt,
+    sendNow: false,
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid envelope" }
+  }
+  try {
+    const env = await esign.createFromFile(
+      {
+        fileId: input.fileId,
+        kind: parsed.data.kind,
+        subject: parsed.data.subject,
+        message: parsed.data.message,
+        recipients: parsed.data.recipients,
+        fields: parsed.data.fields,
+        signingOrderEnabled: parsed.data.signingOrderEnabled,
+        expiresAt: parsed.data.expiresAt,
+        entityId: input.entityId ?? null,
+        payeeId: input.payeeId ?? null,
+      },
+      actorOf(g.me),
+    )
+    await audit("document_create", { actorId: g.me.id, target: env.id, ip: await ip(), details: { subject: env.subject, kind: env.kind, sourceFileId: input.fileId } })
+    revalidatePath(PATH)
+    return { ok: true, value: { id: env.id } }
+  } catch (e) {
+    if (e instanceof EsignError) return { ok: false, error: e.message }
+    return { ok: false, error: e instanceof Error ? e.message : "Create from file failed" }
+  }
+}
+
+export async function reissueDocumentAction(
+  id: string,
+  changes: {
+    subject?: string
+    message?: string
+    recipients?: RecipientInput[]
+    fields?: Field[]
+    signingOrderEnabled?: boolean
+    expiresAt?: string
+    kind?: EnvelopeKind
+    entityId?: string | null
+    payeeId?: string | null
+  } = {},
+): Promise<MutResult<{ id: string }>> {
+  const g = await gate("write")
+  if (!g.ok) return { ok: false, error: "unauthorized" }
+  try {
+    const env = await esign.reissue(id, changes, actorOf(g.me))
+    await audit("document_create", { actorId: g.me.id, target: env.id, ip: await ip(), details: { subject: env.subject, reissuedFrom: id, version: env.version } })
+    revalidatePath(PATH)
+    revalidatePath(`${PATH}/${id}`)
+    return { ok: true, value: { id: env.id } }
+  } catch (e) {
+    if (e instanceof EsignError) return { ok: false, error: e.message }
+    return { ok: false, error: e instanceof Error ? e.message : "Reissue failed" }
+  }
+}
+
+export type ListVersionsResult =
+  | { ok: true; versions: EnvelopeRecord[] }
+  | { ok: false; error: "unauthorized" }
+
+export async function listVersionsAction(agreementKey: string): Promise<ListVersionsResult> {
+  const g = await gate("read")
+  if (!g.ok) return g
+  const versions = await esign.listVersions(agreementKey)
+  return { ok: true, versions }
+}
+
+export type SignatureEventsResult =
+  | { ok: true; events: SignatureEventRecord[] }
+  | { ok: false; error: "unauthorized" }
+
+export async function signatureEventsAction(id: string): Promise<SignatureEventsResult> {
+  const g = await gate("read")
+  if (!g.ok) return g
+  return { ok: true, events: await listSignatureEvents(id) }
+}
+
+export type TimelineResult =
+  | { ok: true; rows: TimelineRow[] }
+  | { ok: false; error: "unauthorized" }
+
+export async function documentsTimelineAction(): Promise<TimelineResult> {
+  const g = await gate("read")
+  if (!g.ok) return g
+  return { ok: true, rows: await documentsTimeline(viewerOf(g.me)) }
 }
 
 export async function attachToPayeeAction(

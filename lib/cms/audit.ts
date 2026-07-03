@@ -78,6 +78,8 @@ export type AuditAction =
   | "balance_sheet_item_delete"
   | "file_upload"
   | "file_delete"
+  | "file_entity_link"
+  | "file_entity_unlink"
   | "marketing_snapshot_create"
   | "marketing_snapshot_delete"
   | "task_create"
@@ -109,6 +111,11 @@ export type AuditAction =
   | "legal_obligation_upsert"
   | "legal_reconciliation_view"
   | "marketing_opreturn_sync"
+  | "github_issue_accept"
+  | "github_issue_deny"
+  | "github_task_link"
+  | "github_task_unlink"
+  | "github_task_sync"
 
 export async function audit(
   action: AuditAction,

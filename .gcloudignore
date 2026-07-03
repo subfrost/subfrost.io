@@ -12,6 +12,7 @@ node_modules/
 
 # Large build/IaC artifacts — never needed in a Cloud Build source upload
 rust/target/
+cli/target/
 **/.terraform/
 *.tfstate
 *.tfstate.*

@@ -11,6 +11,7 @@ resources:
   - ingress.yaml
   - pdb.yaml
   - opreturn-sync-cronjob.yaml
+  - ntfy
 
 # Pin the image to an immutable SHORT_SHA tag (the Cloud Build trigger produces
 # one per commit). Bump this per release — Flux rolls out when the tag changes.
@@ -18,4 +19,4 @@ resources:
 # updates (and `kubectl rollout restart` gets reverted on the next reconcile).
 images:
   - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
-    newTag: "c1ea9c6"
+    newTag: "66e030b9750cdf0e0b3f7954597e825e36df8b40"

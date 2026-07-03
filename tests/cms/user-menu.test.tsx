@@ -24,11 +24,17 @@ describe("UserMenu", () => {
     const { getByRole, queryByText, getByText } = render(
       <UserMenu name="Vitor" email="v@s.io" role="ADMIN" />,
     )
-    expect(queryByText("My profile")).toBeNull()
+    expect(queryByText("Profile")).toBeNull()
     fireEvent.click(getByRole("button", { name: /Vitor/ }))
-    expect(getByText("My profile")).toBeTruthy()
+    expect(getByText("Profile")).toBeTruthy()
     expect(getByText("View articles")).toBeTruthy()
     expect(getByText("Sign out")).toBeTruthy()
+  })
+
+  it("prefers status over role when present", () => {
+    const { getByText, queryByText } = render(<UserMenu name="Vitor" email="v@s.io" role="ADMIN" status="Shipping articles" />)
+    expect(getByText("Shipping articles")).toBeTruthy()
+    expect(queryByText("ADMIN")).toBeNull()
   })
 
   it("renders Sign out as a submit button inside a form", () => {
@@ -42,16 +48,16 @@ describe("UserMenu", () => {
   it("closes the popover on an outside mousedown", () => {
     const { getByRole, queryByText } = render(<UserMenu name="Vitor" email="v@s.io" role="ADMIN" />)
     fireEvent.click(getByRole("button", { name: /Vitor/ }))
-    expect(queryByText("My profile")).not.toBeNull()
+    expect(queryByText("Profile")).not.toBeNull()
     fireEvent.mouseDown(document.body)
-    expect(queryByText("My profile")).toBeNull()
+    expect(queryByText("Profile")).toBeNull()
   })
 
   it("closes the popover on Escape", () => {
     const { getByRole, queryByText } = render(<UserMenu name="Vitor" email="v@s.io" role="ADMIN" />)
     fireEvent.click(getByRole("button", { name: /Vitor/ }))
-    expect(queryByText("My profile")).not.toBeNull()
+    expect(queryByText("Profile")).not.toBeNull()
     fireEvent.keyDown(document, { key: "Escape" })
-    expect(queryByText("My profile")).toBeNull()
+    expect(queryByText("Profile")).toBeNull()
   })
 })

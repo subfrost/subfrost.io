@@ -87,6 +87,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "aml.edit", label: "Compliance — edit", description: "Disposition KYC, draft/queue FinCEN filings, and manage MTL records.", category: "compliance", implies: ["aml.read"] },
   { code: "documents.read", label: "Documents — view", description: "View the e-sign document inbox: envelopes, recipients, and signing status.", category: "compliance", implies: [] },
   { code: "documents.write", label: "Documents — send", description: "Create and send envelopes for signature, void, resend, and link signed paperwork to payees.", category: "compliance", implies: ["documents.read"] },
+  { code: "documents.view_all", label: "Documents — view all", description: "See every e-sign envelope and the org-wide activity timeline, not just ones you created.", category: "compliance", implies: ["documents.read"] },
   { code: "compliance.reviews", label: "Reviewer links — manage", description: "Mint, list, and revoke delegated external-reviewer links to the compliance surfaces.", category: "compliance", implies: [] },
 
   // --- Billing ---
@@ -216,6 +217,8 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/kyc": { view: "aml.read", edit: "aml.edit" },
   "/admin/fincen": { view: "aml.read", edit: "aml.edit" },
   "/admin/mtl": { view: "aml.read", edit: "aml.edit" },
+  "/admin/files": { view: "files.read", edit: "files.edit" },
+  "/admin/oyl": { view: "files.read", edit: "files.edit" },
   "/admin/documents": { view: "documents.read", edit: "documents.write" },
   "/admin/compliance/reviews": { view: "compliance.reviews", edit: "compliance.reviews" },
   "/admin/billing": { view: "billing.read", edit: "billing.edit" },
@@ -237,6 +240,7 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/marketing/snapshots": { view: "marketing.view" },
   "/admin/marketing/cards": { view: "marketing.view" },
   "/admin/board": { view: "tasks.view", edit: "tasks.edit" },
+  "/admin/board/intake": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/products": { view: "tasks.view", edit: "tasks.edit" },
 }

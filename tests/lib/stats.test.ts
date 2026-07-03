@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/stats-store', () => ({ storeGetAll: vi.fn() }))
+vi.mock('@/lib/stats-store', () => ({
+  storeGetAll: vi.fn(),
+  storeGetLatestUpdatedAt: vi.fn(async () => null),
+}))
 
 import { getStats } from '@/lib/stats'
 import { storeGetAll } from '@/lib/stats-store'

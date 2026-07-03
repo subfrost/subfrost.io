@@ -1,0 +1,24 @@
+[package]
+name = "subfrost-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "subfrost — CLI for subfrost.io admin/IAM operations over tlsfetch's fingerprint-emulating HTTP client"
+
+[[bin]]
+name = "subfrost"
+path = "src/main.rs"
+
+[dependencies]
+# tlsfetch HTTP client. -sys provides the native TcpSocketFactory and
+# enables the http2/http3 features on -common, so we can present a real
+# Chrome ALPN (h2 / http/1.1). Inheriting the workspace
+# [patch.crates-io] block is what makes the Chrome ClientHello + JA3
+# emulation actually take effect on the wire.
+tlsfetch-common = { path = "../tlsfetch-common" }
+tlsfetch-sys = { path = "../tlsfetch-sys" }
+
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

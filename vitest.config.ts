@@ -23,6 +23,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/reference/**',
       '**/.next/**',
+      'tests/e2e/**',
     ],
     // Use forks pool to properly share WASM state across tests
     pool: 'forks',

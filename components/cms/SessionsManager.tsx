@@ -36,7 +36,7 @@ export function FingerprintBadge({ fp }: { fp: string | null }) {
   if (!fp) return null
   const short = fp.length > 16 ? `${fp.slice(0, 14)}…` : fp
   return (
-    <span title={`TLS fingerprint: ${fp}`} className="rounded border border-zinc-700 bg-zinc-800/60 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+    <span title={`TLS fingerprint: ${fp}`} className="rounded-[4px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--ed-muted)]">
       {short}
     </span>
   )
@@ -47,9 +47,9 @@ export function SessionsManager({ sessions }: { sessions: SessionView[] }) {
   const [rows, setRows] = useState(sessions)
 
   return (
-    <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+    <div className="space-y-4 border-t border-[color:var(--ed-hair)] pt-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-zinc-200">Active sessions</div>
+        <div className="text-sm font-medium text-[color:var(--ed-ink)]">Active sessions</div>
         {rows.some((s) => !s.current) && (
           <Button size="sm" variant="ghost" disabled={pending}
             onClick={() => startTransition(async () => { const r = await revokeMyOtherSessions(); if (r.ok) setRows((p) => p.filter((s) => s.current)) })}>
@@ -57,16 +57,16 @@ export function SessionsManager({ sessions }: { sessions: SessionView[] }) {
           </Button>
         )}
       </div>
-      <ul className="divide-y divide-zinc-800">
+      <ul className="divide-y divide-[color:var(--ed-hair)]">
         {rows.map((s) => (
           <li key={s.id} className="flex items-center justify-between py-3">
             <div>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-200">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--ed-ink)]">
                 {deviceLabel(s.userAgent)}
-                {s.current && <span className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">This device</span>}
+                {s.current && <span className="rounded-[4px] bg-[color:var(--ed-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[#1ea463]">This device</span>}
                 <FingerprintBadge fp={s.tlsFingerprint} />
               </div>
-              <div className="text-xs text-zinc-500">{s.ip ?? "unknown IP"} · active {relTime(s.lastSeenAt)}</div>
+              <div className="text-xs text-[color:var(--ed-muted)]">{s.ip ?? "unknown IP"} · active {relTime(s.lastSeenAt)}</div>
             </div>
             {!s.current && (
               <Button size="sm" variant="ghost" disabled={pending}

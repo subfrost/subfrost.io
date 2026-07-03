@@ -4,13 +4,14 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { SiteHeader } from "./SiteHeader"
 import { SiteFooter } from "./SiteFooter"
+import { SmoothPageTransitions } from "./SmoothPageTransitions"
 import { SystemThemeSync } from "./SystemThemeSync"
 
 // Shared "Frost Editorial" frame for every public articles surface (feed,
 // reader, author profile). Exposes the editorial CSS variables + Geist
 // (display/body) + Geist Mono (data) font variables on the scoped root element
 // (#ed-root). Theme follows the user's OS preference client-side.
-export async function EditorialShell({ children }: { children: ReactNode }) {
+export function EditorialShell({ children }: { children: ReactNode }) {
   return (
     <div
       id="ed-root"
@@ -22,6 +23,9 @@ export async function EditorialShell({ children }: { children: ReactNode }) {
       }}
     >
       <SystemThemeSync />
+      <Suspense fallback={null}>
+        <SmoothPageTransitions />
+      </Suspense>
       <Suspense fallback={null}>
         <SiteHeader />
       </Suspense>

@@ -6,6 +6,9 @@ import { readingTime } from "@/lib/cms/slug"
 import { ArticleView } from "@/components/cms/ArticleView"
 import { PreviewActions } from "@/components/cms/PreviewActions"
 import { EditorialThemeScope } from "@/components/articles/EditorialThemeScope"
+import { AnnotatedArticle } from "@/components/cms/articles/AnnotatedArticle"
+import { latestVersion } from "@/lib/cms/article-versions"
+import { listComments, listVersions } from "@/actions/cms/articles-review"
 
 export const dynamic = "force-dynamic"
 
@@ -40,6 +43,15 @@ export default async function PreviewArticlePage({
   const tr = article.translations.find((t) => t.locale === locale) ?? article.translations[0]
   if (!tr) notFound()
 
+  // WS5 — review annotations: the current version anchors new comments, and the
+  // panel/timeline show the existing review activity for this translation.
+  const canComment = canPublish || article.authorId === user.id
+  const [currentVersion, comments, versions] = await Promise.all([
+    latestVersion(id, locale),
+    listComments(id, locale),
+    listVersions(id, locale),
+  ])
+
   return (
     <div className="-m-5 flex min-h-full flex-col md:-m-8">
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur">
@@ -58,6 +70,14 @@ export default async function PreviewArticlePage({
         <PreviewActions id={id} slug={article.slug} canPublish={canPublish} />
       </div>
       <EditorialThemeScope className="flex-1" followSystemTheme>
+        <AnnotatedArticle
+          articleId={id}
+          locale={locale}
+          versionId={currentVersion?.id ?? null}
+          canComment={canComment}
+          initialComments={comments}
+          versions={versions}
+        >
         <ArticleView
           article={{
             title: tr.title,
@@ -84,6 +104,7 @@ export default async function PreviewArticlePage({
           }}
           locale={locale}
         />
+        </AnnotatedArticle>
       </EditorialThemeScope>
     </div>
   )

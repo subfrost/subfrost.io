@@ -25,7 +25,7 @@ const init: InitiativeView = { id: "i1", name: "frUSD deployment", goal: "ship",
 const members: MemberView[] = [{ id: "u2", name: "Gabe", email: "g@x.io" }]
 const task = (over: Partial<TaskView>): TaskView => ({
   id: "t1", title: "Audit mint path", description: "", status: "TODO", priority: "HIGH",
-  labels: ["subfrost-app"], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0,
+  labels: ["subfrost-app"], blockerReason: "", blocked: false, color: "", colorLabel: "", checklist: [], commentCount: 0, owner: null, initiativeId: "i1", position: 0, github: null,
   createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import { AdminEditor, type EditorInitial } from "@/components/cms/AdminEditor"
-import { saveArticle } from "@/actions/cms/articles"
+import { saveArticle, translateArticleAction } from "@/actions/cms/articles"
 
 vi.mock("@/actions/cms/articles", () => ({
   saveArticle: vi.fn(),
@@ -23,11 +23,11 @@ const initial: EditorInitial = {
   zh: { title: "", excerpt: "", body: "", sources: "" },
 }
 
-describe("AdminEditor -- sources field", () => {
-  it("shows a Sources field bound to the active locale", () => {
-    const { getByText, getByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
-    expect(getByText(/Sources/i)).toBeTruthy()
-    expect(getByDisplayValue("BBSW #29")).toBeTruthy()
+describe("AdminEditor -- source controls", () => {
+  it("keeps the removed Sources field out of the editor surface", () => {
+    const { queryByText, queryByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
+    expect(queryByText(/Sources/i)).toBeNull()
+    expect(queryByDisplayValue("BBSW #29")).toBeNull()
   })
 
   it("shows a Ghost-style feature image action and plain primary language controls", () => {
@@ -65,5 +65,39 @@ describe("AdminEditor -- co-authors", () => {
     )
     expect(getByRole("button", { name: "Brooks" }).getAttribute("aria-pressed")).toBe("true")
     expect(getByRole("button", { name: "Gabe" }).getAttribute("aria-pressed")).toBe("false")
+  })
+})
+
+describe("AdminEditor -- AI translation", () => {
+  it("saves, translates the active locale into the other, and fills its tab", async () => {
+    vi.mocked(saveArticle).mockResolvedValue({ ok: true, slug: "s", id: "a1", authorId: "u1" } as never)
+    vi.mocked(translateArticleAction).mockResolvedValue({
+      ok: true,
+      translation: { title: "标题", excerpt: "摘要", body: "正文", sources: "来源" },
+    } as never)
+
+    const { getByRole, findByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
+
+    fireEvent.click(getByRole("button", { name: /Translate to 中文/i }))
+
+    await waitFor(() => expect(translateArticleAction).toHaveBeenCalledWith("a1", "en", "zh"))
+    // the zh tab is now active and shows the translated title
+    expect(await findByDisplayValue("标题")).toBeTruthy()
+  })
+
+  it("does not offer translation when the active locale has no content", () => {
+    const empty: EditorInitial = { ...initial, en: { title: "", excerpt: "", body: "", sources: "" } }
+    const { queryByRole } = render(<AdminEditor initial={empty} canPublish />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
+  })
+
+  it("does not offer translation on an unsaved (idless) article", () => {
+    const { queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
+  })
+
+  it("hides the translate button when the translation service is disabled", () => {
+    const { queryByRole } = render(<AdminEditor initial={initial} canPublish translationEnabled={false} />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
   })
 })

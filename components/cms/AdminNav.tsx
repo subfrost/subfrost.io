@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight } from "lucide-react"
+import { ArrowDown, ArrowRight, Folder } from "lucide-react"
 import { visibleNav, isItemActive, groupHasActive } from "@/lib/cms/admin-nav"
+import type { NavTreeDrive, NavTreeNode } from "@/lib/files/manager"
 
 const STORAGE_KEY = "subfrost.adminNav.open"
 
@@ -29,9 +30,11 @@ function writeStored(state: Record<string, boolean>) {
 export function AdminNav({
   privileges,
   onNavigate,
+  filesTree = [],
 }: {
   privileges: string[]
   onNavigate?: () => void
+  filesTree?: NavTreeDrive[]
 }) {
   const pathname = usePathname() ?? ""
   // Explicit user toggles only. Read from storage after mount to avoid a
@@ -52,51 +55,53 @@ export function AdminNav({
   }
 
   return (
-    <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto text-sm">
+    <nav className="ed-admin-scroll min-h-0 flex-1 space-y-6 overflow-y-auto pr-1 text-sm">
       {visibleNav(privileges).map((group) => {
         const hasActive = groupHasActive(group, pathname)
         const open = explicit[group.key] !== undefined ? explicit[group.key] : hasActive
-        const GroupIcon = group.icon
         return (
           <div key={group.key}>
             <button
               type="button"
               aria-expanded={open}
               onClick={() => toggle(group.key, hasActive)}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              className="flex w-full items-center gap-2 py-1 text-[color:var(--ed-muted)] outline-none transition-colors hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)]"
             >
-              <GroupIcon size={16} />
-              <span className="font-medium">{group.label}</span>
+              <span>{group.label}</span>
               <span className="ml-auto flex items-center gap-1.5">
                 {!open && hasActive && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400" aria-hidden />
+                  <span data-active-marker="true" className="h-1.5 w-1.5 rounded-full bg-[color:var(--ed-ice)]" aria-hidden />
                 )}
-                <ChevronRight
-                  size={14}
-                  className={`text-zinc-500 transition-transform ${open ? "rotate-90" : ""}`}
-                />
+                {open ? (
+                  <ArrowDown size={14} className="text-[color:var(--ed-muted)] transition-transform duration-300" />
+                ) : (
+                  <ArrowRight size={14} className="text-[color:var(--ed-muted)] transition-transform duration-300" />
+                )}
               </span>
             </button>
             {open && (
-              <div className="ml-3 mt-1 space-y-1 border-l border-zinc-800 pl-3">
+              <div className="ed-admin-reveal mt-2 space-y-1">
                 {group.items.map((item) => {
                   const active = isItemActive(item.href, pathname)
-                  const ItemIcon = item.icon
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onNavigate}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-2 rounded-md px-2 py-2 ${
-                        active
-                          ? "bg-sky-500/10 text-sky-300"
-                          : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                      }`}
-                    >
-                      <ItemIcon size={15} />
-                      {item.label}
-                    </Link>
+                    <div key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onNavigate}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-2 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] ${
+                          active
+                            ? "font-medium text-[color:var(--ed-ink)]"
+                            : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+                        }`}
+                      >
+                        <span className="flex-1">{item.label}</span>
+                        {active && <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ed-ink)]" aria-hidden />}
+                      </Link>
+                      {item.href === "/admin/files" && filesTree.length > 0 && (
+                        <FilesTree tree={filesTree} pathname={pathname} onNavigate={onNavigate} />
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -105,5 +110,79 @@ export function AdminNav({
         )
       })}
     </nav>
+  )
+}
+
+// Collapsible 2-level folder tree rendered under the Files nav item. Drives
+// (SUBFROST / OYL) → root folders → their immediate children. Deeper navigation
+// happens in the explorer. Open state is local + auto-opens the active path.
+function FilesTree({ tree, pathname, onNavigate }: { tree: NavTreeDrive[]; pathname: string; onNavigate?: () => void }) {
+  return (
+    <div className="mt-1 space-y-0.5 border-l border-[color:var(--ed-hair)] pl-2">
+      {tree.map((drive) => (
+        <TreeRow
+          key={drive.slug}
+          label={drive.label}
+          href={drive.path}
+          children_={drive.children}
+          pathname={pathname}
+          onNavigate={onNavigate}
+          depth={0}
+        />
+      ))}
+    </div>
+  )
+}
+
+function TreeRow({
+  label, href, children_, pathname, onNavigate, depth,
+}: {
+  label: string; href: string; children_: NavTreeNode[]; pathname: string; onNavigate?: () => void; depth: number
+}) {
+  const onPath = pathname === href || pathname.startsWith(href + "/")
+  const [open, setOpen] = useState(onPath)
+  const hasChildren = children_.length > 0
+  return (
+    <div>
+      <div className="flex items-center gap-1" style={{ paddingLeft: depth * 8 }}>
+        {hasChildren ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+            className="shrink-0 text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+          >
+            {open ? <ArrowDown size={12} /> : <ArrowRight size={12} />}
+          </button>
+        ) : (
+          <span className="w-3 shrink-0" />
+        )}
+        <Link
+          href={href}
+          onClick={onNavigate}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 truncate py-1 text-xs transition-colors ${
+            onPath ? "font-medium text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+          }`}
+        >
+          <Folder size={12} className="shrink-0 text-amber-400/70" />
+          <span className="truncate">{label}</span>
+        </Link>
+      </div>
+      {open && hasChildren && (
+        <div className="space-y-0.5">
+          {children_.map((c) => (
+            <TreeRow
+              key={c.path}
+              label={c.name}
+              href={c.path}
+              children_={c.children}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

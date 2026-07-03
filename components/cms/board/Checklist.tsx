@@ -37,10 +37,10 @@ export function Checklist({ items, onChange, disabled }: {
     <div className="space-y-1.5">
       {items.length > 0 && (
         <div className="mb-1 flex items-center gap-2">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color:var(--ed-surface)]">
             <div className="h-full rounded-full bg-emerald-500/70 transition-all" style={{ width: `${items.length ? (done / items.length) * 100 : 0}%` }} />
           </div>
-          <span className="tabular-nums text-[11px] text-zinc-500">{done}/{items.length}</span>
+          <span className="tabular-nums text-[11px] text-[color:var(--ed-muted)]">{done}/{items.length}</span>
         </div>
       )}
 
@@ -51,11 +51,11 @@ export function Checklist({ items, onChange, disabled }: {
             checked={item.checked}
             disabled={disabled}
             onChange={() => toggle(item.id)}
-            className="h-3.5 w-3.5 shrink-0 rounded border-zinc-600 bg-zinc-900 text-emerald-500 focus:ring-0"
+            className="h-3.5 w-3.5 shrink-0 rounded border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-emerald-500 focus:ring-0"
           />
-          <span className={`flex-1 text-sm ${item.checked ? "text-zinc-500 line-through" : "text-zinc-200"}`}>{item.text}</span>
+          <span className={`flex-1 text-sm ${item.checked ? "text-[color:var(--ed-muted)] line-through" : "text-[color:var(--ed-body)]"}`}>{item.text}</span>
           {!disabled && (
-            <button onClick={() => remove(item.id)} aria-label="Remove item" className="shrink-0 text-zinc-600 opacity-0 transition group-hover:opacity-100 hover:text-rose-400">
+            <button onClick={() => remove(item.id)} aria-label="Remove item" className="shrink-0 text-[color:var(--ed-muted)] opacity-0 transition group-hover:opacity-100 hover:text-rose-400">
               <X size={13} />
             </button>
           )}
@@ -69,9 +69,9 @@ export function Checklist({ items, onChange, disabled }: {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add() } }}
             placeholder="Add an item…"
-            className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-500 focus:outline-none"
+            className="flex-1 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-1 text-sm text-[color:var(--ed-ink)] placeholder:text-[color:var(--ed-muted)] focus:border-[color:var(--ed-muted)] focus:outline-none"
           />
-          <button onClick={add} aria-label="Add checklist item" className="inline-flex items-center rounded border border-zinc-700 px-2 text-zinc-300 hover:bg-zinc-800">
+          <button onClick={add} aria-label="Add checklist item" className="inline-flex items-center rounded-[6px] border border-[color:var(--ed-hair)] px-2 text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)]">
             <Plus size={14} />
           </button>
         </div>

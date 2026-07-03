@@ -44,7 +44,10 @@ export async function GET(req: NextRequest) {
     } catch {
       templates = []
     }
-    const list = await envelopes.list()
+    const list = await envelopes.list(
+      {},
+      { email: actor.email, canViewAll: actor.privileges.includes("documents.view_all") },
+    )
     return ok({
       count: list.length,
       envelopes: list,

@@ -1,6 +1,6 @@
-# Subfrost.io
+# subfrost.io
 
-Subfrost is a Next.js 16 application for Bitcoin/frBTC metrics, history, and live conference streaming, backed by Prisma/PostgreSQL, Redis caching, and an auxiliary media ingest server.
+subfrost is a Next.js 16 application for Bitcoin/frBTC metrics, history, and live conference streaming, backed by Prisma/PostgreSQL, Redis caching, and an auxiliary media ingest server.
 
 ## Tech Stack
 
@@ -60,7 +60,9 @@ Git owns the site shell and presentation:
 - Article index and reader layout/design: `app/articles/page.tsx`, `app/articles/[slug]/page.tsx`, `components/articles/*`, and the scoped editorial styles in `app/globals.css`.
 - Public taxonomy presentation, such as mapping CMS tags into visible nav buckets like Research, Protocol, and Docs.
 - The Docs topic on `/articles` includes git-managed outbound cards to `docs.subfrost.io` when no published CMS posts are tagged for Docs.
+- The `/developer` page is a git-managed developer gateway for docs, technical overview, API docs, app entry, protocol updates, and support. It does not replace `docs.subfrost.io`; deep docs remain external until that repo is available.
 - The `/articles` subscribe panel posts to `app/api/articles/subscribe` and stores records in the `ArticleSubscriber` table. Notification delivery is a separate workflow and is not implied by the public form.
+- Editorial language routing is git-managed. `/articles`, article readers, and author pages default to Chinese for CN/HK visitors or browsers with Chinese system language only when there is no explicit `?lang=` and no saved `subfrost_locale` cookie. Manual language toggles persist and must win over automatic detection.
 - SEO discovery routes are git-managed but read CMS data at runtime: `/sitemap.xml`, `/robots.txt`, and `/llms.txt`.
 - Netlify deploy previews use a small git-managed fallback article set only when CMS reads are unavailable, so design review remains possible without production CMS access.
 - Marketing/home page layout, stats boxes, reusable components, and non-editorial copy.
@@ -77,11 +79,14 @@ Before changing site design, read:
 - `brand/subfrost/README.md`: official brand assets, logo usage, palette, and typography notes
 - `app/globals.css`: editorial CSS variables and responsive rules
 - `components/articles/*`: current implementation patterns for header, footer, cards, filters, search, language, and theme controls
+- `app/developer/page.tsx`: developer gateway pattern for future docs-adjacent pages
 
 Core decisions:
 
 - Use Geist across the editorial/product shell.
 - Use the official logotype, not ad hoc text, for the header.
+- Prefer lowercase `subfrost` as the public wordmark across marketing, footer, brand kit, and unfurl surfaces.
+- Use `SUBFROST` only for legacy product/legal copy or constrained system contexts that already rely on all-caps recognition. Do not introduce title-case `Subfrost` as a visual brand treatment.
 - Light mode uses `logotype_black.svg`; dark mode uses `logotype_white.svg`.
 - Keep the OpenAI-inspired editorial shape: white/black canvas, small image radii, minimal hover states, generous spacing, no decorative card chrome, no unnecessary borders.
 - Keep article content CMS-managed; only design and fallback preview data live in git.
@@ -337,6 +342,42 @@ For full streaming ops setup, see `STREAM.md`.
 - App Docker build is defined in `Dockerfile` (multi-stage, standalone Next.js output).
 - CI workflow is in `.github/workflows/ci.yml`.
 - GCP provisioning/deployment scripts are in `gcp/`.
+
+### Netlify Deploy Preview Admin Testing
+
+Public deploy previews can render with fallback article data, but `/admin` cannot
+be production-like unless the preview has real CMS infrastructure behind it.
+For end-to-end admin testing before merge, configure the Netlify deploy-preview
+context with:
+
+- `DATABASE_URL`: a staging or preview Postgres database, not production unless
+  the test is intentionally mutating production content.
+- `AUTH_SECRET`: a stable random secret used to sign admin session cookies.
+- `ADMIN_SECRET`: a stable random secret used by `/api/admin/*` bootstrap and
+  health endpoints.
+- `CMS_BASE_URL`: the active deploy-preview URL, or the canonical staging URL
+  used for article/admin links.
+
+After the database is attached, sync the schema before testing admin:
+
+```bash
+DATABASE_URL="postgresql://..." pnpm db:push
+```
+
+Then verify the preview:
+
+```bash
+curl https://deploy-preview-<number>--subfrost-prod.netlify.app/api/admin/health \
+  -H "x-admin-secret: $ADMIN_SECRET"
+```
+
+The health endpoint checks the admin-critical tables for users, sessions, audit
+logs, articles, and boards. Once it returns `ok: true`, bootstrap or reset a test
+admin account through `/api/admin/users`, then sign in through the preview UI.
+
+Long term, replace preview `db:push` with Prisma migrations and run
+`pnpm db:migrate:deploy` during deploys so fresh preview databases are
+reproducible without manual schema sync.
 
 ## Environment Variables Reference
 
