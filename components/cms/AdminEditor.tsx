@@ -13,6 +13,7 @@ import {
   escapeAttribute,
   escapeHtml,
 } from "@/lib/cms/editor-markdown"
+import { importedMarkdownFromClipboard } from "@/lib/cms/import-html"
 import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
 import { Button } from "@/components/ui/button"
 import {
@@ -506,6 +507,13 @@ function GhostBodyEditor({
     if (image) {
       event.preventDefault()
       await insertImage(image)
+      return
+    }
+
+    const imported = importedMarkdownFromClipboard(event.clipboardData.getData("text/html"))
+    if (imported) {
+      event.preventDefault()
+      insertHtml(markdownToEditorHtml(imported))
       return
     }
 
