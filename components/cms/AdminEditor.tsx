@@ -85,6 +85,9 @@ export function AdminEditor({
   const [uploading, setUploading] = useState(false)
   const [inlineUploading, setInlineUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Upload failures shown at the point of action (cover control / body toolbar),
+  // not just in the footer where they're off-screen when you click the cover.
+  const [uploadError, setUploadError] = useState<{ kind: "cover" | "inline"; message: string } | null>(null)
   const [activeLocale, setActiveLocale] = useState<Locale>(initial.primaryLocale)
   const [tab, setTab] = useState<"write" | "preview">("write")
   const [settingsOpen, setSettingsOpen] = useState(true)
@@ -197,7 +200,7 @@ export function AdminEditor({
   }
 
   async function uploadImageFile(file: File, kind: "cover" | "inline") {
-    setError(null)
+    setUploadError(null)
     if (kind === "cover") setUploading(true)
     else setInlineUploading(true)
     try {
@@ -209,7 +212,7 @@ export function AdminEditor({
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
       return data.url
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed")
+      setUploadError({ kind, message: e instanceof Error ? e.message : "Upload failed" })
       return null
     } finally {
       if (kind === "cover") setUploading(false)
@@ -307,6 +310,7 @@ export function AdminEditor({
             <FeatureImage
               image={coverImage}
               uploading={uploading}
+              error={uploadError?.kind === "cover" ? uploadError.message : null}
               onPick={() => fileRef.current?.click()}
               onClear={() => setCoverImage("")}
               onFile={(file) => void uploadCover(file)}
@@ -384,6 +388,7 @@ export function AdminEditor({
                   value={cur.body}
                   onChange={(body) => setCur({ body })}
                   uploading={inlineUploading}
+                  error={uploadError?.kind === "inline" ? uploadError.message : null}
                   uploadImage={(file) => uploadImageFile(file, "inline")}
                 />
               ) : (
@@ -437,11 +442,13 @@ function GhostBodyEditor({
   value,
   onChange,
   uploading,
+  error,
   uploadImage,
 }: {
   value: string
   onChange: (value: string) => void
   uploading: boolean
+  error: string | null
   uploadImage: (file: File) => Promise<string | null>
 }) {
   const editorRef = useRef<HTMLDivElement>(null)
@@ -534,6 +541,7 @@ function GhostBodyEditor({
         <span className="mx-1 h-5 w-px bg-[color:var(--ed-hair)]" />
         <EditorTool label={uploading ? "Uploading image" : "Add image"} onClick={() => fileInputRef.current?.click()} disabled={uploading}><ImagePlus size={15} /></EditorTool>
         {uploading && <span className="ml-2 text-xs text-[color:var(--ed-muted)]">Uploading image...</span>}
+        {error && <span role="alert" className="ml-2 text-xs text-[#b8321a]">{error}</span>}
       </div>
 
       <div className="group/editor relative">
@@ -590,12 +598,14 @@ function EditorTool({
 function FeatureImage({
   image,
   uploading,
+  error,
   onPick,
   onClear,
   onFile,
 }: {
   image: string
   uploading: boolean
+  error: string | null
   onPick: () => void
   onClear: () => void
   onFile: (file: File) => void
@@ -607,50 +617,60 @@ function FeatureImage({
     onFile(file)
   }
 
+  const errorNote = error ? (
+    <p role="alert" className="mt-2 text-sm text-[#b8321a]">{error}</p>
+  ) : null
+
   if (image) {
     return (
-      <figure
-        className="group relative overflow-hidden rounded-[8px] bg-[color:var(--ed-surface)]"
-        onDrop={onDrop}
-        onDragOver={(e) => e.preventDefault()}
-      >
-        <img src={image} alt="" className="aspect-[16/7] w-full object-cover" />
-        <div className="absolute right-3 top-3 flex gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={onPick}
-            className="inline-flex h-8 items-center gap-2 rounded-[6px] bg-black/70 px-3 text-xs font-medium text-white backdrop-blur"
-          >
-            <Upload size={13} /> Replace
-          </button>
-          <button
-            type="button"
-            onClick={onClear}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] bg-black/70 text-white backdrop-blur"
-            aria-label="Remove feature image"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      </figure>
+      <div>
+        <figure
+          className="group relative overflow-hidden rounded-[8px] bg-[color:var(--ed-surface)]"
+          onDrop={onDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <img src={image} alt="" className="aspect-[16/7] w-full object-cover" />
+          <div className="absolute right-3 top-3 flex gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={onPick}
+              className="inline-flex h-8 items-center gap-2 rounded-[6px] bg-black/70 px-3 text-xs font-medium text-white backdrop-blur"
+            >
+              <Upload size={13} /> Replace
+            </button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] bg-black/70 text-white backdrop-blur"
+              aria-label="Remove feature image"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </figure>
+        {errorNote}
+      </div>
     )
   }
 
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      onDrop={onDrop}
-      onDragOver={(e) => e.preventDefault()}
-      disabled={uploading}
-      className="mb-10 flex h-8 w-fit items-center gap-3 rounded-[6px] text-sm text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-ink)] disabled:opacity-50"
-    >
-      <span className="inline-flex items-center gap-2">
-        <ImagePlus size={15} />
-        {uploading ? "Uploading feature image..." : "Add feature image"}
-      </span>
-      <Upload size={15} className="opacity-70" />
-    </button>
+    <div className="mb-10">
+      <button
+        type="button"
+        onClick={onPick}
+        onDrop={onDrop}
+        onDragOver={(e) => e.preventDefault()}
+        disabled={uploading}
+        className="flex h-8 w-fit items-center gap-3 rounded-[6px] text-sm text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-ink)] disabled:opacity-50"
+      >
+        <span className="inline-flex items-center gap-2">
+          <ImagePlus size={15} />
+          {uploading ? "Uploading feature image..." : "Add feature image"}
+        </span>
+        <Upload size={15} className="opacity-70" />
+      </button>
+      {errorNote}
+    </div>
   )
 }
 
