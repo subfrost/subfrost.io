@@ -77,6 +77,9 @@ COPY --from=builder /app/node_modules/@alkanes ./node_modules/@alkanes
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
 
+# Copy CronJob scripts (run with the app image, e.g. opreturn sync)
+COPY scripts ./scripts
+
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 

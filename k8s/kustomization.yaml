@@ -10,6 +10,7 @@ resources:
   - service.yaml
   - ingress.yaml
   - pdb.yaml
+  - opreturn-sync-cronjob.yaml
   - ntfy
 
 # Pin the image to an immutable SHORT_SHA tag (the Cloud Build trigger produces

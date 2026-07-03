@@ -110,6 +110,7 @@ export type AuditAction =
   | "legal_deserter_swap_signoff"
   | "legal_obligation_upsert"
   | "legal_reconciliation_view"
+  | "marketing_opreturn_sync"
   | "github_issue_accept"
   | "github_issue_deny"
   | "github_task_link"

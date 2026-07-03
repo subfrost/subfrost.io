@@ -3,7 +3,7 @@ import {
   CreditCard, LayoutGrid, Repeat, Tag, Landmark, ArrowLeftRight, ArrowDownToLine, Users,
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
-  KanbanSquare, Target, Package, Gavel, Building2, Github, CalendarClock, TrendingUp, AtSign,
+  KanbanSquare, Target, Package, Gavel, Building2, Image, Github, CalendarClock, TrendingUp, AtSign,
   Contact, Siren,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -65,6 +65,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "X analytics", href: "/admin/marketing/x", icon: AtSign, privilege: "marketing.view" },
       { label: "Site analytics", href: "/admin/marketing/analytics", icon: BarChart3, privilege: "marketing.view" },
       { label: "Schedule", href: "/admin/marketing/schedule", icon: CalendarClock, privilege: "marketing.view" },
+      { label: "Stat cards", href: "/admin/marketing/cards", icon: Image, privilege: "marketing.view" },
     ],
   },
   {
