@@ -121,35 +121,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
-      - name: Setup Prefetch Scheduler
-        if: ${{ env.PREFETCH_SECRET != '' }}
-        # Non-fatal: the deploy SA currently lacks serviceusage permission to
-        # enable cloudscheduler.googleapis.com. The scheduler only warms a cache,
-        # so a failure here must not fail the deploy or skip downstream jobs.
-        continue-on-error: true
-        run: |
-          gcloud services enable cloudscheduler.googleapis.com --quiet
-
-          # Delete existing job if present so we can re-create cleanly
-          if gcloud scheduler jobs describe subfrost-prefetch --location=${{ env.REGION }} > /dev/null 2>&1; then
-            gcloud scheduler jobs delete subfrost-prefetch --location=${{ env.REGION }} --quiet
-          fi
-
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.REGION }} \
-            --format='value(status.url)')
-
-          gcloud scheduler jobs create http subfrost-prefetch \
-            --location=${{ env.REGION }} \
-            --schedule="0,25,50 * * * *" \
-            --uri="${SERVICE_URL}/api/prefetch" \
-            --http-method=GET \
-            --headers="Authorization=Bearer ${{ secrets.PREFETCH_SECRET }}" \
-            --time-zone="UTC" \
-            --attempt-deadline="540s" \
-            --description="Warms Redis cache for landing page metrics every 25 minutes"
-
-          echo "Prefetch scheduler job created/updated"
+      # The landing-page cache warmer is driven by a k8s CronJob
+      # (k8s/prefetch-cronjob.yaml), not Cloud Scheduler: the deploy SA lacks
+      # serviceusage permission, so a scheduler-setup step here died on
+      # `gcloud services enable` before ever creating the job (masked by
+      # continue-on-error). Removing this step also removes the delete-then-
+      # create landmine — if the SA were ever granted the permission, the old
+      # step would have silently deleted + recreated the hand-made
+      # subfrost-prefetch Cloud Scheduler job.
 
       # The daily protocol snapshot is driven by a k8s CronJob
       # (k8s/marketing-snapshot-cronjob.yaml), not Cloud Scheduler: the deploy
