@@ -91,23 +91,35 @@ import { Resvg } from '@resvg/resvg-js'
 import sharp from 'sharp'
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const [,, photo, overlaySvg, outPng] = process.argv
+// uso: node compose.mjs <foto> <overlay.svg> <out.png> [trim=0.12] [glyphPng]
+// glyphPng: passe assets/logomark-glyph.png (floco OFICIAL raster) — substitui o floco
+// vetorial aproximado do overlay pela arte exata.
+const [,, photo, overlaySvg, outPng, trimArg, glyphPng] = process.argv
 const FONTS = '<raiz-do-repo>/node_modules/geist/dist/fonts'
 
-// 1) foto -> trim 12% da direita (mata a marca d'agua do Gemini, que pode ficar ate ~10%
-//    pra dentro da borda) -> cover 1852x849 ancorado a esquerda (zona escura do texto).
+// 1) foto -> trim da direita (default 12%; mata a marca d'agua do Gemini, que pode ficar
+//    ate ~10% pra dentro da borda) -> cover 1852x849 ancorado a esquerda.
+const trim = trimArg === undefined ? 0.12 : Number(trimArg)
 const meta = await sharp(photo).metadata()
 const base = await sharp(photo)
-  .extract({ left: 0, top: 0, width: Math.round(meta.width * 0.88), height: meta.height })
+  .extract({ left: 0, top: 0, width: Math.round(meta.width * (1 - trim)), height: meta.height })
   .resize(1852, 849, { fit: 'cover', position: 'left' })
   .png().toBuffer()
 
-// 2) SVG efemero de composicao: foto embutida + overlay canonico por cima
-const overlay = readFileSync(overlaySvg, 'utf8').replace(/<svg[^>]*>/, '').replace('</svg>', '')
+// 2) SVG efemero de composicao: foto + overlay canonico (+ floco oficial se glyphPng)
+let overlay = readFileSync(overlaySvg, 'utf8').replace(/<svg[^>]*>/, '').replace('</svg>', '')
+let glyphImg = ''
+if (glyphPng) {
+  overlay = overlay.replace(/<g transform="translate\(1673,701\)">[\s\S]*?<\/g>/, '')
+  const gm = await sharp(glyphPng).metadata()
+  const W = 122, H = Math.round(W * gm.height / gm.width)
+  glyphImg = `<image x="${1673 - W / 2}" y="${701 - H / 2}" width="${W}" height="${H}" xlink:href="data:image/png;base64,${readFileSync(glyphPng).toString('base64')}"/>`
+}
 const svg = `<svg width="1852" height="849" viewBox="0 0 1852 849"
   xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <image x="0" y="0" width="1852" height="849" xlink:href="data:image/png;base64,${base.toString('base64')}"/>
   ${overlay}
+  ${glyphImg}
 </svg>`
 
 // 3) rasteriza com Geist real
@@ -172,16 +184,12 @@ título precisa de contraste AA — na dúvida, o véu fica.
   2–3 linhas → 108px, avanço de baseline 124px. MÁXIMO 3 linhas, quebradas por sentido.
   (No stat-hero o título é subordinado: 84px, avanço 96px, máx 2 linhas. No quote, a frase
   usa Geist 600 76px, centralizada, 2 linhas.)
-- **Logomark** (floco): 8 losangos `#A7C6DC` rotacionados de 45°, centro em (1673,701) —
-  copiar o bloco de qualquer template. NÃO mover.
-  ```xml
-  <g transform="translate(1673,701)">
-    <polygon points="0,-61 11.2,-28.5 0,-5 -11.2,-28.5" fill="#A7C6DC"/>
-    <!-- + 7 cópias com transform="rotate(45)" ... rotate(315) -->
-  </g>
-  ```
-  ⚠️ O floco das capas é ESTE (reconstruído pixel-perfect da capa do BIP-110). O
-  `logomark.svg`/favicon do brand folder tem um desenho DIFERENTE (pétalas curvas
+- **Logomark** (floco): centro em (1673,701), largura 122. **Arte OFICIAL (raster, usar no
+  modo foto): `assets/logomark-glyph.png`** — extraída do asset do designer (2026-07-02),
+  com alpha; a receita de composição a posiciona via o 5º argumento (`glyphPng`). Os
+  templates vetoriais carregam uma APROXIMAÇÃO em 8 polygons (as diagonais do oficial são
+  assimétricas — sem o vetor oficial, a aproximação fica até alguém extrair os paths).
+  ⚠️ O `logomark.svg`/favicon do brand folder tem um desenho DIFERENTE (pétalas curvas
   conectadas) — não usar nas capas.
 - **Fundo**: gradiente vertical de luminância `#0B0F14 → #04060A`.
 - **Textura de gelo**: strokes `#A7C6DC` opacity 0.06–0.18 / width 1–3; facetas (polygons)
