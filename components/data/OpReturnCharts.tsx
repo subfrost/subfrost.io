@@ -123,11 +123,7 @@ function ToggleLineChart({
             <YAxis tick={{ fontSize: 11 }} width={72} tickFormatter={yTickFormatter} domain={["auto", "auto"]} />
             <Tooltip formatter={(v: number) => tooltipFormatter(v)} labelStyle={{ color: "#334" }} />
             {showLegend ? (
-              <Legend
-                onClick={onLegendClick}
-                wrapperStyle={{ fontSize: 12, cursor: "pointer" }}
-                formatter={(value: string) => value}
-              />
+              <Legend onClick={onLegendClick} wrapperStyle={{ fontSize: 12, cursor: "pointer" }} />
             ) : null}
             {seriesKeys.map(({ key, label }) =>
               area ? (
@@ -400,8 +396,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <ToggleLineChart
             data={feesSplitBtc}
             seriesKeys={[
-              { key: "rest", label: copy.charts.feesSplitBtc.series.rest },
               { key: "alkanes", label: copy.charts.feesSplitBtc.series.alkanes },
+              { key: "rest", label: copy.charts.feesSplitBtc.series.rest },
             ]}
             colors={{ alkanes: ACCENT, rest: SECOND }}
             yTickFormatter={axisBtc}
