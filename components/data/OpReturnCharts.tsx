@@ -23,10 +23,12 @@ export interface OpReturnCopy {
     dailyShare: { title: string; series: { txShare: string; opReturnPenetration: string }; desc: string }
     opReturnShare: { title: string; series: { txPct: string; bytesPct: string }; desc: string }
     latestDonut: { title: string; series: { diesel: string; alkanesOther: string; other: string }; alkanesTotalLabel: string; desc: string }
+    weightShare: { title: string; desc: string }
     dieselTxShare: { title: string; desc: string }
     bytesCum: { title: string; series: { opReturn: string; alkanes: string; runes: string }; desc: string }
     bytesPerTx: { title: string; series: { alkanes: string; rest: string }; desc: string }
     minerRevenueUsd: { title: string; desc: string }
+    ugDieselShare: { title: string; desc: string }
     feesSplitBtc: { title: string; series: { alkanes: string; rest: string }; desc: string }
     alkanesFeeShare: { title: string; desc: string }
   }
@@ -205,10 +207,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
 
   const dailyShare = useMemo(() => windowSlice(payload.dailyShare, windowDays), [payload.dailyShare, windowDays])
   const opReturnShare = useMemo(() => windowSlice(payload.opReturnShare, windowDays), [payload.opReturnShare, windowDays])
+  const weightShare = useMemo(() => windowSlice(payload.weightShare, windowDays), [payload.weightShare, windowDays])
   const dieselTxShare = useMemo(() => windowSlice(payload.dieselTxShare, windowDays), [payload.dieselTxShare, windowDays])
   const bytesCum = useMemo(() => windowSlice(payload.bytesCum, windowDays), [payload.bytesCum, windowDays])
   const bytesPerTx = useMemo(() => windowSlice(payload.bytesPerTx, windowDays), [payload.bytesPerTx, windowDays])
   const minerRevenueUsd = useMemo(() => windowSlice(payload.minerRevenueUsd, windowDays), [payload.minerRevenueUsd, windowDays])
+  const ugDieselShare = useMemo(() => windowSlice(payload.ugDieselShare, windowDays), [payload.ugDieselShare, windowDays])
   const feesSplitBtc = useMemo(() => windowSlice(payload.feesSplitBtc, windowDays), [payload.feesSplitBtc, windowDays])
   const alkanesFeeShare = useMemo(() => windowSlice(payload.alkanesFeeShare, windowDays), [payload.alkanesFeeShare, windowDays])
 
@@ -305,7 +309,15 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* 3. Last day donut */}
+        {/* 3. Alkanes' share of block space (by weight) */}
+        <Card title={copy.charts.weightShare.title} desc={fill(copy.charts.weightShare.desc, {
+          weightShareFull: fmtPct(stats.weight.full),
+          weightShareLatest: fmtPct(stats.weight.latest),
+        })}>
+          <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
+        </Card>
+
+        {/* 4. Last day donut */}
         {donut ? (
           <Card
             title={copy.charts.latestDonut.title}
@@ -348,12 +360,21 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           </Card>
         ) : null}
 
-        {/* 4. DIESEL mints share of all tx */}
+        {/* 5. DIESEL mints share of all tx */}
         <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
-        {/* 5. OP_RETURN bytes cumulative */}
+        {/* 6. UNCOMMON•GOODS mints that are DIESEL */}
+        <Card title={copy.charts.ugDieselShare.title} desc={fill(copy.charts.ugDieselShare.desc, {
+          ugShareEarly: fmtPct(stats.ug.early30),
+          ugShareRecent: fmtPct(stats.ug.last30),
+          ugShareFull: fmtPct(stats.ug.full),
+        })}>
+          <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
+        </Card>
+
+        {/* 7. OP_RETURN bytes cumulative */}
         <Card title={copy.charts.bytesCum.title} desc={copy.charts.bytesCum.desc}>
           <ToggleLineChart
             data={bytesCum}
@@ -369,7 +390,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* 6. OP_RETURN bytes per tx */}
+        {/* 8. OP_RETURN bytes per tx */}
         <Card title={copy.charts.bytesPerTx.title} desc={fill(copy.charts.bytesPerTx.desc, {
           bytesPerTx: fmtBytesPerTx(stats.full.alkanesBytesPerTx),
         })}>
@@ -386,12 +407,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* 7. Miner fee revenue USD */}
+        {/* 9. Miner fee revenue USD */}
         <Card title={copy.charts.minerRevenueUsd.title} desc={copy.charts.minerRevenueUsd.desc}>
           <SingleLineChart data={minerRevenueUsd} dataKey="value" color={SECOND} yTickFormatter={axisUsdCompact} tooltipFormatter={tooltipUsd} area />
         </Card>
 
-        {/* 8. Miner fees split BTC (stacked) */}
+        {/* 10. Miner fees split BTC (stacked) */}
         <Card title={copy.charts.feesSplitBtc.title} desc={copy.charts.feesSplitBtc.desc}>
           <ToggleLineChart
             data={feesSplitBtc}
@@ -408,7 +429,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* 9. Alkanes' share of miner fee revenue */}
+        {/* 11. Alkanes' share of miner fee revenue */}
         <Card title={copy.charts.alkanesFeeShare.title} desc={fill(copy.charts.alkanesFeeShare.desc, {
           feeShareFull: fmtPct(stats.full.alkanesFeeShare),
           feeShare30: fmtPct(stats.last30.alkanesFeeShare),

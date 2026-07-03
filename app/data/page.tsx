@@ -52,9 +52,17 @@ const copy = {
           alkanesTotalLabel: "Alkanes",
           desc: "How this is calculated. Last day = {lastDate} (Bitcoin blocks {fromHeight}–{toHeight}, {blocks} sampled). Of {opRetTx} transactions carrying an OP_RETURN that day, {alkTx} were Alkanes → {pct}. Share = Alkanes OP_RETURN tx ÷ all OP_RETURN tx. A transaction counts as Alkanes when one of its OP_RETURN outputs decodes as a Runestone whose protostone carries protocol_tag = 1.",
         },
+        weightShare: {
+          title: "Alkanes' share of block space (by weight)",
+          desc: "This is the literal block space Alkanes occupy — transaction weight, the unit Bitcoin's block limit is actually denominated in (not byte counts, not transaction counts). Alkanes were {weightShareFull} of all block weight over the period and {weightShareLatest} on the last measured day. This is the honest \"how much of Bitcoin is Alkanes\" answer: by weight they are still a minority of block space, far below their share of transaction count (most Alkanes tx are tiny DIESEL mints). Measured directly from each transaction's weight via a metashrew/alkanes-rs indexer.",
+        },
         dieselTxShare: {
           title: "DIESEL mints — share of all Bitcoin transactions",
           desc: "DIESEL, the genesis alkane, is minted directly on Bitcoin — this tracks how much of all Bitcoin transaction volume is DIESEL mints on their own, separate from other Alkanes activity.",
+        },
+        ugDieselShare: {
+          title: "UNCOMMON•GOODS mints that are DIESEL",
+          desc: "UNCOMMON•GOODS (Rune 1:0) rides along on almost every DIESEL mint. Of all UNCOMMON•GOODS mints each day, the share that are also DIESEL climbed from {ugShareEarly} early on to {ugShareRecent} recently ({ugShareFull} over the whole period): when you see an UNCOMMON•GOODS mint today, it is almost always DIESEL \"wearing Runes clothing.\" Detected as a runestone whose mint is Rune 1:0 on a DIESEL (cellpack 2:0 op 77) transaction.",
         },
         bytesCum: {
           title: "OP_RETURN bytes (all time)",
@@ -123,9 +131,17 @@ const copy = {
           alkanesTotalLabel: "Alkanes",
           desc: "计算方式。最新一天 = {lastDate}（比特币区块 {fromHeight}–{toHeight}，抽样 {blocks} 个）。当天携带 OP_RETURN 的 {opRetTx} 笔交易中，{alkTx} 笔为 Alkanes → {pct}。份额 = Alkanes 的 OP_RETURN 交易 ÷ 全部 OP_RETURN 交易。当一笔交易的某个 OP_RETURN 输出解码为携带 protocol_tag = 1 的符文石 protostone 时，即计为 Alkanes。",
         },
+        weightShare: {
+          title: "Alkanes 占区块空间的份额（按 weight 计）",
+          desc: "这是 Alkanes 实际占用的区块空间——交易 weight，也就是比特币区块上限真正以之计量的单位（不是字节数，也不是交易笔数）。在整个统计期内，Alkanes 占全部区块 weight 的 {weightShareFull}，在最新测量日为 {weightShareLatest}。这才是「Alkanes 到底占比特币多少」的诚实答案：按 weight 计算，它们仍是区块空间中的少数，远低于其交易笔数占比（因为大多数 Alkanes 交易都是极小的 DIESEL 铸造）。数据直接来自每笔交易的 weight，经由 metashrew/alkanes-rs 索引器测量得出。",
+        },
         dieselTxShare: {
           title: "DIESEL 铸造 — 占全部比特币交易的份额",
           desc: "DIESEL（创世 alkane）直接在比特币上铸造——这条曲线单独展示 DIESEL 铸造占全部比特币交易量的比例，与其他 Alkanes 活动分开统计。",
+        },
+        ugDieselShare: {
+          title: "UNCOMMON•GOODS 铸造中属于 DIESEL 的比例",
+          desc: "UNCOMMON•GOODS（符文 1:0）几乎搭乘在每一笔 DIESEL 铸造上。在每天全部 UNCOMMON•GOODS 铸造中，同时也是 DIESEL 的比例从早期的 {ugShareEarly} 攀升到近期的 {ugShareRecent}（整个统计期为 {ugShareFull}）：如今你看到的 UNCOMMON•GOODS 铸造，几乎都是「披着 Runes 外衣」的 DIESEL。判定方式：符文石的铸造目标为符文 1:0，且所在交易同时是 DIESEL（cellpack 2:0 操作码 77）。",
         },
         bytesCum: {
           title: "OP_RETURN 字节数（累计）",
