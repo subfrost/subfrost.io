@@ -62,7 +62,9 @@ export function computeBytesComposition(rows: OpReturnRow[], window: WindowKey):
   const win = windowRows(rows, window)
   const total = win.reduce((s, r) => s + r.opReturnBytes, 0)
   if (total === 0) return { alkanes: 0, runes: 0, other: 0 }
+  // runestoneBytes INCLUDES alkanesBytes (Alkanes protostones are embedded in runestones), so the
+  // runes slice is the runestone total minus the alkanes share — they are not disjoint buckets.
   const a = win.reduce((s, r) => s + r.alkanesBytes, 0) / total
-  const ru = win.reduce((s, r) => s + r.runestoneBytes, 0) / total
-  return { alkanes: a, runes: ru, other: Math.max(0, 1 - a - ru) }
+  const rTot = win.reduce((s, r) => s + r.runestoneBytes, 0) / total
+  return { alkanes: a, runes: Math.max(0, rTot - a), other: Math.max(0, 1 - rTot) }
 }

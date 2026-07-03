@@ -2,10 +2,12 @@ import { it, expect } from "vitest"
 import { computeMetric, computeBytesComposition, dayValue } from "@/lib/marketing/opreturn-metrics"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 
+// runestoneBytes INCLUDES alkanesBytes (Alkanes protostones are embedded in runestones),
+// so realistic rows always have runestoneBytes >= alkanesBytes.
 const row = (over: Partial<OpReturnRow>): OpReturnRow => ({
   date: "2026-01-01", fromHeight: 0, toHeight: 0, blocksScanned: 1,
   totalTx: 100, txWithOpReturn: 80, txAlkanes: 50, opReturnBytes: 1000,
-  runestoneBytes: 200, alkanesBytes: 700, dieselMints: 49,
+  runestoneBytes: 750, alkanesBytes: 700, dieselMints: 49,
   feeTotalSats: 1000, feeAlkanesSats: 100, feeOpReturnSats: 500, btcUsd: 100000, ...over,
 })
 
@@ -29,11 +31,41 @@ it("computeMetric usd cumulative sums daily USD over the window", () => {
   expect(computeMetric(rows, "alkanesFeeUsdCumulative", "full").kind).toBe("usd")
 })
 
-it("computeBytesComposition splits alkanes/runes/other by ratio-of-sums", () => {
-  const c = computeBytesComposition([row({ opReturnBytes: 1000, alkanesBytes: 700, runestoneBytes: 200 })], "full")
-  expect(c.alkanes).toBeCloseTo(0.7)
-  expect(c.runes).toBeCloseTo(0.2)
-  expect(c.other).toBeCloseTo(0.1)
+it("computeBytesComposition subtracts alkanes out of runestone bytes (embedded protostones, not disjoint buckets)", () => {
+  // Mirrors real-chain proportions (~81% alkanes / ~9.5% runes / ~9% other): the runes slice
+  // is runestone-minus-alkanes, and other is everything outside runestones.
+  const c = computeBytesComposition([row({ opReturnBytes: 1000, alkanesBytes: 812, runestoneBytes: 907 })], "full")
+  expect(c.alkanes).toBeCloseTo(0.812, 10)
+  expect(c.runes).toBeCloseTo(0.907 - 0.812, 10)
+  expect(c.runes).toBeCloseTo(0.095, 3)
+  expect(c.other).toBeCloseTo(1 - 0.907, 10)
+  expect(c.other).toBeCloseTo(0.093, 3)
+})
+
+it("computeBytesComposition aggregates ratio-of-sums over the selected window", () => {
+  const rows = [
+    // day 1: fully-alkanes runestones; day 2: pure-runes runestones
+    row({ date: "2026-01-01", opReturnBytes: 1000, alkanesBytes: 1000, runestoneBytes: 1000 }),
+    row({ date: "2026-01-02", opReturnBytes: 1000, alkanesBytes: 0, runestoneBytes: 1000 }),
+  ]
+  const full = computeBytesComposition(rows, "full")
+  expect(full.alkanes).toBeCloseTo(0.5, 10)
+  expect(full.runes).toBeCloseTo(0.5, 10)
+  expect(full.other).toBeCloseTo(0, 10)
+  const latest = computeBytesComposition(rows, "latest")
+  expect(latest.alkanes).toBeCloseTo(0, 10)
+  expect(latest.runes).toBeCloseTo(1, 10)
+})
+
+it("computeBytesComposition clamps runes to 0 (not negative) when alkanesBytes exceeds runestoneBytes (bad data)", () => {
+  const c = computeBytesComposition([row({ opReturnBytes: 1000, alkanesBytes: 700, runestoneBytes: 400 })], "full")
+  expect(c.alkanes).toBeCloseTo(0.7, 10)
+  expect(c.runes).toBe(0)
+})
+
+it("computeBytesComposition clamps other to 0 (not negative) when runestoneBytes exceeds opReturnBytes (bad data)", () => {
+  const c = computeBytesComposition([row({ opReturnBytes: 1000, alkanesBytes: 300, runestoneBytes: 1200 })], "full")
+  expect(c.other).toBe(0)
 })
 
 it("alkanesFeeUsdDaily aggregates as the mean daily USD over the window", () => {
