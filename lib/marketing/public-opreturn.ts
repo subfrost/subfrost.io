@@ -1,3 +1,4 @@
+import { computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
 import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 
@@ -133,17 +134,10 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   const dieselTxShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratio(r.dieselMints, r.totalTx) }))
 
   // All-time byte composition (fixed window — ignores the 60d selector; the card title says "all time").
-  // runestoneBytes INCLUDES alkanesBytes (Alkanes protostones are embedded in runestones), so the
-  // runes slice must subtract alkanes out of the runestone total rather than treating them as disjoint
-  // buckets (see @/lib/marketing/opreturn-metrics#computeBytesComposition, which does NOT subtract and
-  // is intentionally left as-is — it serves the admin card, out of scope here).
+  // Delegates to the shared computeBytesComposition, which subtracts alkanes out of the runestone
+  // total (protostones are embedded in runestones, not a disjoint bucket).
   const sumOpReturnBytes = sumBy(rows, (r) => r.opReturnBytes)
-  let bytesComposition: { alkanes: number; runes: number; other: number } | null = null
-  if (sumOpReturnBytes !== 0) {
-    const a = sumBy(rows, (r) => r.alkanesBytes) / sumOpReturnBytes
-    const rTot = sumBy(rows, (r) => r.runestoneBytes) / sumOpReturnBytes
-    bytesComposition = { alkanes: a, runes: Math.max(0, rTot - a), other: Math.max(0, 1 - rTot) }
-  }
+  const bytesComposition = sumOpReturnBytes === 0 ? null : computeBytesComposition(rows, "full")
 
   const bytesPerTx = rows.map((r) => ({
     date: r.date,
