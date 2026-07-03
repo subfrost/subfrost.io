@@ -26,8 +26,10 @@ spec:
       # surface as {ok:false,errors:[…]} in the body, never a non-2xx), so
       # curl only fails on network/pod loss. One retry is plenty; the next
       # 25-min tick re-warms anyway, so a missed run is cheap.
+      # Deadline covers both attempts: backoffLimit 1 → 2 × (--max-time 180) =
+      # 360s < activeDeadlineSeconds, so a retry is never cut off mid-flight.
       backoffLimit: 1
-      activeDeadlineSeconds: 360
+      activeDeadlineSeconds: 400
       template:
         spec:
           restartPolicy: Never
@@ -56,9 +58,9 @@ spec:
                 - |
                   URL=http://subfrost-io.subfrost.svc.cluster.local/api/prefetch
                   if [ -n "${PREFETCH_SECRET:-}" ]; then
-                    curl -sS --fail-with-body --max-time 300 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
+                    curl -sS --fail-with-body --max-time 180 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
                   else
-                    curl -sS --fail-with-body --max-time 300 "$URL"
+                    curl -sS --fail-with-body --max-time 180 "$URL"
                   fi
               env:
                 - name: PREFETCH_SECRET
