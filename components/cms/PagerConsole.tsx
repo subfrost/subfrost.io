@@ -28,10 +28,12 @@ export interface PageRow {
 
 const PAGER_URL = "https://page.subfrost.io"
 
-const displayName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1)
+const fallbackName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1)
 
 export function PagerConsole({
   members,
+  nicknames,
+  selfMemberId,
   lastAcks,
   history,
   canSend,
@@ -40,6 +42,8 @@ export function PagerConsole({
   rosterError,
 }: {
   members: PagerMemberDisplay[]
+  nicknames: Record<string, string>
+  selfMemberId: string | null
   lastAcks: Record<string, string>
   history: PageRow[]
   canSend: boolean
@@ -47,6 +51,7 @@ export function PagerConsole({
   adminConfigured: boolean
   rosterError: string | null
 }) {
+  const displayName = (id: string) => nicknames[id] ?? fallbackName(id)
   return (
     <div className="max-w-3xl space-y-10">
       {!canSend && (
@@ -57,16 +62,23 @@ export function PagerConsole({
       )}
       {rosterError && <Banner tone="warn">Could not load the roster from ntfy: {rosterError}</Banner>}
 
-      <SendPanel members={members} disabled={!canSend} />
-      <TeamPanel members={members} lastAcks={lastAcks} canManage={canManage} adminConfigured={adminConfigured} />
-      <HistoryPanel history={history} />
+      <SendPanel members={members} displayName={displayName} disabled={!canSend} />
+      <TeamPanel
+        members={members}
+        displayName={displayName}
+        selfMemberId={selfMemberId}
+        lastAcks={lastAcks}
+        canManage={canManage}
+        adminConfigured={adminConfigured}
+      />
+      <HistoryPanel history={history} displayName={displayName} />
     </div>
   )
 }
 
 /* ---------------------------------- Send ---------------------------------- */
 
-function SendPanel({ members, disabled }: { members: PagerMemberDisplay[]; disabled: boolean }) {
+function SendPanel({ members, displayName, disabled }: { members: PagerMemberDisplay[]; displayName: (id: string) => string; disabled: boolean }) {
   const router = useRouter()
   const [target, setTarget] = useState<string>("all")
   const [message, setMessage] = useState("")
@@ -152,11 +164,15 @@ interface NewMember {
 
 function TeamPanel({
   members,
+  displayName,
+  selfMemberId,
   lastAcks,
   canManage,
   adminConfigured,
 }: {
   members: PagerMemberDisplay[]
+  displayName: (id: string) => string
+  selfMemberId: string | null
   lastAcks: Record<string, string>
   canManage: boolean
   adminConfigured: boolean
@@ -182,6 +198,27 @@ function TeamPanel({
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       setCreated(json as NewMember)
       setNewId("")
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function rename(id: string) {
+    const nickname = prompt(`Display name for ${id} (visible to the whole team):`, displayName(id))
+    if (!nickname?.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/pager/members/nickname", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, nickname: nickname.trim() }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -224,6 +261,16 @@ function TeamPanel({
           <div key={m.id} className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3">
             <div>
               <span className="font-medium text-white">{displayName(m.id)}</span>
+              {(canManage || m.id === selfMemberId) && (
+                <button
+                  onClick={() => rename(m.id)}
+                  disabled={busy}
+                  title="Change display name (visible to everyone)"
+                  className="ml-1.5 text-xs text-white/40 hover:text-white"
+                >
+                  ✎
+                </button>
+              )}
               <span className="ml-3 font-mono text-xs text-white/40">
                 {m.topic} + page-all
               </span>
@@ -269,14 +316,14 @@ function TeamPanel({
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
 
-      {created && <OnboardingCard member={created} onDismiss={() => setCreated(null)} />}
+      {created && <OnboardingCard member={created} displayName={displayName} onDismiss={() => setCreated(null)} />}
     </section>
   )
 }
 
 /* One-time onboarding card: shown right after creating a member. The password is
  * NOT stored anywhere — once dismissed it is gone (remove + re-add to reissue). */
-function OnboardingCard({ member, onDismiss }: { member: NewMember; onDismiss: () => void }) {
+function OnboardingCard({ member, displayName, onDismiss }: { member: NewMember; displayName: (id: string) => string; onDismiss: () => void }) {
   return (
     <div className="mt-4 space-y-3 rounded-lg border border-green-600/60 bg-green-950/30 p-4">
       <div className="flex items-center justify-between">
@@ -305,7 +352,7 @@ function OnboardingCard({ member, onDismiss }: { member: NewMember; onDismiss: (
 
 /* --------------------------------- History -------------------------------- */
 
-function HistoryPanel({ history }: { history: PageRow[] }) {
+function HistoryPanel({ history, displayName }: { history: PageRow[]; displayName: (id: string) => string }) {
   return (
     <section>
       <h2 className="mb-3 text-lg font-semibold text-white">Last 72 hours</h2>
