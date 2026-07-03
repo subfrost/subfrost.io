@@ -1,5 +1,6 @@
 import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
+import { computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
 
 // Public OP_RETURN chart series for /data. Chart-level aggregates only —
 // source is the sampled scanner CSV ingested into OpReturnDaily (see the
@@ -19,7 +20,7 @@ export interface PublicOpReturnPayload {
   opReturnShare: { date: string; txPct: number | null; bytesPct: number | null }[]
   latestDonut: { date: string; diesel: number; alkanesOther: number; other: number } | null
   dieselTxShare: OpReturnPoint[]
-  bytesCum: { date: string; opReturn: number; alkanes: number; runes: number }[]
+  bytesComposition: { alkanes: number; runes: number; other: number } | null
   bytesPerTx: { date: string; alkanes: number | null; rest: number | null }[]
   minerRevenueUsd: OpReturnPoint[]
   feesSplitBtc: { date: string; alkanes: number | null; rest: number | null }[]
@@ -43,7 +44,7 @@ const EMPTY: PublicOpReturnPayload = {
   opReturnShare: [],
   latestDonut: null,
   dieselTxShare: [],
-  bytesCum: [],
+  bytesComposition: null,
   bytesPerTx: [],
   minerRevenueUsd: [],
   feesSplitBtc: [],
@@ -132,15 +133,9 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
 
   const dieselTxShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratio(r.dieselMints, r.totalTx) }))
 
-  let opReturnCum = 0
-  let alkanesCum = 0
-  let runesCum = 0
-  const bytesCum = rows.map((r) => {
-    opReturnCum += r.opReturnBytes
-    alkanesCum += r.alkanesBytes
-    runesCum += r.runestoneBytes
-    return { date: r.date, opReturn: opReturnCum, alkanes: alkanesCum, runes: runesCum }
-  })
+  // All-time byte composition (fixed window — ignores the 60d selector; the card title says "all time").
+  const totalOpReturnBytes = sumBy(rows, (r) => r.opReturnBytes)
+  const bytesComposition = totalOpReturnBytes === 0 ? null : computeBytesComposition(rows, "full")
 
   const bytesPerTx = rows.map((r) => ({
     date: r.date,
@@ -219,7 +214,7 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     opReturnShare,
     latestDonut,
     dieselTxShare,
-    bytesCum,
+    bytesComposition,
     bytesPerTx,
     minerRevenueUsd,
     feesSplitBtc,

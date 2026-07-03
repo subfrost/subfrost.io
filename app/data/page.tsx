@@ -48,8 +48,7 @@ const copy = {
         },
         latestDonut: {
           title: "Last day — share of OP_RETURN transactions",
-          series: { diesel: "DIESEL mints", alkanesOther: "Alkanes excl. DIESEL", other: "Other OP_RETURN" },
-          alkanesTotalLabel: "Alkanes",
+          series: { alkanes: "Alkanes", other: "Other OP_RETURN" },
           desc: "How this is calculated. Last day = {lastDate} (Bitcoin blocks {fromHeight}–{toHeight}, {blocks} sampled). Of {opRetTx} transactions carrying an OP_RETURN that day, {alkTx} were Alkanes → {pct}. Share = Alkanes OP_RETURN tx ÷ all OP_RETURN tx. A transaction counts as Alkanes when one of its OP_RETURN outputs decodes as a Runestone whose protostone carries protocol_tag = 1.",
         },
         weightShare: {
@@ -64,10 +63,10 @@ const copy = {
           title: "UNCOMMON•GOODS mints that are DIESEL",
           desc: "UNCOMMON•GOODS (Rune 1:0) rides along on almost every DIESEL mint. Of all UNCOMMON•GOODS mints each day, the share that are also DIESEL climbed from {ugShareEarly} early on to {ugShareRecent} recently ({ugShareFull} over the whole period): when you see an UNCOMMON•GOODS mint today, it is almost always DIESEL \"wearing Runes clothing.\" Detected as a runestone whose mint is Rune 1:0 on a DIESEL (cellpack 2:0 op 77) transaction.",
         },
-        bytesCum: {
+        bytesDonut: {
           title: "OP_RETURN bytes (all time)",
-          series: { opReturn: "OP_RETURN bytes", alkanes: "Alkanes", runes: "Runes (bytes)" },
-          desc: "Running total of OP_RETURN data written to Bitcoin, split into Alkanes, Runes, and all other OP_RETURN use — showing how Alkanes' share of that data has grown over the tracked period.",
+          series: { alkanes: "Alkanes", runes: "Runes", other: "Other" },
+          desc: "Of all OP_RETURN data written to Bitcoin over the tracked period, the share that is Alkanes, Runes, and everything else — measured in bytes, not transaction count.",
         },
         bytesPerTx: {
           title: "OP_RETURN bytes per transaction",
@@ -127,8 +126,7 @@ const copy = {
         },
         latestDonut: {
           title: "最新一天 — OP_RETURN 交易份额",
-          series: { diesel: "DIESEL 铸造", alkanesOther: "Alkanes（不含 DIESEL）", other: "其他 OP_RETURN" },
-          alkanesTotalLabel: "Alkanes",
+          series: { alkanes: "Alkanes", other: "其他 OP_RETURN" },
           desc: "计算方式。最新一天 = {lastDate}（比特币区块 {fromHeight}–{toHeight}，抽样 {blocks} 个）。当天携带 OP_RETURN 的 {opRetTx} 笔交易中，{alkTx} 笔为 Alkanes → {pct}。份额 = Alkanes 的 OP_RETURN 交易 ÷ 全部 OP_RETURN 交易。当一笔交易的某个 OP_RETURN 输出解码为携带 protocol_tag = 1 的符文石 protostone 时，即计为 Alkanes。",
         },
         weightShare: {
@@ -143,10 +141,10 @@ const copy = {
           title: "UNCOMMON•GOODS 铸造中属于 DIESEL 的比例",
           desc: "UNCOMMON•GOODS（符文 1:0）几乎搭乘在每一笔 DIESEL 铸造上。在每天全部 UNCOMMON•GOODS 铸造中，同时也是 DIESEL 的比例从早期的 {ugShareEarly} 攀升到近期的 {ugShareRecent}（整个统计期为 {ugShareFull}）：如今你看到的 UNCOMMON•GOODS 铸造，几乎都是「披着 Runes 外衣」的 DIESEL。判定方式：符文石的铸造目标为符文 1:0，且所在交易同时是 DIESEL（cellpack 2:0 操作码 77）。",
         },
-        bytesCum: {
-          title: "OP_RETURN 字节数（累计）",
-          series: { opReturn: "OP_RETURN 字节", alkanes: "Alkanes", runes: "Runes（字节）" },
-          desc: "写入比特币的 OP_RETURN 数据累计总量，分为 Alkanes、Runes 与其他 OP_RETURN 用途——展示 Alkanes 在这些数据中的占比在统计期内的增长情况。",
+        bytesDonut: {
+          title: "OP_RETURN 字节数（全部时间）",
+          series: { alkanes: "Alkanes", runes: "Runes", other: "其他" },
+          desc: "在统计期内写入比特币的全部 OP_RETURN 数据中，Alkanes、Runes 与其他用途各自占比——按字节而非交易笔数衡量。",
         },
         bytesPerTx: {
           title: "每笔交易的 OP_RETURN 字节数",
