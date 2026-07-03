@@ -73,6 +73,16 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/tiny-secp256k1 ./node_modules/tiny-secp256k1
 # Copy entire @alkanes/ts-sdk package (marked as serverExternalPackages in next.config)
 COPY --from=builder /app/node_modules/@alkanes ./node_modules/@alkanes
+# sharp loads libvips (a native .so) via dlopen at runtime, which Next.js
+# standalone tracing can't follow — it copies sharp's JS but drops the .so, so
+# require('sharp') dies with ERR_DLOPEN_FAILED and every CMS image upload fails.
+# Re-copy the full package incl. its nested @img native libs (same reason as above).
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img ./node_modules/@img
+
+# Fail the build loudly if sharp can't load libvips in the musl runtime, so a
+# missing native lib can never silently ship and break uploads again.
+RUN node -e "const s=require('sharp'); console.log('sharp', s.versions.sharp, 'libvips', s.versions.vips)"
 
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
