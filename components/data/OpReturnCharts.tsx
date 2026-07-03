@@ -22,10 +22,10 @@ export interface OpReturnCopy {
   charts: {
     dailyShare: { title: string; series: { txShare: string; opReturnPenetration: string }; desc: string }
     opReturnShare: { title: string; series: { txPct: string; bytesPct: string }; desc: string }
-    latestDonut: { title: string; series: { diesel: string; alkanesOther: string; other: string }; alkanesTotalLabel: string; desc: string }
+    latestDonut: { title: string; series: { alkanes: string; other: string }; desc: string }
     weightShare: { title: string; desc: string }
     dieselTxShare: { title: string; desc: string }
-    bytesCum: { title: string; series: { opReturn: string; alkanes: string; runes: string }; desc: string }
+    bytesDonut: { title: string; desc: string; series: { alkanes: string; runes: string; other: string } }
     bytesPerTx: { title: string; series: { alkanes: string; rest: string }; desc: string }
     minerRevenueUsd: { title: string; desc: string }
     ugDieselShare: { title: string; desc: string }
@@ -37,8 +37,7 @@ export interface OpReturnCopy {
 const ACCENT = "#5dcaa5"
 const SECOND = "#f0997b"
 const MUTED = "#aab8d6"
-const DONUT_OTHER = "#22304a"
-const DONUT_ALK_OTHER = "#8fd9c0"
+const SLICE_OTHER = "#4a4a52"
 const HAIRLINE = "var(--ed-hairline, #22304a)"
 
 /** Replaces every {token} in `template` with values[token]; missing/null values render "—". */
@@ -202,6 +201,49 @@ function windowSlice<T>(arr: T[], n: number | null): T[] {
   return n === null ? arr : arr.slice(-n)
 }
 
+/**
+ * Pie/donut with a legend built client-side from fractions, formatted "Label NN.N%"
+ * (or "Label NN%" when decimals=0) — matching the original dashboard's static legend.
+ */
+function LabeledPie({
+  slices, innerRadius, height,
+}: {
+  slices: { name: string; value: number; color: string; pct: string }[]
+  innerRadius?: number
+  height: number
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="w-full" style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              innerRadius={innerRadius}
+              outerRadius={innerRadius ? innerRadius + 25 : Math.min(80, height / 2 - 10)}
+              isAnimationActive={false}
+            >
+              {slices.map((s) => (
+                <Cell key={s.name} fill={s.color} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(v: number) => v.toLocaleString("en-US")} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap gap-4 text-xs" style={{ color: "var(--ed-muted)" }}>
+        {slices.map((s) => (
+          <span key={s.name} className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} />
+            {s.name} {s.pct}%
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpReturnPayload; copy: OpReturnCopy; locale: "en" | "zh" }) {
   const [windowDays, setWindowDays] = useState<number | null>(null) // null = All time
 
@@ -209,7 +251,6 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const opReturnShare = useMemo(() => windowSlice(payload.opReturnShare, windowDays), [payload.opReturnShare, windowDays])
   const weightShare = useMemo(() => windowSlice(payload.weightShare, windowDays), [payload.weightShare, windowDays])
   const dieselTxShare = useMemo(() => windowSlice(payload.dieselTxShare, windowDays), [payload.dieselTxShare, windowDays])
-  const bytesCum = useMemo(() => windowSlice(payload.bytesCum, windowDays), [payload.bytesCum, windowDays])
   const bytesPerTx = useMemo(() => windowSlice(payload.bytesPerTx, windowDays), [payload.bytesPerTx, windowDays])
   const minerRevenueUsd = useMemo(() => windowSlice(payload.minerRevenueUsd, windowDays), [payload.minerRevenueUsd, windowDays])
   const ugDieselShare = useMemo(() => windowSlice(payload.ugDieselShare, windowDays), [payload.ugDieselShare, windowDays])
@@ -218,6 +259,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
 
   if (payload.days === 0) return null
   const donut = payload.latestDonut
+  const bytesComposition = payload.bytesComposition
   const { header, stats } = payload
 
   const subHeader = fill(copy.subHeader, {
@@ -227,8 +269,11 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
     totalTx: header.totalTxSampled.toLocaleString(locale === "zh" ? "zh-CN" : "en-US"),
   })
 
+  // Last-day pie: 2 slices, Alkanes = diesel + alkanesOther, Other OP_RETURN = other (combined client-side).
   const donutTotal = donut ? donut.diesel + donut.alkanesOther + donut.other : 0
-  const donutAlkanesPct = donut && donutTotal > 0 ? (donut.diesel + donut.alkanesOther) / donutTotal : null
+  const donutAlkanes = donut ? donut.diesel + donut.alkanesOther : 0
+  const donutAlkanesPctInt = donut && donutTotal > 0 ? Math.round((donutAlkanes / donutTotal) * 100) : null
+  const donutOtherPctInt = donut && donutTotal > 0 ? Math.round((donut.other / donutTotal) * 100) : null
 
   return (
     <section className="mt-16">
@@ -317,7 +362,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
-        {/* 4. Last day donut */}
+        {/* 4. Last day — full pie, 2 slices (Alkanes vs Other OP_RETURN) */}
         {donut ? (
           <Card
             title={copy.charts.latestDonut.title}
@@ -331,32 +376,13 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
               pct: stats.latest ? fmtPct(stats.latest.alkanesOfOpReturnTx) : "—",
             })}
           >
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: copy.charts.latestDonut.series.diesel, value: donut.diesel },
-                      { name: copy.charts.latestDonut.series.alkanesOther, value: donut.alkanesOther },
-                      { name: copy.charts.latestDonut.series.other, value: donut.other },
-                    ]}
-                    dataKey="value"
-                    innerRadius={55}
-                    outerRadius={80}
-                    isAnimationActive={false}
-                  >
-                    <Cell fill={ACCENT} />
-                    <Cell fill={DONUT_ALK_OTHER} />
-                    <Cell fill={DONUT_OTHER} />
-                  </Pie>
-                  <Tooltip formatter={(v: number) => v.toLocaleString("en-US")} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-sm" style={{ color: "var(--ed-muted)" }}>
-              {copy.charts.latestDonut.alkanesTotalLabel} {fmtPct(donutAlkanesPct)}
-            </div>
+            <LabeledPie
+              height={220}
+              slices={[
+                { name: copy.charts.latestDonut.series.alkanes, value: donutAlkanes, color: ACCENT, pct: donutAlkanesPctInt === null ? "—" : String(donutAlkanesPctInt) },
+                { name: copy.charts.latestDonut.series.other, value: donut.other, color: SLICE_OTHER, pct: donutOtherPctInt === null ? "—" : String(donutOtherPctInt) },
+              ]}
+            />
           </Card>
         ) : null}
 
@@ -374,21 +400,20 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
-        {/* 7. OP_RETURN bytes cumulative */}
-        <Card title={copy.charts.bytesCum.title} desc={copy.charts.bytesCum.desc}>
-          <ToggleLineChart
-            data={bytesCum}
-            seriesKeys={[
-              { key: "opReturn", label: copy.charts.bytesCum.series.opReturn },
-              { key: "alkanes", label: copy.charts.bytesCum.series.alkanes },
-              { key: "runes", label: copy.charts.bytesCum.series.runes },
-            ]}
-            colors={{ opReturn: MUTED, alkanes: ACCENT, runes: SECOND }}
-            yTickFormatter={axisBytes}
-            tooltipFormatter={(v) => axisBytes(v)}
-            tip={copy.legendTip}
-          />
-        </Card>
+        {/* 7. OP_RETURN bytes (all time) — donut, fixed all-time composition */}
+        {bytesComposition ? (
+          <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc}>
+            <LabeledPie
+              height={230}
+              innerRadius={55}
+              slices={[
+                { name: copy.charts.bytesDonut.series.alkanes, value: bytesComposition.alkanes, color: ACCENT, pct: (bytesComposition.alkanes * 100).toFixed(1) },
+                { name: copy.charts.bytesDonut.series.runes, value: bytesComposition.runes, color: SECOND, pct: (bytesComposition.runes * 100).toFixed(1) },
+                { name: copy.charts.bytesDonut.series.other, value: bytesComposition.other, color: SLICE_OTHER, pct: (bytesComposition.other * 100).toFixed(1) },
+              ]}
+            />
+          </Card>
+        ) : null}
 
         {/* 8. OP_RETURN bytes per tx */}
         <Card title={copy.charts.bytesPerTx.title} desc={fill(copy.charts.bytesPerTx.desc, {
