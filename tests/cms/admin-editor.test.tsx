@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import { AdminEditor, type EditorInitial } from "@/components/cms/AdminEditor"
 import { saveArticle, translateArticleAction } from "@/actions/cms/articles"
@@ -65,6 +65,34 @@ describe("AdminEditor -- co-authors", () => {
     )
     expect(getByRole("button", { name: "Brooks" }).getAttribute("aria-pressed")).toBe("true")
     expect(getByRole("button", { name: "Gabe" }).getAttribute("aria-pressed")).toBe("false")
+  })
+})
+
+describe("AdminEditor -- upload errors", () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it("surfaces a cover upload failure next to the feature-image control, not only in the footer", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("Upload endpoint unreachable"))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { container, getByText, getByRole } = render(
+      <AdminEditor initial={{ ...initial, id: undefined, coverImage: "" }} canPublish />,
+    )
+
+    // Selecting a file drives the hidden cover input -> uploadCover -> failing fetch.
+    const coverInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["x"], "cover.png", { type: "image/png" })
+    fireEvent.change(coverInput, { target: { files: [file] } })
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/admin/upload", expect.anything()),
+    )
+
+    // The error must render as an alert sitting with the cover control (top of the
+    // page), not off-screen in the article footer.
+    const alert = await waitFor(() => getByRole("alert"))
+    expect(alert).toHaveTextContent("Upload endpoint unreachable")
+    expect(getByText("Add feature image").closest("div")).toContainElement(alert)
   })
 })
 
