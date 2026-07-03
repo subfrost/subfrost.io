@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { htmlToMarkdown, isRichHtml, importedMarkdownFromClipboard } from "@/lib/cms/import-html"
+import { markdownToEditorHtml, editorDomToMarkdown } from "@/lib/cms/editor-markdown"
 
 // Minimal reproductions of the HTML Google Docs actually puts on the clipboard.
 const gdocsWrap = (inner: string) =>
@@ -79,5 +80,45 @@ describe("isRichHtml / importedMarkdownFromClipboard", () => {
     const html = gdocsWrap(`<p><span style="font-weight:700">Hi</span></p>`)
     expect(isRichHtml(html)).toBe(true)
     expect(importedMarkdownFromClipboard(html)).toBe("**Hi**")
+  })
+})
+
+describe("htmlToMarkdown — additional coverage", () => {
+  it("converts a blockquote with bare inline text and no inner <p>", () => {
+    const html = gdocsWrap(`<blockquote><span>quoted line</span></blockquote>`)
+    expect(htmlToMarkdown(html)).toBe("> quoted line")
+  })
+
+  it("converts a <pre> code block to a fenced code block", () => {
+    const html = gdocsWrap(`<pre>const x = 1;\nconsole.log(x);</pre>`)
+    expect(htmlToMarkdown(html)).toBe("```\nconst x = 1;\nconsole.log(x);\n```")
+  })
+})
+
+describe("import survives the editor round-trip", () => {
+  const gwrap = (inner: string) =>
+    `<b style="font-weight:normal" id="docs-internal-guid-x">${inner}</b>`
+
+  function roundTrip(markdown: string): string {
+    const host = document.createElement("div")
+    host.innerHTML = markdownToEditorHtml(markdown)
+    return editorDomToMarkdown(host)
+  }
+
+  it("is idempotent for a mixed document", () => {
+    const html = gwrap(
+      `<h2><span>Section</span></h2>` +
+        `<p><span>Intro with </span><span style="font-weight:700">bold</span><span> and </span><span style="font-style:italic">italic</span><span>.</span></p>` +
+        `<ul><li><span>first</span></li><li><span>second</span></li></ul>`,
+    )
+    const md = htmlToMarkdown(html)
+    expect(roundTrip(md)).toBe(md)
+  })
+
+  it("preserves list line breaks after a round-trip", () => {
+    const html = gwrap(`<ul><li><span>alpha</span></li><li><span>beta</span></li><li><span>gamma</span></li></ul>`)
+    const md = htmlToMarkdown(html)
+    expect(md).toBe("- alpha\n- beta\n- gamma")
+    expect(roundTrip(md)).toBe("- alpha\n- beta\n- gamma")
   })
 })
