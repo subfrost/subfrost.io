@@ -198,9 +198,10 @@ function unwrapDocsHref(href: string): string {
   return href
 }
 
-/** Allowlist for link hrefs emitted into markdown: http(s)/mailto/tel, plus relative
- *  and anchor links on our own origin. Rejects everything else (e.g. `javascript:`,
- *  `data:`) so a pasted link can't smuggle a live script/data URI into the editor. */
+/** Allowlist for link hrefs emitted into markdown: http(s)/mailto/tel, plus
+ *  path-relative and anchor hrefs (`/`, `./`, `../`, `#` — matched by syntactic form,
+ *  not by resolving an origin). Rejects everything else (e.g. `javascript:`, `data:`)
+ *  so a pasted link can't smuggle a live script/data URI into the editor. */
 function isSafeHref(href: string): boolean {
   const h = href.trim().toLowerCase()
   if (h === "") return false
