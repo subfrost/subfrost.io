@@ -37,16 +37,22 @@ spec:
                 - sh
                 - -c
                 # In-cluster service DNS — no public round-trip, works even if
-                # the ingress is having a bad day. The Bearer header is only
-                # sent once PREFETCH_SECRET lands in the ExternalSecret; until
-                # then the endpoint runs unauthenticated (same convention as
-                # /api/prefetch).
+                # the ingress is having a bad day. The CronJob only *sends* the
+                # Bearer header once PREFETCH_SECRET is synced into the k8s Secret;
+                # for the server to actually *enforce* it, PREFETCH_SECRET must
+                # ALSO be added to external-secrets.yaml AND wired into the app
+                # container env in deployment.yaml (route.ts reads process.env).
+                # Until both are done the endpoint stays open, same convention as
+                # /api/prefetch.
                 - |
                   URL=http://subfrost-io.subfrost.svc.cluster.local/api/marketing/snapshot-cron
+                  # --fail-with-body (curl ≥7.76): still exits non-zero on 5xx so
+                  # the Job retries, but prints the {ok:false,error:…} body first so
+                  # a failed capture is diagnosable from the pod log (plain -f eats it).
                   if [ -n "${PREFETCH_SECRET:-}" ]; then
-                    curl -sf --max-time 540 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
+                    curl -sS --fail-with-body --max-time 540 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
                   else
-                    curl -sf --max-time 540 "$URL"
+                    curl -sS --fail-with-body --max-time 540 "$URL"
                   fi
               env:
                 - name: PREFETCH_SECRET
