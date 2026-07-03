@@ -4,12 +4,20 @@ export interface OpReturnRow {
   totalTx: number; txWithOpReturn: number; txAlkanes: number
   opReturnBytes: number; runestoneBytes: number; alkanesBytes: number; dieselMints: number
   feeTotalSats: number; feeAlkanesSats: number; feeOpReturnSats: number; btcUsd: number
+  // Added with the 19-column CSV. Empty CSV cell (e.g. today's partial row) → null, never 0.
+  weightTotal?: number | null; weightAlkanes?: number | null
+  ugMints?: number | null; dieselUg?: number | null
 }
 
 export const OPRETURN_COLUMNS: (keyof OpReturnRow)[] = [
   "date", "fromHeight", "toHeight", "blocksScanned", "totalTx", "txWithOpReturn", "txAlkanes",
   "opReturnBytes", "runestoneBytes", "alkanesBytes", "dieselMints",
   "feeTotalSats", "feeAlkanesSats", "feeOpReturnSats", "btcUsd",
+]
+
+// New in the 19-column CSV. Header-mapped, not positional; missing/blank cell → null.
+export const OPRETURN_OPTIONAL_COLUMNS: (keyof OpReturnRow)[] = [
+  "weightTotal", "weightAlkanes", "ugMints", "dieselUg",
 ]
 
 export type MetricKey =

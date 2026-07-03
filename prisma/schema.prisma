@@ -565,6 +565,11 @@ model OpReturnDaily {
   feeAlkanesSats  Float
   feeOpReturnSats Float
   btcUsd          Float
+  // Added with the 19-column CSV (2026-07). Nullable: empty CSV cell (e.g. today's partial row) → null, never 0.
+  weightTotal     Float?
+  weightAlkanes   Float?
+  ugMints         Int?
+  dieselUg        Int?
   updatedAt       DateTime @updatedAt
 }
 

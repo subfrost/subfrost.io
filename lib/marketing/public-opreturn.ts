@@ -24,10 +24,14 @@ export interface PublicOpReturnPayload {
   minerRevenueUsd: OpReturnPoint[]
   feesSplitBtc: { date: string; alkanes: number | null; rest: number | null }[]
   alkanesFeeShare: OpReturnPoint[]
+  weightShare: OpReturnPoint[]
+  ugDieselShare: OpReturnPoint[]
   stats: {
     last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null }
     full: { alkanesFeeShare: number | null; opReturnFeeShare: number | null; alkanesBytesPerTx: number | null }
     latest: { date: string; fromHeight: number; toHeight: number; blocksScanned: number; txWithOpReturn: number; txAlkanes: number; alkanesOfOpReturnTx: number | null } | null
+    weight: { full: number | null; latest: number | null }
+    ug: { early30: number | null; last30: number | null; full: number | null }
   }
 }
 
@@ -44,14 +48,22 @@ const EMPTY: PublicOpReturnPayload = {
   minerRevenueUsd: [],
   feesSplitBtc: [],
   alkanesFeeShare: [],
+  weightShare: [],
+  ugDieselShare: [],
   stats: {
     last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null },
     full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
     latest: null,
+    weight: { full: null, latest: null },
+    ug: { early30: null, last30: null, full: null },
   },
 }
 
 const ratio = (num: number, den: number): number | null => (den === 0 ? null : num / den)
+
+/** Ratio for optional (nullable) num/den values: null unless both are non-null and den !== 0. */
+const ratioNullable = (num: number | null | undefined, den: number | null | undefined): number | null =>
+  num == null || den == null ? null : ratio(num, den)
 
 /** Extrapolation factor to a full 144-block day; null when the row scanned 0 blocks. */
 const dayFactor = (r: OpReturnRow): number | null => (r.blocksScanned === 0 ? null : 144 / r.blocksScanned)
@@ -62,6 +74,25 @@ const sumBy = (rows: OpReturnRow[], f: (r: OpReturnRow) => number): number => ro
 /** Ratio of sums over a window: sum(numFn)/sum(denFn), null when the summed denominator is 0. */
 function ratioOfSums(rows: OpReturnRow[], numFn: (r: OpReturnRow) => number, denFn: (r: OpReturnRow) => number): number | null {
   return ratio(sumBy(rows, numFn), sumBy(rows, denFn))
+}
+
+/**
+ * Ratio-of-sums over rows where BOTH the numerator and denominator fields are non-null
+ * (ineligible rows are excluded from the window entirely, not treated as 0). Null when
+ * there are no eligible rows or the summed denominator is 0.
+ */
+function ratioOfSumsNullable(
+  rows: OpReturnRow[],
+  numFn: (r: OpReturnRow) => number | null | undefined,
+  denFn: (r: OpReturnRow) => number | null | undefined,
+): number | null {
+  const eligible = rows.filter((r) => numFn(r) != null && denFn(r) != null)
+  if (eligible.length === 0) return null
+  return ratioOfSums(
+    eligible,
+    (r) => numFn(r) as number,
+    (r) => denFn(r) as number,
+  )
 }
 
 export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
@@ -136,6 +167,25 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
 
   const alkanesFeeShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratio(r.feeAlkanesSats, r.feeTotalSats) }))
 
+  const weightShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratioNullable(r.weightAlkanes, r.weightTotal) }))
+  const ugDieselShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratioNullable(r.dieselUg, r.ugMints) }))
+
+  const weightEligibleRows = rows.filter((r) => r.weightTotal != null && r.weightAlkanes != null)
+  const lastWeightEligible = weightEligibleRows[weightEligibleRows.length - 1]
+  const weightStats = {
+    full: ratioOfSumsNullable(rows, (r) => r.weightAlkanes, (r) => r.weightTotal),
+    latest: lastWeightEligible ? ratioNullable(lastWeightEligible.weightAlkanes, lastWeightEligible.weightTotal) : null,
+  }
+
+  const ugEligibleRows = rows.filter((r) => r.ugMints != null && r.dieselUg != null)
+  const ugEarly30Rows = ugEligibleRows.slice(0, 30)
+  const ugLast30Rows = ugEligibleRows.slice(-30)
+  const ugStats = {
+    early30: ratioOfSumsNullable(ugEarly30Rows, (r) => r.dieselUg, (r) => r.ugMints),
+    last30: ratioOfSumsNullable(ugLast30Rows, (r) => r.dieselUg, (r) => r.ugMints),
+    full: ratioOfSumsNullable(rows, (r) => r.dieselUg, (r) => r.ugMints),
+  }
+
   const last30Rows = rows.slice(-30)
   const stats: PublicOpReturnPayload["stats"] = {
     last30: {
@@ -157,6 +207,8 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
       txAlkanes: last.txAlkanes,
       alkanesOfOpReturnTx: ratio(last.txAlkanes, last.txWithOpReturn),
     },
+    weight: weightStats,
+    ug: ugStats,
   }
 
   return {
@@ -172,6 +224,8 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     minerRevenueUsd,
     feesSplitBtc,
     alkanesFeeShare,
+    weightShare,
+    ugDieselShare,
     stats,
   }
 }

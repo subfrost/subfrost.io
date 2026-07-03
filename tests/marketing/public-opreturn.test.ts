@@ -245,4 +245,115 @@ describe("getPublicOpReturnData", () => {
     expect(p.days).toBe(0)
     expect(p.header).toEqual({ firstDate: null, lastDate: null, totalTxSampled: 0 })
   })
+
+  it("derives weightShare and ugDieselShare from weight/UG fields", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { weightTotal: 4_000_000, weightAlkanes: 800_000, ugMints: 1000, dieselUg: 900 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.weightShare[0].value).toBeCloseTo(800_000 / 4_000_000, 10)
+    expect(p.ugDieselShare[0].value).toBeCloseTo(900 / 1000, 10)
+  })
+
+  it("weightShare/ugDieselShare are null when a field is null (row absent from payload optional fields)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { weightTotal: null, weightAlkanes: null, ugMints: null, dieselUg: null }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.weightShare[0].value).toBeNull()
+    expect(p.ugDieselShare[0].value).toBeNull()
+  })
+
+  it("weightShare/ugDieselShare are null when only one side is null, or denominator is 0", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { weightTotal: 4_000_000, weightAlkanes: null, ugMints: 1000, dieselUg: null }),
+      row("2026-06-02", { weightTotal: 0, weightAlkanes: 800_000, ugMints: 0, dieselUg: 900 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.weightShare[0].value).toBeNull()
+    expect(p.ugDieselShare[0].value).toBeNull()
+    expect(p.weightShare[1].value).toBeNull()
+    expect(p.ugDieselShare[1].value).toBeNull()
+  })
+
+  it("stats.weight.full/latest are ratio-of-sums over rows with both fields non-null; latest = last such row", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { weightTotal: 4_000_000, weightAlkanes: 800_000 }),
+      row("2026-06-02", { weightTotal: 5_000_000, weightAlkanes: 1_000_000 }),
+      // last row has null weight data -> excluded from sums, and "latest" falls back to 06-02
+      row("2026-06-03", { weightTotal: null, weightAlkanes: null }),
+    ])
+    const p = await getPublicOpReturnData()
+    const expectedFull = (800_000 + 1_000_000) / (4_000_000 + 5_000_000)
+    expect(p.stats.weight.full).toBeCloseTo(expectedFull, 10)
+    expect(p.stats.weight.latest).toBeCloseTo(1_000_000 / 5_000_000, 10)
+  })
+
+  it("stats.weight is all-null when no row has both weight fields non-null", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { weightTotal: null, weightAlkanes: null })])
+    const p = await getPublicOpReturnData()
+    expect(p.stats.weight.full).toBeNull()
+    expect(p.stats.weight.latest).toBeNull()
+  })
+
+  it("stats.ug early30 uses the FIRST 30 eligible rows and differs from last30 over 31+ rows", async () => {
+    const rows: OpReturnRow[] = []
+    for (let i = 1; i <= 35; i++) {
+      const d = new Date(Date.UTC(2026, 0, 1))
+      d.setUTCDate(d.getUTCDate() + (i - 1))
+      const dateStr = d.toISOString().slice(0, 10)
+      // first 30 rows: low UG-diesel ratio; last 5: high ratio
+      const over = i <= 30 ? { ugMints: 1000, dieselUg: 100 } : { ugMints: 1000, dieselUg: 900 }
+      rows.push(row(dateStr, over))
+    }
+    store.listOpReturnDaily.mockResolvedValue(rows)
+    const p = await getPublicOpReturnData()
+
+    expect(p.stats.ug.early30).toBeCloseTo((100 * 30) / (1000 * 30), 10)
+    const last30 = rows.slice(-30)
+    const sum = (arr: OpReturnRow[], f: (r: OpReturnRow) => number) => arr.reduce((s, r) => s + f(r), 0)
+    expect(p.stats.ug.last30).toBeCloseTo(
+      sum(last30, (r) => r.dieselUg ?? 0) / sum(last30, (r) => r.ugMints ?? 0), 10
+    )
+    expect(p.stats.ug.early30).not.toBeCloseTo(p.stats.ug.last30 as number, 10)
+    expect(p.stats.ug.full).toBeCloseTo(
+      sum(rows, (r) => r.dieselUg ?? 0) / sum(rows, (r) => r.ugMints ?? 0), 10
+    )
+  })
+
+  it("stats.ug early30 only counts rows with both UG fields non-null, taking the first 30 such rows", async () => {
+    const rows: OpReturnRow[] = []
+    // rows 1-5 have null UG data (ineligible), rows 6-40 have UG data
+    for (let i = 1; i <= 40; i++) {
+      const d = `2026-03-${String(i).padStart(2, "0")}`
+      const over = i <= 5 ? { ugMints: null, dieselUg: null } : { ugMints: 1000, dieselUg: i }
+      rows.push(row(d, over))
+    }
+    store.listOpReturnDaily.mockResolvedValue(rows)
+    const p = await getPublicOpReturnData()
+
+    const eligible = rows.filter((r) => r.ugMints != null && r.dieselUg != null)
+    const first30 = eligible.slice(0, 30)
+    const sum = (arr: OpReturnRow[], f: (r: OpReturnRow) => number) => arr.reduce((s, r) => s + f(r), 0)
+    expect(p.stats.ug.early30).toBeCloseTo(
+      sum(first30, (r) => r.dieselUg ?? 0) / sum(first30, (r) => r.ugMints ?? 0), 10
+    )
+  })
+
+  it("stats.ug is all-null when no row has both UG fields non-null", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { ugMints: null, dieselUg: null })])
+    const p = await getPublicOpReturnData()
+    expect(p.stats.ug.early30).toBeNull()
+    expect(p.stats.ug.last30).toBeNull()
+    expect(p.stats.ug.full).toBeNull()
+  })
+
+  it("empty table: weightShare/ugDieselShare empty, stats.weight/ug all null", async () => {
+    store.listOpReturnDaily.mockResolvedValue([])
+    const p = await getPublicOpReturnData()
+    expect(p.weightShare).toEqual([])
+    expect(p.ugDieselShare).toEqual([])
+    expect(p.stats.weight).toEqual({ full: null, latest: null })
+    expect(p.stats.ug).toEqual({ early30: null, last30: null, full: null })
+  })
 })
