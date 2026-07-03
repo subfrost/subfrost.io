@@ -56,13 +56,24 @@ export default async function PagerPage() {
       rosterError = e instanceof Error ? e.message : String(e)
     }
   }
-  const [history, acks] = await Promise.all([recentPages(), lastAcks()])
+  const [history, acks, memberRows] = await Promise.all([
+    recentPages(),
+    lastAcks(),
+    prisma.pagerMember.findMany(),
+  ])
+  const nicknames = Object.fromEntries(
+    memberRows.filter((r) => r.nickname).map((r) => [r.memberId, r.nickname as string]),
+  )
+  const selfMemberId =
+    memberRows.find((r) => r.cmsEmail?.toLowerCase() === me.email.toLowerCase())?.memberId ?? null
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-white">Pager</h1>
       <PagerConsole
         members={members}
+        nicknames={nicknames}
+        selfMemberId={selfMemberId}
         lastAcks={acks}
         history={history}
         canSend={Boolean(NTFY_TOKEN)}

@@ -1749,3 +1749,13 @@ model PagerTarget {
   @@index([pageId])
   @@index([memberId, ackedAt])
 }
+
+// Pager member metadata overlaying the ntfy account: display nickname (shown
+// on chips/history/team) and the CMS email linkage that lets a member edit
+// their own nickname from /admin/pager.
+model PagerMember {
+  memberId  String   @id // ntfy username
+  nickname  String?
+  cmsEmail  String?  @unique
+  updatedAt DateTime @updatedAt
+}
