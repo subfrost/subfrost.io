@@ -102,9 +102,20 @@ to what the editor produces natively, so the round-trip on save is clean.
 Input HTML is parsed with `DOMParser` (does not execute scripts) and the converter
 only *reads* nodes to emit markdown (plain text) — no HTML is injected from the
 clipboard. The produced markdown is rendered through the site's existing
-`rehype-sanitize`. As defense in depth, run the parsed fragment through `DOMPurify`
-(already a dependency) before walking, configured to keep the `style`/`href`
-attributes the converter needs.
+`rehype-sanitize`.
+
+**Deliberate deviation from the original plan:** rather than running `DOMPurify` over
+the parsed fragment before walking it, the converter applies a targeted href-scheme
+allowlist (`isSafeHref` in `lib/cms/import-html.ts`) at the one point where clipboard
+content becomes a live attribute — the `<a href>` emitted into markdown. Only
+`http:`/`https:`/`mailto:`/`tel:` and relative/anchor hrefs (`/`, `./`, `../`, `#`) are
+kept; anything else (`javascript:`, `data:`, etc.) has its link stripped but keeps its
+text. We skipped the fragment-wide `DOMPurify` pass because the converter only ever
+emits *text* plus this scheme-validated href — it never serializes attributes back
+into HTML — so there is nothing else for DOMPurify to guard, and running it over the
+fragment would risk stripping the inline `style` attributes (`font-weight`,
+`font-style`, `font-family`) the converter relies on for bold/italic/monospace
+detection.
 
 ## UI — two entry points, one converter
 
@@ -166,6 +177,11 @@ New: `tests/cms/import-html.test.ts` (vitest, `happy-dom` — DOM available).
 - **Tables.** `markdownToEditorHtml` doesn't parse tables, so a pasted table would show
   as raw markdown inside the `contentEditable` (though it *would* render on the
   published article via `remark-gfm`). The mismatch isn't worth it for v1 — deferred.
+- **Nested lists don't survive the editor's own round-trip.** The converter emits
+  correctly indented nested-list markdown, but re-serializing that through the
+  editor's save path loses the nesting — a pre-existing `editor-markdown.ts`
+  limitation, not something this feature introduces. So nesting is lost on the next
+  save after import.
 
 ## Rollout
 

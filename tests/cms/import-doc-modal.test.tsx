@@ -36,4 +36,19 @@ describe("ImportDocModal", () => {
     fireEvent.click(getByText("Replace body"))
     expect(onImport).toHaveBeenCalledWith("## Heading\n\n**bold**", "replace")
   })
+
+  it("clears the stale preview after Cancel + reopen", () => {
+    const { getByLabelText, getByText, queryByText, rerender } = render(
+      <ImportDocModal open onClose={() => {}} onImport={() => {}} />,
+    )
+    pasteInto(getByLabelText("Paste your Google Doc here"), docHtml)
+    expect(getByText("Heading")).toBeTruthy()
+
+    fireEvent.click(getByText("Cancel"))
+    rerender(<ImportDocModal open={false} onClose={() => {}} onImport={() => {}} />)
+    rerender(<ImportDocModal open onClose={() => {}} onImport={() => {}} />)
+
+    expect(queryByText("Heading")).toBeNull()
+    expect(getByText("Converted article appears here.")).toBeTruthy()
+  })
 })

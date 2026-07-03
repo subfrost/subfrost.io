@@ -66,6 +66,21 @@ describe("htmlToMarkdown — inline & Google Docs quirks", () => {
     const html = gdocsWrap(`<p><a href="https://subfrost.io"><span>site</span></a></p>`)
     expect(htmlToMarkdown(html)).toBe("[site](https://subfrost.io)")
   })
+
+  it("drops a javascript: link, keeping only the text", () => {
+    const html = gdocsWrap(`<p><a href="javascript:alert(1)">x</a></p>`)
+    expect(htmlToMarkdown(html)).toBe("x")
+  })
+
+  it("drops a data: link, keeping only the text", () => {
+    const html = gdocsWrap(`<p><a href="data:text/html,evil">y</a></p>`)
+    expect(htmlToMarkdown(html)).toBe("y")
+  })
+
+  it("keeps a relative link", () => {
+    const html = gdocsWrap(`<p><a href="/articles">z</a></p>`)
+    expect(htmlToMarkdown(html)).toBe("[z](/articles)")
+  })
 })
 
 describe("isRichHtml / importedMarkdownFromClipboard", () => {

@@ -23,8 +23,13 @@ export function ImportDocModal({
     const html = event.clipboardData.getData("text/html")
     const md = html ? htmlToMarkdown(html) : event.clipboardData.getData("text/plain")
     event.preventDefault()
-    setMarkdown(md.trim())
+    if (md.trim()) setMarkdown(md.trim())
     if (pasteRef.current) pasteRef.current.textContent = ""
+  }
+
+  function handleClose() {
+    setMarkdown("")
+    onClose()
   }
 
   function done(mode: "replace" | "append") {
@@ -40,7 +45,7 @@ export function ImportDocModal({
       aria-modal="true"
       aria-label="Import from Doc"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-[10px] bg-[color:var(--ed-canvas,#fff)] shadow-xl"
@@ -48,7 +53,7 @@ export function ImportDocModal({
       >
         <div className="flex items-center justify-between border-b border-[color:var(--ed-hair)] px-5 py-3">
           <h2 className="text-sm font-medium text-[color:var(--ed-ink)]">Import from Doc</h2>
-          <button type="button" aria-label="Close" onClick={onClose} className="text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]">
+          <button type="button" aria-label="Close" onClick={handleClose} className="text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]">
             <X size={16} />
           </button>
         </div>
@@ -77,7 +82,7 @@ export function ImportDocModal({
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-[color:var(--ed-hair)] px-5 py-3">
-          <button type="button" onClick={onClose} className="h-9 rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)]">Cancel</button>
+          <button type="button" onClick={handleClose} className="h-9 rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)]">Cancel</button>
           <button type="button" onClick={() => done("append")} disabled={!markdown.trim()} className="h-9 rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] hover:bg-[color:var(--ed-surface)] disabled:opacity-45">Append to body</button>
           <button type="button" onClick={() => done("replace")} disabled={!markdown.trim()} className="h-9 rounded-[6px] bg-[color:var(--ed-ink)] px-3 text-sm text-[color:var(--ed-canvas,#fff)] disabled:opacity-45">Replace body</button>
         </div>

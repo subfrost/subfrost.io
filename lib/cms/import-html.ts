@@ -29,6 +29,8 @@ export function htmlToMarkdown(html: string): string {
 export function isRichHtml(html: string): boolean {
   if (!html) return false
   const doc = new DOMParser().parseFromString(html, "text/html")
+  // Keep this selector in lockstep with the tags blockToMarkdown/inlineToMarkdown
+  // actually handle — add to both places together as the converter grows.
   return !!doc.body.querySelector(
     "h1,h2,h3,h4,h5,h6,ul,ol,li,blockquote,pre,b,strong,i,em,a,code,[style*='font-weight'],[style*='font-style']",
   )
@@ -130,7 +132,8 @@ function inlineToMarkdown(node: ChildNode, ctx: Ctx): string {
   if (tag === "a") {
     const inner = inlineChildren(node, ctx)
     const href = unwrapDocsHref(node.getAttribute("href") || "")
-    return href ? `[${inner}](${href})` : inner
+    if (!href) return inner
+    return isSafeHref(href) ? `[${inner}](${href})` : inner
   }
 
   const bold = resolveWeight(node, ctx.bold)
@@ -181,6 +184,8 @@ function isMonospace(el: HTMLElement): boolean {
   return /courier|consolas|monaco|monospace/.test(styleProp(el, "font-family"))
 }
 
+// Assumes the inner q= value is URI-encoded, which is true for real Google Docs output;
+// decodeURIComponent is already try/caught below for anything that isn't.
 function unwrapDocsHref(href: string): string {
   const match = href.match(/^https?:\/\/www\.google\.com\/url\?q=([^&]+)/)
   if (match) {
@@ -191,4 +196,14 @@ function unwrapDocsHref(href: string): string {
     }
   }
   return href
+}
+
+/** Allowlist for link hrefs emitted into markdown: http(s)/mailto/tel, plus relative
+ *  and anchor links on our own origin. Rejects everything else (e.g. `javascript:`,
+ *  `data:`) so a pasted link can't smuggle a live script/data URI into the editor. */
+function isSafeHref(href: string): boolean {
+  const h = href.trim().toLowerCase()
+  if (h === "") return false
+  if (h.startsWith("/") || h.startsWith("#") || h.startsWith("./") || h.startsWith("../")) return true
+  return /^(https?|mailto|tel):/.test(h)
 }
