@@ -222,6 +222,10 @@ function LabeledPie({
               dataKey="value"
               innerRadius={innerRadius}
               outerRadius={innerRadius ? innerRadius + 25 : Math.min(80, height / 2 - 10)}
+              // Start at 12 o'clock and sweep clockwise like the original dashboard (Chart.js
+              // convention) — puts the small trailing slice at the top instead of the left.
+              startAngle={90}
+              endAngle={-270}
               isAnimationActive={false}
             >
               {slices.map((s) => (
