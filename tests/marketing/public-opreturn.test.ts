@@ -70,21 +70,43 @@ describe("getPublicOpReturnData", () => {
     expect(p.dieselTxShare[0].value).toBeCloseTo(23000 / 300000, 10)
   })
 
-  it("computes bytesComposition as all-time fractions across all rows", async () => {
+  it("computes bytesComposition as all-time fractions, subtracting alkanes out of runestone bytes (protostones are embedded in runestones, not disjoint)", async () => {
+    // Realistic fixture: runestoneBytes INCLUDES alkanesBytes (alkanes protostones live inside
+    // runestones), so runes' true share is runestoneBytes-minus-alkanesBytes, not runestoneBytes alone.
     store.listOpReturnDaily.mockResolvedValue([
-      row("2026-06-01"),
-      row("2026-06-02", { opReturnBytes: 2_000_000, alkanesBytes: 600_000, runestoneBytes: 1_400_000 }),
+      row("2026-06-01", { opReturnBytes: 1_604_952, runestoneBytes: 1_392_270, alkanesBytes: 520_627 }),
     ])
     const p = await getPublicOpReturnData()
-    const totalBytes = 1_500_000 + 2_000_000
-    const totalAlkanes = 500_000 + 600_000
-    const totalRunes = 1_300_000 + 1_400_000
-    const expectedAlkanes = totalAlkanes / totalBytes
-    const expectedRunes = totalRunes / totalBytes
+    const sumOpReturn = 1_604_952
+    const a = 520_627 / sumOpReturn
+    const rTot = 1_392_270 / sumOpReturn
+    const expectedAlkanes = a
+    const expectedRunes = rTot - a
+    const expectedOther = 1 - rTot
     expect(p.bytesComposition).not.toBeNull()
     expect(p.bytesComposition!.alkanes).toBeCloseTo(expectedAlkanes, 10)
+    expect(p.bytesComposition!.alkanes).toBeCloseTo(0.3244, 4)
     expect(p.bytesComposition!.runes).toBeCloseTo(expectedRunes, 10)
-    expect(p.bytesComposition!.other).toBeCloseTo(Math.max(0, 1 - expectedAlkanes - expectedRunes), 10)
+    expect(p.bytesComposition!.runes).toBeCloseTo(0.5431, 4)
+    expect(p.bytesComposition!.other).toBeCloseTo(expectedOther, 10)
+    expect(p.bytesComposition!.other).toBeCloseTo(0.1325, 4)
+  })
+
+  it("bytesComposition sums across all rows before deriving fractions (all-time window)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { opReturnBytes: 1_000_000, runestoneBytes: 900_000, alkanesBytes: 300_000 }),
+      row("2026-06-02", { opReturnBytes: 604_952, runestoneBytes: 492_270, alkanesBytes: 220_627 }),
+    ])
+    const p = await getPublicOpReturnData()
+    const sumOpReturn = 1_000_000 + 604_952
+    const sumAlkanes = 300_000 + 220_627
+    const sumRunestone = 900_000 + 492_270
+    const a = sumAlkanes / sumOpReturn
+    const rTot = sumRunestone / sumOpReturn
+    expect(p.bytesComposition).not.toBeNull()
+    expect(p.bytesComposition!.alkanes).toBeCloseTo(a, 10)
+    expect(p.bytesComposition!.runes).toBeCloseTo(rTot - a, 10)
+    expect(p.bytesComposition!.other).toBeCloseTo(1 - rTot, 10)
   })
 
   it("bytesComposition is null when total opReturnBytes across all rows is 0", async () => {
@@ -95,9 +117,18 @@ describe("getPublicOpReturnData", () => {
     expect(p.bytesComposition).toBeNull()
   })
 
-  it("bytesComposition clamps other to 0 (not negative) when alkanes+runes bytes exceed opReturnBytes", async () => {
+  it("bytesComposition clamps runes to 0 (not negative) when alkanesBytes exceeds runestoneBytes (bad data)", async () => {
     store.listOpReturnDaily.mockResolvedValue([
-      row("2026-06-01", { opReturnBytes: 1_000_000, alkanesBytes: 700_000, runestoneBytes: 500_000 }),
+      row("2026-06-01", { opReturnBytes: 1_000_000, runestoneBytes: 400_000, alkanesBytes: 700_000 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.bytesComposition).not.toBeNull()
+    expect(p.bytesComposition!.runes).toBe(0)
+  })
+
+  it("bytesComposition clamps other to 0 (not negative) when runestoneBytes exceeds opReturnBytes (bad data)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { opReturnBytes: 1_000_000, runestoneBytes: 1_200_000, alkanesBytes: 300_000 }),
     ])
     const p = await getPublicOpReturnData()
     expect(p.bytesComposition).not.toBeNull()
@@ -113,7 +144,7 @@ describe("getPublicOpReturnData", () => {
       // early rows (excluded from a 60d window) are pure-alkanes; recent 60 are pure-runes
       const over =
         i <= 30
-          ? { opReturnBytes: 1000, alkanesBytes: 1000, runestoneBytes: 0 }
+          ? { opReturnBytes: 1000, alkanesBytes: 1000, runestoneBytes: 1000 }
           : { opReturnBytes: 1000, alkanesBytes: 0, runestoneBytes: 1000 }
       rows.push(row(dateStr, over))
     }
@@ -121,8 +152,11 @@ describe("getPublicOpReturnData", () => {
     const p = await getPublicOpReturnData()
     // If this only used the last-60d window, alkanes fraction would be 0 (all-runes there).
     // Using all 90 rows, the first 30 pure-alkanes rows must still contribute.
+    // Here runestoneBytes always equals opReturnBytes (1000) since protostones are embedded in
+    // runestones; the first 30 rows have alkanesBytes=1000 too (fully-alkanes runestones).
     expect(p.bytesComposition).not.toBeNull()
     expect(p.bytesComposition!.alkanes).toBeCloseTo(30 / 90, 10)
+    // runes = rTot - alkanes; rTot = 90/90 = 1 always; alkanes = 30/90 -> runes = 60/90
     expect(p.bytesComposition!.runes).toBeCloseTo(60 / 90, 10)
   })
 
