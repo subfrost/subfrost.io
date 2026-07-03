@@ -871,6 +871,13 @@ div[data-netlify-deploy-id] {
 .ed-article-prose ol {
   padding-left: 1.4em;
 }
+/* Tailwind's preflight strips list markers (list-style: none); restore them here. */
+.ed-article-prose ul {
+  list-style-type: disc;
+}
+.ed-article-prose ol {
+  list-style-type: decimal;
+}
 .ed-article-prose li + li {
   margin-top: 8px;
 }
