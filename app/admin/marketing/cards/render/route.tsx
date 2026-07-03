@@ -1,21 +1,17 @@
 import { ImageResponse } from "next/og"
-import { readFile } from "node:fs/promises"
-import { join } from "node:path"
 import { NextRequest } from "next/server"
 import { currentUser } from "@/lib/cms/authz"
 import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
 import { computeMetric, computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
 import { METRIC_LABELS, WINDOW_LABELS, type MetricKey, type WindowKey } from "@/lib/marketing/opreturn-types"
+import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
 
 export const runtime = "nodejs"
 const SIZE = { width: 1200, height: 675 }
 
 async function assets() {
-  const [logo, font] = await Promise.all([
-    readFile(join(process.cwd(), "public", "brand", "subfrost", "Logos", "svg", "logomark", "logomark.svg")),
-    readFile(join(process.cwd(), "node_modules", "geist", "dist", "fonts", "geist-sans", "Geist-Medium.ttf")),
-  ])
-  return { logo: `data:image/svg+xml;base64,${logo.toString("base64")}`, font: font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength) }
+  const [logo, font] = await Promise.all([loadOgLogomark(), loadOgFont()])
+  return { logo, font }
 }
 
 const fmtPct = (v: number | null) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`)
