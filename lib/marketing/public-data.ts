@@ -19,7 +19,7 @@ export interface PublicDataPayload {
 
 export const CARD_METRICS: Record<PublicMetricKey, { label: string; kind: "btc" | "usd" | "int" | "ratio"; seriesField: keyof SeriesPoint }> = {
   "btc-locked": { label: "BTC locked", kind: "btc", seriesField: "btcLocked" },
-  "frbtc-supply": { label: "frBTC supply", kind: "int", seriesField: "frbtcSupply" },
+  "frbtc-supply": { label: "frBTC supply", kind: "btc", seriesField: "frbtcSupply" },
   "diesel-holders": { label: "DIESEL holders", kind: "int", seriesField: "dieselHolders" },
   "diesel-price": { label: "DIESEL price", kind: "usd", seriesField: "dieselPrice" },
   "diesel-marketcap": { label: "DIESEL market cap", kind: "usd", seriesField: "dieselMarketcap" },
@@ -67,7 +67,13 @@ export async function getPublicData(): Promise<PublicDataPayload> {
   let updatedAt: string | null = null
   try {
     const rows = await listDailySnapshots()
-    series = buildProtocolSeries(rows)
+    // buildProtocolSeries is shared with the admin analytics page and reports frbtcSupply
+    // in raw base units (per protocol-series.ts). The public payload is BTC-denominated
+    // everywhere else (live.currentFrbtcSupply included), so normalize here only.
+    series = buildProtocolSeries(rows).map((p) => ({
+      ...p,
+      frbtcSupply: p.frbtcSupply === null ? null : p.frbtcSupply / 1e8,
+    }))
     updatedAt = rows.length ? rows[rows.length - 1].createdAt.toISOString() : null
   } catch (e) {
     console.error("[public-data] snapshot series unavailable", e)

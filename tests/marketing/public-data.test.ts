@@ -32,7 +32,7 @@ function row(dayOffset: number, over: Partial<{ holders: number; priceUsd: numbe
 
 beforeEach(() => {
   stats.getStats.mockResolvedValue({
-    totalBtcLocked: 94.74, currentFrbtcSupply: 9334766521,
+    totalBtcLocked: 94.74, currentFrbtcSupply: 93.34766521,
     dieselUsd: 50.13, fireUsd: 40.23, btcDieselPrice: 1165.9, btcFirePrice: 1420.3,
   })
 })
@@ -84,6 +84,21 @@ describe("getPublicData", () => {
     const p = await getPublicData()
     expect(p.now["btc-locked"]).toBe(92) // 90 + 2 from latest snapshot
   })
+
+  it("frbtc-supply series is normalized to BTC scale (raw base-units / 1e8)", async () => {
+    snapshotStore.listDailySnapshots.mockResolvedValue(Array.from({ length: 3 }, (_, i) => row(i)))
+    const p = await getPublicData()
+    for (const point of p.series) {
+      expect(point.frbtcSupply).toBe(93.34766521)
+    }
+  })
+
+  it("frbtc-supply now-value matches series scale when live stats are down (BTC, not raw base-units)", async () => {
+    stats.getStats.mockRejectedValue(new Error("boom"))
+    snapshotStore.listDailySnapshots.mockResolvedValue(Array.from({ length: 3 }, (_, i) => row(i)))
+    const p = await getPublicData()
+    expect(p.now["frbtc-supply"]).toBe(93.34766521)
+  })
 })
 
 describe("helpers", () => {
@@ -97,6 +112,7 @@ describe("helpers", () => {
     expect(formatMetricValue("btc-locked", 94.74)).toBe("94.74 BTC")
     expect(formatMetricValue("btc-diesel", 1165.955)).toBe("1,165.96")
     expect(formatMetricValue("btc-locked", null)).toBe("—")
+    expect(formatMetricValue("frbtc-supply", 93.34766521)).toBe("93.35 BTC")
   })
   it("every metric maps to a real SeriesPoint field", () => {
     const fields = ["date","dieselHolders","dieselPrice","btcLocked","firePrice","frbtcSupply","dieselMarketcap","btcUsd","btcDiesel","btcFire"]
