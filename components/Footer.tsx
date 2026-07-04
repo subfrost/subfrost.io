@@ -75,15 +75,6 @@ const Footer: React.FC = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/ecosystem"
-                    onClick={() => trackEvent("ecosystem_click", { event_category: "navigation", event_label: "footer" })}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
-                  >
-                    Ecosystem
-                  </Link>
-                </li>
-                <li>
                   <a
                     href={externalLinks.apiDocs}
                     target="_blank"

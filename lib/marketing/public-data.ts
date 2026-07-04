@@ -2,7 +2,7 @@ import { listDailySnapshots } from "@/lib/marketing/snapshot-store"
 import { buildProtocolSeries, type SeriesPoint } from "@/lib/marketing/protocol-series"
 import { getStats, normalizeHomeStats } from "@/lib/stats"
 
-// Public payload for /data, /api/data and /data/card/[metric].
+// Public payload for /metrics, /api/data and /metrics/card/[metric].
 // HARD RULE: snapshot metrics only — nothing OP_RETURN/decoder related here.
 
 export type PublicMetricKey =

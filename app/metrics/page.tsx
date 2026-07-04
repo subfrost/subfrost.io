@@ -176,16 +176,16 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
   const locale: Locale = params.lang === "zh" ? "zh" : "en"
   const c = copy[locale]
   return {
-    title: `${c.title} — subfrost.io/data`,
+    title: `${c.title} — subfrost.io/metrics`,
     description: c.subtitle,
     alternates: {
-      canonical: absoluteUrl("/data"),
-      languages: { en: absoluteUrl("/data"), zh: absoluteUrl("/data?lang=zh"), "x-default": absoluteUrl("/data") },
+      canonical: absoluteUrl("/metrics"),
+      languages: { en: absoluteUrl("/metrics"), zh: absoluteUrl("/metrics?lang=zh"), "x-default": absoluteUrl("/metrics") },
     },
     openGraph: {
       title: c.title,
       description: c.subtitle,
-      images: [{ url: absoluteUrl("/data/card/btc-locked"), width: 1200, height: 675 }],
+      images: [{ url: absoluteUrl("/metrics/card/btc-locked"), width: 1200, height: 675 }],
     },
     twitter: { card: "summary_large_image" },
   }

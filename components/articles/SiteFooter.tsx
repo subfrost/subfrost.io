@@ -40,7 +40,6 @@ export function SiteFooter() {
               { label: "应用", href: "https://app.subfrost.io" },
               { label: "市场", href: "/#markets" },
               { label: "金库", href: "/#vaults" },
-              { label: "生态系统", href: "/ecosystem?lang=zh" },
             ],
           },
           {
@@ -69,7 +68,6 @@ export function SiteFooter() {
               { label: "App", href: "https://app.subfrost.io" },
               { label: "Markets", href: "/#markets" },
               { label: "Vaults", href: "/#vaults" },
-              { label: "Ecosystem", href: "/ecosystem" },
             ],
           },
           {

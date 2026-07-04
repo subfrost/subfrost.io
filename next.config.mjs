@@ -56,6 +56,20 @@ const nextConfig = {
           'https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen',
         permanent: false,
       },
+      // The public metrics page moved from /data to /metrics (flex request).
+      // Keep old shared links and cached X OG cards (/data/card/:metric) working.
+      // Temporary (307) so it isn't browser-cached forever; make permanent once
+      // the rename has settled. Query strings (?lang=zh) are preserved by Next.
+      {
+        source: '/data',
+        destination: '/metrics',
+        permanent: false,
+      },
+      {
+        source: '/data/:path*',
+        destination: '/metrics/:path*',
+        permanent: false,
+      },
     ];
   },
 

@@ -203,21 +203,21 @@ export function SiteHeader() {
       ],
     },
   ]
-  const ecosystemHref = locale === "zh" ? "/ecosystem?lang=zh" : "/ecosystem"
+  // NOTE: the Ecosystem nav item is temporarily hidden (soft-launch — reachable
+  // only via a shared /ecosystem link) until the directory content is finalized.
+  // To restore: add an ecosystem entry to navItems (label copy.ecosystem, href
+  // locale-aware /ecosystem) and the matching "/ecosystem" branch to activeId.
   const navItems = [
     { id: "blog", label: copy.blog, href: articleHref },
-    { id: "ecosystem", label: copy.ecosystem, href: ecosystemHref },
   ]
   const developerMenu = developerMenus.find((menu) => menu.id === "developer")
   const activeMobileMenu = mobilePanel ? developerMenus.find((menu) => menu.id === mobilePanel) : null
   const activeId =
     pathname?.startsWith("/articles") || pathname?.startsWith("/authors")
       ? "blog"
-      : pathname?.startsWith("/ecosystem")
-        ? "ecosystem"
-        : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
-          ? "developer"
-          : null
+      : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
+        ? "developer"
+        : null
 
   useEffect(() => {
     const onScroll = () => {

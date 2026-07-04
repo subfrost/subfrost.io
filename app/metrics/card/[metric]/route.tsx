@@ -54,7 +54,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ metric: string
           ) : null}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 30, color: MUTED }}>
-          <div style={{ display: "flex" }}>subfrost.io/data</div>
+          <div style={{ display: "flex" }}>subfrost.io/metrics</div>
           <div style={{ display: "flex" }}>{dateText}</div>
         </div>
       </div>
