@@ -8,7 +8,7 @@ vi.mock("@/actions/ecosystem/projects", () => ({
   setFeaturedBandEnabled: vi.fn(),
   translateEcosystemDescription: vi.fn(),
 }))
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+// next/navigation is mocked globally in tests/setup.ts.
 
 beforeEach(() => cleanup())
 afterEach(() => vi.unstubAllGlobals())

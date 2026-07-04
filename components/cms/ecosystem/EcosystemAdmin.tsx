@@ -10,6 +10,7 @@ import {
   translateEcosystemDescription,
   type EcosystemProjectInput,
 } from "@/actions/ecosystem/projects"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES } from "@/lib/ecosystem/constants"
 
 export interface AdminProject {
@@ -290,18 +291,14 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = "" // allow re-picking the same file after a failure
-    setUploading(true); setUploadError(null)
+    setUploading(true); setUploadError(null); onError(null)
     try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("kind", "ecosystem")
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-      // A gateway/ingress failure answers HTML, not JSON — don't let parsing throw.
-      const json = await res.json().catch(() => null)
-      if (res.ok && json?.url) setLogoUrl(json.url)
-      else setUploadError(json?.error || `Upload failed (HTTP ${res.status})`)
-    } catch {
-      setUploadError("Upload failed — network error, try again")
+      setLogoUrl(await uploadInlineImage(file, fetch, "ecosystem"))
+    } catch (err) {
+      // Inline (next to the button), so a gateway HTML answer or network drop
+      // can never strand the button on "Uploading…" with the error off-screen.
+      const detail = err instanceof Error && err.message ? ` — ${err.message}` : ""
+      setUploadError(`Upload failed${detail}`)
     } finally {
       setUploading(false)
     }

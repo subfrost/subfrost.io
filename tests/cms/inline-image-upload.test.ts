@@ -18,4 +18,11 @@ describe("uploadInlineImage", () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: "Image exceeds 8MB limit" }), { status: 400 })) as unknown as typeof fetch
     await expect(uploadInlineImage(file, fetchImpl)).rejects.toThrow("Image exceeds 8MB limit")
   })
+  it("sends the caller's kind when one is given (ecosystem logos)", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ url: "https://x/logo.png" }), { status: 200 })) as unknown as typeof fetch
+    const url = await uploadInlineImage(file, fetchImpl, "ecosystem")
+    expect(url).toBe("https://x/logo.png")
+    const [, init] = vi.mocked(fetchImpl).mock.calls[0]
+    expect(((init as RequestInit).body as FormData).get("kind")).toBe("ecosystem")
+  })
 })
