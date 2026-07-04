@@ -269,6 +269,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [pending, startTransition] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
 
   const [name, setName] = useState(initial.name)
@@ -288,15 +289,22 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); onError(null)
-    const fd = new FormData()
-    fd.append("file", file)
-    fd.append("kind", "ecosystem")
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-    const json = await res.json()
-    setUploading(false)
-    if (res.ok) setLogoUrl(json.url)
-    else onError(json.error || "Upload failed")
+    e.target.value = "" // allow re-picking the same file after a failure
+    setUploading(true); setUploadError(null)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("kind", "ecosystem")
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
+      // A gateway/ingress failure answers HTML, not JSON — don't let parsing throw.
+      const json = await res.json().catch(() => null)
+      if (res.ok && json?.url) setLogoUrl(json.url)
+      else setUploadError(json?.error || `Upload failed (HTTP ${res.status})`)
+    } catch {
+      setUploadError("Upload failed — network error, try again")
+    } finally {
+      setUploading(false)
+    }
   }
 
   function translateZh() {
@@ -355,6 +363,9 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
             {uploading ? "Uploading…" : "Upload logo"}
           </button>
           <p className="mt-1 text-xs text-zinc-500">PNG/JPG/WebP/SVG, up to 8MB</p>
+          {uploadError && (
+            <p role="alert" className="mt-1 text-xs text-rose-400">{uploadError}</p>
+          )}
         </div>
       </div>
 

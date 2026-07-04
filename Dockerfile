@@ -84,6 +84,13 @@ COPY --from=builder /app/node_modules/@img ./node_modules/@img
 # missing native lib can never silently ship and break uploads again.
 RUN node -e "const s=require('sharp'); console.log('sharp', s.versions.sharp, 'libvips', s.versions.vips)"
 
+# Same guard for jsdom (SVG sanitization in the upload route): it must load on
+# THIS Node version. jsdom >=27 pulls html-encoding-sniffer@6, whose require()
+# of the ESM-only @exodus/bytes needs require(esm) (Node >=20.19/22.12) and
+# died here with ERR_REQUIRE_ESM on Node 20.13 — killing the upload route
+# chunk at module load for every file type.
+RUN node -e "const { JSDOM } = require('jsdom'); new JSDOM(''); console.log('jsdom OK on', process.version)"
+
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
 
