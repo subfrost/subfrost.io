@@ -10,6 +10,7 @@ import {
   translateEcosystemDescription,
   type EcosystemProjectInput,
 } from "@/actions/ecosystem/projects"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES } from "@/lib/ecosystem/constants"
 
 export interface AdminProject {
@@ -269,6 +270,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [pending, startTransition] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
 
   const [name, setName] = useState(initial.name)
@@ -288,15 +290,18 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); onError(null)
-    const fd = new FormData()
-    fd.append("file", file)
-    fd.append("kind", "ecosystem")
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-    const json = await res.json()
-    setUploading(false)
-    if (res.ok) setLogoUrl(json.url)
-    else onError(json.error || "Upload failed")
+    e.target.value = "" // allow re-picking the same file after a failure
+    setUploading(true); setUploadError(null); onError(null)
+    try {
+      setLogoUrl(await uploadInlineImage(file, fetch, "ecosystem"))
+    } catch (err) {
+      // Inline (next to the button), so a gateway HTML answer or network drop
+      // can never strand the button on "Uploading…" with the error off-screen.
+      const detail = err instanceof Error && err.message ? ` — ${err.message}` : ""
+      setUploadError(`Upload failed${detail}`)
+    } finally {
+      setUploading(false)
+    }
   }
 
   function translateZh() {
@@ -355,6 +360,9 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
             {uploading ? "Uploading…" : "Upload logo"}
           </button>
           <p className="mt-1 text-xs text-zinc-500">PNG/JPG/WebP/SVG, up to 8MB</p>
+          {uploadError && (
+            <p role="alert" className="mt-1 text-xs text-rose-400">{uploadError}</p>
+          )}
         </div>
       </div>
 
