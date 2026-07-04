@@ -1786,3 +1786,31 @@ model PagerMember {
   cmsEmail  String?  @unique
   updatedAt DateTime @updatedAt
 }
+
+// ── Alkanes ecosystem directory (public /ecosystem + /admin/ecosystem) ──
+
+model EcosystemProject {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  logoUrl       String?
+  category      String
+  status        String   @default("Live")
+  url           String
+  xUrl          String?
+  docsUrl       String?
+  descriptionEn String   @default("")
+  descriptionZh String   @default("")
+  featured      Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  published     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([published, featured, sortOrder])
+}
+
+model EcosystemSettings {
+  id                  Int     @id @default(1)
+  featuredBandEnabled Boolean @default(true)
+}
