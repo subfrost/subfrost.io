@@ -9,6 +9,8 @@ import {
   isValidStatus,
   isValidHttpUrl,
   isValidOptionalHttpUrl,
+  isValidKind,
+  isValidOptionalAlkaneId,
   slugify,
 } from "@/lib/ecosystem/constants"
 
@@ -19,6 +21,8 @@ export interface EcosystemProjectInput {
   logoUrl?: string | null
   category: string
   status: string
+  kind?: string
+  alkaneId?: string | null
   url: string
   xUrl?: string | null
   docsUrl?: string | null
@@ -45,6 +49,11 @@ function validate(input: EcosystemProjectInput): string | null {
   if (!input.name?.trim()) return "Name is required"
   if (!isValidCategory(input.category)) return "Unknown category"
   if (!isValidStatus(input.status)) return "Unknown status"
+  const kind = input.kind ?? "App"
+  if (!isValidKind(kind)) return "Unknown kind"
+  if (!isValidOptionalAlkaneId(input.alkaneId?.trim())) {
+    return "Alkane ID must look like block:tx (e.g. 2:0)"
+  }
   if (!isValidHttpUrl(input.url)) return "Website must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.xUrl)) return "X link must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.docsUrl)) return "Docs link must be a valid http(s) URL"
@@ -65,6 +74,8 @@ export async function saveEcosystemProject(
     logoUrl: input.logoUrl?.trim() || null,
     category: input.category,
     status: input.status,
+    kind: input.kind ?? "App",
+    alkaneId: input.alkaneId?.trim() || null,
     url: input.url.trim(),
     xUrl: input.xUrl?.trim() || null,
     docsUrl: input.docsUrl?.trim() || null,

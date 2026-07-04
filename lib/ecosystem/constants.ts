@@ -42,3 +42,16 @@ export function slugify(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
 }
+
+export const ECOSYSTEM_KINDS = ["App", "Contract"] as const
+export type EcosystemKind = (typeof ECOSYSTEM_KINDS)[number]
+
+export function isValidKind(v: string): v is EcosystemKind {
+  return (ECOSYSTEM_KINDS as readonly string[]).includes(v)
+}
+
+/** Alkane id in canonical `block:tx` form (e.g. "2:0"). Empty/null = not set. */
+export function isValidOptionalAlkaneId(v: string | null | undefined): boolean {
+  if (v == null || v === "") return true
+  return /^\d+:\d+$/.test(v)
+}

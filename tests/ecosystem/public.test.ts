@@ -13,6 +13,7 @@ import { getEcosystemDirectory } from "@/lib/ecosystem/public"
 
 const row = (over: Record<string, unknown>) => ({
   slug: "x", name: "X", logoUrl: null, category: "DeFi", status: "Live",
+  kind: "App", alkaneId: null,
   url: "https://x.io", xUrl: null, docsUrl: null,
   descriptionEn: "english", descriptionZh: "中文",
   featured: false, sortOrder: 0, published: true, ...over,
@@ -56,5 +57,16 @@ describe("getEcosystemDirectory", () => {
     vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce({ id: 1, featuredBandEnabled: false } as never)
     const { featuredBandEnabled } = await getEcosystemDirectory("en")
     expect(featuredBandEnabled).toBe(false)
+  })
+
+  it("maps kind and alkaneId verbatim", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "c", kind: "Contract", alkaneId: "2:0" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    const p = projects.find((p) => p.slug === "c")
+    expect(p?.kind).toBe("Contract")
+    expect(p?.alkaneId).toBe("2:0")
   })
 })

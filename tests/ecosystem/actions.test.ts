@@ -96,6 +96,26 @@ describe("saveEcosystemProject", () => {
     const res = await saveEcosystemProject(validInput)
     expect(res).toEqual({ ok: false, error: "Slug already exists" })
   })
+
+  it("persists kind and alkaneId", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "e1" } as never)
+    const res = await saveEcosystemProject({ ...validInput, kind: "Contract", alkaneId: " 2:0 " } as never)
+    expect(res.ok).toBe(true)
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.kind).toBe("Contract")
+    expect(data.alkaneId).toBe("2:0") // trimmed
+  })
+  it("rejects an unknown kind", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    const res = await saveEcosystemProject({ ...validInput, kind: "Token" } as never)
+    expect(res).toEqual({ ok: false, error: "Unknown kind" })
+  })
+  it("rejects a malformed alkaneId", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    const res = await saveEcosystemProject({ ...validInput, kind: "Contract", alkaneId: "2-0" } as never)
+    expect(res).toEqual({ ok: false, error: "Alkane ID must look like block:tx (e.g. 2:0)" })
+  })
 })
 
 describe("deleteEcosystemProject / setFeaturedBandEnabled", () => {
