@@ -75,7 +75,10 @@ model EcosystemProject {
 - Locale: same mechanism as `/data` — `?lang=zh` searchParams, default `en`; inline
   `copy = { en, zh }` dictionary for chrome strings. Description falls back to EN when
   `descriptionZh` is empty.
-- Layout (frost/dark theme, same finish level as `/data`, `EditorialShell` chrome):
+- Layout (editorial light theme — Geist type, `--ed-*` tokens: canvas white, ink
+  `#0a1628`, ice `#5b9cff`, flare `#ec4521` — same finish level as `/data`,
+  `EditorialShell` chrome; visual design iterated with Vitor via mockups before
+  implementation):
   - Hero: title ("The Alkanes ecosystem" / 中文), one-line pitch ("Discover the
     projects being built on Alkanes — smart contracts on Bitcoin."), project count.
   - Category filter chips (All + categories present in data) — client-side filter,
