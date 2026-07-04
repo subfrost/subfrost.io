@@ -121,7 +121,7 @@ export function EcosystemDirectory({
               {/* Stretched-link overlay: makes the whole card clickable to the project url
                   while keeping LinksRow's real anchors (website/X/docs) as non-nested,
                   independently-clickable siblings above it (z-10). */}
-              <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={p.name} className="absolute inset-0 z-0 rounded-[14px]" />
+              <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} — ${copy.website}`} className="absolute inset-0 z-0 rounded-[14px]" />
               <div className="relative z-10 flex items-center gap-3.5">
                 <Mark p={p} size={52} />
                 <div>
