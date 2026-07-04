@@ -24,6 +24,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry(absoluteUrl("/volume?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.65 }),
     sitemapEntry(absoluteUrl("/data"), { lastModified: now, changeFrequency: "daily", priority: 0.8 }),
     sitemapEntry(absoluteUrl("/data?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
+    sitemapEntry(absoluteUrl("/ecosystem"), { lastModified: now, changeFrequency: "weekly", priority: 0.7 }),
+    sitemapEntry(absoluteUrl("/ecosystem?lang=zh"), { lastModified: now, changeFrequency: "weekly", priority: 0.6 }),
     sitemapEntry(absoluteUrl("/brand"), { lastModified: now, changeFrequency: "monthly", priority: 0.55 }),
     sitemapEntry(absoluteUrl("/brand?lang=zh"), { lastModified: now, changeFrequency: "monthly", priority: 0.45 }),
     sitemapEntry(absoluteUrl("/support"), { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
