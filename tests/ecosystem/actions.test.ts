@@ -87,6 +87,15 @@ describe("saveEcosystemProject", () => {
     expect(res.ok).toBe(true)
     expect(prisma.ecosystemProject.update).toHaveBeenCalled()
   })
+
+  it("maps a unique-constraint violation on create to a friendly slug error", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockRejectedValueOnce(
+      new Error("Unique constraint failed on the fields: (slug)") as never
+    )
+    const res = await saveEcosystemProject(validInput)
+    expect(res).toEqual({ ok: false, error: "Slug already exists" })
+  })
 })
 
 describe("deleteEcosystemProject / setFeaturedBandEnabled", () => {
