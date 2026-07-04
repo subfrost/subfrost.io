@@ -21,4 +21,4 @@ resources:
 # updates (and `kubectl rollout restart` gets reverted on the next reconcile).
 images:
   - name: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
-    newTag: "264b60bc6213398b5232e526b611f65d017a9159"
+    newTag: "e18573f65a0c9d327ba1eecafaef3879e3e529ca"
