@@ -117,7 +117,7 @@ export function EcosystemDirectory({
         <div className="grid gap-5 px-6 pt-7 sm:grid-cols-2 sm:px-10">
           {featured.map((p) => (
             <div key={p.slug}
-              className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-white p-6 transition-colors hover:border-[color:var(--ed-ice)]">
+              className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-[color:var(--ed-canvas)] p-6 transition-colors hover:border-[color:var(--ed-ice)]">
               {/* Stretched-link overlay: makes the whole card clickable to the project url
                   while keeping LinksRow's real anchors (website/X/docs) as non-nested,
                   independently-clickable siblings above it (z-10). */}
@@ -145,7 +145,7 @@ export function EcosystemDirectory({
       <div className="grid grid-cols-1 gap-3.5 px-6 py-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 xl:grid-cols-4">
         {grid.map((p) => (
           <a key={p.slug} href={p.url} target="_blank" rel="noopener noreferrer"
-            className="flex flex-col gap-2.5 rounded-[11px] border border-[color:var(--ed-hair)] bg-white p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
+            className="flex flex-col gap-2.5 rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
             <div className="flex items-center gap-2.5">
               <Mark p={p} size={34} />
               <h3 className="text-[15px] font-medium text-[color:var(--ed-ink)]">{p.name}</h3>
@@ -170,12 +170,12 @@ function Chip({ active, onClick, label, count }: { active: boolean; onClick: () 
       className={
         "rounded-full border px-3.5 py-1.5 font-mono text-[11.5px] font-medium transition-colors " +
         (active
-          ? "border-[color:var(--ed-ink)] bg-[color:var(--ed-ink)] text-white"
-          : "border-[color:var(--ed-hair)] bg-white text-[color:var(--ed-body)] hover:border-[color:var(--ed-ice)] hover:text-[color:var(--ed-accent)]")
+          ? "border-[color:var(--ed-ink)] bg-[color:var(--ed-ink)] text-[color:var(--ed-canvas)]"
+          : "border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] text-[color:var(--ed-body)] hover:border-[color:var(--ed-ice)] hover:text-[color:var(--ed-accent)]")
       }
     >
       {label}
-      <span className={"ml-1.5 " + (active ? "text-white/55" : "text-[color:var(--ed-muted)]")}>{count}</span>
+      <span className={"ml-1.5 " + (active ? "text-[color:var(--ed-canvas)] opacity-60" : "text-[color:var(--ed-muted)]")}>{count}</span>
     </button>
   )
 }

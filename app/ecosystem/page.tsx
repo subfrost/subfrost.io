@@ -83,7 +83,7 @@ export default async function EcosystemPage({ searchParams }: { searchParams?: P
             <div className="mt-7 flex flex-wrap items-center gap-5">
               <a
                 href={GET_LISTED_URL} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-[8px] bg-white px-4.5 py-2.5 text-[14px] font-medium text-[color:var(--ed-ink)] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
+                className="inline-flex items-center gap-2 rounded-[8px] bg-white px-4.5 py-2.5 text-[14px] font-medium text-[#0a1628] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
               >
                 {c.cta} <span className="text-[color:var(--ed-flare)]">→</span>
               </a>
