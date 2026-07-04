@@ -21,6 +21,17 @@ ecosystem, and so builders want to be listed to receive community traffic.
    in the admin before announcing.
 5. **i18n model:** single model with per-locale columns (`descriptionEn`/`descriptionZh`),
    not a translation table — descriptions are 1-2 sentences.
+6. **Visual direction (2026-07-04, mockup review):** direção C — "Cover band". Navy
+   cover-gradient hero (`--ed-cover`→`--ed-cover-2`, same family as article covers),
+   editorial light body, featured band, single flare (`#ec4521`) accent on the
+   "Get listed" CTA. Card grid (not the dense ledger) — 30+ projects is far off.
+   Mockup: https://claude.ai/code/artifact/609d3154-e21a-4173-8298-327bc41c2e96
+7. **Featured band is toggleable:** global on/off switch in the admin. Off (or zero
+   featured projects) → the band doesn't render and all cards are uniform. Lets the
+   team retire the concept without a deploy if the community dislikes it.
+8. **Descriptions are team-curated:** projects send the team a 2-line blurb and the
+   team pastes/edits it in the admin — the CRUD is the personalization mechanism;
+   no self-serve editing in v1.
 
 ## Schema (Prisma — fully additive, safe `db push`)
 
@@ -50,6 +61,9 @@ model EcosystemProject {
 - `category` and `status` are **strings validated in server actions** against curated
   TS constants (`lib/ecosystem/constants.ts`), not Postgres enums — adding a category
   is a code-only change, no migration.
+- Global settings: single-row `EcosystemSettings` model (`id Int @id @default(1)`,
+  `featuredBandEnabled Boolean @default(true)`) read by the public page and edited
+  from the admin screen (toggle). Additive, no enum.
 - `ECOSYSTEM_CATEGORIES`: `DeFi`, `Gaming`, `Social`, `Launchpad`, `NFT`, `Tooling`,
   `Wallet`, `Other`.
 
@@ -66,6 +80,8 @@ model EcosystemProject {
     pattern (Anthropic SDK; `ANTHROPIC_API_KEY` already a cluster secret) to fill
     `descriptionZh` from `descriptionEn`.
   - Delete = hard delete with confirm dialog (directory data, no history needed).
+  - **Featured band toggle** (global switch, writes `EcosystemSettings.featuredBandEnabled`)
+    lives at the top of the list screen next to a short explainer.
 - Nav entry in `lib/cms/admin-nav.ts` gated by `ecosystem.view`.
 
 ## Public page `/ecosystem`
@@ -79,16 +95,21 @@ model EcosystemProject {
   `#0a1628`, ice `#5b9cff`, flare `#ec4521` — same finish level as `/data`,
   `EditorialShell` chrome; visual design iterated with Vitor via mockups before
   implementation):
-  - Hero: title ("The Alkanes ecosystem" / 中文), one-line pitch ("Discover the
-    projects being built on Alkanes — smart contracts on Bitcoin."), project count.
-  - Category filter chips (All + categories present in data) — client-side filter,
-    no page reload.
-  - Card grid (responsive, ~3 cols desktop / 1 col mobile): logo (or gradient
-    monogram fallback), name, status badge (Live/Beta/Building), category tag,
-    description, external links (Website / X / Docs). Whole card links to `url`
-    (new tab, `rel="noopener noreferrer"`); X/Docs are separate small buttons.
-  - Footer CTA: "Building on Alkanes? Get listed →" linking to SUBFROST's X profile
-    (DM). No form in v1.
+  - **Direção C ("Cover band", per approved mockup):** navy cover-gradient hero
+    (`--ed-cover`→`--ed-cover-2`, ice radial glow) with white display type
+    ("Everything being built on Alkanes"), sub-line, project/category count in
+    Geist Mono, and the "Building here? Get listed →" CTA as a white button whose
+    arrow is the page's single flare (`#ec4521`) accent.
+  - Category filter chips (All + categories present in data, with counts) —
+    client-side filter, no page reload.
+  - **Featured band** (2 wide cards, "Featured" tag) rendered only when
+    `featuredBandEnabled` AND ≥1 published project has `featured=true`.
+  - Card grid (responsive, ~3-4 cols desktop / 1 col mobile): logo (or gradient
+    monogram fallback in the navy→ice family), name, status badge
+    (Live/Beta/Building), category tag, description, external links
+    (Website / X / Docs). Whole card links to `url` (new tab,
+    `rel="noopener noreferrer"`); X/Docs are separate small buttons.
+  - No public submission form in v1 — projects send the team a 2-line blurb.
 - SEO: `generateMetadata` with title/description/OG + canonical/`languages`
   alternates (same shape as `/data`), entries in `app/sitemap.ts` for `/ecosystem`
   and `/ecosystem?lang=zh` (`changeFrequency: weekly, priority 0.7`).
@@ -103,11 +124,22 @@ model EcosystemProject {
 
 ## Seed
 
-- Research (web) of the named projects — fire vault, alkapost, alkamon, pizza fun,
-  misha's lottery, fairmint — plus other live Alkanes projects (wallets, DEXes,
-  explorers, infra); SUBFROST itself included. Per project: name, URL (verified to
-  resolve), X, optional docs, 1-2 sentence EN description + ZH translation, category,
-  status. No invented URLs — anything unverifiable is left out or flagged.
+- Research done (2026-07-04): **19 verified projects** — SUBFROST, Oyl Wallet,
+  Oyl AMM, UniSat, Bound, Sats Terminal, Ordiscan, AlkaneScan, Sandshrew, Metashrew,
+  LaserEyes, Rebar Labs, alkanes.build, MintAlkanes, Pizza.fun, iDclub,
+  Alkane Pandas, ALKAMIST (Alkamon) — plus Vitor's additions **Fairmints**
+  (fairmints.io, verified live: Alkanes minting/trading platform, x.com/fairmints;
+  this is what the group called "fairmint") and **Arbuzino** (arbuzino.com, "Magic
+  Arbuz" — ARBUZ token ecosystem on Alkanes; JS-rendered site, description
+  provisional, team refines in admin). Per project: name, URL (verified to resolve),
+  X, optional docs, 1-2 sentence EN description + ZH translation, category, status.
+  No invented URLs — anything unverifiable is left out or flagged.
+- Not found / not real (excluded until someone supplies a URL): "alkapost" (no
+  trace), "misha's lottery" (no trace — ask in the community), "fire vault" (it's
+  SUBFROST's own FIRE + vaults, covered by the SUBFROST entry).
+- Manual pre-publish checks: mintalkanes.com (DNS timed out for the crawler),
+  idclub.io (maintenance page), ordiscan/alkanescan (bot-blocked, verified via
+  snippets only), pizza.fun (Alkanes link unconfirmed — keep Building/low-key).
 - `scripts/seed-ecosystem.ts`: idempotent upsert-by-slug from a committed JSON list;
   run in-pod after deploy (base64 + prisma client pattern). Seeded entries land
   `published: true` so the page has content immediately. Since the nav links the
