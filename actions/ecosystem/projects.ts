@@ -100,7 +100,8 @@ export async function deleteEcosystemProject(id: string): Promise<{ ok: boolean;
     revalidate()
     return { ok: true }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Delete failed" }
+    console.error("deleteEcosystemProject failed", e)
+    return { ok: false, error: "Delete failed" }
   }
 }
 
