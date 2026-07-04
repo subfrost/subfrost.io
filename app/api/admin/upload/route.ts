@@ -5,7 +5,7 @@ import { handleUpload } from "@/lib/cms/handle-upload"
 export const runtime = "nodejs"
 
 // Session-authenticated image upload (avatars, cover images) → GCS.
-// multipart/form-data: file=<image>, kind=avatar|cover|inline
+// multipart/form-data: file=<image>, kind=avatar|cover|inline|ecosystem
 export async function POST(req: NextRequest) {
   const user = await currentUser()
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
@@ -20,8 +20,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = Buffer.from(await file.arrayBuffer())
-    const kind3 = (kind === "avatar" ? "avatar" : kind === "cover" ? "cover" : "inline") as "avatar" | "cover" | "inline"
-    const { url } = await handleUpload(kind3, file.type, data, idHint)
+    const validKind = (
+      kind === "avatar" ? "avatar" : kind === "cover" ? "cover" : kind === "ecosystem" ? "ecosystem" : "inline"
+    ) as "avatar" | "cover" | "inline" | "ecosystem"
+    const { url } = await handleUpload(validKind, file.type, data, idHint)
     return NextResponse.json({ url })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Upload failed" }, { status: 400 })

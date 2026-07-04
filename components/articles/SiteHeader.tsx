@@ -89,6 +89,7 @@ export function SiteHeader() {
       support: "Support",
       resources: "Resources",
       blog: "Articles",
+      ecosystem: "Ecosystem",
       try: "Launch App",
       tryShort: "Launch",
       search: "Search",
@@ -136,6 +137,7 @@ export function SiteHeader() {
       support: "支持",
       resources: "资源",
       blog: "文章",
+      ecosystem: "生态系统",
       try: "启动应用",
       tryShort: "进入",
       search: "搜索",
@@ -201,15 +203,21 @@ export function SiteHeader() {
       ],
     },
   ]
-  const navItems = [{ id: "blog", label: copy.blog, href: articleHref }]
+  const ecosystemHref = locale === "zh" ? "/ecosystem?lang=zh" : "/ecosystem"
+  const navItems = [
+    { id: "blog", label: copy.blog, href: articleHref },
+    { id: "ecosystem", label: copy.ecosystem, href: ecosystemHref },
+  ]
   const developerMenu = developerMenus.find((menu) => menu.id === "developer")
   const activeMobileMenu = mobilePanel ? developerMenus.find((menu) => menu.id === mobilePanel) : null
   const activeId =
     pathname?.startsWith("/articles") || pathname?.startsWith("/authors")
       ? "blog"
-      : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
-        ? "developer"
-        : null
+      : pathname?.startsWith("/ecosystem")
+        ? "ecosystem"
+        : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
+          ? "developer"
+          : null
 
   useEffect(() => {
     const onScroll = () => {

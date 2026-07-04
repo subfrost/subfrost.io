@@ -34,9 +34,11 @@ export interface UploadResult {
   url: string
 }
 
+export type ImagePrefix = "avatars" | "covers" | "inline" | "ecosystem"
+
 /** Uploads an image buffer under `prefix/` and returns its public URL. */
 export async function uploadImage(
-  prefix: "avatars" | "covers" | "inline",
+  prefix: ImagePrefix,
   contentType: string,
   data: Buffer,
   idHint: string,
@@ -140,7 +142,7 @@ const RASTER_CT: Record<string, string> = { png: "image/png", jpg: "image/jpeg",
 /** Uploads the avif/webp/fallback derivative set produced by processRaster and
  *  returns the fallback's public URL. */
 export async function uploadOptimizedSet(
-  prefix: "avatars" | "covers" | "inline",
+  prefix: ImagePrefix,
   base: string,
   set: RasterSet,
 ): Promise<UploadResult> {
@@ -154,7 +156,7 @@ export async function uploadOptimizedSet(
 
 /** Uploads a raw SVG (not rasterized) under `prefix/` and returns its public URL. */
 export async function uploadSvg(
-  prefix: "avatars" | "covers" | "inline",
+  prefix: ImagePrefix,
   idHint: string,
   svg: string,
 ): Promise<UploadResult> {

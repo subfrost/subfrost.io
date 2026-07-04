@@ -1,10 +1,10 @@
 import { sanitizeSvg } from "@/lib/cms/svg-sanitize"
 import { processRaster, optBaseName } from "@/lib/cms/image-process"
-import { uploadOptimizedSet, uploadSvg, uploadImage } from "@/lib/cms/gcs"
+import { uploadOptimizedSet, uploadSvg, uploadImage, type ImagePrefix } from "@/lib/cms/gcs"
 
-type Kind = "avatar" | "cover" | "inline"
-const PREFIX: Record<Kind, "avatars" | "covers" | "inline"> = {
-  avatar: "avatars", cover: "covers", inline: "inline",
+type Kind = "avatar" | "cover" | "inline" | "ecosystem"
+const PREFIX: Record<Kind, ImagePrefix> = {
+  avatar: "avatars", cover: "covers", inline: "inline", ecosystem: "ecosystem",
 }
 
 // Orchestrates a single upload: SVG is sanitized and stored as-is; PNG/JPEG/WebP
