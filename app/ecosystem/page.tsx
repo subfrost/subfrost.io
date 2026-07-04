@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemDirectory } from "@/components/ecosystem/EcosystemDirectory"
+import { SnowflakeMark } from "@/components/articles/SnowflakeMark"
 import { getEcosystemDirectory } from "@/lib/ecosystem/public"
 import { absoluteUrl } from "@/lib/seo"
 
@@ -71,26 +72,21 @@ export default async function EcosystemPage({ searchParams }: { searchParams?: P
   return (
     <EditorialShell>
       <main className="mx-auto w-full max-w-[1280px] px-0 pb-24 pt-8 sm:px-6">
-        <section
-          className="relative overflow-hidden sm:rounded-[16px]"
-          style={{ background: "linear-gradient(150deg, var(--ed-cover), var(--ed-cover-2) 78%)" }}
-        >
-          <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(680px 300px at 85% -10%, rgba(91,156,255,0.28), transparent 65%)" }} />
-          <div className="relative px-6 py-14 sm:px-10">
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#9fb6dd]">{c.eyebrow}</p>
-            <h1 className="mt-3 max-w-[14ch] text-balance text-[clamp(32px,5vw,54px)] font-normal leading-[1.02] tracking-[-0.025em] text-white">{c.title}</h1>
-            <p className="mt-4 max-w-[52ch] text-[16px] leading-[1.55] text-[#c9d8f2]">{c.subtitle}</p>
-            <div className="mt-7 flex flex-wrap items-center gap-5">
-              <a
-                href={GET_LISTED_URL} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-[8px] bg-white px-4.5 py-2.5 text-[14px] font-medium text-[#0a1628] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
-              >
-                {c.cta} <span className="text-[color:var(--ed-flare)]">→</span>
-              </a>
-              <span className="font-mono text-[12.5px] text-[#9fb6dd]" style={{ fontVariantNumeric: "tabular-nums" }}>
-                <b className="font-medium text-white">{projects.length}</b> {c.projectsWord} · <b className="font-medium text-white">{categoryCount}</b> {c.categoriesWord}
-              </span>
-            </div>
+        <section className="px-6 pb-10 pt-8 sm:px-10 sm:pb-12 sm:pt-10">
+          <SnowflakeMark size={54} className="text-[color:var(--ed-ice)]" />
+          <p className="mt-7 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--ed-muted)]">{c.eyebrow}</p>
+          <h1 className="mt-3 max-w-[15ch] text-balance text-[clamp(32px,5vw,54px)] font-normal leading-[1.02] tracking-[-0.025em] text-[color:var(--ed-ink)]">{c.title}</h1>
+          <p className="mt-4 max-w-[52ch] text-[16px] leading-[1.55] text-[color:var(--ed-body)]">{c.subtitle}</p>
+          <div className="mt-7 flex flex-wrap items-center gap-5">
+            <a
+              href={GET_LISTED_URL} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-[8px] bg-[color:var(--ed-ink)] px-[18px] py-[10px] text-[14px] font-medium text-[color:var(--ed-canvas)] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
+            >
+              {c.cta} <span className="text-[color:var(--ed-flare)]">→</span>
+            </a>
+            <span className="font-mono text-[12.5px] text-[color:var(--ed-muted)]" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <b className="font-medium text-[color:var(--ed-ink)]">{projects.length}</b> {c.projectsWord} · <b className="font-medium text-[color:var(--ed-ink)]">{categoryCount}</b> {c.categoriesWord}
+            </span>
           </div>
         </section>
 

@@ -6,12 +6,12 @@ vi.mock("@/lib/marketing/public-data", async (importOriginal) => {
   return { ...actual, getPublicData: mod.getPublicData }
 })
 
-import { GET } from "@/app/data/card/[metric]/route"
+import { GET } from "@/app/metrics/card/[metric]/route"
 
-const req = new Request("http://localhost/data/card/btc-locked")
+const req = new Request("http://localhost/metrics/card/btc-locked")
 const params = (metric: string) => ({ params: Promise.resolve({ metric }) })
 
-describe("GET /data/card/[metric]", () => {
+describe("GET /metrics/card/[metric]", () => {
   it("404s for an unknown metric", async () => {
     const res = await GET(req, params("nope"))
     expect(res.status).toBe(404)

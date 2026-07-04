@@ -31,8 +31,8 @@ export function MetricCard({
     [series, seriesField],
   )
 
-  const cardUrl = `https://subfrost.io/data/card/${metric}`
-  const pageUrl = `https://subfrost.io/data${locale === "zh" ? "?lang=zh" : ""}`
+  const cardUrl = `https://subfrost.io/metrics/card/${metric}`
+  const pageUrl = `https://subfrost.io/metrics${locale === "zh" ? "?lang=zh" : ""}`
   const tweet = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${label}: ${formatMetricValue(metric, value)} @subfrost_news`)}&url=${encodeURIComponent(pageUrl)}`
 
   async function copyCard() {
