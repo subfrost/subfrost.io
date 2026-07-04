@@ -11,7 +11,7 @@ import {
   type EcosystemProjectInput,
 } from "@/actions/ecosystem/projects"
 import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
-import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES } from "@/lib/ecosystem/constants"
+import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, ECOSYSTEM_KINDS } from "@/lib/ecosystem/constants"
 
 export interface AdminProject {
   id: string
@@ -20,6 +20,8 @@ export interface AdminProject {
   logoUrl: string | null
   category: string
   status: string
+  kind: string
+  alkaneId: string | null
   url: string
   xUrl: string | null
   docsUrl: string | null
@@ -44,6 +46,8 @@ function blankProject(): AdminProject {
     logoUrl: null,
     category: ECOSYSTEM_CATEGORIES[0],
     status: ECOSYSTEM_STATUSES[0],
+    kind: "App",
+    alkaneId: null,
     url: "",
     xUrl: null,
     docsUrl: null,
@@ -249,6 +253,8 @@ function toInput(p: AdminProject): EcosystemProjectInput {
     logoUrl: p.logoUrl,
     category: p.category,
     status: p.status,
+    kind: p.kind,
+    alkaneId: p.alkaneId,
     url: p.url,
     xUrl: p.xUrl,
     docsUrl: p.docsUrl,
@@ -278,6 +284,8 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [logoUrl, setLogoUrl] = useState(initial.logoUrl ?? "")
   const [category, setCategory] = useState(initial.category)
   const [status, setStatus] = useState(initial.status)
+  const [kind, setKind] = useState(initial.kind)
+  const [alkaneId, setAlkaneId] = useState(initial.alkaneId ?? "")
   const [url, setUrl] = useState(initial.url)
   const [xUrl, setXUrl] = useState(initial.xUrl ?? "")
   const [docsUrl, setDocsUrl] = useState(initial.docsUrl ?? "")
@@ -324,6 +332,8 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         logoUrl: logoUrl || null,
         category,
         status,
+        kind,
+        alkaneId: alkaneId.trim() || null,
         url,
         xUrl: xUrl || null,
         docsUrl: docsUrl || null,
@@ -393,6 +403,22 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
           <select id="ep-status" value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
             {ECOSYSTEM_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={label} htmlFor="ep-kind">Kind</label>
+          <select id="ep-kind" value={kind} onChange={(e) => setKind(e.target.value)} className={selectCls}>
+            {ECOSYSTEM_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={label} htmlFor="ep-alkane-id">Alkane ID</label>
+          <input
+            id="ep-alkane-id"
+            value={alkaneId}
+            onChange={(e) => setAlkaneId(e.target.value)}
+            placeholder="block:tx — e.g. 2:0"
+            className={inputCls + " font-mono"}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className={label} htmlFor="ep-url">Website URL</label>
