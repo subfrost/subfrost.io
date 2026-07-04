@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { updateProfile } from "@/actions/cms/users"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 
 export interface ProfileInitial {
   id: string
@@ -25,6 +26,7 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
   const [msg, setMsg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const [name, setName] = useState(initial.name)
   const [bio, setBio] = useState(initial.bio)
@@ -35,14 +37,18 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
   async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setError(null)
-    const fd = new FormData()
-    fd.append("file", file); fd.append("kind", "avatar")
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-    const json = await res.json()
-    setUploading(false)
-    if (res.ok) setAvatarUrl(json.url)
-    else setError(json.error || "Upload failed")
+    e.target.value = "" // allow re-picking the same file after a failure
+    setUploading(true); setUploadError(null)
+    try {
+      setAvatarUrl(await uploadInlineImage(file, fetch, "avatar"))
+    } catch (err) {
+      // Inline (next to the button), so a gateway HTML answer or network drop can
+      // never strand the button on "Uploading…" with the error off-screen.
+      const detail = err instanceof Error && err.message ? ` — ${err.message}` : ""
+      setUploadError(`Upload failed${detail}`)
+    } finally {
+      setUploading(false)
+    }
   }
 
   function save() {
@@ -75,6 +81,7 @@ export function ProfileForm({ initial, canEditBio }: { initial: ProfileInitial; 
               {uploading ? "Uploading…" : "Change avatar"}
             </Button>
             <p className="mt-1 text-xs text-[color:var(--ed-muted)]">PNG/JPG/WebP, up to 8MB</p>
+            {uploadError && <p role="alert" className="mt-1 text-xs text-[#b8321a]">{uploadError}</p>}
           </div>
         </div>
       )}
