@@ -57,6 +57,7 @@ describe("saveEcosystemProject", () => {
     vi.mocked(currentUser).mockResolvedValueOnce(viewer as never)
     const res = await saveEcosystemProject(validInput)
     expect(res.ok).toBe(false)
+    expect(prisma.ecosystemProject.create).not.toHaveBeenCalled()
   })
 
   it("rejects bad category, status and url", async () => {
@@ -92,7 +93,9 @@ describe("deleteEcosystemProject / setFeaturedBandEnabled", () => {
   it("requires edit privilege", async () => {
     vi.mocked(currentUser).mockResolvedValue(viewer as never)
     expect((await deleteEcosystemProject("p1")).ok).toBe(false)
+    expect(prisma.ecosystemProject.delete).not.toHaveBeenCalled()
     expect((await setFeaturedBandEnabled(false)).ok).toBe(false)
+    expect(prisma.ecosystemSettings.upsert).not.toHaveBeenCalled()
   })
 
   it("upserts the settings row", async () => {
