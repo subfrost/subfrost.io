@@ -7,6 +7,8 @@ export interface PublicEcosystemProject {
   logoUrl: string | null
   category: string
   status: string
+  kind: string
+  alkaneId: string | null
   url: string
   xUrl: string | null
   docsUrl: string | null
@@ -32,6 +34,8 @@ export async function getEcosystemDirectory(locale: "en" | "zh"): Promise<{
     logoUrl: r.logoUrl,
     category: r.category,
     status: r.status,
+    kind: r.kind,
+    alkaneId: r.alkaneId,
     url: r.url,
     xUrl: r.xUrl,
     docsUrl: r.docsUrl,

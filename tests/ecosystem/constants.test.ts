@@ -9,6 +9,7 @@ import {
   isValidOptionalHttpUrl,
   slugify,
 } from "@/lib/ecosystem/constants"
+import { isValidKind, isValidOptionalAlkaneId, ECOSYSTEM_KINDS } from "@/lib/ecosystem/constants"
 
 describe("ecosystem constants", () => {
   it("has the curated category list", () => {
@@ -45,5 +46,26 @@ describe("ecosystem constants", () => {
     expect(slugify("Oyl Wallet")).toBe("oyl-wallet")
     expect(slugify("alkanes.build")).toBe("alkanes-build")
     expect(slugify("  Pizza.fun!! ")).toBe("pizza-fun")
+  })
+})
+
+describe("kind & alkaneId validators", () => {
+  it("accepts exactly App and Contract", () => {
+    expect(ECOSYSTEM_KINDS).toEqual(["App", "Contract"])
+    expect(isValidKind("App")).toBe(true)
+    expect(isValidKind("Contract")).toBe(true)
+    expect(isValidKind("Token")).toBe(false)
+    expect(isValidKind("")).toBe(false)
+  })
+  it("accepts block:tx alkane ids and empty values", () => {
+    expect(isValidOptionalAlkaneId("2:0")).toBe(true)
+    expect(isValidOptionalAlkaneId("4:65522")).toBe(true)
+    expect(isValidOptionalAlkaneId(null)).toBe(true)
+    expect(isValidOptionalAlkaneId(undefined)).toBe(true)
+    expect(isValidOptionalAlkaneId("")).toBe(true)
+    expect(isValidOptionalAlkaneId("2:0x")).toBe(false)
+    expect(isValidOptionalAlkaneId("2-0")).toBe(false)
+    expect(isValidOptionalAlkaneId("abc")).toBe(false)
+    expect(isValidOptionalAlkaneId(" 2:0")).toBe(false)
   })
 })

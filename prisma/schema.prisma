@@ -1796,6 +1796,8 @@ model EcosystemProject {
   logoUrl       String?
   category      String
   status        String   @default("Live")
+  kind          String   @default("App")
+  alkaneId      String?
   url           String
   xUrl          String?
   docsUrl       String?
