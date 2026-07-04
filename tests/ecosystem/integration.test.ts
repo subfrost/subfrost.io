@@ -15,6 +15,12 @@ describe("ecosystem site wiring", () => {
   it("footer links /ecosystem", () => {
     expect(read("components/Footer.tsx")).toContain('href="/ecosystem"')
   })
+  it("editorial SiteHeader links /ecosystem", () => {
+    expect(read("components/articles/SiteHeader.tsx")).toContain("/ecosystem")
+  })
+  it("editorial SiteFooter links /ecosystem", () => {
+    expect(read("components/articles/SiteFooter.tsx")).toContain("/ecosystem")
+  })
   it("sitemap includes /ecosystem for both locales", () => {
     const src = read("app/sitemap.ts")
     expect(src).toContain('absoluteUrl("/ecosystem")')
