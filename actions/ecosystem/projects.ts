@@ -186,3 +186,22 @@ export async function translateEcosystemDescription(
   )
   return { ok: true, zh: out.body.trim() }
 }
+
+export async function translateEcosystemProfile(
+  profileEn: string
+): Promise<{ ok: boolean; zh?: string; error?: string }> {
+  const authErr = await requireEdit()
+  if (authErr) return { ok: false, error: authErr }
+  if (!profileEn.trim()) return { ok: false, error: "Nothing to translate" }
+  if (translationUnavailable()) return { ok: false, error: "Translation unavailable (no API key)" }
+  // Same body-only path as the short description; the translator's system
+  // prompt already preserves Markdown structure (headings, tables, code).
+  const from: Locale = "en"
+  const to: Locale = "zh"
+  const out = await translate(
+    { title: "", excerpt: "", body: profileEn.trim(), sources: "" },
+    from,
+    to
+  )
+  return { ok: true, zh: out.body.trim() }
+}
