@@ -1,12 +1,16 @@
 import Link from "next/link"
+import type { ReactNode } from "react"
 import { Markdown } from "@/lib/cms/markdown"
-import { Mark, StatusBadge } from "@/components/ecosystem/visuals"
+import { Mark, StatusBadge, gradFor } from "@/components/ecosystem/visuals"
+import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
+import { ProfileTabs } from "./ProfileTabs"
 
 export interface ProfileCopy {
   back: string
   website: string
   docs: string
+  overview: string
   contractsTitle: string
   contractCol: string
   idCol: string
@@ -27,6 +31,13 @@ export function EcosystemProfile({ p, copy, backHref }: {
       <Link href={backHref} className="font-mono text-[12px] text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-accent)]">
         {copy.back}
       </Link>
+
+      {p.bannerUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={p.bannerUrl} alt="" className="mt-5 h-[clamp(120px,22vw,240px)] w-full rounded-[14px] object-cover" />
+      ) : (
+        <div aria-hidden className="mt-5 h-[96px] w-full rounded-[14px]" style={{ background: gradFor(p.slug) }} />
+      )}
 
       <header className="mt-6 flex flex-wrap items-start gap-5">
         <Mark p={p} size={64} />
@@ -54,45 +65,78 @@ export function EcosystemProfile({ p, copy, backHref }: {
         </div>
       </header>
 
-      {p.profile ? (
-        <div className="mt-10 border-t border-[color:var(--ed-hair)] pt-8">
-          <Markdown variant="article">{p.profile}</Markdown>
-        </div>
-      ) : null}
-
-      {p.contracts.length > 0 ? (
-        <section className="mt-10 border-t border-[color:var(--ed-hair)] pt-8">
-          <h2 className="text-[20px] font-medium tracking-[-0.012em] text-[color:var(--ed-ink)]">{copy.contractsTitle}</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-[13.5px]">
-              <thead>
-                <tr className="border-b border-[color:var(--ed-hair)] font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ed-muted)]">
-                  <th className="py-2 pr-4 font-medium">{copy.contractCol}</th>
-                  <th className="py-2 pr-4 font-medium">{copy.idCol}</th>
-                  <th className="py-2 font-medium">{copy.notesCol}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.contracts.map((c) => (
-                  <tr key={`${c.alkaneId}-${c.label}`} className="border-b border-[color:var(--ed-hair)] align-top">
-                    <td className="py-2.5 pr-4 text-[color:var(--ed-ink)]">{c.label}</td>
-                    <td className="py-2.5 pr-4">
-                      <a
-                        href={`https://espo.sh/alkane/${c.alkaneId}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="font-mono text-[12.5px] text-[color:var(--ed-accent)] hover:underline"
-                      >
-                        {c.alkaneId} ↗
-                      </a>
-                    </td>
-                    <td className="py-2.5 text-[color:var(--ed-body)]">{c.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+      <ProfileBody p={p} copy={copy} />
     </article>
+  )
+}
+
+function ProfileBody({ p, copy }: { p: PublicEcosystemProfile; copy: ProfileCopy }) {
+  const { intro, sections } = splitProfileSections(p.profile)
+  const tabs: { key: string; label: string }[] = []
+  const panels: ReactNode[] = []
+  if (intro) {
+    tabs.push({ key: "overview", label: copy.overview })
+    panels.push(<Markdown variant="article">{intro}</Markdown>)
+  }
+  sections.forEach((s, i) => {
+    tabs.push({ key: `s${i}`, label: s.title })
+    panels.push(<Markdown variant="article">{s.body}</Markdown>)
+  })
+  if (p.contracts.length > 0) {
+    tabs.push({ key: "contracts", label: copy.contractsTitle })
+    panels.push(<ContractsTable contracts={p.contracts} copy={copy} />)
+  }
+  if (tabs.length === 0) return null
+  if (tabs.length === 1) {
+    return (
+      <div className="mt-10 border-t border-[color:var(--ed-hair)] pt-8">
+        {tabs[0].key === "contracts" ? (
+          <>
+            <h2 className="mb-4 text-[20px] font-medium tracking-[-0.012em] text-[color:var(--ed-ink)]">{copy.contractsTitle}</h2>
+            {panels[0]}
+          </>
+        ) : (
+          panels[0]
+        )}
+      </div>
+    )
+  }
+  return (
+    <div className="mt-10">
+      <ProfileTabs tabs={tabs} panels={panels} />
+    </div>
+  )
+}
+
+function ContractsTable({ contracts, copy }: { contracts: PublicEcosystemProfile["contracts"]; copy: ProfileCopy }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-[13.5px]">
+        <thead>
+          <tr className="border-b border-[color:var(--ed-hair)] font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ed-muted)]">
+            <th className="py-2 pr-4 font-medium">{copy.contractCol}</th>
+            <th className="py-2 pr-4 font-medium">{copy.idCol}</th>
+            <th className="py-2 font-medium">{copy.notesCol}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {contracts.map((c) => (
+            <tr key={`${c.alkaneId}-${c.label}`} className="border-b border-[color:var(--ed-hair)] align-top">
+              <td className="py-2.5 pr-4 text-[color:var(--ed-ink)]">{c.label}</td>
+              <td className="py-2.5 pr-4">
+                <a
+                  href={`https://espo.sh/alkane/${c.alkaneId}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="font-mono text-[12.5px] text-[color:var(--ed-accent)] hover:underline"
+                >
+                  {c.alkaneId} ↗
+                </a>
+              </td>
+              <td className="py-2.5 text-[color:var(--ed-body)]">{c.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
