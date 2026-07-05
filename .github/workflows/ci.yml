@@ -39,7 +39,7 @@ jobs:
         run: pnpm tsc --noEmit
 
       - name: Lint
-        run: pnpm lint || true  # Don't fail on lint warnings initially
+        run: pnpm lint  # Fails on ESLint errors; pre-existing react-hooks@7 findings are `warn` (see eslint.config.mjs)
 
   test:
     name: Test

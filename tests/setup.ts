@@ -3,13 +3,11 @@ import '@testing-library/jest-dom/vitest';
 
 // Polyfill crypto for Node.js (needed for cryptographic operations)
 if (typeof globalThis.crypto === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   globalThis.crypto = require('crypto').webcrypto;
 }
 
 // Polyfill TextEncoder/TextDecoder for older Node.js versions
 if (typeof globalThis.TextEncoder === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { TextEncoder, TextDecoder } = require('util');
   globalThis.TextEncoder = TextEncoder;
   globalThis.TextDecoder = TextDecoder;

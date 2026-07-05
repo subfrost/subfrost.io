@@ -80,7 +80,6 @@ async function uniqueFolderSlug(parentId: string | null, base: string, ignoreId?
   const seed = toSlug(base)
   let slug = seed
   let n = 1
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.folder.findFirst({ where: { parentId, slug }, select: { id: true } })
     if (!existing || existing.id === ignoreId) return slug
@@ -92,7 +91,6 @@ async function uniqueFileSlug(folderId: string | null, base: string, ignoreId?: 
   const seed = toSlug(base)
   let slug = seed
   let n = 1
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.driveFile.findFirst({ where: { folderId, slug }, select: { id: true } })
     if (!existing || existing.id === ignoreId) return slug

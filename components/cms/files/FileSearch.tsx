@@ -88,7 +88,6 @@ export function FileSearch({
                     {h.snippet && (
                       <span
                         className="mt-1 block text-xs leading-relaxed text-zinc-400 [&_mark]:font-medium"
-                        // eslint-disable-next-line react/no-danger -- content is HTML-escaped in highlightSnippet; only %%HL%% sentinels become <mark>
                         dangerouslySetInnerHTML={{ __html: highlightSnippet(h.snippet) }}
                       />
                     )}

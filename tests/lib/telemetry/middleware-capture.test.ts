@@ -17,7 +17,6 @@ describe("middleware capture", () => {
     const e = ev()
     await middleware(req, e as never)
     expect(emit).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const arg = (emit.mock.calls as any[][])[0][0]
     expect(arg.path).toBe("/articles/foo")
     expect(arg.ja4).toBe("j")

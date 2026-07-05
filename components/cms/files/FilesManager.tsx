@@ -479,7 +479,6 @@ function NewFolderModal({ parentId, scope, onClose, onCreated, onError }: {
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-zinc-300">Folder name</Label>
-          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-950 text-zinc-100 border-zinc-700" />
         </div>
         <div className="flex justify-end gap-2">
@@ -512,7 +511,6 @@ function RenameModal({ item, onClose, onSaved, onError }: {
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-zinc-300">Name</Label>
-          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-950 text-zinc-100 border-zinc-700" />
         </div>
         <div className="flex justify-end gap-2">

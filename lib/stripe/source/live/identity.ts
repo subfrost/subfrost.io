@@ -34,7 +34,6 @@ export async function liveIdentityVerifications(): Promise<StripeIdentityVerific
   const stripe = getStripeClient()
   const out: StripeIdentityVerification[] = []
   let startingAfter: string | undefined
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const page: any = await (stripe as any).identity.verificationSessions.list({
       limit: 100,

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { unsubscribeByToken } from "@/lib/cms/article-subscribe"
 
 export const dynamic = "force-dynamic"
@@ -23,7 +24,7 @@ export default async function UnsubscribePage({
     <main style={{ maxWidth: 480, margin: "80px auto", padding: 24, textAlign: "center", fontFamily: "system-ui, sans-serif" }}>
       <h1 style={{ fontSize: 22, marginBottom: 12 }}>{copy.h}</h1>
       <p style={{ color: "#475569" }}>{copy.p}</p>
-      <p style={{ marginTop: 24 }}><a href="/articles" style={{ color: "#0ea5e9" }}>{zh ? "返回文章" : "Back to articles"}</a></p>
+      <p style={{ marginTop: 24 }}><Link href="/articles" style={{ color: "#0ea5e9" }}>{zh ? "返回文章" : "Back to articles"}</Link></p>
     </main>
   )
 }
