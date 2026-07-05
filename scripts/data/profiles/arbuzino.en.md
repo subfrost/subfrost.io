@@ -34,7 +34,7 @@ DIESEL bounty (`2:69834`) claimable by any miner who writes the exact phrase `�
 
 ---
 
-## Reading on-chain data (for aggregators: TVL, prize pools, volumes)
+## Reading on-chain data
 
 Everything is readable with a single JSON-RPC method — **`alkanes_simulate`** — against any Sandshrew/metashrew mainnet endpoint. Request template:
 
