@@ -53,5 +53,10 @@ export function isValidKind(v: string): v is EcosystemKind {
 /** Alkane id in canonical `block:tx` form (e.g. "2:0"). Empty/null = not set. */
 export function isValidOptionalAlkaneId(v: string | null | undefined): boolean {
   if (v == null || v === "") return true
+  return isValidAlkaneId(v)
+}
+
+/** Alkane id in canonical `block:tx` form (e.g. "2:0"). */
+export function isValidAlkaneId(v: string): boolean {
   return /^\d+:\d+$/.test(v)
 }

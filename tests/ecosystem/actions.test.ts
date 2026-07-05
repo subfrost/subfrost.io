@@ -118,6 +118,55 @@ describe("saveEcosystemProject", () => {
   })
 })
 
+describe("saveEcosystemProject — profile & contracts", () => {
+  it("rejects a contract row with empty label or bad alkaneId", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    expect((await saveEcosystemProject({ ...validInput, contracts: [{ label: " ", alkaneId: "2:0" }] } as never)).ok).toBe(false)
+    expect((await saveEcosystemProject({ ...validInput, contracts: [{ label: "ARBUZ", alkaneId: "2-0" }] } as never)).ok).toBe(false)
+    expect(prisma.ecosystemProject.create).not.toHaveBeenCalled()
+  })
+
+  it("creates with nested contracts, sortOrder from array index, trimmed", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValueOnce({ id: "p1" } as never)
+    const res = await saveEcosystemProject({
+      ...validInput,
+      profileEn: "  # Body  ",
+      contracts: [
+        { label: " Fireball ", alkaneId: " 4:257 ", noteEn: " lottery " },
+        { label: "ARBUZ", alkaneId: "2:25349" },
+      ],
+    } as never)
+    expect(res.ok).toBe(true)
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.profileEn).toBe("# Body")
+    expect(data.contracts).toEqual({
+      create: [
+        { label: "Fireball", alkaneId: "4:257", noteEn: "lottery", noteZh: "", sortOrder: 0 },
+        { label: "ARBUZ", alkaneId: "2:25349", noteEn: "", noteZh: "", sortOrder: 1 },
+      ],
+    })
+  })
+
+  it("update replaces contract rows (deleteMany + create)", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(prisma.ecosystemProject.update).mockResolvedValueOnce({ id: "p1" } as never)
+    const res = await saveEcosystemProject({ ...validInput, id: "p1", contracts: [{ label: "ARBUZ", alkaneId: "2:25349" }] } as never)
+    expect(res.ok).toBe(true)
+    const data = vi.mocked(prisma.ecosystemProject.update).mock.calls[0][0].data
+    expect(data.contracts!.deleteMany).toEqual({})
+    expect(data.contracts!.create).toHaveLength(1)
+  })
+
+  it("update with no contracts field still clears rows only when [] sent explicitly", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(prisma.ecosystemProject.update).mockResolvedValueOnce({ id: "p1" } as never)
+    await saveEcosystemProject({ ...validInput, id: "p1" } as never) // sem contracts
+    const data = vi.mocked(prisma.ecosystemProject.update).mock.calls[0][0].data
+    expect(data.contracts).toBeUndefined() // undefined = não mexe nas linhas
+  })
+})
+
 describe("deleteEcosystemProject / setFeaturedBandEnabled", () => {
   it("requires edit privilege", async () => {
     vi.mocked(currentUser).mockResolvedValue(viewer as never)

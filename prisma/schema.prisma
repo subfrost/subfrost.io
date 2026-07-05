@@ -1806,10 +1806,26 @@ model EcosystemProject {
   featured      Boolean  @default(false)
   sortOrder     Int      @default(0)
   published     Boolean  @default(false)
+  profileEn     String   @default("")
+  profileZh     String   @default("")
+  contracts     EcosystemProjectContract[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([published, featured, sortOrder])
+}
+
+model EcosystemProjectContract {
+  id        String           @id @default(cuid())
+  projectId String
+  project   EcosystemProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String
+  alkaneId  String
+  noteEn    String           @default("")
+  noteZh    String           @default("")
+  sortOrder Int              @default(0)
+
+  @@index([projectId, sortOrder])
 }
 
 model EcosystemSettings {

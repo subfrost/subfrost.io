@@ -11,8 +11,16 @@ import {
   isValidOptionalHttpUrl,
   isValidKind,
   isValidOptionalAlkaneId,
+  isValidAlkaneId,
   slugify,
 } from "@/lib/ecosystem/constants"
+
+export interface EcosystemContractInput {
+  label: string
+  alkaneId: string
+  noteEn?: string
+  noteZh?: string
+}
 
 export interface EcosystemProjectInput {
   id?: string
@@ -31,6 +39,9 @@ export interface EcosystemProjectInput {
   featured: boolean
   sortOrder: number
   published: boolean
+  profileEn?: string
+  profileZh?: string
+  contracts?: EcosystemContractInput[]
 }
 
 async function requireEdit(): Promise<string | null> {
@@ -43,6 +54,7 @@ async function requireEdit(): Promise<string | null> {
 function revalidate() {
   revalidatePath("/ecosystem")
   revalidatePath("/admin/ecosystem")
+  revalidatePath("/ecosystem/[slug]", "page")
 }
 
 function validate(input: EcosystemProjectInput): string | null {
@@ -58,6 +70,12 @@ function validate(input: EcosystemProjectInput): string | null {
   if (!isValidOptionalHttpUrl(input.xUrl)) return "X link must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.docsUrl)) return "Docs link must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.logoUrl)) return "Logo must be a valid http(s) URL"
+  for (const c of input.contracts ?? []) {
+    if (!c.label?.trim()) return "Contract label is required"
+    if (!isValidAlkaneId(c.alkaneId?.trim() ?? "")) {
+      return "Contract Alkane ID must look like block:tx (e.g. 4:257)"
+    }
+  }
   return null
 }
 
@@ -86,15 +104,35 @@ export async function saveEcosystemProject(
     published: input.published,
   }
 
+  const base = {
+    ...data,
+    profileEn: input.profileEn?.trim() ?? "",
+    profileZh: input.profileZh?.trim() ?? "",
+  }
+  const contractRows = input.contracts?.map((c, i) => ({
+    label: c.label.trim(),
+    alkaneId: c.alkaneId.trim(),
+    noteEn: c.noteEn?.trim() ?? "",
+    noteZh: c.noteZh?.trim() ?? "",
+    sortOrder: i,
+  }))
+
   try {
     if (input.id) {
-      const row = await prisma.ecosystemProject.update({ where: { id: input.id }, data })
+      const row = await prisma.ecosystemProject.update({
+        where: { id: input.id },
+        data: contractRows
+          ? { ...base, contracts: { deleteMany: {}, create: contractRows } }
+          : base,
+      })
       revalidate()
       return { ok: true, id: row.id }
     }
     const slug = slugify(input.slug?.trim() || input.name)
     if (!slug) return { ok: false, error: "Could not derive a slug from the name" }
-    const row = await prisma.ecosystemProject.create({ data: { ...data, slug } })
+    const row = await prisma.ecosystemProject.create({
+      data: { ...base, slug, contracts: { create: contractRows ?? [] } },
+    })
     revalidate()
     return { ok: true, id: row.id }
   } catch (e) {

@@ -92,3 +92,19 @@ describe("EcosystemDirectory — kind tabs", () => {
     expect(screen.queryByRole("link", { name: /on Ordiscan/ })).toBeNull()
   })
 })
+
+describe("EcosystemDirectory — internal profile links", () => {
+  it("card overlay links to the internal profile page", () => {
+    render(<EcosystemDirectory projects={projects} featuredBandEnabled copy={copy} />)
+    const overlay = screen.getByRole("link", { name: "Bound" })
+    expect(overlay).toHaveAttribute("href", "/ecosystem/bound")
+    expect(overlay).not.toHaveAttribute("target")
+  })
+
+  it("featured card overlay also links internally, Website button stays external", () => {
+    render(<EcosystemDirectory projects={projects} featuredBandEnabled copy={copy} />)
+    expect(screen.getByRole("link", { name: "SUBFROST" })).toHaveAttribute("href", "/ecosystem/subfrost")
+    const websites = screen.getAllByRole("link", { name: /Website/ })
+    for (const w of websites) expect(w).toHaveAttribute("target", "_blank")
+  })
+})

@@ -12,6 +12,7 @@ export default async function EcosystemAdminPage() {
 
   const [projects, settings] = await Promise.all([
     prisma.ecosystemProject.findMany({
+      include: { contracts: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.ecosystemSettings.findUnique({ where: { id: 1 } }),
@@ -19,7 +20,12 @@ export default async function EcosystemAdminPage() {
 
   return (
     <EcosystemAdmin
-      projects={projects.map((p) => ({ ...p, createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() }))}
+      projects={projects.map((p) => ({
+        ...p,
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        contracts: p.contracts.map((c) => ({ id: c.id, label: c.label, alkaneId: c.alkaneId, noteEn: c.noteEn, noteZh: c.noteZh })),
+      }))}
       featuredBandEnabled={settings?.featuredBandEnabled ?? true}
       canEdit={me.privileges.includes("ecosystem.edit")}
     />

@@ -135,7 +135,7 @@ function withSecurityHeaders(response: NextResponse, pathname: string) {
 }
 
 function isEditorialLocalePath(pathname: string) {
-  return pathname === "/" || pathname === "/metrics" || pathname === "/ecosystem" || pathname === "/articles" || pathname.startsWith("/articles/") || pathname.startsWith("/authors/")
+  return pathname === "/" || pathname === "/metrics" || pathname === "/ecosystem" || pathname.startsWith("/ecosystem/") || pathname === "/articles" || pathname.startsWith("/articles/") || pathname.startsWith("/authors/")
 }
 
 function shouldDefaultToChinese(request: NextRequest) {
