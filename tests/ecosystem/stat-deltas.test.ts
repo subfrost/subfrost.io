@@ -27,6 +27,13 @@ describe("computeStatDeltas", () => {
     expect(d["generic-supply"]).toEqual({ deltaPct: 0, direction: "flat" }) // supply igual "100000"
   })
 
+  it("treats a change that rounds to 0.0% as flat (no colored arrow next to 0.0%)", () => {
+    const current = stats({ generic: { "2:25349": gen({ holders: 10003 }) } })
+    const baseline = stats({ generic: { "2:25349": gen({ holders: 10000 }) } })
+    // 3/10000 = 0.03% → arredonda pra 0.000 → flat (não "up 0.0%")
+    expect(computeStatDeltas(current, baseline, "2:25349")["generic-holders"]).toEqual({ deltaPct: 0, direction: "flat" })
+  })
+
   it("compares supply as a number (string field)", () => {
     const current = stats({ generic: { "2:25349": gen({ supply: "110000" }) } })
     const baseline = stats({ generic: { "2:25349": gen({ supply: "100000" }) } })

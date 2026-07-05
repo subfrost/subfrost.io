@@ -15,7 +15,9 @@ function delta(cur: number, base: number): StatDelta | null {
   const rawPct = (cur - base) / base
   // Arredonda pra 3 casas de fração (=0.1% de resolução) — estabiliza o display e os testes.
   const deltaPct = Math.round(rawPct * 1000) / 1000
-  const direction: StatDirection = cur > base ? "up" : cur < base ? "down" : "flat"
+  // Direção derivada do pct ARREDONDADO: uma variação que arredonda pra 0.0% vira "flat"
+  // (traço neutro), evitando uma seta colorida ao lado de "0.0%".
+  const direction: StatDirection = deltaPct > 0 ? "up" : deltaPct < 0 ? "down" : "flat"
   return { deltaPct, direction }
 }
 
