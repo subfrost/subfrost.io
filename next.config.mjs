@@ -28,7 +28,7 @@ const nextConfig = {
 
   // Mark packages with native/WASM dependencies as external
   // This prevents the bundler from transforming __dirname and breaking WASM loading
-  serverExternalPackages: ['@alkanes/ts-sdk', 'sharp'],
+  serverExternalPackages: ['@alkanes/ts-sdk', 'sharp', '@react-pdf/renderer'],
 
   // Environment variables exposed to the browser
   env: {

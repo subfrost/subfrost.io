@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Download, FileSignature, Loader2, Link2 } from "lucide-react"
+import { Download, FileSignature, Loader2, Link2, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getFileUrlAction } from "@/actions/cms/files"
 import type { FileView } from "@/lib/files/manager"
-import { humanSize, previewKind, renderMarkdown, typeLabel } from "./util"
+import { Markdown } from "@/lib/cms/markdown"
+import { humanSize, previewKind, typeLabel } from "./util"
 import { DocTypeBadge } from "./DocTypeBadge"
 
 export interface FileEntityLink {
@@ -74,6 +75,16 @@ export function FileRenderer({
             <Button size="sm" variant="outline" className="h-10 sm:h-9" disabled={downloading} onClick={download}>
               {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download
             </Button>
+            {isMarkdown && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-10 sm:h-9"
+                onClick={() => window.open(`/api/v1/files/${file.id}/pdf`, "_blank", "noopener")}
+              >
+                <Printer size={14} /> Open as PDF
+              </Button>
+            )}
             {canRequestSignatures && isPdf && (
               <Button asChild size="sm" className="h-10 sm:h-9">
                 <Link href={`/admin/documents/new?fromFile=${file.id}`}>
@@ -106,7 +117,9 @@ export function FileRenderer({
           )}
           {url && !error && kind === "text" && textBody !== null && (
             isMarkdown ? (
-              <div className="prose-invert text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(textBody) }} />
+              <div className="text-sm">
+                <Markdown variant="compact">{textBody}</Markdown>
+              </div>
             ) : (
               <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-zinc-950 p-4 text-xs text-zinc-300">{textBody}</pre>
             )
