@@ -53,7 +53,7 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
   const locale: Locale = sp.lang === "zh" ? "zh" : "en"
   const [p, stats] = await Promise.all([
     getEcosystemProfile(slug, locale),
-    getLatestEcosystemStats(slug),
+    getLatestEcosystemStats(slug).catch(() => null), // hero é decorativo: falha de stats não derruba o profile
   ])
   if (!p) notFound()
   const backHref = locale === "zh" ? "/ecosystem?lang=zh" : "/ecosystem"
