@@ -27,6 +27,7 @@ const copy = {
       subHeader: "{firstDate} – {lastDate} · {days} days · {totalTx} transactions sampled · updated daily",
       windowAll: "All time",
       window60: "60 days",
+      windowYtd: "This year",
       legendTip: "Tip: click a legend item to show/hide its line.",
       howTitle: "How it's calculated",
       how: [
@@ -86,6 +87,24 @@ const copy = {
           title: "Alkanes' share of miner fee revenue",
           desc: "By fee revenue — what miners actually earn from fees — Alkanes are {feeShare30} over the last 30 days ({feeShareFull} over the full tracked period), far below their share of transaction count, because most Alkanes tx are tiny DIESEL mints that pay little. All OP_RETURN traffic together pays {opRetFeeShare} of fee revenue. (Subsidy excluded here; fees only.)",
         },
+        fourAnswers: {
+          title: "How much of Bitcoin is Alkanes? Four answers",
+          series: { byTx: "By transaction count", byBytes: "By OP_RETURN bytes", byWeight: "By block weight", byFee: "By miner fee revenue" },
+          desc: "The same question answered four ways, overlaid: Alkanes' share of Bitcoin by transaction count, by OP_RETURN data bytes, by block weight, and by miner fee revenue. By count Alkanes loom large (mostly tiny DIESEL mints); by weight and by fees they are a much smaller slice — the honest answer depends on the yardstick.",
+        },
+        dieselMintsPerDay: {
+          title: "DIESEL mints per day — the birth curve",
+          desc: "DIESEL was born at block 880,000 on Jan 20 2025. This is the raw volume — estimated mints per day (sampled blocks × 144) — on a log scale so the early days stay visible: from a handful a day in early 2025 to a peak around 551,346/day. The take-off in Aug–Sep 2025 is when DIESEL minting exploded (and began riding UNCOMMON•GOODS).",
+        },
+        dieselCumulative: {
+          title: "DIESEL minted — cumulative since genesis",
+          desc: "The running total of estimated DIESEL mints since genesis (block 880,000, Jan 20 2025) — the sum of the daily birth curve above. The curve steepens through 2025 as minting accelerated.",
+        },
+        feePerTx: {
+          title: "Fee per transaction — Alkanes vs everyone else",
+          series: { alkanes: "Alkanes tx", rest: "Non-Alkanes tx" },
+          desc: "Average fee paid per transaction, in sats, split between Alkanes transactions and everyone else. Alkanes tx are mostly small DIESEL mints that pay modest fees, so per transaction they typically sit below the rest of Bitcoin's traffic — the mirror image of their share by transaction count. (Per-day fees ÷ tx count in each bucket; subsidy excluded.)",
+        },
       },
     },
   },
@@ -105,6 +124,7 @@ const copy = {
       subHeader: "{firstDate} – {lastDate} · {days} 天 · 抽样 {totalTx} 笔交易 · 每日更新",
       windowAll: "全部",
       window60: "60 天",
+      windowYtd: "今年",
       legendTip: "提示：点击图例可显示/隐藏对应线条。",
       howTitle: "计算方式",
       how: [
@@ -163,6 +183,24 @@ const copy = {
         alkanesFeeShare: {
           title: "Alkanes 占矿工手续费收入的份额",
           desc: "按手续费收入——矿工实际从手续费中赚取的部分——Alkanes 最近 30 天占 {feeShare30}（整个统计期占 {feeShareFull}），远低于其交易笔数份额，因为大多数 Alkanes 交易是支付极少的小额 DIESEL 铸造。全部 OP_RETURN 流量合计占手续费收入的 {opRetFeeShare}。（不含区块补贴，仅统计手续费。）",
+        },
+        fourAnswers: {
+          title: "Alkanes 占比特币多少？四种答案",
+          series: { byTx: "按交易笔数", byBytes: "按 OP_RETURN 字节", byWeight: "按区块 weight", byFee: "按矿工手续费收入" },
+          desc: "同一个问题的四种答案叠加在一起：Alkanes 占比特币的份额，分别按交易笔数、按 OP_RETURN 数据字节、按区块 weight、以及按矿工手续费收入衡量。按笔数看 Alkanes 占比很高（大多是极小的 DIESEL 铸造）；按 weight 和按手续费看则小得多——诚实的答案取决于用哪把尺子。",
+        },
+        dieselMintsPerDay: {
+          title: "每日 DIESEL 铸造 — 诞生曲线",
+          desc: "DIESEL 于 2025 年 1 月 20 日在区块 880,000 诞生。这里展示原始铸造量——每日估算铸造数（抽样区块 × 144）——采用对数刻度以便早期数据仍然可见：从 2025 年初每天寥寥数笔，到峰值约每天 551,346 笔。2025 年 8–9 月的起飞，正是 DIESEL 铸造爆发（并开始搭乘 UNCOMMON•GOODS）之时。",
+        },
+        dieselCumulative: {
+          title: "DIESEL 铸造总量 — 自创世累计",
+          desc: "自创世（区块 880,000，2025 年 1 月 20 日）以来估算的 DIESEL 铸造累计总量——即上方每日诞生曲线的累加。随着 2025 年铸造加速，曲线持续变陡。",
+        },
+        feePerTx: {
+          title: "每笔交易的手续费 — Alkanes 与其他",
+          series: { alkanes: "Alkanes 交易", rest: "非 Alkanes 交易" },
+          desc: "每笔交易支付的平均手续费（以 sats 计），拆分为 Alkanes 交易与其余交易。Alkanes 交易大多是支付较少的小额 DIESEL 铸造，因此每笔通常低于比特币其余流量——与其按笔数计的份额恰好相反。（每日手续费 ÷ 各类别交易数；不含区块补贴。）",
         },
       },
     },

@@ -16,6 +16,7 @@ export interface OpReturnCopy {
   subHeader: string
   windowAll: string
   window60: string
+  windowYtd: string
   legendTip: string
   howTitle: string
   how: string[]
@@ -31,12 +32,17 @@ export interface OpReturnCopy {
     ugDieselShare: { title: string; desc: string }
     feesSplitBtc: { title: string; series: { alkanes: string; rest: string }; desc: string }
     alkanesFeeShare: { title: string; desc: string }
+    fourAnswers: { title: string; desc: string; series: { byTx: string; byBytes: string; byWeight: string; byFee: string } }
+    dieselMintsPerDay: { title: string; desc: string }
+    dieselCumulative: { title: string; desc: string }
+    feePerTx: { title: string; desc: string; series: { alkanes: string; rest: string } }
   }
 }
 
 const ACCENT = "#5dcaa5"
 const SECOND = "#f0997b"
 const MUTED = "#aab8d6"
+const FOURTH = "#d9a441" // amber — 4th line in the "four answers" overlay
 const SLICE_OTHER = "#4a4a52"
 const HAIRLINE = "var(--ed-hairline, #22304a)"
 
@@ -66,10 +72,18 @@ const axisUsdCompact = (v: number) => {
   if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`
   return `$${Math.round(v)}`
 }
+const axisNumCompact = (v: number) => {
+  if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`
+  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`
+  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`
+  return `${Math.round(v)}`
+}
 const tooltipPct = (v: number) => `${(v * 100).toFixed(2)}%`
 const tooltipBtc = (v: number) => `${v.toFixed(4)} BTC`
 const tooltipUsd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`
 const tooltipBytesPerTx = (v: number) => `${v.toFixed(1)} B`
+const tooltipNum = (v: number) => Math.round(v).toLocaleString("en-US")
+const tooltipSats = (v: number) => `${Math.round(v).toLocaleString("en-US")} sats`
 
 function fmtDate(iso: string, locale: "en" | "zh"): string {
   const d = new Date(`${iso}T00:00:00Z`)
@@ -167,7 +181,7 @@ function ToggleLineChart({
 }
 
 function SingleLineChart({
-  data, dataKey, color, yTickFormatter, tooltipFormatter, area = false,
+  data, dataKey, color, yTickFormatter, tooltipFormatter, area = false, logScale = false,
 }: {
   data: OpReturnPoint[]
   dataKey: "value"
@@ -175,15 +189,25 @@ function SingleLineChart({
   yTickFormatter: (v: number) => string
   tooltipFormatter: (v: number) => string
   area?: boolean
+  logScale?: boolean
 }) {
   const ChartTag = area ? AreaChart : LineChart
+  // A log axis can't plot 0 or negatives — drop them to null so the line just skips those days.
+  const plotData = logScale ? data.map((d) => ({ ...d, value: d.value != null && d.value > 0 ? d.value : null })) : data
   return (
     <div className="h-[240px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ChartTag data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <ChartTag data={plotData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={40} />
-          <YAxis tick={{ fontSize: 11 }} width={72} tickFormatter={yTickFormatter} domain={["auto", "auto"]} />
+          <YAxis
+            tick={{ fontSize: 11 }}
+            width={72}
+            tickFormatter={yTickFormatter}
+            scale={logScale ? "log" : "auto"}
+            domain={logScale ? [1, "auto"] : ["auto", "auto"]}
+            allowDataOverflow={logScale}
+          />
           <Tooltip formatter={(v: number) => tooltipFormatter(v)} labelStyle={{ color: "#334" }} />
           {area ? (
             <Area type="monotone" dataKey={dataKey} stroke={color} fill={color} fillOpacity={0.18} strokeWidth={2} isAnimationActive={false} connectNulls />
@@ -196,9 +220,19 @@ function SingleLineChart({
   )
 }
 
-/** Slices the tail of an array to `n` items; `n === null` returns the whole array (All time). */
-function windowSlice<T>(arr: T[], n: number | null): T[] {
-  return n === null ? arr : arr.slice(-n)
+type WindowMode = "all" | "60d" | "ytd"
+
+/**
+ * Applies the selected window to a date-keyed series:
+ * "all" → everything · "60d" → last 60 rows · "ytd" → rows dated on/after Jan 1 of `year`.
+ */
+function applyWindow<T extends { date: string }>(arr: T[], mode: WindowMode, year: number): T[] {
+  if (mode === "60d") return arr.slice(-60)
+  if (mode === "ytd") {
+    const start = `${year}-01-01`
+    return arr.filter((r) => r.date >= start)
+  }
+  return arr
 }
 
 /**
@@ -249,17 +283,22 @@ function LabeledPie({
 }
 
 export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpReturnPayload; copy: OpReturnCopy; locale: "en" | "zh" }) {
-  const [windowDays, setWindowDays] = useState<number | null>(null) // null = All time
+  const [windowMode, setWindowMode] = useState<WindowMode>("all")
+  const year = useMemo(() => new Date().getUTCFullYear(), [])
 
-  const dailyShare = useMemo(() => windowSlice(payload.dailyShare, windowDays), [payload.dailyShare, windowDays])
-  const opReturnShare = useMemo(() => windowSlice(payload.opReturnShare, windowDays), [payload.opReturnShare, windowDays])
-  const weightShare = useMemo(() => windowSlice(payload.weightShare, windowDays), [payload.weightShare, windowDays])
-  const dieselTxShare = useMemo(() => windowSlice(payload.dieselTxShare, windowDays), [payload.dieselTxShare, windowDays])
-  const bytesPerTx = useMemo(() => windowSlice(payload.bytesPerTx, windowDays), [payload.bytesPerTx, windowDays])
-  const minerRevenueUsd = useMemo(() => windowSlice(payload.minerRevenueUsd, windowDays), [payload.minerRevenueUsd, windowDays])
-  const ugDieselShare = useMemo(() => windowSlice(payload.ugDieselShare, windowDays), [payload.ugDieselShare, windowDays])
-  const feesSplitBtc = useMemo(() => windowSlice(payload.feesSplitBtc, windowDays), [payload.feesSplitBtc, windowDays])
-  const alkanesFeeShare = useMemo(() => windowSlice(payload.alkanesFeeShare, windowDays), [payload.alkanesFeeShare, windowDays])
+  const dailyShare = useMemo(() => applyWindow(payload.dailyShare, windowMode, year), [payload.dailyShare, windowMode, year])
+  const opReturnShare = useMemo(() => applyWindow(payload.opReturnShare, windowMode, year), [payload.opReturnShare, windowMode, year])
+  const weightShare = useMemo(() => applyWindow(payload.weightShare, windowMode, year), [payload.weightShare, windowMode, year])
+  const dieselTxShare = useMemo(() => applyWindow(payload.dieselTxShare, windowMode, year), [payload.dieselTxShare, windowMode, year])
+  const bytesPerTx = useMemo(() => applyWindow(payload.bytesPerTx, windowMode, year), [payload.bytesPerTx, windowMode, year])
+  const minerRevenueUsd = useMemo(() => applyWindow(payload.minerRevenueUsd, windowMode, year), [payload.minerRevenueUsd, windowMode, year])
+  const ugDieselShare = useMemo(() => applyWindow(payload.ugDieselShare, windowMode, year), [payload.ugDieselShare, windowMode, year])
+  const feesSplitBtc = useMemo(() => applyWindow(payload.feesSplitBtc, windowMode, year), [payload.feesSplitBtc, windowMode, year])
+  const alkanesFeeShare = useMemo(() => applyWindow(payload.alkanesFeeShare, windowMode, year), [payload.alkanesFeeShare, windowMode, year])
+  const fourAnswers = useMemo(() => applyWindow(payload.fourAnswers, windowMode, year), [payload.fourAnswers, windowMode, year])
+  const dieselMintsPerDay = useMemo(() => applyWindow(payload.dieselMintsPerDay, windowMode, year), [payload.dieselMintsPerDay, windowMode, year])
+  const dieselCumulative = useMemo(() => applyWindow(payload.dieselCumulative, windowMode, year), [payload.dieselCumulative, windowMode, year])
+  const feePerTx = useMemo(() => applyWindow(payload.feePerTx, windowMode, year), [payload.feePerTx, windowMode, year])
 
   if (payload.days === 0) return null
   const donut = payload.latestDonut
@@ -287,32 +326,26 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <p className="mt-1 text-sm" style={{ color: "var(--ed-muted)" }}>{subHeader}</p>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setWindowDays(null)}
-            className="rounded-full border px-4 py-1.5 text-sm"
-            style={{
-              borderColor: HAIRLINE,
-              color: windowDays === null ? "#04150f" : "var(--ed-ink)",
-              background: windowDays === null ? ACCENT : "transparent",
-              fontWeight: windowDays === null ? 600 : 400,
-            }}
-          >
-            {copy.windowAll}
-          </button>
-          <button
-            type="button"
-            onClick={() => setWindowDays(60)}
-            className="rounded-full border px-4 py-1.5 text-sm"
-            style={{
-              borderColor: HAIRLINE,
-              color: windowDays === 60 ? "#04150f" : "var(--ed-ink)",
-              background: windowDays === 60 ? ACCENT : "transparent",
-              fontWeight: windowDays === 60 ? 600 : 400,
-            }}
-          >
-            {copy.window60}
-          </button>
+          {([
+            ["all", copy.windowAll],
+            ["60d", copy.window60],
+            ["ytd", copy.windowYtd],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setWindowMode(mode)}
+              className="rounded-full border px-4 py-1.5 text-sm"
+              style={{
+                borderColor: HAIRLINE,
+                color: windowMode === mode ? "#04150f" : "var(--ed-ink)",
+                background: windowMode === mode ? ACCENT : "transparent",
+                fontWeight: windowMode === mode ? 600 : 400,
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -366,6 +399,23 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
+        {/* How much of Bitcoin is Alkanes? Four answers (tx / OP_RETURN bytes / weight / fee revenue) */}
+        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc}>
+          <ToggleLineChart
+            data={fourAnswers}
+            seriesKeys={[
+              { key: "byTx", label: copy.charts.fourAnswers.series.byTx },
+              { key: "byBytes", label: copy.charts.fourAnswers.series.byBytes },
+              { key: "byWeight", label: copy.charts.fourAnswers.series.byWeight },
+              { key: "byFee", label: copy.charts.fourAnswers.series.byFee },
+            ]}
+            colors={{ byTx: ACCENT, byBytes: SECOND, byWeight: MUTED, byFee: FOURTH }}
+            yTickFormatter={axisPct}
+            tooltipFormatter={tooltipPct}
+            tip={copy.legendTip}
+          />
+        </Card>
+
         {/* 4. Last day — full pie, 2 slices (Alkanes vs Other OP_RETURN) */}
         {donut ? (
           <Card
@@ -393,6 +443,16 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         {/* 5. DIESEL mints share of all tx */}
         <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
+        </Card>
+
+        {/* DIESEL mints per day — the birth curve (log scale) */}
+        <Card title={copy.charts.dieselMintsPerDay.title} desc={copy.charts.dieselMintsPerDay.desc}>
+          <SingleLineChart data={dieselMintsPerDay} dataKey="value" color={SECOND} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} logScale />
+        </Card>
+
+        {/* DIESEL minted — cumulative since genesis */}
+        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc}>
+          <SingleLineChart data={dieselCumulative} dataKey="value" color={ACCENT} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} area />
         </Card>
 
         {/* 6. UNCOMMON•GOODS mints that are DIESEL */}
@@ -465,6 +525,21 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           opRetFeeShare: fmtPct(stats.full.opReturnFeeShare),
         })}>
           <SingleLineChart data={alkanesFeeShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
+        </Card>
+
+        {/* Fee per transaction — Alkanes vs everyone else (sats/tx) */}
+        <Card title={copy.charts.feePerTx.title} desc={copy.charts.feePerTx.desc}>
+          <ToggleLineChart
+            data={feePerTx}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.feePerTx.series.alkanes },
+              { key: "rest", label: copy.charts.feePerTx.series.rest },
+            ]}
+            colors={{ alkanes: ACCENT, rest: SECOND }}
+            yTickFormatter={axisNumCompact}
+            tooltipFormatter={tooltipSats}
+            tip={copy.legendTip}
+          />
         </Card>
       </div>
 
