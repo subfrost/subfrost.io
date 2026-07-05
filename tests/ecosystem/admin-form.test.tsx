@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import { EcosystemAdmin } from "@/components/cms/ecosystem/EcosystemAdmin"
-import { saveEcosystemProject } from "@/actions/ecosystem/projects"
+import { saveEcosystemProject, translateEcosystemProfile } from "@/actions/ecosystem/projects"
 
 vi.mock("@/actions/ecosystem/projects", () => ({
   saveEcosystemProject: vi.fn(),
   deleteEcosystemProject: vi.fn(),
   setFeaturedBandEnabled: vi.fn(),
   translateEcosystemDescription: vi.fn(),
+  translateEcosystemProfile: vi.fn(),
 }))
 // next/navigation is mocked globally in tests/setup.ts.
 
@@ -62,5 +63,22 @@ describe("EcosystemAdmin — profile & contracts", () => {
     expect(getByText("Hello")).toBeInTheDocument()       // markdown renderizado
     fireEvent.click(getByText("Edit EN"))
     expect(getByLabelText("Profile (EN)")).toBeInTheDocument()
+  })
+})
+
+describe("EcosystemAdmin — translate profile", () => {
+  it("fills Profile (ZH) from the action result and disables while empty", async () => {
+    vi.mocked(translateEcosystemProfile).mockResolvedValue({ ok: true, zh: "## 中文正文" })
+    const { getByText, getByLabelText, getByRole } = render(
+      <EcosystemAdmin projects={[]} featuredBandEnabled={false} canEdit />,
+    )
+    fireEvent.click(getByText("New project"))
+    const btn = getByRole("button", { name: "Translate profile EN→ZH" })
+    expect(btn).toBeDisabled() // profileEn vazio
+    fireEvent.change(getByLabelText("Profile (EN)"), { target: { value: "## Products" } })
+    expect(btn).not.toBeDisabled()
+    fireEvent.click(btn)
+    await waitFor(() => expect(translateEcosystemProfile).toHaveBeenCalledWith("## Products"))
+    await waitFor(() => expect(getByLabelText("Profile (ZH)")).toHaveValue("## 中文正文"))
   })
 })

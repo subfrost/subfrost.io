@@ -9,6 +9,7 @@ vi.mock("@/actions/ecosystem/projects", () => ({
   deleteEcosystemProject: vi.fn(),
   setFeaturedBandEnabled: vi.fn(),
   translateEcosystemDescription: vi.fn(),
+  translateEcosystemProfile: vi.fn(),
 }))
 vi.mock("@/lib/cms/inline-image-upload", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/cms/inline-image-upload")>()

@@ -8,6 +8,7 @@ import {
   deleteEcosystemProject,
   setFeaturedBandEnabled,
   translateEcosystemDescription,
+  translateEcosystemProfile,
   type EcosystemProjectInput,
   type EcosystemContractInput,
 } from "@/actions/ecosystem/projects"
@@ -303,6 +304,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [bannerError, setBannerError] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
+  const [translatingProfile, setTranslatingProfile] = useState(false)
 
   const [name, setName] = useState(initial.name)
   const [slug, setSlug] = useState(initial.slug)
@@ -366,6 +368,16 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
       const res = await translateEcosystemDescription(descriptionEn)
       setTranslating(false)
       if (res.ok && res.zh) setDescriptionZh(res.zh)
+      else onError(res.error ?? "Translate failed")
+    })
+  }
+
+  function translateProfileZh() {
+    setTranslatingProfile(true); onError(null)
+    startTransition(async () => {
+      const res = await translateEcosystemProfile(profileEn)
+      setTranslatingProfile(false)
+      if (res.ok && res.zh) setProfileZh(res.zh)
       else onError(res.error ?? "Translate failed")
     })
   }
@@ -558,9 +570,20 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <label className={label} htmlFor="ep-profile-zh">Profile (ZH)</label>
-          <button type="button" onClick={() => setPreviewZh(!previewZh)} className="text-xs text-sky-400 hover:text-sky-300">
-            {previewZh ? "Edit ZH" : "Preview ZH"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Translate profile EN→ZH"
+              onClick={translateProfileZh}
+              disabled={translatingProfile || !profileEn.trim()}
+              className="text-xs text-sky-400 hover:text-sky-300 disabled:opacity-50"
+            >
+              {translatingProfile ? "Translating…" : "Translate EN→ZH"}
+            </button>
+            <button type="button" onClick={() => setPreviewZh(!previewZh)} className="text-xs text-sky-400 hover:text-sky-300">
+              {previewZh ? "Edit ZH" : "Preview ZH"}
+            </button>
+          </div>
         </div>
         {previewZh ? (
           <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2">
