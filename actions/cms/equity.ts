@@ -198,6 +198,21 @@ export async function deleteInstrumentAction(id: string): Promise<MutResult<true
   } catch (e) { return mapErr(e) }
 }
 
+// ---------- FUEL supply-map context (financials-gated) ---------------
+
+export type FuelAllocatedTotalResult =
+  | { ok: true; total: number }
+  | { ok: false; error: "unauthorized" }
+
+/** Sum of all on-chain FUEL allocations — feeds the community/treasury split of
+ *  the FUEL supply map. Gated on financials.view (the map exposes cap-table
+ *  ownership), NOT the broader fuel.read. */
+export async function fuelAllocatedTotalAction(): Promise<FuelAllocatedTotalResult> {
+  const g = await gate(); if (!g.ok) return g
+  const agg = await prisma.fuelAllocation.aggregate({ _sum: { amount: true } })
+  return { ok: true, total: agg._sum.amount ?? 0 }
+}
+
 // ---------- linkable envelopes (for attaching a signed doc) ----------
 
 export type LinkableEnvelope = { id: string; subject: string; status: string }
