@@ -23,4 +23,13 @@ describe("ProfileTabs", () => {
     expect(screen.getByText("panel B")).toBeInTheDocument()
     expect(screen.queryByText("panel A")).toBeNull()
   })
+
+  it("falls back to the first tab when tabs shrink below the active index", () => {
+    const { rerender } = render(<ProfileTabs tabs={tabs} panels={panels} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Products" }))
+    expect(screen.getByText("panel B")).toBeInTheDocument()
+    rerender(<ProfileTabs tabs={[tabs[0]]} panels={[panels[0]]} />)
+    expect(screen.getByText("panel A")).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true")
+  })
 })
