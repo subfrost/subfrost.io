@@ -7,8 +7,6 @@ import { Menu, X } from "lucide-react"
 import { AdminNav } from "@/components/cms/AdminNav"
 import type { NavTreeDrive } from "@/lib/files/manager"
 import { UserMenu } from "@/components/cms/UserMenu"
-import { SystemThemeSync } from "@/components/articles/SystemThemeSync"
-import { ThemeToggle } from "@/components/articles/ThemeToggle"
 
 export interface ShellUser {
   name: string | null
@@ -63,10 +61,9 @@ export function AdminShell({ user, children, filesTree = [] }: { user: ShellUser
     return (
       <div
         id="ed-root"
-        data-ed-theme="light"
+        data-ed-theme="dark"
         className="flex h-screen overflow-hidden bg-[color:var(--ed-canvas)] font-display text-[color:var(--ed-ink)]"
       >
-        <SystemThemeSync />
         <main className="ed-admin-scroll relative flex-1 overflow-y-auto bg-[color:var(--ed-canvas)] text-[color:var(--ed-ink)]">
           <div className="px-5 py-8 md:px-8 lg:px-12 lg:py-12">{children}</div>
         </main>
@@ -77,10 +74,9 @@ export function AdminShell({ user, children, filesTree = [] }: { user: ShellUser
   return (
     <div
       id="ed-root"
-      data-ed-theme="light"
+      data-ed-theme="dark"
       className="flex h-screen overflow-hidden bg-[color:var(--ed-canvas)] font-display text-[color:var(--ed-ink)]"
     >
-      <SystemThemeSync />
       {/* Desktop sidebar */}
       <aside className="ed-admin-scroll hidden w-[220px] shrink-0 flex-col overflow-y-auto bg-[color:var(--ed-canvas)] px-6 py-5 lg:flex">
         <div className="mb-9">{brand}</div>
@@ -142,14 +138,8 @@ export function AdminShell({ user, children, filesTree = [] }: { user: ShellUser
               priority
             />
           </a>
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
         </header>
         <main className="ed-admin-scroll relative flex-1 overflow-y-auto bg-[color:var(--ed-canvas)] text-[color:var(--ed-ink)]">
-          <div className="absolute right-8 top-6 z-10 hidden lg:block">
-            <ThemeToggle />
-          </div>
           <div className="px-5 py-8 md:px-8 lg:px-12 lg:py-12">{children}</div>
         </main>
       </div>

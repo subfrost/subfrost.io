@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login, loginVerify2fa } from "@/actions/cms/auth"
-import { SystemThemeSync } from "@/components/articles/SystemThemeSync"
-import { ThemeToggle } from "@/components/articles/ThemeToggle"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -53,15 +51,11 @@ export default function AdminLoginPage() {
   return (
     <div
       id="ed-root"
-      data-ed-theme="light"
+      data-ed-theme="dark"
       className="grid min-h-screen text-[color:var(--ed-ink)] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]"
       style={{ background: "var(--ed-canvas)" }}
     >
-      <SystemThemeSync />
       <section className="relative flex min-h-screen items-center px-6 py-10 sm:px-10 lg:px-16">
-        <div className="absolute right-6 top-6 sm:right-10 lg:right-16">
-          <ThemeToggle />
-        </div>
         <div className="w-full max-w-[420px]">
           <Link href="/" className="mb-20 inline-flex items-center" aria-label="subfrost home">
             <span className="relative block h-8 w-[148px]">
