@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import FrostBackdrop from "@/components/FrostBackdrop"
@@ -132,13 +133,13 @@ export default function HomeClient({ initialStats }: { initialStats: HomeStats }
               <StableText textKey="hero.officialDocs" />
             </span>
           </a>
-          <a
+          <Link
             href="/articles"
             onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "hero_header" })}
             className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
             <StableText textKey="hero.blog" />
-          </a>
+          </Link>
         </div>
 
         {/* Top Right Button */}

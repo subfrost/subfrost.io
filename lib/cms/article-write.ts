@@ -36,7 +36,6 @@ export interface Actor {
 async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
   let slug = base
   let n = 1
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.article.findUnique({ where: { slug } })
     if (!existing || existing.id === ignoreId) return slug

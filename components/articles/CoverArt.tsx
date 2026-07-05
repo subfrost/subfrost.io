@@ -50,7 +50,6 @@ export function CoverArt({
           sizes={sizes}
           type="image/webp"
         />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/articles/${cover.base}.png`}
           alt=""

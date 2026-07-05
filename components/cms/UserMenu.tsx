@@ -55,10 +55,10 @@ export function UserMenu({
             <span>Profile</span>
             <ArrowUpRight size={13} className="opacity-45 transition-[opacity,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" />
           </Link>
-          <a href="/articles" onClick={() => setOpen(false)} className={itemCls}>
+          <Link href="/articles" onClick={() => setOpen(false)} className={itemCls}>
             <span>View articles</span>
             <ExternalLink size={13} className="opacity-45 transition-opacity duration-300 group-hover:opacity-100" />
-          </a>
+          </Link>
           <form action={logout}>
             <button
               type="submit"

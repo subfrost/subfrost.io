@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,7 +63,7 @@ export default function AdminLoginPage() {
           <ThemeToggle />
         </div>
         <div className="w-full max-w-[420px]">
-          <a href="/" className="mb-20 inline-flex items-center" aria-label="subfrost home">
+          <Link href="/" className="mb-20 inline-flex items-center" aria-label="subfrost home">
             <span className="relative block h-8 w-[148px]">
               <img
                 src="/brand/subfrost/Logos/svg/logotype/logotype_dark.svg"
@@ -76,7 +77,7 @@ export default function AdminLoginPage() {
                 className="ed-logo-dark absolute inset-0 h-full w-auto"
               />
             </span>
-          </a>
+          </Link>
           <div className="mb-9">
             <p className="mb-3 text-[15px] font-medium text-[color:var(--ed-muted)]">Admin</p>
             <h1 className="text-[48px] font-normal leading-none tracking-[-0.02em]">Sign in</h1>

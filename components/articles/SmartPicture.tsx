@@ -15,7 +15,6 @@ export function SmartPicture({
     <picture>
       <source srcSet={p.avif} type="image/avif" />
       <source srcSet={p.webp} type="image/webp" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={p.fallback} alt={alt} className={className} loading={loading} decoding="async" fetchPriority={fetchPriority} />
     </picture>
   )

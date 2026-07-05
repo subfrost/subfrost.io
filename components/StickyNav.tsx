@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"
 import LanguageToggle from "@/components/LanguageToggle"
 import StableText from "@/components/StableText"
@@ -82,13 +83,13 @@ export default function StickyNav() {
 
           {/* Right CTA Buttons */}
           <div className="ml-auto flex items-center gap-4 flex-shrink-0">
-            <a
+            <Link
               href="/articles"
               onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "sticky_nav" })}
               className="hidden sm:inline-flex items-center text-sm font-semibold text-[color:var(--sf-text)] hover:opacity-80 outline-none whitespace-nowrap transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none"
             >
               <StableText textKey="nav.blog" />
-            </a>
+            </Link>
             <a
               href={externalLinks.docs}
               target="_blank"
