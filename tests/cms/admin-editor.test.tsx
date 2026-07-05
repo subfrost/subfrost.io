@@ -94,6 +94,26 @@ describe("AdminEditor -- upload errors", () => {
     expect(alert).toHaveTextContent("Upload endpoint unreachable")
     expect(getByText("Add feature image").closest("div")).toContainElement(alert)
   })
+
+  it("shows a clean cover-upload error (not a raw JSON-parse error) when the server answers non-JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("<html>Internal Server Error</html>", {
+        status: 500,
+        headers: { "content-type": "text/html" },
+      }),
+    ))
+
+    const { container, getByRole } = render(
+      <AdminEditor initial={{ ...initial, id: undefined, coverImage: "" }} canPublish />,
+    )
+    const coverInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["x"], "cover.png", { type: "image/png" })
+    fireEvent.change(coverInput, { target: { files: [file] } })
+
+    const alert = await waitFor(() => getByRole("alert"))
+    expect(alert.textContent).toMatch(/upload failed/i)
+    expect(alert.textContent).not.toMatch(/token|JSON/i)
+  })
 })
 
 describe("AdminEditor -- AI translation", () => {

@@ -14,6 +14,7 @@ import {
   escapeHtml,
 } from "@/lib/cms/editor-markdown"
 import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { Button } from "@/components/ui/button"
 import {
   ArrowLeft,
@@ -212,13 +213,7 @@ export function AdminEditor({
     if (kind === "cover") setUploading(true)
     else setInlineUploading(true)
     try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("kind", kind)
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-      const data = (await res.json()) as { url?: string; error?: string }
-      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
-      return data.url
+      return await uploadInlineImage(file, fetch, kind)
     } catch (e) {
       setUploadError({ kind, message: e instanceof Error ? e.message : "Upload failed" })
       return null

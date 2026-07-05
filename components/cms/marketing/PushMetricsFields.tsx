@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import type { PushMetrics } from "@/lib/cms/marketing-analytics"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 
 const FIELDS: { key: keyof PushMetrics; label: string }[] = [
   { key: "impressions", label: "Impressions" },
@@ -27,15 +28,11 @@ export function PushMetricsFields({
   async function upload(file: File) {
     setUploading(true); setErr(null)
     try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("kind", "inline")
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Upload failed")
-      onScreenshot(data.url as string)
+      onScreenshot(await uploadInlineImage(file, fetch, "inline"))
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Upload failed")
+      // A gateway's non-JSON body must not surface as a raw JSON-parse error.
+      const detail = e instanceof Error && e.message ? ` — ${e.message}` : ""
+      setErr(`Upload failed${detail}`)
     } finally {
       setUploading(false)
     }
@@ -65,7 +62,7 @@ export function PushMetricsFields({
         {screenshotUrl && <a href={screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">view print</a>}
         {screenshotUrl && <button type="button" className="text-xs text-red-600" onClick={() => onScreenshot(null)}>remove</button>}
       </div>
-      {err && <div className="text-xs text-red-600">{err}</div>}
+      {err && <div role="alert" className="text-xs text-red-600">{err}</div>}
     </div>
   )
 }
