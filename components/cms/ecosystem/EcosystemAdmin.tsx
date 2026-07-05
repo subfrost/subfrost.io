@@ -9,9 +9,19 @@ import {
   setFeaturedBandEnabled,
   translateEcosystemDescription,
   type EcosystemProjectInput,
+  type EcosystemContractInput,
 } from "@/actions/ecosystem/projects"
 import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_STATUSES, ECOSYSTEM_KINDS } from "@/lib/ecosystem/constants"
+import { Markdown } from "@/lib/cms/markdown"
+
+export interface AdminContract {
+  id?: string
+  label: string
+  alkaneId: string
+  noteEn: string
+  noteZh: string
+}
 
 export interface AdminProject {
   id: string
@@ -30,6 +40,9 @@ export interface AdminProject {
   featured: boolean
   sortOrder: number
   published: boolean
+  profileEn: string
+  profileZh: string
+  contracts: AdminContract[]
   createdAt: string
   updatedAt: string
 }
@@ -56,6 +69,9 @@ function blankProject(): AdminProject {
     featured: false,
     sortOrder: 0,
     published: false,
+    profileEn: "",
+    profileZh: "",
+    contracts: [],
     createdAt: "",
     updatedAt: "",
   }
@@ -263,6 +279,9 @@ function toInput(p: AdminProject): EcosystemProjectInput {
     featured: p.featured,
     sortOrder: p.sortOrder,
     published: p.published,
+    profileEn: p.profileEn,
+    profileZh: p.profileZh,
+    contracts: p.contracts.map(({ label, alkaneId, noteEn, noteZh }) => ({ label, alkaneId, noteEn, noteZh })),
   }
 }
 
@@ -294,6 +313,11 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [featured, setFeatured] = useState(initial.featured)
   const [sortOrder, setSortOrder] = useState(initial.sortOrder)
   const [published, setPublished] = useState(initial.published)
+  const [profileEn, setProfileEn] = useState(initial.profileEn)
+  const [profileZh, setProfileZh] = useState(initial.profileZh)
+  const [contracts, setContracts] = useState<AdminContract[]>(initial.contracts)
+  const [previewEn, setPreviewEn] = useState(false)
+  const [previewZh, setPreviewZh] = useState(false)
 
   async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -342,6 +366,9 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         featured,
         sortOrder,
         published,
+        profileEn,
+        profileZh,
+        contracts: contracts.map(({ label, alkaneId, noteEn, noteZh }) => ({ label, alkaneId, noteEn, noteZh })) satisfies EcosystemContractInput[],
       })
       if (res.ok) onSaved()
       else onError(res.error ?? "Save failed")
@@ -462,6 +489,67 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
           </button>
         </div>
         <textarea id="ep-desc-zh" rows={3} value={descriptionZh} onChange={(e) => setDescriptionZh(e.target.value)} className={inputCls} />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <label className={label} htmlFor="ep-profile-en">Profile (EN)</label>
+          <button type="button" onClick={() => setPreviewEn(!previewEn)} className="text-xs text-sky-400 hover:text-sky-300">
+            {previewEn ? "Edit EN" : "Preview EN"}
+          </button>
+        </div>
+        {previewEn ? (
+          <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2">
+            <Markdown variant="compact">{profileEn}</Markdown>
+          </div>
+        ) : (
+          <textarea id="ep-profile-en" rows={12} value={profileEn} onChange={(e) => setProfileEn(e.target.value)}
+            placeholder="Long-form project profile in Markdown (GFM tables, code blocks…)"
+            className={inputCls + " font-mono text-[12.5px]"} />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <label className={label} htmlFor="ep-profile-zh">Profile (ZH)</label>
+          <button type="button" onClick={() => setPreviewZh(!previewZh)} className="text-xs text-sky-400 hover:text-sky-300">
+            {previewZh ? "Edit ZH" : "Preview ZH"}
+          </button>
+        </div>
+        {previewZh ? (
+          <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2">
+            <Markdown variant="compact">{profileZh}</Markdown>
+          </div>
+        ) : (
+          <textarea id="ep-profile-zh" rows={12} value={profileZh} onChange={(e) => setProfileZh(e.target.value)}
+            placeholder="Long-form project profile in Markdown (GFM tables, code blocks…)"
+            className={inputCls + " font-mono text-[12.5px]"} />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className={label}>Contracts</span>
+          <button type="button" onClick={() => setContracts([...contracts, { label: "", alkaneId: "", noteEn: "", noteZh: "" }])}
+            className="text-xs text-sky-400 hover:text-sky-300">
+            Add contract
+          </button>
+        </div>
+        {contracts.map((c, i) => (
+          <div key={i} className="grid grid-cols-1 gap-2 rounded-md border border-zinc-800 p-2 sm:grid-cols-[1fr_110px_1fr_1fr_auto]">
+            <input aria-label={`Contract ${i + 1} label`} placeholder="Label" value={c.label}
+              onChange={(e) => setContracts(contracts.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} className={inputCls} />
+            <input aria-label={`Contract ${i + 1} alkane ID`} placeholder="4:257" value={c.alkaneId}
+              onChange={(e) => setContracts(contracts.map((x, j) => (j === i ? { ...x, alkaneId: e.target.value } : x)))} className={inputCls + " font-mono"} />
+            <input aria-label={`Contract ${i + 1} note EN`} placeholder="Note (EN)" value={c.noteEn}
+              onChange={(e) => setContracts(contracts.map((x, j) => (j === i ? { ...x, noteEn: e.target.value } : x)))} className={inputCls} />
+            <input aria-label={`Contract ${i + 1} note ZH`} placeholder="Note (ZH)" value={c.noteZh}
+              onChange={(e) => setContracts(contracts.map((x, j) => (j === i ? { ...x, noteZh: e.target.value } : x)))} className={inputCls} />
+            <button type="button" aria-label={`Remove contract ${i + 1}`}
+              onClick={() => setContracts(contracts.filter((_, j) => j !== i))}
+              className="self-center text-zinc-500 hover:text-rose-400"><Trash2 size={14} /></button>
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-6">
