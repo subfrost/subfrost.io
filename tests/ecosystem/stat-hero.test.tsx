@@ -47,3 +47,46 @@ describe("StatHero", () => {
     expect(screen.queryByText("Card 5")).toBeNull()
   })
 })
+
+describe("StatHero — trend deltas", () => {
+  const genBase = { name: "ARBUZ", symbol: "ARBUZ", priceUsd: 0.01, marketcapUsd: 2500, volume24hUsd: 19 }
+  const cur = (): ProjectStats => ({
+    generic: { "2:25349": { ...genBase, holders: 1234, supply: "90000" } },
+    custom: [
+      { key: "jackpot", label: "Tier-5 jackpot", value: "15.04", unit: "DIESEL" },
+      { key: "tickets", label: "Tickets (round / all-time)", value: "42 / 1337" },
+    ],
+  })
+  const base = (): ProjectStats => ({
+    generic: { "2:25349": { ...genBase, holders: 1000, supply: "100000" } },
+    custom: [
+      { key: "jackpot", label: "Tier-5 jackpot", value: "12.00", unit: "DIESEL" },
+      { key: "tickets", label: "Tickets (round / all-time)", value: "40 / 1300" },
+    ],
+  })
+
+  it("marks up/down direction and the right % on the comparable cards", () => {
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    const rows = screen.getAllByTestId("stat-delta")
+    const byPct = (pct: string) => rows.find((r) => r.textContent?.includes(pct))
+    expect(byPct("23.4%")?.getAttribute("data-direction")).toBe("up")   // holders 1234 vs 1000
+    expect(byPct("10.0%")?.getAttribute("data-direction")).toBe("down") // supply 90000 vs 100000
+    expect(byPct("25.3%")?.getAttribute("data-direction")).toBe("up")   // jackpot 15.04 vs 12.00
+  })
+
+  it("renders a delta row only for numeric cards (tickets excluded)", () => {
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    // jackpot + holders + supply = 3 rows; tickets ("42 / 1337" → NaN) has none.
+    expect(screen.getAllByTestId("stat-delta")).toHaveLength(3)
+  })
+
+  it("shows the period label in every delta row", () => {
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    expect(screen.getAllByTestId("stat-delta").every((r) => r.textContent?.includes("24h"))).toBe(true)
+  })
+
+  it("renders no delta rows at all when baseline is absent", () => {
+    render(<StatHero stats={cur()} baseline={null} periodLabel={null} mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    expect(screen.queryAllByTestId("stat-delta")).toHaveLength(0)
+  })
+})

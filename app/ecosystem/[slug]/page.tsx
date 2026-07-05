@@ -4,7 +4,7 @@ import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemProfile, type ProfileCopy } from "@/components/ecosystem/EcosystemProfile"
 import { StatHero, type StatHeroCopy } from "@/components/ecosystem/StatHero"
 import { PriceChart } from "@/components/ecosystem/PriceChart"
-import { getEcosystemProfile, getLatestEcosystemStats } from "@/lib/ecosystem/public"
+import { getEcosystemProfile, getEcosystemStatsWithDelta } from "@/lib/ecosystem/public"
 import { getEcosystemPriceSeries } from "@/lib/ecosystem/candles"
 import { absoluteUrl } from "@/lib/seo"
 
@@ -55,9 +55,9 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
   const locale: Locale = sp.lang === "zh" ? "zh" : "en"
-  const [p, stats, series] = await Promise.all([
+  const [p, s, series] = await Promise.all([
     getEcosystemProfile(slug, locale),
-    getLatestEcosystemStats(slug).catch(() => null), // hero é decorativo: falha de stats não derruba o profile
+    getEcosystemStatsWithDelta(slug).catch(() => null), // hero é decorativo: falha de stats não derruba o profile
     getEcosystemPriceSeries(slug).catch(() => null), // idem: gráfico é decorativo
   ])
   if (!p) notFound()
@@ -67,7 +67,7 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
       <main className="mx-auto w-full max-w-[880px] px-6 pb-24 pt-10 sm:px-10">
         <EcosystemProfile
           p={p} copy={copy[locale]} backHref={backHref}
-          statHero={<StatHero stats={stats} mainAlkaneId={p.alkaneId} copy={copy[locale].stats} locale={locale} />}
+          statHero={<StatHero stats={s?.current ?? null} baseline={s?.baseline ?? null} periodLabel={s?.periodLabel ?? null} mainAlkaneId={p.alkaneId} copy={copy[locale].stats} locale={locale} />}
           priceChart={series ? <PriceChart points={series} copy={copy[locale].chart} locale={locale} /> : null}
         />
       </main>
