@@ -11,12 +11,12 @@ type Locale = "en" | "zh"
 
 const copy: Record<Locale, ProfileCopy> = {
   en: {
-    back: "← Ecosystem", website: "Website", docs: "Docs",
+    back: "← Ecosystem", website: "Website", docs: "Docs", overview: "Overview",
     contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
     statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
   },
   zh: {
-    back: "← 生态系统", website: "官网", docs: "文档",
+    back: "← 生态系统", website: "官网", docs: "文档", overview: "概览",
     contractsTitle: "合约", contractCol: "合约", idCol: "Alkane ID", notesCol: "说明",
     statuses: { Live: "已上线", Beta: "测试版", Building: "构建中" },
   },
