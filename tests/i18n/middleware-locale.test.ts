@@ -34,4 +34,28 @@ describe('middleware locale detection', () => {
     const res = await middleware(req)
     expect(res.cookies.get('subfrost_locale')).toBeUndefined()
   })
+
+  it('redirects an /articles/<slug> deep link to the saved zh cookie locale', async () => {
+    const req = new NextRequest('http://localhost/articles/some-post', {
+      headers: { 'accept-language': 'en-US,en;q=0.9' },
+    })
+    req.cookies.set('subfrost_locale', 'zh')
+    const res = await middleware(req)
+    expect(res.status).toBe(307)
+    const location = new URL(res.headers.get('location') || '', 'http://localhost')
+    expect(location.pathname).toBe('/articles/some-post')
+    expect(location.searchParams.get('lang')).toBe('zh')
+  })
+
+  it('redirects an /ecosystem/<slug> deep link to the saved zh cookie locale', async () => {
+    const req = new NextRequest('http://localhost/ecosystem/arbuzino', {
+      headers: { 'accept-language': 'en-US,en;q=0.9' },
+    })
+    req.cookies.set('subfrost_locale', 'zh')
+    const res = await middleware(req)
+    expect(res.status).toBe(307)
+    const location = new URL(res.headers.get('location') || '', 'http://localhost')
+    expect(location.pathname).toBe('/ecosystem/arbuzino')
+    expect(location.searchParams.get('lang')).toBe('zh')
+  })
 })
