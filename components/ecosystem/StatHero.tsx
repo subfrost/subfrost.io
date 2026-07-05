@@ -1,4 +1,5 @@
 import type { ProjectStats } from "@/lib/ecosystem/stats-types"
+import { computeStatDeltas, type StatDelta } from "@/lib/ecosystem/stat-deltas"
 
 export interface StatHeroCopy {
   holders: string
@@ -18,11 +19,37 @@ function formatCompact(v: string): string {
   return String(n)
 }
 
-export function StatHero({ stats, mainAlkaneId, copy, locale }: {
+const DELTA_COLOR: Record<StatDelta["direction"], string> = {
+  up: "#3fb950",
+  down: "#f85149",
+  flat: "var(--ed-muted)",
+}
+const DELTA_ARROW: Record<StatDelta["direction"], string> = { up: "↑", down: "↓", flat: "–" }
+
+function StatDeltaRow({ delta, periodLabel }: { delta: StatDelta; periodLabel: string | null }) {
+  const pct = (Math.abs(delta.deltaPct) * 100).toFixed(1)
+  const period = periodLabel ?? "period"
+  return (
+    <p
+      data-testid="stat-delta"
+      data-direction={delta.direction}
+      className="mt-1 font-mono text-[11px]"
+      style={{ color: DELTA_COLOR[delta.direction], fontVariantNumeric: "tabular-nums" }}
+      aria-label={`${delta.direction} ${pct}% over ${period}`}
+    >
+      {DELTA_ARROW[delta.direction]} {pct}%
+      {periodLabel ? <span className="ml-1" style={{ color: "var(--ed-muted)" }}>{periodLabel}</span> : null}
+    </p>
+  )
+}
+
+export function StatHero({ stats, baseline, mainAlkaneId, copy, locale, periodLabel }: {
   stats: ProjectStats | null
+  baseline?: ProjectStats | null
   mainAlkaneId: string | null
   copy: StatHeroCopy
   locale: "en" | "zh"
+  periodLabel?: string | null
 }) {
   if (!stats) return null
   const cards: { k: string; label: string; value: string }[] = []
@@ -41,12 +68,14 @@ export function StatHero({ stats, mainAlkaneId, copy, locale }: {
     if (cards.length < 4 && g.priceUsd != null) cards.push({ k: "generic-price", label: copy.price, value: `$${g.priceUsd < 1 ? g.priceUsd.toFixed(4) : g.priceUsd.toFixed(2)}` })
   }
   if (cards.length === 0) return null
+  const deltas = computeStatDeltas(stats, baseline ?? null, mainAlkaneId)
   return (
     <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
       {cards.slice(0, 4).map((c) => (
         <div key={c.k} className="rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-4 py-3.5">
           <p data-testid="stat-label" className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ed-muted)]">{c.label}</p>
           <p className="mt-1 text-[22px] font-medium tracking-[-0.015em] text-[color:var(--ed-ink)]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.value}</p>
+          {deltas[c.k] ? <StatDeltaRow delta={deltas[c.k]} periodLabel={periodLabel ?? null} /> : null}
         </div>
       ))}
     </div>
