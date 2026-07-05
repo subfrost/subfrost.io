@@ -276,9 +276,9 @@ function DocumentsTab({ dossier, onError }: { dossier: DossierData; onError: (m:
         )}
       </Section>
 
-      <Section title={`Signed files (${signedFiles.length})`}>
+      <Section title={`Linked files (${signedFiles.length})`}>
         {signedFiles.length === 0 ? (
-          <Empty>No signed files linked. Link them from the Files drive (file → Entities &amp; signatories).</Empty>
+          <Empty>No files linked. Link them from the Files drive (file → Entities &amp; signatories).</Empty>
         ) : (
           <ul className="space-y-2">
             {signedFiles.map((f) => (
@@ -286,7 +286,7 @@ function DocumentsTab({ dossier, onError }: { dossier: DossierData; onError: (m:
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText size={15} className="shrink-0 text-zinc-500" />
                   <div className="min-w-0">
-                    <div className="truncate text-sm text-zinc-200">{f.name}</div>
+                    <Link href={f.filePath} className="block truncate text-sm text-zinc-200 hover:text-white hover:underline">{f.name}</Link>
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                       <span className="rounded bg-zinc-800 px-1 py-0.5 text-zinc-300">{f.role}</span>
                       <span>{f.scope}</span>
@@ -294,7 +294,10 @@ function DocumentsTab({ dossier, onError }: { dossier: DossierData; onError: (m:
                     </div>
                   </div>
                 </div>
-                <button aria-label="Download" onClick={() => download(f.fileId)} className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"><Download size={14} /></button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Link href={f.filePath} aria-label="View in Files" title="View in Files" className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"><ExternalLink size={14} /></Link>
+                  <button aria-label="Download" onClick={() => download(f.fileId)} className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"><Download size={14} /></button>
+                </div>
               </li>
             ))}
           </ul>

@@ -194,7 +194,8 @@ export interface DossierDocGroup {
   versions: DossierEnvelope[]
 }
 
-/** A signed file linked to the entity (EntityFileLink SIGNATORY/COUNTERPARTY). */
+/** A file linked to the entity (any EntityFileLink role), with a deep-link path
+ *  into the file navigator. */
 export interface DossierFile {
   linkId: string
   fileId: string
@@ -202,6 +203,7 @@ export interface DossierFile {
   role: string
   scope: string
   annotation: string | null
+  filePath: string
 }
 
 /** An on-chain settlement touching this entity, with explorer links. */

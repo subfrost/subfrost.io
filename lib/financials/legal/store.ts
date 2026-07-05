@@ -10,7 +10,7 @@ import type {
 } from "./shapes"
 import { groupEnvelopeVersions } from "./shapes"
 import { loadPayeeProfile } from "@/lib/financials/accounting/store"
-import { listEntityFiles } from "@/lib/files/manager"
+import { listEntityFiles, breadcrumb, filesPath, driveSlugFromScope } from "@/lib/files/manager"
 import { explorerTxUrl, explorerAddrUrl } from "@/lib/explorers"
 import { KIND_LABELS } from "@/lib/esign/types"
 
@@ -165,13 +165,21 @@ export async function loadEntityDossier(id: string): Promise<EntityDossier | nul
     label: g.label || (KIND_LABELS as Record<string, string>)[g.versions[0].kind] || g.versions[0].kind,
   }))
 
-  // "Signed docs" = files the entity signed or is a counterparty to.
-  const signedFiles: DossierFile[] = fileLinks
-    .filter((l) => l.role === "SIGNATORY" || l.role === "COUNTERPARTY")
-    .map((l) => ({
-      linkId: l.id, fileId: l.file.id, name: l.file.name,
-      role: l.role, scope: l.file.scope, annotation: l.annotation,
-    }))
+  // All files linked to the entity (any role), each with a deep-link into the
+  // file navigator. Ordered so party docs (SIGNATORY/COUNTERPARTY) come first.
+  const ROLE_ORDER: Record<string, number> = { SIGNATORY: 0, COUNTERPARTY: 1, SUBJECT: 2, MENTIONED: 3 }
+  const signedFiles: DossierFile[] = await Promise.all(
+    [...fileLinks]
+      .sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9))
+      .map(async (l) => {
+        const crumbs = await breadcrumb(l.file.folderId)
+        const filePath = filesPath(driveSlugFromScope(l.file.scope), [...crumbs.map((c) => c.slug), l.file.slug])
+        return {
+          linkId: l.id, fileId: l.file.id, name: l.file.name,
+          role: l.role, scope: l.file.scope, annotation: l.annotation, filePath,
+        }
+      }),
+  )
 
   // ---- on-chain settlement ----
   const onchain: DossierOnchainTx[] = []

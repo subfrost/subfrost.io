@@ -54,11 +54,15 @@ const LIMIT = arg("--limit") ? parseInt(arg("--limit"), 10) : Infinity
 // and append them as JSONL to this file. Used to drive classification agents.
 const EMIT_MANIFEST = arg("--emit-manifest")
 
-if (!SOURCE || !["subfrost", "oyl"].includes(SOURCE)) {
-  console.error("error: --source must be 'subfrost' or 'oyl'")
+if (!SOURCE || !["subfrost", "oyl", "gdrive", "mail"].includes(SOURCE)) {
+  console.error("error: --source must be 'subfrost', 'oyl', 'gdrive', or 'mail'")
   process.exit(1)
 }
-const ROOT = arg("--root") || join(PROJECTS, `${SOURCE}-dump`)
+const DEFAULT_ROOTS = {
+  gdrive: join(process.env.HOME || PROJECTS, "subfrost-docs-staging/gdrive"),
+  mail: join(process.env.HOME || PROJECTS, "subfrost-docs-staging/mail"),
+}
+const ROOT = arg("--root") || DEFAULT_ROOTS[SOURCE] || join(PROJECTS, `${SOURCE}-dump`)
 const SCOPE = SOURCE === "oyl" ? "OYL" : "SUBFROST"
 
 // --- curation manifest -----------------------------------------------------
@@ -98,6 +102,21 @@ const MANIFESTS = {
     // top-level OYL analysis reports (.md) → Reports:
     { src: ".", dest: "Reports", depth1: true, exts: new Set(["md", "csv"]) },
   ],
+  // Live subzeroresearchltd Google Drive (rclone copy → staging, gdocs exported
+  // to office formats). Idempotent vs the earlier Takeout ingest: existing
+  // (folder,name) skip, only the delta is added.
+  gdrive: [
+    { src: "Legal", dest: "Legal/Drive Legal" },
+    { src: "RSU", dest: "Equity/RSU" },
+    { src: "Taxes", dest: "Taxes" },
+    // loose root-level docs (decks, NDAs, SAFEs, letterhead, invitation letters):
+    { src: ".", dest: "Drive Root", depth1: true },
+  ],
+  // Gmail attachment pull (scripts/ingest-gmail.mjs → staging). Invoices, W-8/W-9,
+  // signed PDFs. Idempotent vs the earlier Takeout mail ingest.
+  mail: [
+    { src: "attachments", dest: "Email Attachments", exts: new Set(["pdf", "docx", "doc", "xlsx", "xls", "csv", "png", "jpg", "jpeg", "pptx"]) },
+  ],
 }
 
 // Subtrees we deliberately DO NOT ingest (logged in the report so it's explicit).
@@ -111,6 +130,13 @@ const SKIPPED_NOTE = {
     "work/ (raw per-account takeout: mail, text/atxt/drivetext mirrors, attachments)",
     "extracted/ (raw extracted Takeout tree)",
     "loose screenshots (*.jpg)",
+  ],
+  gdrive: [
+    "China Vids / Demo / Promos / Branding / Images / ETHDenver (media, excluded from the rclone copy)",
+    "Gabe Old Centric Computer (personal machine backup, not company docs)",
+  ],
+  mail: [
+    "message bodies (only document attachments are pulled, not email text)",
   ],
 }
 
