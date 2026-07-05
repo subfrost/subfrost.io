@@ -2,11 +2,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { ecosystemProject: { findFirst: vi.fn() } },
+  prisma: {
+    ecosystemProject: { findFirst: vi.fn() },
+    ecosystemStatSnapshot: { findFirst: vi.fn() },
+  },
 }))
 
 import { prisma } from "@/lib/prisma"
-import { getEcosystemProfile } from "@/lib/ecosystem/public"
+import { getEcosystemProfile, getLatestEcosystemStats } from "@/lib/ecosystem/public"
 
 const row = (over: Record<string, unknown>) => ({
   slug: "arbuzino", name: "Arbuzino", logoUrl: null, category: "Gaming", status: "Live",
@@ -57,5 +60,18 @@ describe("getEcosystemProfile", () => {
     const p = await getEcosystemProfile("arbuzino", "en")
     expect(p?.contracts.map((c) => c.label)).toContain("Fireball")
     expect(p?.contracts.map((c) => c.alkaneId)).toContain("4:257")
+  })
+})
+
+describe("getLatestEcosystemStats", () => {
+  it("returns the newest snapshot stats or null", async () => {
+    vi.mocked(prisma.ecosystemProject.findFirst).mockResolvedValueOnce({ id: "p1" } as never)
+    vi.mocked(prisma.ecosystemStatSnapshot.findFirst).mockResolvedValueOnce({ stats: { generic: {}, custom: [] } } as never)
+    expect(await getLatestEcosystemStats("arbuzino")).toEqual({ generic: {}, custom: [] })
+    expect(prisma.ecosystemStatSnapshot.findFirst).toHaveBeenCalledWith({
+      where: { projectId: "p1" }, orderBy: { takenAt: "desc" },
+    })
+    vi.mocked(prisma.ecosystemProject.findFirst).mockResolvedValueOnce(null as never)
+    expect(await getLatestEcosystemStats("nope")).toBeNull()
   })
 })

@@ -1,5 +1,6 @@
 // lib/ecosystem/public.ts
 import { prisma } from "@/lib/prisma"
+import type { ProjectStats } from "@/lib/ecosystem/stats-types"
 
 export interface PublicEcosystemProject {
   slug: string
@@ -89,4 +90,14 @@ export async function getEcosystemProfile(
       note: locale === "zh" && c.noteZh ? c.noteZh : c.noteEn,
     })),
   }
+}
+
+export async function getLatestEcosystemStats(slug: string): Promise<ProjectStats | null> {
+  const p = await prisma.ecosystemProject.findFirst({ where: { slug, published: true }, select: { id: true } })
+  if (!p) return null
+  const snap = await prisma.ecosystemStatSnapshot.findFirst({
+    where: { projectId: p.id },
+    orderBy: { takenAt: "desc" },
+  })
+  return snap ? (snap.stats as unknown as ProjectStats) : null
 }

@@ -13,6 +13,7 @@ resources:
   - opreturn-sync-cronjob.yaml
   - marketing-snapshot-cronjob.yaml
   - prefetch-cronjob.yaml
+  - ecosystem-stats-cronjob.yaml
   - ntfy
 
 # Pin the image to an immutable SHORT_SHA tag (the Cloud Build trigger produces

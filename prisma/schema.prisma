@@ -1810,6 +1810,7 @@ model EcosystemProject {
   profileEn     String   @default("")
   profileZh     String   @default("")
   contracts     EcosystemProjectContract[]
+  statSnapshots EcosystemStatSnapshot[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1827,6 +1828,16 @@ model EcosystemProjectContract {
   sortOrder Int              @default(0)
 
   @@index([projectId, sortOrder])
+}
+
+model EcosystemStatSnapshot {
+  id        String           @id @default(cuid())
+  projectId String
+  project   EcosystemProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  takenAt   DateTime         @default(now())
+  stats     Json
+
+  @@index([projectId, takenAt])
 }
 
 model EcosystemSettings {

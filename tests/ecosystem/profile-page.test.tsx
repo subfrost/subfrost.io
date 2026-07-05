@@ -7,6 +7,7 @@ const copy: ProfileCopy = {
   back: "← Ecosystem", website: "Website", docs: "Docs", overview: "Overview",
   contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
   statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
+  stats: { holders: "Holders", supply: "Supply", price: "Price" },
 }
 
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({

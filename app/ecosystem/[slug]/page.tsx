@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemProfile, type ProfileCopy } from "@/components/ecosystem/EcosystemProfile"
-import { getEcosystemProfile } from "@/lib/ecosystem/public"
+import { StatHero, type StatHeroCopy } from "@/components/ecosystem/StatHero"
+import { getEcosystemProfile, getLatestEcosystemStats } from "@/lib/ecosystem/public"
 import { absoluteUrl } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
@@ -14,11 +15,13 @@ const copy: Record<Locale, ProfileCopy> = {
     back: "← Ecosystem", website: "Website", docs: "Docs", overview: "Overview",
     contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
     statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
+    stats: { holders: "Holders", supply: "Supply", price: "Price (USD)" },
   },
   zh: {
     back: "← 生态系统", website: "官网", docs: "文档", overview: "概览",
     contractsTitle: "合约", contractCol: "合约", idCol: "Alkane ID", notesCol: "说明",
     statuses: { Live: "已上线", Beta: "测试版", Building: "构建中" },
+    stats: { holders: "持有者", supply: "供应量", price: "价格 (USD)" },
   },
 }
 
@@ -48,13 +51,19 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
   const locale: Locale = sp.lang === "zh" ? "zh" : "en"
-  const p = await getEcosystemProfile(slug, locale)
+  const [p, stats] = await Promise.all([
+    getEcosystemProfile(slug, locale),
+    getLatestEcosystemStats(slug).catch(() => null), // hero é decorativo: falha de stats não derruba o profile
+  ])
   if (!p) notFound()
   const backHref = locale === "zh" ? "/ecosystem?lang=zh" : "/ecosystem"
   return (
     <EditorialShell>
       <main className="mx-auto w-full max-w-[880px] px-6 pb-24 pt-10 sm:px-10">
-        <EcosystemProfile p={p} copy={copy[locale]} backHref={backHref} />
+        <EcosystemProfile
+          p={p} copy={copy[locale]} backHref={backHref}
+          statHero={<StatHero stats={stats} mainAlkaneId={p.alkaneId} copy={copy[locale].stats} locale={locale} />}
+        />
       </main>
     </EditorialShell>
   )
