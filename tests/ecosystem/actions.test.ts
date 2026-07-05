@@ -18,12 +18,13 @@ vi.mock("@/lib/prisma", () => ({
 
 import { currentUser } from "@/lib/cms/authz"
 import { prisma } from "@/lib/prisma"
-import { translate } from "@/lib/cms/translate"
+import { translate, translationUnavailable } from "@/lib/cms/translate"
 import {
   saveEcosystemProject,
   deleteEcosystemProject,
   setFeaturedBandEnabled,
   translateEcosystemDescription,
+  translateEcosystemProfile,
 } from "@/actions/ecosystem/projects"
 
 const editor = { privileges: ["ecosystem.view", "ecosystem.edit"] }
@@ -211,5 +212,36 @@ describe("translateEcosystemDescription", () => {
     vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
     const res = await translateEcosystemDescription("   ")
     expect(res.ok).toBe(false)
+  })
+})
+
+describe("translateEcosystemProfile", () => {
+  it("returns the translated markdown body", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(translate).mockResolvedValueOnce({ title: "", excerpt: "", body: "## 产品\n\n中文正文", sources: "" } as never)
+    const res = await translateEcosystemProfile("## Products\n\nEnglish body")
+    expect(res).toEqual({ ok: true, zh: "## 产品\n\n中文正文" })
+    expect(vi.mocked(translate).mock.calls[0][0].body).toBe("## Products\n\nEnglish body")
+  })
+
+  it("rejects viewer without edit privilege", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(viewer as never)
+    const res = await translateEcosystemProfile("body")
+    expect(res.ok).toBe(false)
+    expect(translate).not.toHaveBeenCalled()
+  })
+
+  it("rejects empty source", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    expect((await translateEcosystemProfile("   ")).ok).toBe(false)
+    expect(translate).not.toHaveBeenCalled()
+  })
+
+  it("fails gracefully when translation is unavailable", async () => {
+    vi.mocked(currentUser).mockResolvedValueOnce(editor as never)
+    vi.mocked(translationUnavailable).mockReturnValueOnce(true)
+    const res = await translateEcosystemProfile("body")
+    expect(res).toEqual({ ok: false, error: "Translation unavailable (no API key)" })
+    expect(translate).not.toHaveBeenCalled()
   })
 })
