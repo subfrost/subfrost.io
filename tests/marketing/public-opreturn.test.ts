@@ -308,6 +308,10 @@ describe("getPublicOpReturnData", () => {
     expect(p.minerRevenueUsd).toEqual([])
     expect(p.feesSplitBtc).toEqual([])
     expect(p.alkanesFeeShare).toEqual([])
+    expect(p.fourAnswers).toEqual([])
+    expect(p.dieselMintsPerDay).toEqual([])
+    expect(p.dieselCumulative).toEqual([])
+    expect(p.feePerTx).toEqual([])
     expect(p.header).toEqual({ firstDate: null, lastDate: null, totalTxSampled: 0 })
     expect(p.stats.latest).toBeNull()
     expect(p.stats.last30.alkanesOfOpReturnTx).toBeNull()
@@ -430,5 +434,93 @@ describe("getPublicOpReturnData", () => {
     expect(p.ugDieselShare).toEqual([])
     expect(p.stats.weight).toEqual({ full: null, latest: null })
     expect(p.stats.ug).toEqual({ early30: null, last30: null, full: null })
+  })
+
+  it("derives fourAnswers: tx / OP_RETURN bytes / weight / fee shares aligned per row", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { weightTotal: 4_000_000, weightAlkanes: 800_000 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.fourAnswers[0].date).toBe("2026-06-01")
+    expect(p.fourAnswers[0].byTx).toBeCloseTo(24000 / 300000, 10)
+    expect(p.fourAnswers[0].byBytes).toBeCloseTo(500_000 / 1_500_000, 10)
+    expect(p.fourAnswers[0].byWeight).toBeCloseTo(800_000 / 4_000_000, 10)
+    expect(p.fourAnswers[0].byFee).toBeCloseTo(1_600_000 / 160_000_000, 10)
+  })
+
+  it("fourAnswers byWeight is null when weight fields are null; the other three still compute", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { weightTotal: null, weightAlkanes: null })])
+    const p = await getPublicOpReturnData()
+    expect(p.fourAnswers[0].byWeight).toBeNull()
+    expect(p.fourAnswers[0].byTx).toBeCloseTo(24000 / 300000, 10)
+    expect(p.fourAnswers[0].byBytes).toBeCloseTo(500_000 / 1_500_000, 10)
+    expect(p.fourAnswers[0].byFee).toBeCloseTo(1_600_000 / 160_000_000, 10)
+  })
+
+  it("fourAnswers is null on zero denominators (tx / bytes / fee)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { totalTx: 0, opReturnBytes: 0, feeTotalSats: 0 })])
+    const p = await getPublicOpReturnData()
+    expect(p.fourAnswers[0].byTx).toBeNull()
+    expect(p.fourAnswers[0].byBytes).toBeNull()
+    expect(p.fourAnswers[0].byFee).toBeNull()
+  })
+
+  it("dieselMintsPerDay extrapolates dieselMints to a full 144-block day (matches dashboard peak)", async () => {
+    // blocksScanned 24 -> factor 6; dieselMints 91891 -> 551346 (the dashboard's stated peak)
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { blocksScanned: 24, dieselMints: 91891 })])
+    const p = await getPublicOpReturnData()
+    expect(p.dieselMintsPerDay[0].value).toBeCloseTo((91891 * 144) / 24, 6)
+    expect(p.dieselMintsPerDay[0].value).toBeCloseTo(551346, 6)
+  })
+
+  it("dieselMintsPerDay is null when blocksScanned is 0", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { blocksScanned: 0 })])
+    const p = await getPublicOpReturnData()
+    expect(p.dieselMintsPerDay[0].value).toBeNull()
+  })
+
+  it("dieselCumulative is the running sum of extrapolated daily mints", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { blocksScanned: 144, dieselMints: 100 }), // factor 1 -> 100
+      row("2026-06-02", { blocksScanned: 72, dieselMints: 100 }), //  factor 2 -> 200
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.dieselCumulative[0].value).toBeCloseTo(100, 6)
+    expect(p.dieselCumulative[1].value).toBeCloseTo(300, 6)
+  })
+
+  it("dieselCumulative carries forward across a zero-block day (adds 0, never null after it starts)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { blocksScanned: 144, dieselMints: 100 }), // 100
+      row("2026-06-02", { blocksScanned: 0, dieselMints: 0 }), //     perDay null -> +0
+      row("2026-06-03", { blocksScanned: 144, dieselMints: 50 }), //  +50
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.dieselCumulative[0].value).toBeCloseTo(100, 6)
+    expect(p.dieselCumulative[1].value).toBeCloseTo(100, 6)
+    expect(p.dieselCumulative[2].value).toBeCloseTo(150, 6)
+  })
+
+  it("derives feePerTx: alkanes and non-alkanes sats per transaction", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01")])
+    const p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].alkanes).toBeCloseTo(1_600_000 / 24000, 10)
+    expect(p.feePerTx[0].rest).toBeCloseTo((160_000_000 - 1_600_000) / (300000 - 24000), 10)
+  })
+
+  it("feePerTx alkanes is 0 (not null) when feeAlkanesSats is 0 but txAlkanes > 0", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { feeAlkanesSats: 0 })])
+    const p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].alkanes).toBe(0)
+  })
+
+  it("feePerTx is null on zero denominators (no alkanes tx / no non-alkanes tx)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { txAlkanes: 0 })])
+    let p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].alkanes).toBeNull()
+    // totalTx === txAlkanes -> non-alkanes denominator is 0 -> rest null
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { totalTx: 24000 })])
+    p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].rest).toBeNull()
   })
 })

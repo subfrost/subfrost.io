@@ -27,6 +27,13 @@ export interface PublicOpReturnPayload {
   alkanesFeeShare: OpReturnPoint[]
   weightShare: OpReturnPoint[]
   ugDieselShare: OpReturnPoint[]
+  // "How much of Bitcoin is Alkanes?" — the four answers overlaid (each a share 0..1).
+  fourAnswers: { date: string; byTx: number | null; byBytes: number | null; byWeight: number | null; byFee: number | null }[]
+  // DIESEL mints extrapolated to a full 144-block day; cumulative is the running sum of that.
+  dieselMintsPerDay: OpReturnPoint[]
+  dieselCumulative: OpReturnPoint[]
+  // Fee paid per transaction (sats), Alkanes tx vs everyone else.
+  feePerTx: { date: string; alkanes: number | null; rest: number | null }[]
   stats: {
     last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null }
     full: { alkanesFeeShare: number | null; opReturnFeeShare: number | null; alkanesBytesPerTx: number | null }
@@ -51,6 +58,10 @@ const EMPTY: PublicOpReturnPayload = {
   alkanesFeeShare: [],
   weightShare: [],
   ugDieselShare: [],
+  fourAnswers: [],
+  dieselMintsPerDay: [],
+  dieselCumulative: [],
+  feePerTx: [],
   stats: {
     last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null },
     full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
@@ -167,6 +178,36 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   const weightShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratioNullable(r.weightAlkanes, r.weightTotal) }))
   const ugDieselShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratioNullable(r.dieselUg, r.ugMints) }))
 
+  // "How much of Bitcoin is Alkanes?" — the same four shares (tx / OP_RETURN bytes / block weight /
+  // miner fee revenue) overlaid on one chart. byWeight is nullable (optional CSV column).
+  const fourAnswers = rows.map((r) => ({
+    date: r.date,
+    byTx: ratio(r.txAlkanes, r.totalTx),
+    byBytes: ratio(r.alkanesBytes, r.opReturnBytes),
+    byWeight: ratioNullable(r.weightAlkanes, r.weightTotal),
+    byFee: ratio(r.feeAlkanesSats, r.feeTotalSats),
+  }))
+
+  // DIESEL mints extrapolated to a full 144-block day (null when 0 blocks sampled), and the running
+  // cumulative total (a zero-block day contributes 0 rather than breaking the curve).
+  const dieselMintsPerDay: OpReturnPoint[] = rows.map((r) => {
+    const factor = dayFactor(r)
+    return { date: r.date, value: factor === null ? null : r.dieselMints * factor }
+  })
+  let dieselCum = 0
+  const dieselCumulative: OpReturnPoint[] = rows.map((r) => {
+    const factor = dayFactor(r)
+    dieselCum += factor === null ? 0 : r.dieselMints * factor
+    return { date: r.date, value: dieselCum }
+  })
+
+  // Fee paid per transaction (sats): Alkanes tx vs everyone else. Null when a bucket has no tx that day.
+  const feePerTx = rows.map((r) => ({
+    date: r.date,
+    alkanes: ratio(r.feeAlkanesSats, r.txAlkanes),
+    rest: ratio(r.feeTotalSats - r.feeAlkanesSats, r.totalTx - r.txAlkanes),
+  }))
+
   const weightEligibleRows = rows.filter((r) => r.weightTotal != null && r.weightAlkanes != null)
   const lastWeightEligible = weightEligibleRows[weightEligibleRows.length - 1]
   const weightStats = {
@@ -223,6 +264,10 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     alkanesFeeShare,
     weightShare,
     ugDieselShare,
+    fourAnswers,
+    dieselMintsPerDay,
+    dieselCumulative,
+    feePerTx,
     stats,
   }
 }
