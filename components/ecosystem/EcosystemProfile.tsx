@@ -4,6 +4,7 @@ import { Markdown } from "@/lib/cms/markdown"
 import { Mark, StatusBadge, gradFor } from "@/components/ecosystem/visuals"
 import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
+import type { StatHeroCopy } from "./StatHero"
 import { ProfileTabs } from "./ProfileTabs"
 
 export interface ProfileCopy {
@@ -16,15 +17,17 @@ export interface ProfileCopy {
   idCol: string
   notesCol: string
   statuses: Record<string, string>
+  stats: StatHeroCopy
 }
 
 const btnCls =
   "inline-flex items-center gap-1 rounded-[7px] border border-[color:var(--ed-hair)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)] hover:bg-[color:var(--ed-surface)]"
 
-export function EcosystemProfile({ p, copy, backHref }: {
+export function EcosystemProfile({ p, copy, backHref, statHero }: {
   p: PublicEcosystemProfile
   copy: ProfileCopy
   backHref: string
+  statHero?: ReactNode
 }) {
   return (
     <article>
@@ -64,6 +67,8 @@ export function EcosystemProfile({ p, copy, backHref }: {
           </div>
         </div>
       </header>
+
+      {statHero ?? null}
 
       <ProfileBody p={p} copy={copy} />
     </article>
