@@ -54,13 +54,14 @@ const LIMIT = arg("--limit") ? parseInt(arg("--limit"), 10) : Infinity
 // and append them as JSONL to this file. Used to drive classification agents.
 const EMIT_MANIFEST = arg("--emit-manifest")
 
-if (!SOURCE || !["subfrost", "oyl", "gdrive", "mail"].includes(SOURCE)) {
-  console.error("error: --source must be 'subfrost', 'oyl', 'gdrive', or 'mail'")
+if (!SOURCE || !["subfrost", "oyl", "gdrive", "mail", "docuseal"].includes(SOURCE)) {
+  console.error("error: --source must be 'subfrost', 'oyl', 'gdrive', 'mail', or 'docuseal'")
   process.exit(1)
 }
 const DEFAULT_ROOTS = {
   gdrive: join(process.env.HOME || PROJECTS, "subfrost-docs-staging/gdrive"),
   mail: join(process.env.HOME || PROJECTS, "subfrost-docs-staging/mail"),
+  docuseal: join(process.env.HOME || PROJECTS, "subfrost-docs-staging/docuseal"),
 }
 const ROOT = arg("--root") || DEFAULT_ROOTS[SOURCE] || join(PROJECTS, `${SOURCE}-dump`)
 const SCOPE = SOURCE === "oyl" ? "OYL" : "SUBFROST"
@@ -117,6 +118,10 @@ const MANIFESTS = {
   mail: [
     { src: "attachments", dest: "Email Attachments", exts: new Set(["pdf", "docx", "doc", "xlsx", "xls", "csv", "png", "jpg", "jpeg", "pptx"]) },
   ],
+  // Executed/signed PDFs exported from the DocuSeal account (via camoufox).
+  docuseal: [
+    { src: ".", dest: "Legal/E-Signed", depth1: true },
+  ],
 }
 
 // Subtrees we deliberately DO NOT ingest (logged in the report so it's explicit).
@@ -137,6 +142,9 @@ const SKIPPED_NOTE = {
   ],
   mail: [
     "message bodies (only document attachments are pulled, not email text)",
+  ],
+  docuseal: [
+    "DocuSeal built-in sample template (removed before ingest)",
   ],
 }
 
