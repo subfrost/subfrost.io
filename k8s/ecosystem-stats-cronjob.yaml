@@ -14,7 +14,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      # The endpoint is idempotent per UTC day, so retries are safe.
+      # Each run appends one snapshot row per project and prunes old ones, so a retried run is harmless.
       backoffLimit: 2
       activeDeadlineSeconds: 600
       template:
