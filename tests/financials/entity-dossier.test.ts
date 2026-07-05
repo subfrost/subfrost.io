@@ -67,10 +67,16 @@ vi.mock("@/lib/prisma", () => {
   }
   return { prisma: client, default: client }
 })
-vi.mock("@/lib/files/manager", () => ({ listEntityFiles: vi.fn() }))
+// Keep the pure helpers (filesPath, driveSlugFromScope) real; stub only the
+// DB-touching fns the dossier calls (listEntityFiles + breadcrumb for deep-links).
+vi.mock("@/lib/files/manager", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/files/manager")>()),
+  listEntityFiles: vi.fn(),
+  breadcrumb: vi.fn().mockResolvedValue([]),
+}))
 
 import prisma from "@/lib/prisma"
-import { listEntityFiles } from "@/lib/files/manager"
+import { listEntityFiles, breadcrumb } from "@/lib/files/manager"
 import { loadEntityDossier } from "@/lib/financials/legal/store"
 import { explorerTxUrl, explorerAddrUrl } from "@/lib/explorers"
 
@@ -92,6 +98,7 @@ beforeEach(() => {
   p.envelope.findMany.mockImplementation(async (args?: { where?: { entityId?: string; payeeId?: string } }) =>
     args?.where?.entityId ? ENTITY_ENVELOPES : [])
   ;(listEntityFiles as Fn).mockResolvedValue(FILE_LINKS)
+  ;(breadcrumb as Fn).mockResolvedValue([]) // no folder crumbs → deep-link path from file slug
 })
 
 describe("explorer URL helpers", () => {
@@ -142,10 +149,12 @@ describe("loadEntityDossier", () => {
     expect(solo.label.length).toBeGreaterThan(0) // falls back to kind label
   })
 
-  it("keeps only SIGNATORY/COUNTERPARTY files as signed docs", () => {
-    expect(d.signedFiles).toHaveLength(1)
+  it("includes all linked files, party docs (SIGNATORY/COUNTERPARTY) first", () => {
+    expect(d.signedFiles).toHaveLength(2)
     expect(d.signedFiles[0].role).toBe("SIGNATORY")
     expect(d.signedFiles[0].name).toBe("contract.pdf")
+    expect(d.signedFiles[1].name).toBe("memo.pdf") // SUBJECT sorts after party docs
+    expect(typeof d.signedFiles[0].filePath).toBe("string") // deep-link path present
   })
 
   it("builds on-chain rows for BTC payments (deduped) + the ETH obligation", () => {
