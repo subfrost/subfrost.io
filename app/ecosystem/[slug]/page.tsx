@@ -3,7 +3,9 @@ import { notFound } from "next/navigation"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemProfile, type ProfileCopy } from "@/components/ecosystem/EcosystemProfile"
 import { StatHero, type StatHeroCopy } from "@/components/ecosystem/StatHero"
+import { PriceChart } from "@/components/ecosystem/PriceChart"
 import { getEcosystemProfile, getLatestEcosystemStats } from "@/lib/ecosystem/public"
+import { getEcosystemPriceSeries } from "@/lib/ecosystem/candles"
 import { absoluteUrl } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
@@ -16,12 +18,14 @@ const copy: Record<Locale, ProfileCopy> = {
     contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
     statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
     stats: { holders: "Holders", supply: "Supply", price: "Price (USD)" },
+    chart: { title: "Price (90d)" },
   },
   zh: {
     back: "← 生态系统", website: "官网", docs: "文档", overview: "概览",
     contractsTitle: "合约", contractCol: "合约", idCol: "Alkane ID", notesCol: "说明",
     statuses: { Live: "已上线", Beta: "测试版", Building: "构建中" },
     stats: { holders: "持有者", supply: "供应量", price: "价格 (USD)" },
+    chart: { title: "价格（90 天）" },
   },
 }
 
@@ -51,9 +55,10 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
   const locale: Locale = sp.lang === "zh" ? "zh" : "en"
-  const [p, stats] = await Promise.all([
+  const [p, stats, series] = await Promise.all([
     getEcosystemProfile(slug, locale),
     getLatestEcosystemStats(slug).catch(() => null), // hero é decorativo: falha de stats não derruba o profile
+    getEcosystemPriceSeries(slug).catch(() => null), // idem: gráfico é decorativo
   ])
   if (!p) notFound()
   const backHref = locale === "zh" ? "/ecosystem?lang=zh" : "/ecosystem"
@@ -63,6 +68,7 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
         <EcosystemProfile
           p={p} copy={copy[locale]} backHref={backHref}
           statHero={<StatHero stats={stats} mainAlkaneId={p.alkaneId} copy={copy[locale].stats} locale={locale} />}
+          priceChart={series ? <PriceChart points={series} copy={copy[locale].chart} locale={locale} /> : null}
         />
       </main>
     </EditorialShell>

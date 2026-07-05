@@ -5,6 +5,7 @@ import { Mark, StatusBadge, gradFor } from "@/components/ecosystem/visuals"
 import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
 import type { StatHeroCopy } from "./StatHero"
+import type { PriceChartCopy } from "./PriceChart"
 import { ProfileTabs } from "./ProfileTabs"
 
 export interface ProfileCopy {
@@ -18,16 +19,18 @@ export interface ProfileCopy {
   notesCol: string
   statuses: Record<string, string>
   stats: StatHeroCopy
+  chart: PriceChartCopy
 }
 
 const btnCls =
   "inline-flex items-center gap-1 rounded-[7px] border border-[color:var(--ed-hair)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)] hover:bg-[color:var(--ed-surface)]"
 
-export function EcosystemProfile({ p, copy, backHref, statHero }: {
+export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
   p: PublicEcosystemProfile
   copy: ProfileCopy
   backHref: string
   statHero?: ReactNode
+  priceChart?: ReactNode
 }) {
   return (
     <article>
@@ -69,6 +72,8 @@ export function EcosystemProfile({ p, copy, backHref, statHero }: {
       </header>
 
       {statHero ?? null}
+
+      {priceChart ?? null}
 
       <ProfileBody p={p} copy={copy} />
     </article>

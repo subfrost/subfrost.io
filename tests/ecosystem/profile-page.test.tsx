@@ -8,6 +8,7 @@ const copy: ProfileCopy = {
   contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
   statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
   stats: { holders: "Holders", supply: "Supply", price: "Price" },
+  chart: { title: "Price (90d)" },
 }
 
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({
@@ -93,5 +94,17 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
     )
     expect(screen.queryByRole("tablist")).toBeNull()
     expect(screen.getByText("Just a short blurb.")).toBeInTheDocument()
+  })
+
+  it("renders the priceChart slot after the header", () => {
+    render(
+      <EcosystemProfile
+        p={profile({})}
+        copy={copy}
+        backHref="/ecosystem"
+        priceChart={<div data-testid="price-chart-slot" />}
+      />,
+    )
+    expect(screen.getByTestId("price-chart-slot")).toBeInTheDocument()
   })
 })
