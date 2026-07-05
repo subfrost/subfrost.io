@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import type { PublicEcosystemProject } from "@/lib/ecosystem/public"
 import { Mark, StatusBadge } from "./visuals"
 
@@ -103,10 +104,10 @@ export function EcosystemDirectory({
           {featured.map((p) => (
             <div key={p.slug}
               className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-[color:var(--ed-canvas)] p-6 transition-colors hover:border-[color:var(--ed-ice)]">
-              {/* Stretched-link overlay: makes the whole card clickable to the project url
-                  while keeping LinksRow's real anchors (website/X/docs) as non-nested,
-                  independently-clickable siblings above it (z-10). */}
-              <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} — ${copy.website}`} className="absolute inset-0 z-0 rounded-[14px]" />
+              {/* Stretched-link overlay: makes the whole card clickable to the project's internal
+                  profile page, while keeping LinksRow's real anchors (website/X/docs) and the
+                  AlkaneBadge as non-nested, independently-clickable external siblings above it (z-10). */}
+              <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[14px]" />
               <div className="relative z-10 flex items-center gap-3.5">
                 <Mark p={p} size={52} />
                 <div>
@@ -132,7 +133,9 @@ export function EcosystemDirectory({
         {grid.map((p) => (
           <div key={p.slug}
             className="relative flex flex-col gap-2.5 rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
-            <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} — ${copy.website}`} className="absolute inset-0 z-0 rounded-[11px]" />
+            {/* Stretched-link overlay: navigates to the internal profile page; LinksRow and
+                AlkaneBadge remain external, independently-clickable siblings above it (z-10). */}
+            <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
             <div className="relative z-10 flex items-center gap-2.5">
               <Mark p={p} size={34} />
               <h3 className="text-[15px] font-medium text-[color:var(--ed-ink)]">{p.name}</h3>
