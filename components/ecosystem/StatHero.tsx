@@ -25,24 +25,26 @@ export function StatHero({ stats, mainAlkaneId, copy, locale }: {
   locale: "en" | "zh"
 }) {
   if (!stats) return null
-  const cards: { label: string; value: string }[] = []
+  const cards: { k: string; label: string; value: string }[] = []
   for (const c of stats.custom) {
+    if (cards.length >= 4) break
     cards.push({
+      k: `custom-${c.key}`,
       label: locale === "zh" && c.labelZh ? c.labelZh : c.label,
       value: c.unit ? `${formatCompact(c.value)} ${c.unit}` : c.value,
     })
   }
   const g = mainAlkaneId ? stats.generic[mainAlkaneId] : undefined
   if (g) {
-    if (cards.length < 4 && g.holders != null) cards.push({ label: copy.holders, value: formatCompact(String(g.holders)) })
-    if (cards.length < 4 && g.supply) cards.push({ label: copy.supply, value: formatCompact(g.supply) })
-    if (cards.length < 4 && g.priceUsd != null) cards.push({ label: copy.price, value: `$${g.priceUsd < 1 ? g.priceUsd.toFixed(4) : g.priceUsd.toFixed(2)}` })
+    if (cards.length < 4 && g.holders != null) cards.push({ k: "generic-holders", label: copy.holders, value: formatCompact(String(g.holders)) })
+    if (cards.length < 4 && g.supply) cards.push({ k: "generic-supply", label: copy.supply, value: formatCompact(g.supply) })
+    if (cards.length < 4 && g.priceUsd != null) cards.push({ k: "generic-price", label: copy.price, value: `$${g.priceUsd < 1 ? g.priceUsd.toFixed(4) : g.priceUsd.toFixed(2)}` })
   }
   if (cards.length === 0) return null
   return (
     <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
       {cards.slice(0, 4).map((c) => (
-        <div key={c.label} className="rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-4 py-3.5">
+        <div key={c.k} className="rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-4 py-3.5">
           <p data-testid="stat-label" className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--ed-muted)]">{c.label}</p>
           <p className="mt-1 text-[22px] font-medium tracking-[-0.015em] text-[color:var(--ed-ink)]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.value}</p>
         </div>

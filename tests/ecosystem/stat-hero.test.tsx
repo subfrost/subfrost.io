@@ -36,4 +36,14 @@ describe("StatHero", () => {
     const { container: c2 } = render(<StatHero stats={{ generic: {}, custom: [] }} mainAlkaneId={null} copy={copy} locale="en" />)
     expect(c2.innerHTML).toBe("")
   })
+
+  it("caps at 4 cards even with >4 custom stats and keeps keys stable", () => {
+    const many: ProjectStats = {
+      generic: {},
+      custom: [1, 2, 3, 4, 5].map((i) => ({ key: `c${i}`, label: `Card ${i}`, value: String(i) })),
+    }
+    render(<StatHero stats={many} mainAlkaneId={null} copy={copy} locale="en" />)
+    expect(screen.getAllByTestId("stat-label")).toHaveLength(4)
+    expect(screen.queryByText("Card 5")).toBeNull()
+  })
 })
