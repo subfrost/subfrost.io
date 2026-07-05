@@ -27,6 +27,7 @@ export interface EcosystemProjectInput {
   name: string
   slug?: string
   logoUrl?: string | null
+  bannerUrl?: string | null
   category: string
   status: string
   kind?: string
@@ -70,6 +71,7 @@ function validate(input: EcosystemProjectInput): string | null {
   if (!isValidOptionalHttpUrl(input.xUrl)) return "X link must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.docsUrl)) return "Docs link must be a valid http(s) URL"
   if (!isValidOptionalHttpUrl(input.logoUrl)) return "Logo must be a valid http(s) URL"
+  if (!isValidOptionalHttpUrl(input.bannerUrl)) return "Banner must be a valid http(s) URL"
   for (const c of input.contracts ?? []) {
     if (!c.label?.trim()) return "Contract label is required"
     if (!isValidAlkaneId(c.alkaneId?.trim() ?? "")) {
@@ -90,6 +92,7 @@ export async function saveEcosystemProject(
   const data = {
     name: input.name.trim(),
     logoUrl: input.logoUrl?.trim() || null,
+    bannerUrl: input.bannerUrl?.trim() || null,
     category: input.category,
     status: input.status,
     kind: input.kind ?? "App",

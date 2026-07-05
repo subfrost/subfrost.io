@@ -116,6 +116,17 @@ describe("saveEcosystemProject", () => {
     const res = await saveEcosystemProject({ ...validInput, kind: "Contract", alkaneId: "2-0" } as never)
     expect(res).toEqual({ ok: false, error: "Alkane ID must look like block:tx (e.g. 2:0)" })
   })
+
+  it("persists bannerUrl trimmed and rejects a non-http banner", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "b1" } as never)
+    const ok = await saveEcosystemProject({ ...validInput, bannerUrl: " https://cdn.x/b.png " } as never)
+    expect(ok.ok).toBe(true)
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.bannerUrl).toBe("https://cdn.x/b.png")
+    const bad = await saveEcosystemProject({ ...validInput, bannerUrl: "javascript:x" } as never)
+    expect(bad.ok).toBe(false)
+  })
 })
 
 describe("saveEcosystemProject — profile & contracts", () => {

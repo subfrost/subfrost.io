@@ -28,6 +28,7 @@ export interface AdminProject {
   slug: string
   name: string
   logoUrl: string | null
+  bannerUrl: string | null
   category: string
   status: string
   kind: string
@@ -57,6 +58,7 @@ function blankProject(): AdminProject {
     slug: "",
     name: "",
     logoUrl: null,
+    bannerUrl: null,
     category: ECOSYSTEM_CATEGORIES[0],
     status: ECOSYSTEM_STATUSES[0],
     kind: "App",
@@ -267,6 +269,7 @@ function toInput(p: AdminProject): EcosystemProjectInput {
     name: p.name,
     slug: p.slug || undefined,
     logoUrl: p.logoUrl,
+    bannerUrl: p.bannerUrl,
     category: p.category,
     status: p.status,
     kind: p.kind,
@@ -296,11 +299,15 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const bannerFileRef = useRef<HTMLInputElement>(null)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [bannerError, setBannerError] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
 
   const [name, setName] = useState(initial.name)
   const [slug, setSlug] = useState(initial.slug)
   const [logoUrl, setLogoUrl] = useState(initial.logoUrl ?? "")
+  const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl ?? "")
   const [category, setCategory] = useState(initial.category)
   const [status, setStatus] = useState(initial.status)
   const [kind, setKind] = useState(initial.kind)
@@ -336,6 +343,23 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
     }
   }
 
+  async function onPickBanner(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = "" // allow re-picking the same file after a failure
+    setUploadingBanner(true); setBannerError(null); onError(null)
+    try {
+      setBannerUrl(await uploadInlineImage(file, fetch, "ecosystem"))
+    } catch (err) {
+      // Inline (next to the button), so a gateway HTML answer or network drop
+      // can never strand the button on "Uploading…" with the error off-screen.
+      const detail = err instanceof Error && err.message ? ` — ${err.message}` : ""
+      setBannerError(`Upload failed${detail}`)
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
   function translateZh() {
     setTranslating(true); onError(null)
     startTransition(async () => {
@@ -354,6 +378,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         name,
         slug: isNew ? slug : undefined,
         logoUrl: logoUrl || null,
+        bannerUrl: bannerUrl || null,
         category,
         status,
         kind,
@@ -400,6 +425,27 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
           {uploadError && (
             <p role="alert" className="mt-1 text-xs text-rose-400">{uploadError}</p>
           )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        {bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bannerUrl} alt="" className="h-16 w-40 rounded-md object-cover" />
+        ) : (
+          <div className="flex h-16 w-40 items-center justify-center rounded-md bg-zinc-800 text-xs text-zinc-500">No banner</div>
+        )}
+        <div>
+          <input ref={bannerFileRef} type="file" accept="image/*" aria-label="Upload banner file" className="hidden" onChange={onPickBanner} />
+          <button type="button" onClick={() => bannerFileRef.current?.click()} disabled={uploadingBanner}
+            className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50">
+            {uploadingBanner ? "Uploading…" : "Upload banner"}
+          </button>
+          {bannerUrl ? (
+            <button type="button" onClick={() => setBannerUrl("")} className="ml-2 text-xs text-zinc-500 hover:text-rose-400">Remove</button>
+          ) : null}
+          <p className="mt-1 text-xs text-zinc-500">Wide cover image (profile page)</p>
+          {bannerError && <p role="alert" className="mt-1 text-xs text-rose-400">{bannerError}</p>}
         </div>
       </div>
 

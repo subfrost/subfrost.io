@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import { EcosystemAdmin } from "@/components/cms/ecosystem/EcosystemAdmin"
+import { saveEcosystemProject } from "@/actions/ecosystem/projects"
+import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 
 vi.mock("@/actions/ecosystem/projects", () => ({
   saveEcosystemProject: vi.fn(),
@@ -8,6 +10,10 @@ vi.mock("@/actions/ecosystem/projects", () => ({
   setFeaturedBandEnabled: vi.fn(),
   translateEcosystemDescription: vi.fn(),
 }))
+vi.mock("@/lib/cms/inline-image-upload", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/cms/inline-image-upload")>()
+  return { ...actual, uploadInlineImage: vi.fn(actual.uploadInlineImage) }
+})
 // next/navigation is mocked globally in tests/setup.ts.
 
 beforeEach(() => cleanup())
@@ -70,5 +76,25 @@ describe("EcosystemAdmin — logo upload failure handling", () => {
       expect(img).toBeTruthy()
     })
     expect(getByText("Upload logo")).toBeTruthy()
+  })
+})
+
+describe("EcosystemAdmin — banner upload", () => {
+  it("uploads a banner with kind ecosystem and submits its url", async () => {
+    vi.mocked(uploadInlineImage).mockResolvedValue("https://cdn.x/banner.png")
+    vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "e1" })
+    const { getByText, getByLabelText } = render(
+      <EcosystemAdmin projects={[]} featuredBandEnabled={false} canEdit />,
+    )
+    fireEvent.click(getByText("New project"))
+    fireEvent.change(getByLabelText("Name"), { target: { value: "X" } })
+    fireEvent.change(getByLabelText("Website URL"), { target: { value: "https://x.io" } })
+    const input = getByLabelText("Upload banner file") as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["b"], "b.png", { type: "image/png" })] } })
+    await waitFor(() => expect(uploadInlineImage).toHaveBeenCalled())
+    expect(vi.mocked(uploadInlineImage).mock.calls[0][2]).toBe("ecosystem")
+    fireEvent.click(getByText("Create project"))
+    await waitFor(() => expect(saveEcosystemProject).toHaveBeenCalled())
+    expect(vi.mocked(saveEcosystemProject).mock.calls[0][0]).toMatchObject({ bannerUrl: "https://cdn.x/banner.png" })
   })
 })
