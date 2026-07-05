@@ -5,6 +5,7 @@ export interface PublicEcosystemProject {
   slug: string
   name: string
   logoUrl: string | null
+  bannerUrl: string | null
   category: string
   status: string
   kind: string
@@ -32,6 +33,7 @@ export async function getEcosystemDirectory(locale: "en" | "zh"): Promise<{
     slug: r.slug,
     name: r.name,
     logoUrl: r.logoUrl,
+    bannerUrl: r.bannerUrl,
     category: r.category,
     status: r.status,
     kind: r.kind,
@@ -70,6 +72,7 @@ export async function getEcosystemProfile(
     slug: r.slug,
     name: r.name,
     logoUrl: r.logoUrl,
+    bannerUrl: r.bannerUrl,
     category: r.category,
     status: r.status,
     kind: r.kind,

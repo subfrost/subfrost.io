@@ -1794,6 +1794,7 @@ model EcosystemProject {
   slug          String   @unique
   name          String
   logoUrl       String?
+  bannerUrl     String?
   category      String
   status        String   @default("Live")
   kind          String   @default("App")

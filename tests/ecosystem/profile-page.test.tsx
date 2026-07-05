@@ -10,7 +10,7 @@ const copy: ProfileCopy = {
 }
 
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({
-  slug: "arbuzino", name: "Arbuzino", logoUrl: null, category: "Gaming", status: "Live",
+  slug: "arbuzino", name: "Arbuzino", logoUrl: null, bannerUrl: null, category: "Gaming", status: "Live",
   kind: "App", alkaneId: "2:25349", url: "https://arbuzino.com", xUrl: "https://x.com/arbuzino",
   docsUrl: null, description: "Casino-themed on-chain games.", featured: false,
   profile: "## Products\n\nFully on-chain lottery paid in **DIESEL**.",
