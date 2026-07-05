@@ -139,6 +139,14 @@ export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = [
   "legal.view",
   "legal.edit",
   "legal.superuser",
+  // Files + E-Sign hold the full legal/financial document corpus (SAFEs, cap
+  // table, tax forms, invoices). Restricted → NOT in the ADMIN bundle; granted
+  // explicitly per-user so document visibility is tightly controlled.
+  "files.read",
+  "files.edit",
+  "documents.read",
+  "documents.write",
+  "documents.view_all",
 ]
 
 export function isRestricted(code: PrivilegeCode): boolean {
