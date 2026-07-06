@@ -570,6 +570,10 @@ model OpReturnDaily {
   weightAlkanes   Float?
   ugMints         Int?
   dieselUg        Int?
+  // Added with the 21-column CSV (2026-07). Runestone tx counts, already extrapolated to a full
+  // 144-block day (Alkanes protostones vs pure Runes). Nullable: empty CSV cell → null, never 0.
+  txAlkRunestone  Int?
+  txPureRunes     Int?
   updatedAt       DateTime @updatedAt
 }
 

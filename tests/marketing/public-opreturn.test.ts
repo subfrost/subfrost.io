@@ -316,6 +316,8 @@ describe("getPublicOpReturnData", () => {
     expect(p.runesVsAlkanesShare).toEqual([])
     expect(p.runesVsAlkanesBytes).toEqual([])
     expect(p.byteComposition).toEqual([])
+    expect(p.runestoneTxShare).toEqual([])
+    expect(p.runestoneTxCount).toEqual([])
     expect(p.header).toEqual({ firstDate: null, lastDate: null, totalTxSampled: 0 })
     expect(p.stats.latest).toBeNull()
     expect(p.stats.last30.alkanesOfOpReturnTx).toBeNull()
@@ -581,5 +583,38 @@ describe("getPublicOpReturnData", () => {
     p = await getPublicOpReturnData()
     expect(p.byteComposition[0].alkanes).toBeNull()
     expect(p.byteComposition[1].other).toBe(0)
+  })
+
+  it("derives runestoneTxShare/runestoneTxCount from the already-extrapolated CSV columns (share cancels block count)", async () => {
+    // Real 2026-07-05 shape: Alkanes 526476, pure Runes 1169 — the CSV values are full-day extrapolations.
+    store.listOpReturnDaily.mockResolvedValue([row("2026-07-05", { txAlkRunestone: 526476, txPureRunes: 1169 })])
+    const p = await getPublicOpReturnData()
+    const total = 526476 + 1169
+    expect(p.runestoneTxShare[0].alkanes).toBeCloseTo(526476 / total, 10)
+    expect(p.runestoneTxShare[0].pureRunes).toBeCloseTo(1169 / total, 10)
+    // the count series plot the stored values directly (no re-extrapolation)
+    expect(p.runestoneTxCount[0].alkanes).toBe(526476)
+    expect(p.runestoneTxCount[0].pureRunes).toBe(1169)
+  })
+
+  it("runestoneTx series are null when the columns are absent, a side is null, or the total is 0", async () => {
+    // absent (default fixture has no txAlkRunestone/txPureRunes) -> all null
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01")])
+    let p = await getPublicOpReturnData()
+    expect(p.runestoneTxShare[0].alkanes).toBeNull()
+    expect(p.runestoneTxShare[0].pureRunes).toBeNull()
+    expect(p.runestoneTxCount[0].alkanes).toBeNull()
+    expect(p.runestoneTxCount[0].pureRunes).toBeNull()
+    // one side null -> share null; count reflects each side independently
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { txAlkRunestone: 100, txPureRunes: null })])
+    p = await getPublicOpReturnData()
+    expect(p.runestoneTxShare[0].alkanes).toBeNull()
+    expect(p.runestoneTxCount[0].alkanes).toBe(100)
+    expect(p.runestoneTxCount[0].pureRunes).toBeNull()
+    // total 0 -> share null (avoid /0); count is a real 0 on both
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { txAlkRunestone: 0, txPureRunes: 0 })])
+    p = await getPublicOpReturnData()
+    expect(p.runestoneTxShare[0].alkanes).toBeNull()
+    expect(p.runestoneTxCount[0].alkanes).toBe(0)
   })
 })

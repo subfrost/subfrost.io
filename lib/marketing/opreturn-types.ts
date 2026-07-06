@@ -7,6 +7,9 @@ export interface OpReturnRow {
   // Added with the 19-column CSV. Empty CSV cell (e.g. today's partial row) → null, never 0.
   weightTotal?: number | null; weightAlkanes?: number | null
   ugMints?: number | null; dieselUg?: number | null
+  // Added with the 21-column CSV. Runestone tx counts, already extrapolated to a full 144-block
+  // day (Alkanes protostones vs pure Runes). Empty CSV cell → null, never 0.
+  txAlkRunestone?: number | null; txPureRunes?: number | null
 }
 
 export const OPRETURN_COLUMNS: (keyof OpReturnRow)[] = [
@@ -15,9 +18,10 @@ export const OPRETURN_COLUMNS: (keyof OpReturnRow)[] = [
   "feeTotalSats", "feeAlkanesSats", "feeOpReturnSats", "btcUsd",
 ]
 
-// New in the 19-column CSV. Header-mapped, not positional; missing/blank cell → null.
+// New in the 19-/21-column CSV. Header-mapped, not positional; missing/blank cell → null.
 export const OPRETURN_OPTIONAL_COLUMNS: (keyof OpReturnRow)[] = [
   "weightTotal", "weightAlkanes", "ugMints", "dieselUg",
+  "txAlkRunestone", "txPureRunes",
 ]
 
 export type MetricKey =

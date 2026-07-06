@@ -41,6 +41,10 @@ export interface PublicOpReturnPayload {
   runesVsAlkanesBytes: { date: string; alkanes: number | null; pureRunes: number | null }[]
   // OP_RETURN byte composition over time (shares 0..1): Alkanes / pure Runes / other.
   byteComposition: { date: string; alkanes: number | null; pureRunes: number | null; other: number | null }[]
+  // Runestone transactions — Alkanes (protostone) vs pure Runes. Share (0..1) and absolute count/day
+  // (the CSV columns are already extrapolated to a full 144-block day).
+  runestoneTxShare: { date: string; alkanes: number | null; pureRunes: number | null }[]
+  runestoneTxCount: { date: string; alkanes: number | null; pureRunes: number | null }[]
   stats: {
     last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null }
     full: { alkanesFeeShare: number | null; opReturnFeeShare: number | null; alkanesBytesPerTx: number | null }
@@ -73,6 +77,8 @@ const EMPTY: PublicOpReturnPayload = {
   runesVsAlkanesShare: [],
   runesVsAlkanesBytes: [],
   byteComposition: [],
+  runestoneTxShare: [],
+  runestoneTxCount: [],
   stats: {
     last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null },
     full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
@@ -249,6 +255,24 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     other: ratio(Math.max(0, r.opReturnBytes - r.runestoneBytes), r.opReturnBytes),
   }))
 
+  // Runestone transactions — Alkanes protostones vs pure Runes (Runestones that aren't Alkanes).
+  // The CSV's txAlkRunestone/txPureRunes are already extrapolated to a full 144-block day, so the
+  // count series plot them directly (no dayFactor). The share is their normalized split — exact
+  // regardless of the sampled block count, since it cancels in the ratio. Null when either is absent.
+  const runestoneTxShare = rows.map((r) => {
+    const total = r.txAlkRunestone == null || r.txPureRunes == null ? null : r.txAlkRunestone + r.txPureRunes
+    return {
+      date: r.date,
+      alkanes: total == null || total === 0 ? null : (r.txAlkRunestone as number) / total,
+      pureRunes: total == null || total === 0 ? null : (r.txPureRunes as number) / total,
+    }
+  })
+  const runestoneTxCount = rows.map((r) => ({
+    date: r.date,
+    alkanes: r.txAlkRunestone ?? null,
+    pureRunes: r.txPureRunes ?? null,
+  }))
+
   const weightEligibleRows = rows.filter((r) => r.weightTotal != null && r.weightAlkanes != null)
   const lastWeightEligible = weightEligibleRows[weightEligibleRows.length - 1]
   const weightStats = {
@@ -313,6 +337,8 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     runesVsAlkanesShare,
     runesVsAlkanesBytes,
     byteComposition,
+    runestoneTxShare,
+    runestoneTxCount,
     stats,
   }
 }
