@@ -14,7 +14,6 @@ const snap = { wallets: [], grandTotalUsd: 0, fetchedAt: "2026-06-22T00:00:00Z" 
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.GOLDRUSH_API_KEY = "k"
   vi.mocked(currentUser).mockResolvedValue({ privileges: [FINANCIALS_PRIVILEGE] } as never)
   vi.mocked(cacheGet).mockResolvedValue(null)
   vi.mocked(cacheSet).mockResolvedValue(undefined)
@@ -24,12 +23,6 @@ describe("treasuryOverviewAction", () => {
   it("rejects a caller without the financials privilege", async () => {
     vi.mocked(currentUser).mockResolvedValue({ privileges: [] } as never)
     expect(await treasuryOverviewAction()).toEqual({ ok: false, error: "unauthorized" })
-    expect(fetchTreasurySnapshot).not.toHaveBeenCalled()
-  })
-
-  it("returns not_configured when the key is unset", async () => {
-    delete process.env.GOLDRUSH_API_KEY
-    expect(await treasuryOverviewAction()).toEqual({ ok: false, error: "not_configured" })
     expect(fetchTreasurySnapshot).not.toHaveBeenCalled()
   })
 

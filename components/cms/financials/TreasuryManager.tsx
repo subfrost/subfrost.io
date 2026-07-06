@@ -19,7 +19,7 @@ export function TreasuryManager({ initial }: { initial: TreasuryResult }) {
   if (!result.ok) {
     const msg =
       result.error === "not_configured"
-        ? "Treasury data source is not configured (GOLDRUSH_API_KEY missing)."
+        ? "Treasury data source is not configured (BSC_RPC_URL missing)."
         : result.error === "upstream"
           ? "Treasury data is temporarily unavailable. Try again shortly."
           : "You do not have access to financials."

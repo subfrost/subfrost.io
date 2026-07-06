@@ -5,6 +5,7 @@
 import prisma from "@/lib/prisma"
 import { cacheGet } from "@/lib/redis"
 import type { TreasurySnapshot } from "@/lib/financials/treasury/shapes"
+import { FUEL_TOTAL, FUEL_PRESALE_PROCEEDS_USD, FUEL_PRESALE_PRICE_USD } from "@/lib/fuel/supply"
 import {
   assembleBalanceSheet, round2,
   type BalanceSheetSection, type BalanceSheetLine, type BalanceSheetView, type ManualItemRow,
@@ -73,10 +74,13 @@ export async function deleteManualItem(id: string): Promise<void> {
 
 async function computedLines(): Promise<{
   lines: { section: BalanceSheetSection; line: BalanceSheetLine }[]
+  memo: BalanceSheetLine[]
+  safePreferenceUsd: number
   treasuryStale: boolean
   treasuryAvailable: boolean
 }> {
   const out: { section: BalanceSheetSection; line: BalanceSheetLine }[] = []
+  const memo: BalanceSheetLine[] = []
 
   // Treasury (BSC holdings) — best-effort from the same cache the treasury page
   // populates. Fresh key first, then last-good (marked stale). Never fetches.
@@ -113,7 +117,27 @@ async function computedLines(): Promise<{
     })
   }
 
-  // Convertible instruments (SAFEs + notes) — a liability until conversion.
+  // Deferred FUEL obligation (presale, undelivered) — the cash consideration
+  // actually received for presale FUEL not yet delivered. Booked at cash
+  // received, NOT marked to the presale price. Sourced from a single named
+  // constant (FUEL_PRESALE_PROCEEDS_USD) pending confirmation from rwp. Always
+  // shown so the line is visible even at $0 (a prompt to confirm the figure).
+  const deferredFuel = round2(FUEL_PRESALE_PROCEEDS_USD)
+  out.push({
+    section: "LIABILITY",
+    line: {
+      id: "computed:deferred-fuel",
+      label: "Deferred FUEL obligation (presale, undelivered)",
+      amountUsd: deferredFuel,
+      computed: true,
+      note: "consideration received; not marked to presale price",
+    },
+  })
+
+  // Convertible instruments (SAFEs / notes) — presented as a senior-to-common
+  // EQUITY preference (a preference in the waterfall, not debt), NOT a liability.
+  // Same OUTSTANDING SAFE/CONVERTIBLE_NOTE sum; it is part of the equity/cap
+  // stack and is subtracted to get equity attributable to common.
   const safes = await prisma.instrument.aggregate({
     where: { status: "OUTSTANDING", type: { in: ["SAFE", "CONVERTIBLE_NOTE"] } },
     _sum: { amountUsd: true }, _count: true,
@@ -121,8 +145,14 @@ async function computedLines(): Promise<{
   const safeTotal = round2(safes._sum.amountUsd ?? 0)
   if (safeTotal > 0) {
     out.push({
-      section: "LIABILITY",
-      line: { id: "computed:safes", label: "Convertible instruments (SAFEs / notes)", amountUsd: safeTotal, computed: true, note: `${safes._count} outstanding` },
+      section: "EQUITY",
+      line: {
+        id: "computed:safes",
+        label: "Convertible instruments (SAFEs) — senior to common",
+        amountUsd: safeTotal,
+        computed: true,
+        note: `${safes._count} outstanding · preference in the waterfall, not debt`,
+      },
     })
   }
 
@@ -147,16 +177,34 @@ async function computedLines(): Promise<{
     })
   }
 
-  return { lines: out, treasuryStale, treasuryAvailable }
+  // Memo — FUEL overhang (2.1M @ presale price). NOTIONAL: (FUEL_TOTAL −
+  // issuedFuel) × presale price, where issuedFuel is the on-chain sum of
+  // FuelAllocation.amount. This is deliberately NOT a liability (the presale
+  // obligation is booked at cash received above); it is a reference figure only
+  // and is excluded from every total and from the balance check.
+  const issuedAgg = await prisma.fuelAllocation.aggregate({ _sum: { amount: true } })
+  const issuedFuel = issuedAgg._sum.amount ?? 0
+  const overhangUsd = round2(Math.max(0, FUEL_TOTAL - issuedFuel) * FUEL_PRESALE_PRICE_USD)
+  memo.push({
+    id: "memo:fuel-overhang",
+    label: "FUEL overhang (2.1M @ presale price)",
+    amountUsd: overhangUsd,
+    computed: true,
+    note: `notional — not a liability · (${FUEL_TOTAL.toLocaleString("en-US")} − ${issuedFuel.toLocaleString("en-US")} issued) × $${FUEL_PRESALE_PRICE_USD}`,
+  })
+
+  return { lines: out, memo, safePreferenceUsd: safeTotal, treasuryStale, treasuryAvailable }
 }
 
 export async function buildBalanceSheet(): Promise<BalanceSheetView> {
-  const [{ lines, treasuryStale, treasuryAvailable }, manual] = await Promise.all([
+  const [{ lines, memo, safePreferenceUsd, treasuryStale, treasuryAvailable }, manual] = await Promise.all([
     computedLines(), listManualItems(),
   ])
   return assembleBalanceSheet(lines, manual, {
     asOf: new Date().toISOString(),
     treasuryStale,
     treasuryAvailable,
+    memo,
+    safePreferenceUsd,
   })
 }

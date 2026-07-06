@@ -1,29 +1,24 @@
 import { describe, it, expect } from "vitest"
-import { normalizeBalances, type GoldRushItem } from "@/lib/financials/treasury/shapes"
+import { normalizeBalances, type TreasuryToken } from "@/lib/financials/treasury/shapes"
 
-const items: GoldRushItem[] = [
-  { contract_address: "0xnative", contract_ticker_symbol: "BNB", contract_name: "BNB",
-    contract_decimals: 18, balance: "1500000000000000000", quote: 900, is_native_token: true, is_spam: false },
-  { contract_address: "0xusdt", contract_ticker_symbol: "USDT", contract_name: "Tether USD",
-    contract_decimals: 18, balance: "2000000000000000000000", quote: 2000, is_native_token: false, is_spam: false },
-  { contract_address: "0xnoprice", contract_ticker_symbol: "XYZ", contract_name: "No Price",
-    contract_decimals: 18, balance: "5000000000000000000", quote: null, is_native_token: false, is_spam: false },
-  { contract_address: "0xspam", contract_ticker_symbol: "SPAM", contract_name: "Spam",
-    contract_decimals: 18, balance: "9999000000000000000000", quote: 9999, is_native_token: false, is_spam: true },
-  { contract_address: "0xzero", contract_ticker_symbol: "ZERO", contract_name: "Zero",
-    contract_decimals: 18, balance: "0", quote: 0, is_native_token: false, is_spam: false },
+// normalizeBalances is now a pure post-processor over already-priced tokens:
+// it drops zero balances, sorts by usd desc (nulls last), and totals known usd.
+const tokens: TreasuryToken[] = [
+  { contract: "0xnative", symbol: "BNB", name: "BNB", amount: 1.5, usd: 900, isNative: true },
+  { contract: "0xusdt", symbol: "USDT", name: "Tether USD", amount: 2000, usd: 2000, isNative: false },
+  { contract: "0xnoprice", symbol: "XYZ", name: "No Price", amount: 5, usd: null, isNative: false },
+  { contract: "0xzero", symbol: "ZERO", name: "Zero", amount: 0, usd: 0, isNative: false },
 ]
 
 describe("normalizeBalances", () => {
-  const w = normalizeBalances(items, "0xWALLET", "Main")
+  const w = normalizeBalances(tokens, "0xWALLET", "Main")
 
-  it("keeps non-spam, non-zero tokens and drops spam + zero balances", () => {
-    expect(w.tokens.map((t) => t.symbol)).toEqual(["USDT", "BNB", "XYZ"]) // sorted by usd desc, nulls last
-    expect(w.tokens.find((t) => t.symbol === "SPAM")).toBeUndefined()
+  it("keeps non-zero tokens (sorted by usd desc, nulls last) and drops zero balances", () => {
+    expect(w.tokens.map((t) => t.symbol)).toEqual(["USDT", "BNB", "XYZ"])
     expect(w.tokens.find((t) => t.symbol === "ZERO")).toBeUndefined()
   })
 
-  it("applies decimals, maps native + usd, and keeps no-price tokens as usd null", () => {
+  it("carries amount, native flag, and keeps no-price tokens as usd null", () => {
     const bnb = w.tokens.find((t) => t.symbol === "BNB")!
     expect(bnb.amount).toBe(1.5)
     expect(bnb.isNative).toBe(true)
@@ -39,8 +34,7 @@ describe("normalizeBalances", () => {
 
   it("keeps a priced-at-zero token as usd 0, not null", () => {
     const z = normalizeBalances(
-      [{ contract_address: "0xz", contract_ticker_symbol: "ZP", contract_name: "Zero Priced",
-         contract_decimals: 18, balance: "1000000000000000000", quote: 0, is_native_token: false, is_spam: false }],
+      [{ contract: "0xz", symbol: "ZP", name: "Zero Priced", amount: 1, usd: 0, isNative: false }],
       "0xW",
     )
     expect(z.tokens[0].usd).toBe(0)

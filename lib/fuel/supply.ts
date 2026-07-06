@@ -15,6 +15,19 @@ export const FUEL_TOTAL = 2_100_000
 export const FUEL_POOL = 1_050_000 // cap-table-descended (50%)
 export const FUEL_SURPLUS = 1_050_000 // community + treasury (50%)
 
+// Presale FUEL was sold for cash. The balance sheet books the *consideration
+// actually received* (cash raised) as a deferred-delivery obligation — it is
+// NOT the 2.1M supply marked to the presale price. That mark-to-price figure is
+// a notional overhang shown only as a memo, never as a liability.
+//
+// TODO confirm with rwp — presale $ raised; sized as consideration received,
+// NOT 2.1M × $17.17.
+export const FUEL_PRESALE_PROCEEDS_USD = 0
+
+// Presale unit price ($/FUEL). Used ONLY for the notional overhang memo
+// ((FUEL_TOTAL − issued) × price), never to size the deferred obligation.
+export const FUEL_PRESALE_PRICE_USD = 17.17
+
 const round2 = (n: number): number => Math.round(n * 100) / 100
 
 // Founders + team grants are DATA, sourced from the DB by callers (share

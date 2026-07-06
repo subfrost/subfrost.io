@@ -5,5 +5,8 @@ export const TREASURY_WALLETS: { address: string; label?: string }[] = [
   { address: "0x35E18d19c8B63B168B6049ed0a97073A847CE9e4" },
 ]
 
-/** GoldRush chain name for Binance Smart Chain mainnet. */
-export const BSC_CHAIN = "bsc-mainnet"
+/** BSC (BNB Smart Chain) mainnet JSON-RPC endpoint. We hit this directly with
+ *  `eth_getBalance` / `eth_call` — no third-party balances API (GoldRush) key.
+ *  Override with `BSC_RPC_URL`; the default is publicnode's keyless BSC RPC,
+ *  which is what the rest of the wallet stack points at when unconfigured. */
+export const BSC_RPC_URL = process.env.BSC_RPC_URL || "https://bsc-rpc.publicnode.com"

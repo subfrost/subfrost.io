@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { fetchTreasurySnapshot } from "@/lib/financials/treasury/source/live"
+import { BSC_RPC_URL } from "@/lib/financials/treasury/config"
 import { cacheGet, cacheSet } from "@/lib/redis"
 import type { TreasurySnapshot } from "@/lib/financials/treasury/shapes"
 import { requireScope, ok, fail, guard } from "@/lib/cms/api-route"
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
   const actor = await requireScope(req, "financials.view")
   if (actor instanceof NextResponse) return actor
   return guard(async () => {
-    if (!process.env.GOLDRUSH_API_KEY) return fail("Treasury source not configured", 503)
+    if (!BSC_RPC_URL) return fail("Treasury source not configured", 503)
     const refresh = req.nextUrl.searchParams.get("refresh") === "true"
 
     if (!refresh) {

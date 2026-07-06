@@ -3,6 +3,7 @@
 import { currentUser } from "@/lib/cms/authz"
 import { cacheGet, cacheSet } from "@/lib/redis"
 import { fetchTreasurySnapshot } from "@/lib/financials/treasury/source/live"
+import { BSC_RPC_URL } from "@/lib/financials/treasury/config"
 import type { TreasurySnapshot } from "@/lib/financials/treasury/shapes"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 
@@ -21,7 +22,7 @@ const LAST_GOOD_TTL = 86_400 // 24h
 export async function treasuryOverviewAction(opts?: { refresh?: boolean }): Promise<TreasuryResult> {
   const me = await currentUser()
   if (!me || !me.privileges.includes(FINANCIALS_PRIVILEGE)) return { ok: false, error: "unauthorized" }
-  if (!process.env.GOLDRUSH_API_KEY) return { ok: false, error: "not_configured" }
+  if (!BSC_RPC_URL) return { ok: false, error: "not_configured" }
 
   if (!opts?.refresh) {
     const cached = await cacheGet<TreasurySnapshot>(CACHE_KEY)

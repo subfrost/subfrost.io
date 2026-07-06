@@ -1,21 +1,9 @@
-/** One item from GoldRush `balances_v2` `data.items[]` (the fields we use). */
-export interface GoldRushItem {
-  contract_address: string
-  contract_ticker_symbol: string | null
-  contract_name: string | null
-  contract_decimals: number | null
-  balance: string | null
-  quote: number | null
-  is_native_token?: boolean
-  is_spam?: boolean
-}
-
 export interface TreasuryToken {
   contract: string
   symbol: string
   name: string
   amount: number
-  /** USD value (GoldRush `quote`), or null when the provider has no price. */
+  /** USD value, or null when we have no price for the token. */
   usd: number | null
   isNative: boolean
 }
@@ -35,24 +23,16 @@ export interface TreasurySnapshot {
 
 export const round2 = (n: number): number => Math.round(n * 100) / 100
 
-/** Pure: GoldRush items → a normalized wallet. Drops spam and zero balances,
- *  applies decimals, maps native + USD, keeps no-price tokens (usd null), and
- *  sorts by USD desc (nulls last). Totals only known USD. */
+/** Pure: priced tokens → a normalized wallet. Drops zero balances, keeps
+ *  no-price tokens (usd null), sorts by USD desc (nulls last), and totals only
+ *  known USD (rounded). The provider builds `tokens` (amount + usd already
+ *  derived); this stays free of any network/provider shape. */
 export function normalizeBalances(
-  items: GoldRushItem[],
+  tokens: TreasuryToken[],
   address: string,
   label?: string,
 ): TreasuryWallet {
-  const tokens: TreasuryToken[] = items
-    .filter((it) => !it.is_spam)
-    .map((it) => ({
-      contract: it.contract_address,
-      symbol: it.contract_ticker_symbol ?? "?",
-      name: it.contract_name ?? "Unknown",
-      amount: Number(it.balance ?? "0") / 10 ** (it.contract_decimals ?? 0),
-      usd: typeof it.quote === "number" ? it.quote : null,
-      isNative: it.is_native_token === true,
-    }))
+  const kept = tokens
     .filter((t) => t.amount > 0)
     .sort((a, b) => {
       if (a.usd === null && b.usd === null) return 0
@@ -60,6 +40,6 @@ export function normalizeBalances(
       if (b.usd === null) return -1
       return b.usd - a.usd
     })
-  const totalUsd = round2(tokens.reduce((s, t) => s + (t.usd ?? 0), 0))
-  return { address, label, totalUsd, tokens }
+  const totalUsd = round2(kept.reduce((s, t) => s + (t.usd ?? 0), 0))
+  return { address, label, totalUsd, tokens: kept }
 }

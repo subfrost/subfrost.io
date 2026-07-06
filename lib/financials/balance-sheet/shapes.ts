@@ -2,7 +2,14 @@
 // from treasury / accounting / equity at render time) with manual GL line items
 // the operator enters, groups them by section, and runs the
 // assets = liabilities + equity check. DB-free + serializable; unit-tested.
+//
+// SAFEs are modeled as a senior-to-common EQUITY preference (a preference in the
+// waterfall, not debt), so the derived "equity attributable to common (409A
+// basis)" = assets − liabilities − SAFE preference. A separate MEMO band carries
+// notional figures (e.g. the FUEL overhang) that are deliberately EXCLUDED from
+// every total and from the assets = liabilities + equity balance check.
 
+// Manual GL items and the balance check only ever touch these three sections.
 export type BalanceSheetSection = "ASSET" | "LIABILITY" | "EQUITY"
 
 export const SECTION_LABELS: Record<BalanceSheetSection, string> = {
@@ -44,6 +51,14 @@ export interface BalanceSheetView {
   liabilitiesPlusEquity: number
   difference: number // totalAssets - (liabilities + equity)
   balanced: boolean
+  // SAFE senior-to-common preference (part of totalEquity, broken out so the
+  // 409A attributable-to-common figure can subtract it). Notional, not debt.
+  safePreferenceUsd: number
+  // 409A basis: assets − liabilities − SAFE preference. Should stay positive.
+  attributableToCommonUsd: number
+  // Notional memo lines (e.g. FUEL overhang). NOT part of any total or the
+  // balance check — presented for reference only.
+  memo: BalanceSheetLine[]
   treasuryStale: boolean // computed treasury line came from a stale snapshot
   treasuryAvailable: boolean
   asOf: string // ISO
@@ -51,11 +66,19 @@ export interface BalanceSheetView {
 
 const SECTIONS: BalanceSheetSection[] = ["ASSET", "LIABILITY", "EQUITY"]
 
-/** Combine computed (derived) lines with manual items and roll up totals. */
+/** Combine computed (derived) lines with manual items and roll up totals. The
+ *  `memo` lines and `safePreferenceUsd` inform the 409A view but never enter the
+ *  section totals or the assets = liabilities + equity balance check. */
 export function assembleBalanceSheet(
   computed: { section: BalanceSheetSection; line: BalanceSheetLine }[],
   manual: ManualItemRow[],
-  meta: { asOf: string; treasuryStale: boolean; treasuryAvailable: boolean },
+  meta: {
+    asOf: string
+    treasuryStale: boolean
+    treasuryAvailable: boolean
+    memo?: BalanceSheetLine[]
+    safePreferenceUsd?: number
+  },
 ): BalanceSheetView {
   const bySection: Record<BalanceSheetSection, BalanceSheetLine[]> = {
     ASSET: [], LIABILITY: [], EQUITY: [],
@@ -76,6 +99,8 @@ export function assembleBalanceSheet(
   const totalEquity = sections.EQUITY.total
   const liabilitiesPlusEquity = round2(totalLiabilities + totalEquity)
   const difference = round2(totalAssets - liabilitiesPlusEquity)
+  const safePreferenceUsd = round2(meta.safePreferenceUsd ?? 0)
+  const attributableToCommonUsd = round2(totalAssets - totalLiabilities - safePreferenceUsd)
   return {
     sections,
     totalAssets,
@@ -84,6 +109,9 @@ export function assembleBalanceSheet(
     liabilitiesPlusEquity,
     difference,
     balanced: Math.abs(difference) < 0.01,
+    safePreferenceUsd,
+    attributableToCommonUsd,
+    memo: meta.memo ?? [],
     treasuryStale: meta.treasuryStale,
     treasuryAvailable: meta.treasuryAvailable,
     asOf: meta.asOf,

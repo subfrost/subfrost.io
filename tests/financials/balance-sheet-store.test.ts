@@ -7,29 +7,33 @@ vi.mock("@/lib/prisma", () => {
   const shareClass = { findMany: vi.fn() }
   const shareHolding = { aggregate: vi.fn() }
   const balanceSheetItem = { findMany: vi.fn() }
-  const client = { invoice, instrument, shareClass, shareHolding, balanceSheetItem }
+  const fuelAllocation = { aggregate: vi.fn() }
+  const client = { invoice, instrument, shareClass, shareHolding, balanceSheetItem, fuelAllocation }
   return { prisma: client, default: client }
 })
 
 import prisma from "@/lib/prisma"
 import { cacheGet } from "@/lib/redis"
 import { buildBalanceSheet } from "@/lib/financials/balance-sheet/store"
+import { FUEL_PRESALE_PROCEEDS_USD } from "@/lib/fuel/supply"
 
 const inv = prisma.invoice as unknown as Record<string, ReturnType<typeof vi.fn>>
 const inst = prisma.instrument as unknown as Record<string, ReturnType<typeof vi.fn>>
 const cls = prisma.shareClass as unknown as Record<string, ReturnType<typeof vi.fn>>
 const hold = prisma.shareHolding as unknown as Record<string, ReturnType<typeof vi.fn>>
 const item = prisma.balanceSheetItem as unknown as Record<string, ReturnType<typeof vi.fn>>
+const fuel = prisma.fuelAllocation as unknown as Record<string, ReturnType<typeof vi.fn>>
 const cg = cacheGet as unknown as ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   cg.mockReset()
-  ;[inv, inst, cls, hold, item].forEach((m) => Object.values(m).forEach((f) => f.mockReset()))
+  ;[inv, inst, cls, hold, item, fuel].forEach((m) => Object.values(m).forEach((f) => f.mockReset()))
   inv.aggregate.mockResolvedValue({ _sum: { amountUsd: 0 }, _count: 0 })
   inst.aggregate.mockResolvedValue({ _sum: { amountUsd: 0 }, _count: 0 })
   cls.findMany.mockResolvedValue([])
   hold.aggregate.mockResolvedValue({ _sum: { shares: 0 } })
   item.findMany.mockResolvedValue([])
+  fuel.aggregate.mockResolvedValue({ _sum: { amount: 0 } })
 })
 
 describe("buildBalanceSheet computed lines", () => {
@@ -51,7 +55,7 @@ describe("buildBalanceSheet computed lines", () => {
     expect(v.sections.ASSET.lines.find((l) => l.id === "computed:treasury")?.amountUsd).toBe(400000)
   })
 
-  it("derives AR (open invoices), SAFE liability, and common equity at par", async () => {
+  it("derives AR (open invoices), SAFE equity preference, and common equity at par", async () => {
     cg.mockResolvedValue(null) // no treasury cached
     inv.aggregate.mockResolvedValueOnce({ _sum: { amountUsd: 12000 }, _count: 3 })
     inst.aggregate.mockResolvedValueOnce({ _sum: { amountUsd: 350000 }, _count: 2 })
@@ -61,10 +65,48 @@ describe("buildBalanceSheet computed lines", () => {
     const v = await buildBalanceSheet()
     expect(v.treasuryAvailable).toBe(false)
     expect(v.sections.ASSET.lines.find((l) => l.id === "computed:ar")?.amountUsd).toBe(12000)
-    expect(v.sections.LIABILITY.lines.find((l) => l.id === "computed:safes")?.amountUsd).toBe(350000)
+    // SAFEs are now a senior-to-common EQUITY preference, NOT a liability.
+    expect(v.sections.LIABILITY.lines.find((l) => l.id === "computed:safes")).toBeUndefined()
+    expect(v.sections.EQUITY.lines.find((l) => l.id === "computed:safes")?.amountUsd).toBe(350000)
+    expect(v.safePreferenceUsd).toBe(350000)
     // 10,000,000 × 0.0001 = 1000
     expect(v.sections.EQUITY.lines.find((l) => l.id === "computed:common")?.amountUsd).toBe(1000)
-    expect(v.totalLiabilities).toBe(350000)
+    // Only the deferred-FUEL obligation is a liability (=$0 default here).
+    expect(v.totalLiabilities).toBe(FUEL_PRESALE_PROCEEDS_USD)
+    expect(v.sections.LIABILITY.lines.find((l) => l.id === "computed:deferred-fuel")?.amountUsd).toBe(FUEL_PRESALE_PROCEEDS_USD)
+  })
+
+  it("books the deferred-FUEL obligation as a liability at proceeds received (not marked to price)", async () => {
+    cg.mockResolvedValue(null)
+    const v = await buildBalanceSheet()
+    const line = v.sections.LIABILITY.lines.find((l) => l.id === "computed:deferred-fuel")
+    expect(line).toBeDefined()
+    expect(line?.amountUsd).toBe(FUEL_PRESALE_PROCEEDS_USD) // sized as consideration received
+  })
+
+  it("exposes the FUEL overhang as a memo excluded from all totals and the balance check", async () => {
+    cg.mockResolvedValue(null)
+    fuel.aggregate.mockResolvedValueOnce({ _sum: { amount: 100_000 } })
+    const v = await buildBalanceSheet()
+    const overhang = v.memo.find((l) => l.id === "memo:fuel-overhang")
+    expect(overhang).toBeDefined()
+    // (2,100,000 − 100,000) × 17.17 = 34,340,000
+    expect(overhang?.amountUsd).toBe(34_340_000)
+    // Not summed into any section total, and the sheet still balances (0 = 0).
+    expect(v.totalAssets).toBe(0)
+    expect(v.totalLiabilities).toBe(0)
+    expect(v.totalEquity).toBe(0)
+    expect(v.balanced).toBe(true)
+  })
+
+  it("computes equity attributable to common (409A) = assets − liabilities − SAFE preference", async () => {
+    cg.mockResolvedValueOnce({ grandTotalUsd: 1_000_000, fetchedAt: "2026-06-20T00:00:00Z" })
+    inst.aggregate.mockResolvedValueOnce({ _sum: { amountUsd: 350000 }, _count: 2 })
+    const v = await buildBalanceSheet()
+    // assets 1,000,000 − liabilities 0 − SAFE preference 350,000 = 650,000
+    expect(v.safePreferenceUsd).toBe(350000)
+    expect(v.attributableToCommonUsd).toBe(650000)
+    expect(v.attributableToCommonUsd).toBeGreaterThan(0)
   })
 
   it("merges manual items and runs the balance check", async () => {
