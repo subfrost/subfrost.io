@@ -23,6 +23,8 @@ const copy = {
       title: "Alkanes on-chain activity",
       note: "Sampled data from our open-source OP_RETURN scanner. An exact full-chain engine is in the works.",
       noteLink: "View the scanner and raw data on GitHub.",
+      reproduce: "Reproduce it yourself — the whole pipeline is open source (MIT):",
+      reproduceData: "daily data & figure generator",
       updated: "Data through",
       subHeader: "{firstDate} – {lastDate} · {days} days · {totalTx} transactions sampled · updated daily",
       windowAll: "All time",
@@ -34,7 +36,7 @@ const copy = {
         "The scanner reads every sampled Bitcoin block in the window and inspects each transaction's outputs. An output whose script starts with 6a is an OP_RETURN; one starting 6a5d is a Runestone.",
         "It decodes the Runestone, and if any protostone carries protocol_tag = 1, the transaction is Alkanes. A DIESEL mint is the specific case where the cellpack targets 2:0 with opcode 77 (the genesis alkane) — today that's the vast majority of all Alkanes activity.",
         "Share of transactions = matching tx ÷ all tx. Share of OP_RETURN bytes = Alkanes OP_RETURN bytes ÷ all OP_RETURN bytes. Shares are unaffected by sampling; each day rests on dozens of sampled blocks. Classification reuses the open-source alkanes-opreturn-decoder.",
-        "Glossary. OP_RETURN penetration: share of all BTC tx that carry an OP_RETURN. Alkanes (tx): share of all BTC tx that are Alkanes. Alkanes (bytes): share of OP_RETURN bytes that are Alkanes. Runes: OP_RETURN bytes that are Runestones but not Alkanes. Alkanes excl. DIESEL: Alkanes tx that aren't DIESEL mints — \"real app\" usage. DIESEL: mint of the genesis alkane (cellpack 2:0 op 77). Alkanes of OP_RETURN: of tx that carry an OP_RETURN, the share that are Alkanes (by tx and by bytes). Bytes per tx: average OP_RETURN script size per transaction in each bucket. Alkanes share of fee revenue: Alkanes fees ÷ total fees (subsidy excluded).",
+        "Glossary. OP_RETURN penetration: share of all BTC tx that carry an OP_RETURN. Alkanes (tx): share of all BTC tx that are Alkanes. Alkanes (bytes): share of OP_RETURN bytes that are Alkanes. Runes (non-Alkanes): OP_RETURN bytes that are Runestones but not Alkanes. Alkanes excl. DIESEL: Alkanes tx that aren't DIESEL mints — \"real app\" usage. DIESEL: mint of the genesis alkane (cellpack 2:0 op 77). Alkanes of OP_RETURN: of tx that carry an OP_RETURN, the share that are Alkanes (by tx and by bytes). Bytes per tx: average OP_RETURN script size per transaction in each bucket. Alkanes share of fee revenue: Alkanes fees ÷ total fees (subsidy excluded).",
       ],
       charts: {
         dailyShare: {
@@ -65,9 +67,9 @@ const copy = {
           desc: "UNCOMMON•GOODS (Rune 1:0) rides along on almost every DIESEL mint. Of all UNCOMMON•GOODS mints each day, the share that are also DIESEL climbed from {ugShareEarly} early on to {ugShareRecent} recently ({ugShareFull} over the whole period): when you see an UNCOMMON•GOODS mint today, it is almost always DIESEL \"wearing Runes clothing.\" Detected as a runestone whose mint is Rune 1:0 on a DIESEL (cellpack 2:0 op 77) transaction.",
         },
         bytesDonut: {
-          title: "OP_RETURN bytes (all time)",
-          series: { alkanes: "Alkanes", runes: "Runes", other: "Other" },
-          desc: "Of all OP_RETURN data written to Bitcoin over the tracked period, the share that is Alkanes, Runes, and everything else — measured in bytes, not transaction count.",
+          title: "OP_RETURN bytes (since DIESEL genesis)",
+          series: { alkanes: "Alkanes", runes: "Runes (non-Alkanes)", other: "Other" },
+          desc: "Of all OP_RETURN data written to Bitcoin since the DIESEL genesis block (880,000, Jan 20 2025), the share that is Alkanes, non-Alkanes Runes, and everything else — measured in bytes, not transaction count.",
         },
         bytesPerTx: {
           title: "OP_RETURN bytes per transaction",
@@ -85,7 +87,7 @@ const copy = {
         },
         alkanesFeeShare: {
           title: "Alkanes' share of miner fee revenue",
-          desc: "By fee revenue — what miners actually earn from fees — Alkanes are {feeShare30} over the last 30 days ({feeShareFull} over the full tracked period), far below their share of transaction count, because most Alkanes tx are tiny DIESEL mints that pay little. All OP_RETURN traffic together pays {opRetFeeShare} of fee revenue. (Subsidy excluded here; fees only.)",
+          desc: "By fee revenue — what miners actually earn from fees — Alkanes are {feeShare30} over the last 30 days ({feeShareFull} over the full tracked period), far below their share of transaction count, because most Alkanes tx are tiny DIESEL mints that pay little. All OP_RETURN traffic together pays {opRetFeeShare30} of fee revenue over the same 30 days ({opRetFeeShareFull} full period). (Subsidy excluded here; fees only.)",
         },
         fourAnswers: {
           title: "How much of Bitcoin is Alkanes? Four answers",
@@ -111,28 +113,28 @@ const copy = {
           desc: "Almost every DIESEL mint also mints UNCOMMON•GOODS (Rune 1:0). This splits daily UNCOMMON•GOODS mints into the DIESEL-driven ones vs genuinely independent Runes — DIESEL has come to dominate the count. (Raw counts in the sampled blocks.)",
         },
         runesVsAlkanesShare: {
-          title: "Pure Runes vs Alkanes — share of OP_RETURN bytes",
-          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
-          desc: "Of all OP_RETURN data bytes, the share written by Alkanes vs by pure Runes (Runestones that aren't Alkanes protostones). Alkanes have overtaken Runes on Bitcoin's OP_RETURN byte budget.",
+          title: "Runes (non-Alkanes) vs Alkanes — share of OP_RETURN bytes",
+          series: { alkanes: "Alkanes", pureRunes: "Runes (non-Alkanes)" },
+          desc: "Of all OP_RETURN data bytes, the share written by Alkanes vs by Runes that are not Alkanes (Runestones without an Alkanes protostone). Alkanes have overtaken Runes on Bitcoin's OP_RETURN byte budget.",
         },
         runesVsAlkanesBytes: {
-          title: "Real Runes vs Alkanes — absolute bytes per day",
-          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
-          desc: "The same comparison in absolute terms — estimated OP_RETURN bytes per day (sampled blocks × 144) for Alkanes vs pure Runes, on a log scale so both early and recent volumes stay readable.",
+          title: "Runes (non-Alkanes) vs Alkanes — absolute bytes per day",
+          series: { alkanes: "Alkanes", pureRunes: "Runes (non-Alkanes)" },
+          desc: "The same comparison in absolute terms — estimated OP_RETURN bytes per day (sampled blocks × 144) for Alkanes vs non-Alkanes Runes, on a log scale so both early and recent volumes stay readable.",
         },
         byteComposition: {
           title: "OP_RETURN byte composition over time",
-          series: { alkanes: "Alkanes", pureRunes: "Pure Runes", other: "Other" },
-          desc: "How the OP_RETURN byte budget splits between Alkanes, pure Runes and everything else, day by day — the moving version of the all-time donut above.",
+          series: { alkanes: "Alkanes", pureRunes: "Runes (non-Alkanes)", other: "Other" },
+          desc: "How the OP_RETURN byte budget splits between Alkanes, non-Alkanes Runes and everything else, day by day — the moving version of the since-genesis donut above.",
         },
         runestoneTxShare: {
-          title: "Runestone transactions — Alkanes vs pure Runes",
-          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
-          desc: "Of every transaction that carries a Runestone, the share that is Alkanes (a protostone with protocol_tag = 1) vs pure Runes (a Runestone that isn't Alkanes). Runes owned this at genesis; today Alkanes are the overwhelming majority of Runestone transactions.",
+          title: "Runestone transactions — Alkanes vs Runes (non-Alkanes)",
+          series: { alkanes: "Alkanes", pureRunes: "Runes (non-Alkanes)" },
+          desc: "Of every transaction that carries a Runestone, the share that is Alkanes (a protostone with protocol_tag = 1) vs Runes (non-Alkanes) — a Runestone with no Alkanes protostone. Runes owned this at genesis; today Alkanes are the overwhelming majority of Runestone transactions.",
         },
         runestoneTxCount: {
-          title: "Runestone transactions per day — Alkanes vs pure Runes",
-          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
+          title: "Runestone transactions per day — Alkanes vs Runes (non-Alkanes)",
+          series: { alkanes: "Alkanes", pureRunes: "Runes (non-Alkanes)" },
           desc: "The same split in absolute terms — estimated Runestone transactions per day (sampled blocks scaled to a full 144-block day), on a log scale so both the early Runes-dominated days and today's Alkanes volume stay readable.",
         },
       },
@@ -150,6 +152,8 @@ const copy = {
       title: "Alkanes 链上活动",
       note: "数据来自我们开源的 OP_RETURN 扫描器（抽样统计）。精确的全链引擎正在开发中。",
       noteLink: "在 GitHub 查看扫描器与原始数据。",
+      reproduce: "想自己复现这些数字？整条管线全部开源（MIT）：",
+      reproduceData: "每日数据与图表生成器",
       updated: "数据截至",
       subHeader: "{firstDate} – {lastDate} · {days} 天 · 抽样 {totalTx} 笔交易 · 每日更新",
       windowAll: "全部",
@@ -161,7 +165,7 @@ const copy = {
         "扫描器读取窗口期内每个抽样的比特币区块，并检查每笔交易的输出。以 6a 开头的输出脚本是 OP_RETURN；以 6a5d 开头的则是符文石（Runestone）。",
         "扫描器解码符文石，若任一 protostone 携带 protocol_tag = 1，该交易即为 Alkanes。DIESEL 铸造是特殊情形：cellpack 指向 2:0、操作码为 77（创世 alkane）——如今这占 Alkanes 全部活动的绝大多数。",
         "交易份额 = 符合条件的交易数 ÷ 全部交易数。OP_RETURN 字节份额 = Alkanes 的 OP_RETURN 字节数 ÷ 全部 OP_RETURN 字节数。份额不受抽样影响；每天基于数十个抽样区块计算。分类复用开源的 alkanes-opreturn-decoder。",
-        "术语表。OP_RETURN 渗透率：携带 OP_RETURN 的全部比特币交易占比。Alkanes（交易）：全部比特币交易中属于 Alkanes 的占比。Alkanes（字节）：OP_RETURN 字节中属于 Alkanes 的占比。Runes：属于符文石但非 Alkanes 的 OP_RETURN 字节。Alkanes 不含 DIESEL：非 DIESEL 铸造的 Alkanes 交易——即「真实应用」使用量。DIESEL：创世 alkane 的铸造（cellpack 2:0 操作码 77）。OP_RETURN 中的 Alkanes 占比：在携带 OP_RETURN 的交易中，属于 Alkanes 的份额（按交易数与按字节数）。每笔交易字节数：各类别中每笔交易的平均 OP_RETURN 脚本大小。Alkanes 手续费份额：Alkanes 手续费 ÷ 总手续费（不含区块补贴）。",
+        "术语表。OP_RETURN 渗透率：携带 OP_RETURN 的全部比特币交易占比。Alkanes（交易）：全部比特币交易中属于 Alkanes 的占比。Alkanes（字节）：OP_RETURN 字节中属于 Alkanes 的占比。Runes（非 Alkanes）：属于符文石但非 Alkanes 的 OP_RETURN 字节。Alkanes 不含 DIESEL：非 DIESEL 铸造的 Alkanes 交易——即「真实应用」使用量。DIESEL：创世 alkane 的铸造（cellpack 2:0 操作码 77）。OP_RETURN 中的 Alkanes 占比：在携带 OP_RETURN 的交易中，属于 Alkanes 的份额（按交易数与按字节数）。每笔交易字节数：各类别中每笔交易的平均 OP_RETURN 脚本大小。Alkanes 手续费份额：Alkanes 手续费 ÷ 总手续费（不含区块补贴）。",
       ],
       charts: {
         dailyShare: {
@@ -192,9 +196,9 @@ const copy = {
           desc: "UNCOMMON•GOODS（符文 1:0）几乎搭乘在每一笔 DIESEL 铸造上。在每天全部 UNCOMMON•GOODS 铸造中，同时也是 DIESEL 的比例从早期的 {ugShareEarly} 攀升到近期的 {ugShareRecent}（整个统计期为 {ugShareFull}）：如今你看到的 UNCOMMON•GOODS 铸造，几乎都是「披着 Runes 外衣」的 DIESEL。判定方式：符文石的铸造目标为符文 1:0，且所在交易同时是 DIESEL（cellpack 2:0 操作码 77）。",
         },
         bytesDonut: {
-          title: "OP_RETURN 字节数（全部时间）",
-          series: { alkanes: "Alkanes", runes: "Runes", other: "其他" },
-          desc: "在统计期内写入比特币的全部 OP_RETURN 数据中，Alkanes、Runes 与其他用途各自占比——按字节而非交易笔数衡量。",
+          title: "OP_RETURN 字节数（自 DIESEL 创世以来）",
+          series: { alkanes: "Alkanes", runes: "Runes（非 Alkanes）", other: "其他" },
+          desc: "自 DIESEL 创世区块（880,000，2025 年 1 月 20 日）以来写入比特币的全部 OP_RETURN 数据中，Alkanes、非 Alkanes 的 Runes 与其他用途各自占比——按字节而非交易笔数衡量。",
         },
         bytesPerTx: {
           title: "每笔交易的 OP_RETURN 字节数",
@@ -212,7 +216,7 @@ const copy = {
         },
         alkanesFeeShare: {
           title: "Alkanes 占矿工手续费收入的份额",
-          desc: "按手续费收入——矿工实际从手续费中赚取的部分——Alkanes 最近 30 天占 {feeShare30}（整个统计期占 {feeShareFull}），远低于其交易笔数份额，因为大多数 Alkanes 交易是支付极少的小额 DIESEL 铸造。全部 OP_RETURN 流量合计占手续费收入的 {opRetFeeShare}。（不含区块补贴，仅统计手续费。）",
+          desc: "按手续费收入——矿工实际从手续费中赚取的部分——Alkanes 最近 30 天占 {feeShare30}（整个统计期占 {feeShareFull}），远低于其交易笔数份额，因为大多数 Alkanes 交易是支付极少的小额 DIESEL 铸造。同样按最近 30 天计，全部 OP_RETURN 流量合计占手续费收入的 {opRetFeeShare30}（整个统计期为 {opRetFeeShareFull}）。（不含区块补贴，仅统计手续费。）",
         },
         fourAnswers: {
           title: "Alkanes 占比特币多少？四种答案",
@@ -238,28 +242,28 @@ const copy = {
           desc: "几乎每一笔 DIESEL 铸造都会同时铸造 UNCOMMON•GOODS（符文 1:0）。此图将每日 UNCOMMON•GOODS 铸造拆分为由 DIESEL 驱动的部分与真正独立的 Runes——DIESEL 已在数量上占据主导。（抽样区块中的原始计数。）",
         },
         runesVsAlkanesShare: {
-          title: "纯 Runes 与 Alkanes — 占 OP_RETURN 字节的份额",
-          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
-          desc: "在全部 OP_RETURN 数据字节中，Alkanes 与纯 Runes（非 Alkanes protostone 的符文石）各自写入的份额。在比特币的 OP_RETURN 字节预算上，Alkanes 已超越 Runes。",
+          title: "Runes（非 Alkanes）与 Alkanes — 占 OP_RETURN 字节的份额",
+          series: { alkanes: "Alkanes", pureRunes: "Runes（非 Alkanes）" },
+          desc: "在全部 OP_RETURN 数据字节中，Alkanes 与非 Alkanes 的 Runes（不含 Alkanes protostone 的符文石）各自写入的份额。在比特币的 OP_RETURN 字节预算上，Alkanes 已超越 Runes。",
         },
         runesVsAlkanesBytes: {
-          title: "真实 Runes 与 Alkanes — 每日绝对字节数",
-          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
-          desc: "以绝对值进行的同一比较——Alkanes 与纯 Runes 每日估算的 OP_RETURN 字节数（抽样区块 × 144），采用对数刻度，使早期与近期的数据量都清晰可读。",
+          title: "Runes（非 Alkanes）与 Alkanes — 每日绝对字节数",
+          series: { alkanes: "Alkanes", pureRunes: "Runes（非 Alkanes）" },
+          desc: "以绝对值进行的同一比较——Alkanes 与非 Alkanes 的 Runes 每日估算的 OP_RETURN 字节数（抽样区块 × 144），采用对数刻度，使早期与近期的数据量都清晰可读。",
         },
         byteComposition: {
           title: "OP_RETURN 字节构成随时间变化",
-          series: { alkanes: "Alkanes", pureRunes: "纯 Runes", other: "其他" },
-          desc: "OP_RETURN 字节预算在 Alkanes、纯 Runes 与其他用途之间如何逐日划分——即上方全时段环形图的动态版本。",
+          series: { alkanes: "Alkanes", pureRunes: "Runes（非 Alkanes）", other: "其他" },
+          desc: "OP_RETURN 字节预算在 Alkanes、非 Alkanes 的 Runes 与其他用途之间如何逐日划分——即上方自创世环形图的动态版本。",
         },
         runestoneTxShare: {
-          title: "符文石交易 — Alkanes 与纯 Runes",
-          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
-          desc: "在每一笔携带符文石（Runestone）的交易中，属于 Alkanes（protostone 携带 protocol_tag = 1）与纯 Runes（非 Alkanes 的符文石）各自的份额。创世之初 Runes 占据主导；如今 Alkanes 已占符文石交易的绝大多数。",
+          title: "符文石交易 — Alkanes 与 Runes（非 Alkanes）",
+          series: { alkanes: "Alkanes", pureRunes: "Runes（非 Alkanes）" },
+          desc: "在每一笔携带符文石（Runestone）的交易中，属于 Alkanes（protostone 携带 protocol_tag = 1）与 Runes（非 Alkanes，即不含 Alkanes protostone 的符文石）各自的份额。创世之初 Runes 占据主导；如今 Alkanes 已占符文石交易的绝大多数。",
         },
         runestoneTxCount: {
-          title: "每日符文石交易 — Alkanes 与纯 Runes",
-          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
+          title: "每日符文石交易 — Alkanes 与 Runes（非 Alkanes）",
+          series: { alkanes: "Alkanes", pureRunes: "Runes（非 Alkanes）" },
           desc: "以绝对值展示的同一划分——每日估算的符文石交易数（抽样区块外推至完整的 144 个区块一天），采用对数刻度，使早期以 Runes 为主的时期与如今的 Alkanes 交易量都清晰可读。",
         },
       },
