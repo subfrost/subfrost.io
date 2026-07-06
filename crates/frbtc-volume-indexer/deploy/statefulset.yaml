@@ -1,0 +1,96 @@
+# Lightweight rockshrew-mono instance dedicated to the frBTC wrap/unwrap volume
+# indexer. Intentionally MUCH leaner than the production alkanes indexer (which
+# runs 8–48 GiB because it holds full alkanes state): this wasm only writes tiny
+# daily volume buckets, so its RocksDB stays small and its per-block CPU is low.
+# The only heavy cost is the initial backfill from alkanes genesis (h=880000),
+# which is bounded by bitcoind RPC throughput, not by this indexer.
+#
+# APPLY (from a machine with access to the metashrew cluster/box):
+#   1. Put frbtc_volume_indexer.wasm on the node's indexer hostPath (or swap the
+#      hostPath volume for your PVC/initContainer-fetch on GKE — see README.md).
+#        rockshrew-mono image must be present/pullable (same one prod uses).
+#   2. kubectl apply -f statefulset.yaml
+#   3. Watch: kubectl -n <ns> logs sts/frbtc-volume-indexer -f
+#   4. Query once synced: metashrew_view frbtc_volume_tip / frbtc_volume_range
+#
+# Then set FRBTC_INDEXER_RPC_URL on subfrost-io to this Service's reachable URL
+# (an ingress/LB reachable from the subfrost-io GKE cluster) to light up Revenue.
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: frbtc-volume-indexer
+  namespace: espo-debug # change to the target namespace (e.g. mainnet-alkanes)
+  labels:
+    app: frbtc-volume-indexer
+    indexer: frbtc-volume
+spec:
+  replicas: 1
+  serviceName: frbtc-volume-indexer
+  selector:
+    matchLabels:
+      app: frbtc-volume-indexer
+  template:
+    metadata:
+      labels:
+        app: frbtc-volume-indexer
+    spec:
+      containers:
+        - name: rockshrew
+          image: rockshrew-mono:v10.0.0-alpha.6 # same host image prod uses
+          imagePullPolicy: IfNotPresent
+          command: [rockshrew-mono]
+          args:
+            - --daemon-rpc-url
+            - http://bitcoind:8332 # point at the cluster's bitcoind
+            - --auth
+            - bitcoinrpc:bitcoinrpc
+            - --db-path
+            - /data
+            - --indexer
+            - /indexer/frbtc_volume_indexer.wasm
+            - --start-block
+            - "880000" # alkanes genesis — captures frBTC from inception + any signer rotations
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+            - --prefetch-size
+            - "64"
+            - --view-memory-floor-mb
+            - "512"
+            - --sync-mode # drop once at tip so query-path bloom filters rebuild
+          ports:
+            - containerPort: 8080
+              name: rpc
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi # tiny KV working set — nothing like the alkanes indexer
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - { mountPath: /data, name: data }
+            - { mountPath: /indexer, name: indexer }
+      volumes:
+        # On the k3s Meta box: hostPaths like the prod .v10-deploy pattern.
+        # On GKE: replace `data` with a PVC and `indexer` with an initContainer
+        # that curls the wasm from GCS (see README.md).
+        - name: data
+          hostPath: { path: /zpool/frbtc-volume-data, type: DirectoryOrCreate }
+        - name: indexer
+          hostPath: { path: /zpool/espo-debug/indexer-wasm, type: Directory }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frbtc-volume-indexer
+  namespace: espo-debug
+  labels:
+    app: frbtc-volume-indexer
+spec:
+  selector:
+    app: frbtc-volume-indexer
+  ports:
+    - { name: rpc, port: 8080, targetPort: 8080 }
