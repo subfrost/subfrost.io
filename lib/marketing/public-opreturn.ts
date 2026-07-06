@@ -46,7 +46,7 @@ export interface PublicOpReturnPayload {
   runestoneTxShare: { date: string; alkanes: number | null; pureRunes: number | null }[]
   runestoneTxCount: { date: string; alkanes: number | null; pureRunes: number | null }[]
   stats: {
-    last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null }
+    last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null; opReturnFeeShare: number | null }
     full: { alkanesFeeShare: number | null; opReturnFeeShare: number | null; alkanesBytesPerTx: number | null }
     latest: { date: string; fromHeight: number; toHeight: number; blocksScanned: number; txWithOpReturn: number; txAlkanes: number; alkanesOfOpReturnTx: number | null } | null
     weight: { full: number | null; latest: number | null }
@@ -80,7 +80,7 @@ const EMPTY: PublicOpReturnPayload = {
   runestoneTxShare: [],
   runestoneTxCount: [],
   stats: {
-    last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null },
+    last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null, opReturnFeeShare: null },
     full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
     latest: null,
     weight: { full: null, latest: null },
@@ -96,6 +96,13 @@ const ratioNullable = (num: number | null | undefined, den: number | null | unde
 
 /** Extrapolation factor to a full 144-block day; null when the row scanned 0 blocks. */
 const dayFactor = (r: OpReturnRow): number | null => (r.blocksScanned === 0 ? null : 144 / r.blocksScanned)
+
+/**
+ * Minimum Alkanes tx in a day for the per-tx fee average to be meaningful. The first days after
+ * genesis had 1–30 Alkanes tx; a 7-tx day averaging 38,773 sats/tx dwarfed the whole "All time"
+ * y-axis of the fee-per-tx chart — sampling noise, not market data.
+ */
+const FEE_PER_TX_MIN_SAMPLE = 50
 
 /** Sum of f(r) across rows. */
 const sumBy = (rows: OpReturnRow[], f: (r: OpReturnRow) => number): number => rows.reduce((s, r) => s + f(r), 0)
@@ -161,7 +168,7 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
 
   const dieselTxShare: OpReturnPoint[] = rows.map((r) => ({ date: r.date, value: ratio(r.dieselMints, r.totalTx) }))
 
-  // All-time byte composition (fixed window — ignores the 60d selector; the card title says "all time").
+  // Since-genesis byte composition (fixed window — ignores the 60d selector; the card is titled "since DIESEL genesis").
   // Delegates to the shared computeBytesComposition, which subtracts alkanes out of the runestone
   // total (protostones are embedded in runestones, not a disjoint bucket).
   const sumOpReturnBytes = sumBy(rows, (r) => r.opReturnBytes)
@@ -218,10 +225,11 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     return { date: r.date, value: dieselCum }
   })
 
-  // Fee paid per transaction (sats): Alkanes tx vs everyone else. Null when a bucket has no tx that day.
+  // Fee paid per transaction (sats): Alkanes tx vs everyone else. Null when a bucket has no tx that
+  // day, and null for the Alkanes bucket below the min-sample threshold (genesis-era outliers).
   const feePerTx = rows.map((r) => ({
     date: r.date,
-    alkanes: ratio(r.feeAlkanesSats, r.txAlkanes),
+    alkanes: r.txAlkanes < FEE_PER_TX_MIN_SAMPLE ? null : ratio(r.feeAlkanesSats, r.txAlkanes),
     rest: ratio(r.feeTotalSats - r.feeAlkanesSats, r.totalTx - r.txAlkanes),
   }))
 
@@ -295,6 +303,9 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
       alkanesOfOpReturnTx: ratioOfSums(last30Rows, (r) => r.txAlkanes, (r) => r.txWithOpReturn),
       alkanesOfOpReturnBytes: ratioOfSums(last30Rows, (r) => r.alkanesBytes, (r) => r.opReturnBytes),
       alkanesFeeShare: ratioOfSums(last30Rows, (r) => r.feeAlkanesSats, (r) => r.feeTotalSats),
+      // Same window as alkanesFeeShare, so the card copy never compares a 30d Alkanes share
+      // against a full-period OP_RETURN share (Alkanes ⊆ OP_RETURN only holds within one window).
+      opReturnFeeShare: ratioOfSums(last30Rows, (r) => r.feeOpReturnSats, (r) => r.feeTotalSats),
     },
     full: {
       alkanesFeeShare: ratioOfSums(rows, (r) => r.feeAlkanesSats, (r) => r.feeTotalSats),

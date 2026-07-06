@@ -510,7 +510,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* Pure Runes vs Alkanes — share of OP_RETURN bytes (%) */}
+        {/* Runes (non-Alkanes) vs Alkanes — share of OP_RETURN bytes (%) */}
         <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc}>
           <ToggleLineChart
             data={runesVsAlkanesShare}
@@ -525,7 +525,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* Real Runes vs Alkanes — absolute bytes per day (log scale) */}
+        {/* Runes (non-Alkanes) vs Alkanes — absolute bytes per day (log scale) */}
         <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc}>
           <ToggleLineChart
             data={runesVsAlkanesBytes}
@@ -541,7 +541,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* OP_RETURN byte composition over time (stacked %) — the temporal view of the all-time donut */}
+        {/* OP_RETURN byte composition over time (stacked %) — the temporal view of the since-genesis donut */}
         <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc}>
           <ToggleLineChart
             data={byteComposition}
@@ -559,7 +559,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* Runestone transactions — Alkanes protostones vs pure Runes (share %) */}
+        {/* Runestone transactions — Alkanes protostones vs Runes (non-Alkanes) (share %) */}
         <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc}>
           <ToggleLineChart
             data={runestoneTxShare}
@@ -574,7 +574,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* Runestone transactions per day — Alkanes vs pure Runes (count, log scale) */}
+        {/* Runestone transactions per day — Alkanes vs Runes (non-Alkanes) (count, log scale) */}
         <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc}>
           <ToggleLineChart
             data={runestoneTxCount}
@@ -590,7 +590,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           />
         </Card>
 
-        {/* 7. OP_RETURN bytes (all time) — donut, fixed all-time composition */}
+        {/* 7. OP_RETURN bytes (since DIESEL genesis) — donut, fixed composition */}
         {bytesComposition ? (
           <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc}>
             <LabeledPie
@@ -648,7 +648,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.alkanesFeeShare.title} desc={fill(copy.charts.alkanesFeeShare.desc, {
           feeShareFull: fmtPct(stats.full.alkanesFeeShare),
           feeShare30: fmtPct(stats.last30.alkanesFeeShare),
-          opRetFeeShare: fmtPct(stats.full.opReturnFeeShare),
+          opRetFeeShare30: fmtPct(stats.last30.opReturnFeeShare),
+          opRetFeeShareFull: fmtPct(stats.full.opReturnFeeShare),
         })}>
           <SingleLineChart data={alkanesFeeShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>

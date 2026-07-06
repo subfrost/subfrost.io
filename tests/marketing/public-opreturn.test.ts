@@ -245,6 +245,12 @@ describe("getPublicOpReturnData", () => {
     expect(p.stats.full.opReturnFeeShare).toBeCloseTo(
       sum(full, (r) => r.feeOpReturnSats) / sum(full, (r) => r.feeTotalSats), 10
     )
+    // opReturnFeeShare is windowed like the other last30 stats — the fee-share card compares it
+    // against alkanesFeeShare in the SAME window (Alkanes ⊆ OP_RETURN only holds within one window).
+    expect(p.stats.last30.opReturnFeeShare).toBeCloseTo(
+      sum(last30, (r) => r.feeOpReturnSats) / sum(last30, (r) => r.feeTotalSats), 10
+    )
+    expect(p.stats.last30.opReturnFeeShare).not.toBeCloseTo(p.stats.full.opReturnFeeShare as number, 10)
     expect(p.stats.full.alkanesBytesPerTx).toBeCloseTo(
       sum(full, (r) => r.alkanesBytes) / sum(full, (r) => r.txAlkanes), 10
     )
@@ -321,6 +327,7 @@ describe("getPublicOpReturnData", () => {
     expect(p.header).toEqual({ firstDate: null, lastDate: null, totalTxSampled: 0 })
     expect(p.stats.latest).toBeNull()
     expect(p.stats.last30.alkanesOfOpReturnTx).toBeNull()
+    expect(p.stats.last30.opReturnFeeShare).toBeNull()
     expect(p.stats.full.alkanesFeeShare).toBeNull()
   })
 
@@ -528,6 +535,19 @@ describe("getPublicOpReturnData", () => {
     store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { totalTx: 24000 })])
     p = await getPublicOpReturnData()
     expect(p.feePerTx[0].rest).toBeNull()
+  })
+
+  it("feePerTx alkanes is null below the 50-tx min sample (genesis-era outlier suppression)", async () => {
+    // Real shape of 2025-01-20: 7 Alkanes tx averaging ~38,773 sats/tx — sampling noise that
+    // dwarfed the whole "All time" y-axis. rest is unaffected (its denominator is the whole chain).
+    store.listOpReturnDaily.mockResolvedValue([row("2025-01-20", { txAlkanes: 7, feeAlkanesSats: 271_411 })])
+    let p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].alkanes).toBeNull()
+    expect(p.feePerTx[0].rest).toBeCloseTo((160_000_000 - 271_411) / (300000 - 7), 10)
+    // exactly at the threshold: shown
+    store.listOpReturnDaily.mockResolvedValue([row("2025-02-15", { txAlkanes: 50, feeAlkanesSats: 25_000 })])
+    p = await getPublicOpReturnData()
+    expect(p.feePerTx[0].alkanes).toBeCloseTo(500, 10)
   })
 
   it("derives ugMintsPerDay: diesel = dieselUg, independent = ugMints - dieselUg (raw counts)", async () => {
