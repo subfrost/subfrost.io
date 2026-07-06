@@ -312,6 +312,10 @@ describe("getPublicOpReturnData", () => {
     expect(p.dieselMintsPerDay).toEqual([])
     expect(p.dieselCumulative).toEqual([])
     expect(p.feePerTx).toEqual([])
+    expect(p.ugMintsPerDay).toEqual([])
+    expect(p.runesVsAlkanesShare).toEqual([])
+    expect(p.runesVsAlkanesBytes).toEqual([])
+    expect(p.byteComposition).toEqual([])
     expect(p.header).toEqual({ firstDate: null, lastDate: null, totalTxSampled: 0 })
     expect(p.stats.latest).toBeNull()
     expect(p.stats.last30.alkanesOfOpReturnTx).toBeNull()
@@ -522,5 +526,60 @@ describe("getPublicOpReturnData", () => {
     store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { totalTx: 24000 })])
     p = await getPublicOpReturnData()
     expect(p.feePerTx[0].rest).toBeNull()
+  })
+
+  it("derives ugMintsPerDay: diesel = dieselUg, independent = ugMints - dieselUg (raw counts)", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { ugMints: 1000, dieselUg: 300 })])
+    const p = await getPublicOpReturnData()
+    expect(p.ugMintsPerDay[0].diesel).toBe(300)
+    expect(p.ugMintsPerDay[0].independent).toBe(700)
+  })
+
+  it("ugMintsPerDay null when UG fields null; clamps independent to 0 when dieselUg > ugMints", async () => {
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { ugMints: null, dieselUg: null }),
+      row("2026-06-02", { ugMints: 100, dieselUg: 150 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.ugMintsPerDay[0].diesel).toBeNull()
+    expect(p.ugMintsPerDay[0].independent).toBeNull()
+    expect(p.ugMintsPerDay[1].independent).toBe(0)
+  })
+
+  it("derives runesVsAlkanesShare: alkanes and pure-runes shares of OP_RETURN bytes", async () => {
+    // opReturnBytes 1.5M, runestoneBytes 1.3M, alkanesBytes 500k -> pure runes = 800k
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01")])
+    const p = await getPublicOpReturnData()
+    expect(p.runesVsAlkanesShare[0].alkanes).toBeCloseTo(500_000 / 1_500_000, 10)
+    expect(p.runesVsAlkanesShare[0].pureRunes).toBeCloseTo((1_300_000 - 500_000) / 1_500_000, 10)
+  })
+
+  it("derives runesVsAlkanesBytes: alkanes/pure-runes absolute bytes extrapolated to a full day; null on 0 blocks", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { blocksScanned: 72 })]) // factor 2
+    let p = await getPublicOpReturnData()
+    expect(p.runesVsAlkanesBytes[0].alkanes).toBeCloseTo(500_000 * 2, 6)
+    expect(p.runesVsAlkanesBytes[0].pureRunes).toBeCloseTo((1_300_000 - 500_000) * 2, 6)
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01", { blocksScanned: 0 })])
+    p = await getPublicOpReturnData()
+    expect(p.runesVsAlkanesBytes[0].alkanes).toBeNull()
+    expect(p.runesVsAlkanesBytes[0].pureRunes).toBeNull()
+  })
+
+  it("derives byteComposition: alkanes / pure-runes / other shares summing to ~1; clamps negatives", async () => {
+    store.listOpReturnDaily.mockResolvedValue([row("2026-06-01")])
+    let p = await getPublicOpReturnData()
+    const c = p.byteComposition[0]
+    expect(c.alkanes).toBeCloseTo(500_000 / 1_500_000, 10)
+    expect(c.pureRunes).toBeCloseTo((1_300_000 - 500_000) / 1_500_000, 10)
+    expect(c.other).toBeCloseTo((1_500_000 - 1_300_000) / 1_500_000, 10)
+    expect((c.alkanes ?? 0) + (c.pureRunes ?? 0) + (c.other ?? 0)).toBeCloseTo(1, 10)
+    // zero opReturnBytes -> all null; runestone>opReturn -> other clamps to 0
+    store.listOpReturnDaily.mockResolvedValue([
+      row("2026-06-01", { opReturnBytes: 0 }),
+      row("2026-06-02", { opReturnBytes: 1_000_000, runestoneBytes: 1_200_000, alkanesBytes: 300_000 }),
+    ])
+    p = await getPublicOpReturnData()
+    expect(p.byteComposition[0].alkanes).toBeNull()
+    expect(p.byteComposition[1].other).toBe(0)
   })
 })

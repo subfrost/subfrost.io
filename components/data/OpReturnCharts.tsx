@@ -36,6 +36,10 @@ export interface OpReturnCopy {
     dieselMintsPerDay: { title: string; desc: string }
     dieselCumulative: { title: string; desc: string }
     feePerTx: { title: string; desc: string; series: { alkanes: string; rest: string } }
+    ugMintsPerDay: { title: string; desc: string; series: { diesel: string; independent: string } }
+    runesVsAlkanesShare: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
+    runesVsAlkanesBytes: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
+    byteComposition: { title: string; desc: string; series: { alkanes: string; pureRunes: string; other: string } }
   }
 }
 
@@ -84,6 +88,7 @@ const tooltipUsd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`
 const tooltipBytesPerTx = (v: number) => `${v.toFixed(1)} B`
 const tooltipNum = (v: number) => Math.round(v).toLocaleString("en-US")
 const tooltipSats = (v: number) => `${Math.round(v).toLocaleString("en-US")} sats`
+const tooltipBytes = (v: number) => axisBytes(v)
 
 function fmtDate(iso: string, locale: "en" | "zh"): string {
   const d = new Date(`${iso}T00:00:00Z`)
@@ -106,7 +111,7 @@ function Card({ title, children, desc }: { title: string; children: React.ReactN
  * Series with a single key render without a Legend (nothing to toggle).
  */
 function ToggleLineChart({
-  data, seriesKeys, colors, dashed, yTickFormatter, tooltipFormatter, area = false, stacked = false, tip,
+  data, seriesKeys, colors, dashed, yTickFormatter, tooltipFormatter, area = false, stacked = false, logScale = false, tip,
 }: {
   data: Record<string, unknown>[]
   seriesKeys: { key: string; label: string }[]
@@ -116,11 +121,20 @@ function ToggleLineChart({
   tooltipFormatter: (v: number) => string
   area?: boolean
   stacked?: boolean
+  logScale?: boolean
   tip?: string
 }) {
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const showLegend = seriesKeys.length > 1
   const ChartTag = area ? AreaChart : LineChart
+  // A log axis can't plot 0 or negatives — drop them to null so the line just skips those days.
+  const plotData = logScale
+    ? data.map((d) => {
+        const o = { ...d }
+        for (const { key } of seriesKeys) o[key] = typeof d[key] === "number" && (d[key] as number) > 0 ? d[key] : null
+        return o
+      })
+    : data
 
   function onLegendClick(entry: LegendPayload) {
     const key = entry.dataKey
@@ -132,10 +146,17 @@ function ToggleLineChart({
     <div className="flex flex-col gap-1">
       <div className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ChartTag data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <ChartTag data={plotData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={40} />
-            <YAxis tick={{ fontSize: 11 }} width={72} tickFormatter={yTickFormatter} domain={["auto", "auto"]} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              width={72}
+              tickFormatter={yTickFormatter}
+              scale={logScale ? "log" : "auto"}
+              domain={logScale ? [1, "auto"] : ["auto", "auto"]}
+              allowDataOverflow={logScale}
+            />
             <Tooltip formatter={(v: number) => tooltipFormatter(v)} labelStyle={{ color: "#334" }} />
             {showLegend ? (
               <Legend onClick={onLegendClick} wrapperStyle={{ fontSize: 12, cursor: "pointer" }} />
@@ -299,6 +320,10 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const dieselMintsPerDay = useMemo(() => applyWindow(payload.dieselMintsPerDay, windowMode, year), [payload.dieselMintsPerDay, windowMode, year])
   const dieselCumulative = useMemo(() => applyWindow(payload.dieselCumulative, windowMode, year), [payload.dieselCumulative, windowMode, year])
   const feePerTx = useMemo(() => applyWindow(payload.feePerTx, windowMode, year), [payload.feePerTx, windowMode, year])
+  const ugMintsPerDay = useMemo(() => applyWindow(payload.ugMintsPerDay, windowMode, year), [payload.ugMintsPerDay, windowMode, year])
+  const runesVsAlkanesShare = useMemo(() => applyWindow(payload.runesVsAlkanesShare, windowMode, year), [payload.runesVsAlkanesShare, windowMode, year])
+  const runesVsAlkanesBytes = useMemo(() => applyWindow(payload.runesVsAlkanesBytes, windowMode, year), [payload.runesVsAlkanesBytes, windowMode, year])
+  const byteComposition = useMemo(() => applyWindow(payload.byteComposition, windowMode, year), [payload.byteComposition, windowMode, year])
 
   if (payload.days === 0) return null
   const donut = payload.latestDonut
@@ -462,6 +487,72 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           ugShareFull: fmtPct(stats.ug.full),
         })}>
           <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
+        </Card>
+
+        {/* UNCOMMON•GOODS mints per day — taken over by DIESEL (stacked, raw sampled counts) */}
+        <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc}>
+          <ToggleLineChart
+            data={ugMintsPerDay}
+            seriesKeys={[
+              { key: "diesel", label: copy.charts.ugMintsPerDay.series.diesel },
+              { key: "independent", label: copy.charts.ugMintsPerDay.series.independent },
+            ]}
+            colors={{ diesel: SECOND, independent: MUTED }}
+            yTickFormatter={axisNumCompact}
+            tooltipFormatter={tooltipNum}
+            area
+            stacked
+            tip={copy.legendTip}
+          />
+        </Card>
+
+        {/* Pure Runes vs Alkanes — share of OP_RETURN bytes (%) */}
+        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc}>
+          <ToggleLineChart
+            data={runesVsAlkanesShare}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.runesVsAlkanesShare.series.alkanes },
+              { key: "pureRunes", label: copy.charts.runesVsAlkanesShare.series.pureRunes },
+            ]}
+            colors={{ alkanes: ACCENT, pureRunes: SECOND }}
+            yTickFormatter={axisPct}
+            tooltipFormatter={tooltipPct}
+            tip={copy.legendTip}
+          />
+        </Card>
+
+        {/* Real Runes vs Alkanes — absolute bytes per day (log scale) */}
+        <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc}>
+          <ToggleLineChart
+            data={runesVsAlkanesBytes}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.runesVsAlkanesBytes.series.alkanes },
+              { key: "pureRunes", label: copy.charts.runesVsAlkanesBytes.series.pureRunes },
+            ]}
+            colors={{ alkanes: ACCENT, pureRunes: SECOND }}
+            yTickFormatter={axisBytes}
+            tooltipFormatter={tooltipBytes}
+            logScale
+            tip={copy.legendTip}
+          />
+        </Card>
+
+        {/* OP_RETURN byte composition over time (stacked %) — the temporal view of the all-time donut */}
+        <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc}>
+          <ToggleLineChart
+            data={byteComposition}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.byteComposition.series.alkanes },
+              { key: "pureRunes", label: copy.charts.byteComposition.series.pureRunes },
+              { key: "other", label: copy.charts.byteComposition.series.other },
+            ]}
+            colors={{ alkanes: ACCENT, pureRunes: SECOND, other: SLICE_OTHER }}
+            yTickFormatter={axisPct}
+            tooltipFormatter={tooltipPct}
+            area
+            stacked
+            tip={copy.legendTip}
+          />
         </Card>
 
         {/* 7. OP_RETURN bytes (all time) — donut, fixed all-time composition */}
