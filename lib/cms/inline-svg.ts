@@ -4,6 +4,9 @@ import { isChartSvg } from "./image-srcset"
 // Successes are immutable per URL — cache them in-process to avoid re-fetch/re-sanitize on every
 // render. Failures are NOT cached (a transient bucket blip should retry next render).
 const cache = new Map<string, string>()
+// Soft cap: the keyspace is the set of published chart-SVG URLs (small), so a coarse
+// clear-at-cap is fine — no need for LRU bookkeeping.
+const CACHE_CAP = 256
 
 const SVG_RE = /<svg[\s>]/i
 const IMG_RE = /!\[[^\]]*\]\(([^)\s]+)\)/g
@@ -30,6 +33,7 @@ export async function prepareInlineSvg(src: string): Promise<string | null> {
     if (!SVG_RE.test(text)) return null
     const clean = sanitizeSvg(text)
     if (!SVG_RE.test(clean)) return null
+    if (cache.size >= CACHE_CAP) cache.clear()
     cache.set(src, clean)
     return clean
   } catch {

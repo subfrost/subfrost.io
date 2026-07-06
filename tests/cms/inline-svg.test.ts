@@ -49,6 +49,16 @@ describe("prepareInlineSvg", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")))
     expect(await prepareInlineSvg(`${B}/inline/fail-once.svg`)).toBeNull()
   })
+  it("preserves the <style> block that remaps ink to currentColor (theme-adaptivity)", async () => {
+    const themed =
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>text[fill="#2c2c2a"]{fill:currentColor;fill-opacity:.92}</style><text fill="#2c2c2a">hi</text></svg>'
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(themed) }))
+    const out = await prepareInlineSvg(`${B}/inline/themed-style.svg`)
+    expect(out).not.toBeNull()
+    expect(out).toContain("<style")
+    expect(out).toContain("currentColor")
+    expect(out).toContain('text[fill=')
+  })
 })
 
 describe("buildInlineSvgMap", () => {
