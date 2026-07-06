@@ -1,0 +1,52 @@
+[package]
+name = "frbtc-volume-indexer"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+repository = "https://github.com/subfrostdev/subfrost.io"
+description = "Lightweight metashrew WASM indexer that tracks frBTC (alkane 32:0) wrap/unwrap volume per UTC day so protocol fee revenue (0.3% of wrap+unwrap volume) can be computed."
+resolver = "2"
+
+# Standalone crate (NOT part of a workspace). It path-depends on the alkanes-rs
+# decoder crates (ordinals + protorune-support) so the runestone/protostone
+# decoding matches consensus exactly, and pulls the metashrew host ABI from the
+# same v10 git commit alkanes-rs is pinned to. Build with:
+#   rustup target add wasm32-unknown-unknown
+#   cargo build --release --target wasm32-unknown-unknown -p frbtc-volume-indexer
+#
+# NOTE: the path deps below are ABSOLUTE (../../../alkanes-rs) so this builds
+# regardless of where the crate itself sits. If/when this crate is committed at
+# its intended home ~/subfrost.io/crates/frbtc-volume-indexer, they can become
+# relative: "../../../alkanes-rs/crates/<crate>".
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# metashrew guest host ABI: input()/get()/set()/flush()/export_bytes()/_start.
+# Same git source spec (url + branch) that alkanes-rs / protorune-support use, so
+# cargo unifies to a single metashrew-support in the graph. Cargo.lock pins the
+# exact commit (currently eca790ca, matching alkanes-rs). We speak the same
+# KeyValueFlush protobuf + ArrayBuffer framing the rockshrew-mono host expects.
+metashrew-core = { git = "https://github.com/kungfuflex/metashrew", branch = "develop" }
+
+# Consensus-accurate runestone -> protostone decoding, reused rather than
+# reimplemented (path deps into the sibling alkanes-rs checkout).
+ordinals = { path = "../../../alkanes-rs/crates/ordinals" }
+protorune-support = { path = "../../../alkanes-rs/crates/protorune-support" }
+
+# Must match the version ordinals/protorune-support resolve (alkanes workspace
+# = 0.32.4) so bitcoin::{Block,Transaction,...} are the same type across crates.
+bitcoin = { version = "0.32.4", features = ["rand"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hex = "0.4"
+anyhow = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
