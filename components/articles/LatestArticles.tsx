@@ -91,14 +91,16 @@ export default function LatestArticles({
       <div className="grid gap-x-8 gap-y-10 lg:grid-cols-3">
         {cards.map((card) => (
           <article key={card.id} className="ed-card">
-            <a href={card.href} {...externalAnchorProps(card.href)} className="ed-cover-frame aspect-[16/9]">
+            {/* 24:11 matches the CMS cover banners (and /articles) — a 16:9 frame letterboxed
+                them with the --ed-cover background showing above/below the art. */}
+            <a href={card.href} {...externalAnchorProps(card.href)} className="ed-cover-frame aspect-[24/11]">
               {card.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={card.coverImage}
                   alt=""
                   width={960}
-                  height={540}
+                  height={440}
                   loading="lazy"
                   decoding="async"
                   className="ed-cms-cover"

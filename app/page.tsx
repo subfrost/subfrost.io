@@ -646,13 +646,13 @@ export default async function Page({
           <LatestArticles locale={locale} articles={initialArticles} />
         </section>
 
-        <section className="homepage-cascade-section mx-auto grid max-w-[1440px] gap-8 px-6 py-12 sm:px-8 lg:grid-cols-[0.42fr_1.08fr] lg:gap-16 lg:pb-24 lg:pt-16">
-          <div>
-            <h2 className="font-display text-[34px] font-normal leading-[1.08] sm:text-[44px]" style={{ color: "var(--ed-ink)" }}>
-              {copy.faqHeading}
-            </h2>
+        <section className="homepage-cascade-section mx-auto max-w-[1440px] px-6 py-12 sm:px-8 lg:pb-24 lg:pt-16">
+          <h2 className="font-display text-[34px] font-normal leading-[1.08] sm:text-[44px]" style={{ color: "var(--ed-ink)" }}>
+            {copy.faqHeading}
+          </h2>
+          <div className="mt-8 lg:mt-10">
+            <HomepageFaq items={copy.faqItems} />
           </div>
-          <HomepageFaq items={copy.faqItems} />
         </section>
         </main>
       </EditorialShell>

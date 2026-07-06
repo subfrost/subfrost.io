@@ -309,12 +309,12 @@ export default async function DataPage({ searchParams }: { searchParams?: Promis
           <p className="max-w-2xl text-lg" style={{ color: "var(--ed-muted)" }}>{c.subtitle}</p>
         </header>
 
-        <section className="mt-12 grid gap-6 md:grid-cols-2">
+        <section className="mt-10 grid gap-4 md:grid-cols-2">
           <MetricCard metric="btc-locked" value={data.now["btc-locked"]} deltaPct={data.deltas7d["btc-locked"]} series={data.series} showChart={showCharts} copy={c.card} locale={locale} />
           <MetricCard metric="frbtc-supply" value={data.now["frbtc-supply"]} deltaPct={data.deltas7d["frbtc-supply"]} series={data.series} showChart={showCharts} copy={c.card} locale={locale} />
         </section>
 
-        <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {GRID.map((m) => (
             <MetricCard key={m} metric={m} value={data.now[m]} deltaPct={data.deltas7d[m]} series={data.series} showChart={showCharts} copy={c.card} locale={locale} />
           ))}
