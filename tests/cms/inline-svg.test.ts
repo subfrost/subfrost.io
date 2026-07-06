@@ -59,6 +59,23 @@ describe("prepareInlineSvg", () => {
     expect(out).toContain("currentColor")
     expect(out).toContain('text[fill=')
   })
+  it("preserves the figchart class + standalone fallback (own ink/canvas + dark media query)", async () => {
+    // The generator gives every figure a self-contained fallback so it stays readable when it
+    // renders as an <img> (admin preview, RSS): .figchart carries its own color+background and a
+    // prefers-color-scheme override. When inlined, .ed-figure svg (globals.css) takes back control.
+    const standalone =
+      '<svg class="figchart" xmlns="http://www.w3.org/2000/svg"><style>' +
+      ".figchart{color:#2c2c2a;background:#fdfdfc}" +
+      'text[fill="#2c2c2a"]{fill:currentColor;fill-opacity:.92}' +
+      "@media(prefers-color-scheme:dark){.figchart{color:#eceae4;background:#0c1017}}" +
+      '</style><text fill="#2c2c2a">hi</text></svg>'
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(standalone) }))
+    const out = await prepareInlineSvg(`${B}/inline/figchart-fallback.svg`)
+    expect(out).not.toBeNull()
+    expect(out).toContain('class="figchart"')
+    expect(out).toContain(".figchart{color:#2c2c2a")
+    expect(out).toContain("@media(prefers-color-scheme:dark)")
+  })
 })
 
 describe("buildInlineSvgMap", () => {
