@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { Markdown } from "@/lib/cms/markdown"
-import { Mark, StatusBadge, gradFor } from "@/components/ecosystem/visuals"
+import { Mark, StatusBadge } from "@/components/ecosystem/visuals"
 import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
 import type { StatHeroCopy } from "./StatHero"
@@ -10,6 +10,7 @@ import { ProfileTabs } from "./ProfileTabs"
 
 export interface ProfileCopy {
   back: string
+  disclaimer: string
   website: string
   docs: string
   overview: string
@@ -41,11 +42,9 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
       {p.bannerUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.bannerUrl} alt="" className="mt-5 h-[clamp(120px,22vw,240px)] w-full rounded-[14px] object-cover" />
-      ) : (
-        <div aria-hidden className="mt-5 h-[96px] w-full rounded-[14px]" style={{ background: gradFor(p.slug) }} />
-      )}
+      ) : null}
 
-      <header className="mt-6 flex flex-wrap items-start gap-5">
+      <header className="mt-8 flex flex-wrap items-start gap-5">
         <Mark p={p} size={64} />
         <div className="min-w-0 flex-1">
           <h1 className="text-[clamp(26px,4vw,38px)] font-normal leading-[1.05] tracking-[-0.02em] text-[color:var(--ed-ink)]">{p.name}</h1>
@@ -76,6 +75,10 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
       {priceChart ?? null}
 
       <ProfileBody p={p} copy={copy} />
+
+      <p className="mt-12 border-t border-[color:var(--ed-hair)] pt-6 font-mono text-[11px] leading-relaxed text-[color:var(--ed-muted)]">
+        {copy.disclaimer}
+      </p>
     </article>
   )
 }

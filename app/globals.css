@@ -1129,3 +1129,32 @@ div[data-netlify-deploy-id] {
   transform: scaleX(0);
   transition: transform 0.08s linear;
 }
+
+/* Ecosystem hero mosaic — a constellation of project logomarks that fades into the
+   background at its edges, with a staggered fade-in on load (see HeroMosaic.tsx). */
+.ec-hero-mosaic {
+  -webkit-mask-image: radial-gradient(ellipse 78% 92% at 62% 42%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 78% 92% at 62% 42%, #000 52%, transparent 100%);
+}
+.ec-hero-tile {
+  /* fill: both applies the from-state (opacity 0) during the delay and holds the end
+     state after; the tile's default opacity is 1, so it stays visible even if the
+     animation never runs (progressive enhancement). */
+  animation: ec-hero-tile-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ec-hero-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ec-hero-tile {
+    animation: none;
+    opacity: 1;
+  }
+}
