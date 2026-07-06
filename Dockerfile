@@ -13,6 +13,9 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # Copy package files and prisma schema (needed for postinstall)
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
+# Vendored local `file:` deps must be present before pnpm install resolves them
+# (tlsfetch = the wasm TLS client the treasury provider dials NodeReal through).
+COPY vendor ./vendor/
 
 # Configure pnpm to NOT use symlinks (critical for Docker builds)
 RUN echo "node-linker=hoisted" > .npmrc && \
