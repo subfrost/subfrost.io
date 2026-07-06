@@ -913,6 +913,32 @@ div[data-netlify-deploy-id] {
   padding: 0;
   font-size: inherit;
 }
+/* GFM tables — Tailwind preflight zeroes cell padding/borders, so restore them
+   (without these, columns collapse into each other: "Bonding allocation15%").
+   display:block + overflow-x lets a wide table scroll instead of breaking the layout. */
+.ed-article-prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.ed-article-prose th,
+.ed-article-prose td {
+  padding: 0.45em 0.9em;
+  border-bottom: 1px solid var(--ed-hair);
+  text-align: left;
+  vertical-align: top;
+}
+.ed-article-prose th {
+  color: var(--ed-ink);
+  font-weight: 600;
+}
+.ed-article-prose thead th {
+  border-bottom-width: 2px;
+}
 
 .ed-static-prose {
   font-family: var(--ed-sans);
