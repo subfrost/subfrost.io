@@ -235,6 +235,15 @@ spec:
               value: "https://subfrost.io"
             - name: EMAIL_FROM
               value: "SUBFROST <noreply@mail.subfrost.io>"
+            # Optional: JSON-RPC endpoint of the dedicated frBTC volume metashrew
+            # indexer (its own rockshrew-mono instance). When set AND reachable,
+            # Financials > Revenue reads the BTC wrap/unwrap fee series on-chain
+            # via metashrew_view (frbtc_volume_range / frbtc_volume_tip); when
+            # unset it falls back to the WrapTransaction/UnwrapTransaction tables.
+            # Intentionally left unset until the indexer is deployed — uncomment
+            # and point at the in-cluster service to enable.
+            # - name: FRBTC_INDEXER_RPC_URL
+            #   value: "http://frbtc-volume-indexer.default.svc.cluster.local:8080"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

@@ -5,7 +5,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import {
   denseDailySeries,
-  type RevenueOverview, type RevenueSeries, type RevenueUnit, type PeriodRollups,
+  type BtcSource, type RevenueOverview, type RevenueSeries, type RevenueUnit, type PeriodRollups,
   type StripeSubscriptionSummary,
 } from "@/lib/financials/revenue"
 
@@ -27,6 +27,7 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
         series={overview.btcFee}
         config={btcConfig}
         note={overview.btcFeeNote}
+        badge={<BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />}
       />
       <RevenueSection
         title="Stripe charges"
@@ -49,7 +50,7 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
 }
 
 function RevenueSection({
-  title, subtitle, series, config, note, lead,
+  title, subtitle, series, config, note, lead, badge,
 }: {
   title: string
   subtitle: string
@@ -57,6 +58,7 @@ function RevenueSection({
   config: ChartConfig
   note?: string
   lead?: ReactNode
+  badge?: ReactNode
 }) {
   const f = fmt(series.unit)
   const chartData = useMemo(() => denseDailySeries(series.daily, series.unit === "USD" ? 2 : 8), [series])
@@ -64,9 +66,12 @@ function RevenueSection({
 
   return (
     <section className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="text-xs text-zinc-500">{subtitle}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <p className="text-xs text-zinc-500">{subtitle}</p>
+        </div>
+        {badge}
       </div>
 
       {lead}
@@ -133,6 +138,26 @@ function RevenueSection({
         </div>
       )}
     </section>
+  )
+}
+
+/** Small source/freshness badge on the BTC fee card: on-chain indexer (with the
+ *  last synced block) vs. the ledger-table fallback. Mirrors the Stripe live/
+ *  fallback signalling. */
+function BtcSourceBadge({ source, tip }: { source: BtcSource; tip: number | null }) {
+  if (source === "indexer") {
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-900/60 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        on-chain indexer{tip != null ? ` @ block ${tip.toLocaleString("en-US")}` : ""}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-800 bg-zinc-900/50 px-2.5 py-1 text-[11px] font-medium text-zinc-400">
+      <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+      from ledger tables
+    </span>
   )
 }
 

@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import {
   buildSeries, feeBtcFromSats,
-  type RevenueEvent, type RevenueOverview, type StripeSubscriptionSummary,
+  type BtcSource, type RevenueEvent, type RevenueOverview, type StripeSubscriptionSummary,
 } from "@/lib/financials/revenue"
 import { getLiveStripeRevenue } from "@/lib/financials/stripeRevenue"
+import { getFrbtcVolumeRange, getFrbtcVolumeTip } from "@/lib/financials/frbtc-indexer"
 
 async function gate(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: "unauthorized" }> {
   const me = await currentUser()
@@ -26,6 +27,15 @@ const BTC_FEE_NOTE =
   "wrap/unwrap time — the authoritative revenue definition, independent of any " +
   "later treasury withdrawals (unlike the reserve−supply proxy, which nets out " +
   "withdrawals and can go negative). Freshness depends on the wrap/unwrap sync."
+
+// Widest plausible query window for the on-chain indexer — comfortably before
+// frBTC genesis, so the rollups (1d/7d/30d/YTD/all) see the full history.
+const INDEXER_RANGE_FROM = "2020-01-01"
+
+const BTC_INDEXER_NOTE =
+  "BTC fee revenue = 0.3% of every confirmed on-chain frBTC wrap + unwrap, read " +
+  "directly from the dedicated frBTC volume metashrew indexer (authoritative, " +
+  "independent of the app's own wrap/unwrap sync). Aggregated per UTC day."
 
 const STRIPE_LIVE_NOTE =
   "Stripe revenue = succeeded USD charges pulled LIVE from the Stripe API, net of " +
@@ -47,23 +57,52 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
   if (!g.ok) return g
 
   const now = new Date()
-  const [wraps, unwraps] = await Promise.all([
-    prisma.wrapTransaction.findMany({
-      where: { confirmed: true },
-      select: { amount: true, timestamp: true },
-    }),
-    prisma.unwrapTransaction.findMany({
-      where: { confirmed: true },
-      select: { amount: true, timestamp: true },
-    }),
-  ])
 
-  // BTC fee events: 0.3% of each wrap/unwrap satoshi volume, expressed in BTC.
-  // amount is a satoshi string; Number is safe (< 2^53 for realistic volumes).
-  const btcEvents: RevenueEvent[] = [...wraps, ...unwraps].map((r) => ({
-    at: r.timestamp.toISOString(),
-    amount: feeBtcFromSats(Number(r.amount)),
-  }))
+  // BTC fee revenue: prefer the on-chain frBTC volume indexer when it's wired up
+  // (FRBTC_INDEXER_RPC_URL) AND reachable; otherwise fall back to the local
+  // WrapTransaction/UnwrapTransaction ledger tables — the original, unchanged path.
+  let btcEvents: RevenueEvent[]
+  let btcSource: BtcSource = "tables"
+  let indexerTip: number | null = null
+  let btcFeeNote = BTC_FEE_NOTE
+  let btcNote = "from ledger tables"
+  try {
+    const to = now.toISOString().slice(0, 10)
+    const range = await getFrbtcVolumeRange(INDEXER_RANGE_FROM, to)
+    if (!range) throw new Error("indexer not configured") // env unset → fall back
+    // One BTC fee event per non-empty UTC day (dated at day start). The per-day
+    // fee is 0.3% of that day's wrap+unwrap volume — same feeBtcFromSats rule as
+    // the tables path, so buildSeries's rollups line up either way.
+    btcEvents = range.daily
+      .filter((d) => d.wrapped_sats + d.unwrapped_sats > 0)
+      .map((d) => ({
+        at: `${d.date}T00:00:00.000Z`,
+        amount: feeBtcFromSats(d.wrapped_sats + d.unwrapped_sats),
+      }))
+    const tip = await getFrbtcVolumeTip().catch(() => null)
+    indexerTip = tip?.tip ?? null
+    btcSource = "indexer"
+    btcFeeNote = BTC_INDEXER_NOTE
+    btcNote =
+      indexerTip != null ? `on-chain indexer · synced to block ${indexerTip}` : "on-chain indexer"
+  } catch {
+    // Fallback: 0.3% of each confirmed wrap/unwrap satoshi volume, in BTC. amount
+    // is a satoshi string; Number is safe (< 2^53 for realistic volumes).
+    const [wraps, unwraps] = await Promise.all([
+      prisma.wrapTransaction.findMany({
+        where: { confirmed: true },
+        select: { amount: true, timestamp: true },
+      }),
+      prisma.unwrapTransaction.findMany({
+        where: { confirmed: true },
+        select: { amount: true, timestamp: true },
+      }),
+    ])
+    btcEvents = [...wraps, ...unwraps].map((r) => ({
+      at: r.timestamp.toISOString(),
+      amount: feeBtcFromSats(Number(r.amount)),
+    }))
+  }
 
   // Stripe: pull the authoritative picture LIVE from the Stripe API — succeeded
   // charges (historical series) + active-subscription MRR. If the API is
@@ -94,7 +133,10 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     btcFee: buildSeries("btc_fee", "BTC", btcEvents, now, 8),
     stripe: buildSeries("stripe", "USD", stripeEvents, now, 2),
     generatedAt: now.toISOString(),
-    btcFeeNote: BTC_FEE_NOTE,
+    btcFeeNote,
+    btcSource,
+    indexerTip,
+    btcNote,
     stripeSubs,
     stripeLive,
     stripeNote,

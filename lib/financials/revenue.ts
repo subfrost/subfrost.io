@@ -73,6 +73,10 @@ export interface StripeSubscriptionSummary {
   mrr: number // USD per month
 }
 
+/** Where the BTC fee series came from: the on-chain frBTC volume indexer, or the
+ *  local WrapTransaction/UnwrapTransaction ledger tables (fallback). */
+export type BtcSource = "indexer" | "tables"
+
 /** Everything the Revenue page renders. Serializable end-to-end. */
 export interface RevenueOverview {
   btcFee: RevenueSeries
@@ -80,6 +84,12 @@ export interface RevenueOverview {
   generatedAt: string // ISO
   /** Source + caveat blurb for the BTC fee series (shown under its chart). */
   btcFeeNote: string
+  /** Where the BTC fee series came from — "indexer" (on-chain) or "tables" (ledger fallback). */
+  btcSource: BtcSource
+  /** Last height the frBTC indexer processed, when btcSource === "indexer"; else null. */
+  indexerTip: number | null
+  /** Short freshness blurb for the BTC card badge (indexer block / fallback). */
+  btcNote: string
   /** Active-subscription MRR summary, or null if the live API was unreachable. */
   stripeSubs: StripeSubscriptionSummary | null
   /** True when the Stripe series came from the live API; false = webhook-log fallback. */
