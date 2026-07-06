@@ -242,6 +242,9 @@ importers:
       tiny-secp256k1:
         specifier: ^2.2.4
         version: 2.2.4
+      tlsfetch:
+        specifier: file:./vendor/tlsfetch
+        version: file:vendor/tlsfetch
       vaul:
         specifier: ^0.9.6
         version: 0.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -5790,6 +5793,11 @@ packages:
 
   tldts@6.1.86:
     resolution: {integrity: sha512-WMi/OQ2axVTf/ykqCQgXiIct+mSQDFdH2fkwhPwgEwvJ1kSzZRiinb0zF2Xb8u4+OqPChmyI6MEu4EezNJz+FQ==}
+    hasBin: true
+
+  tlsfetch@file:vendor/tlsfetch:
+    resolution: {directory: vendor/tlsfetch, type: directory}
+    engines: {node: '>=18'}
     hasBin: true
 
   to-buffer@1.2.2:
@@ -12373,6 +12381,8 @@ snapshots:
   tldts@6.1.86:
     dependencies:
       tldts-core: 6.1.86
+
+  tlsfetch@file:vendor/tlsfetch: {}
 
   to-buffer@1.2.2:
     dependencies:

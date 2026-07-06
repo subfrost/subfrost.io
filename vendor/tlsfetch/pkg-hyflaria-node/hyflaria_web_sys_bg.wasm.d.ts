@@ -1,0 +1,33 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_hyflariadataframe_free: (a: number, b: number) => void;
+export const __wbg_wasmhyflariacodec_free: (a: number, b: number) => void;
+export const __wbg_wasmpumpedduplex_free: (a: number, b: number) => void;
+export const connectHyflariaOuterInner: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => any;
+export const hyflariadataframe_payload: (a: number) => [number, number];
+export const hyflariadataframe_seq: (a: number) => bigint;
+export const wasmhyflariacodec_acceptAuth: (a: number, b: number, c: number) => [number, number, number];
+export const wasmhyflariacodec_buildAuthFrame: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const wasmhyflariacodec_buildAuthResponse: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const wasmhyflariacodec_buildCloseFrame: (a: number, b: number, c: bigint) => [number, number, number, number];
+export const wasmhyflariacodec_buildDataFrame: (a: number, b: number, c: bigint, d: number, e: number) => [number, number, number, number];
+export const wasmhyflariacodec_new: (a: number, b: number) => [number, number, number];
+export const wasmhyflariacodec_verifyAuthResponse: (a: number, b: number, c: number) => [number, number, number];
+export const wasmhyflariacodec_verifyDataFrame: (a: number, b: number, c: number, d: bigint) => [number, number, number];
+export const wasmpumpedduplex_close: (a: number) => void;
+export const wasmpumpedduplex_isClosed: (a: number) => number;
+export const wasmpumpedduplex_new: () => number;
+export const wasmpumpedduplex_pushInbound: (a: number, b: number, c: number) => void;
+export const wasmpumpedduplex_takeOutbound: (a: number) => [number, number];
+export const wasm_bindgen__convert__closures_____invoke__hb43641daaf1cdf5c: (a: number, b: number, c: any) => [number, number];
+export const wasm_bindgen__convert__closures_____invoke__h2167e2dc5d4504c9: (a: number, b: number, c: any, d: any) => void;
+export const __wbindgen_exn_store: (a: number) => void;
+export const __externref_table_alloc: () => number;
+export const __wbindgen_externrefs: WebAssembly.Table;
+export const __wbindgen_destroy_closure: (a: number, b: number) => void;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __externref_table_dealloc: (a: number) => void;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_start: () => void;

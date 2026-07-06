@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { fetchWalletBalances, fetchTreasurySnapshot } from "@/lib/financials/treasury/source/live"
 import { normalizeBalances, round2, type TreasuryToken } from "@/lib/financials/treasury/shapes"
+
+// The BSC JSON-RPC transport (`bscRpcCall`) is mocked at the module boundary —
+// the real one routes through tlsfetch (wasm browser-emulation), which we don't
+// want to load or hit the network for in unit tests. `bscRpcMock` stands in for
+// it; `fetch` is still stubbed for the Binance BNB-price call.
+const { bscRpcMock } = vi.hoisted(() => ({ bscRpcMock: vi.fn() }))
+vi.mock("@/lib/financials/treasury/source/bsc-rpc", () => ({ bscRpcCall: bscRpcMock }))
+
+// Imported after the mock is registered so `live` picks up the stubbed transport.
+const { fetchWalletBalances, fetchTreasurySnapshot } = await import(
+  "@/lib/financials/treasury/source/live"
+)
 
 // A JSON-RPC batch stub: results are returned in request order. The provider
 // sends [eth_getBalance, balanceOf(USDT), balanceOf(USDC), balanceOf(BUSD),
@@ -9,14 +20,10 @@ function hex18(n: number): string {
   return "0x" + (BigInt(n) * 10n ** 18n).toString(16)
 }
 
-/** Mocks fetch: BSC RPC batch (array body) → balances; Binance ticker → BNB
- *  price; anything else → {}. */
+/** Mocks the transport: `bscRpcCall` returns the JSON-RPC batch results in
+ *  request order; `fetch` answers the Binance ticker → BNB price. */
 function mockRpc(opts: { bnb?: number; usdt?: number; usdc?: number; busd?: number; wbnb?: number; bnbPrice?: number }) {
-  const fn = vi.fn(async (url: string, init?: { body?: string }) => {
-    if (typeof url === "string" && url.includes("binance.com")) {
-      return { ok: true, status: 200, json: async () => ({ price: String(opts.bnbPrice ?? 600) }) }
-    }
-    // BSC RPC — respond to the batch in order.
+  bscRpcMock.mockImplementation(async (payload: unknown) => {
     const results = [
       hex18(opts.bnb ?? 0),
       hex18(opts.usdt ?? 0),
@@ -24,19 +31,21 @@ function mockRpc(opts: { bnb?: number; usdt?: number; usdc?: number; busd?: numb
       hex18(opts.busd ?? 0),
       hex18(opts.wbnb ?? 0),
     ]
-    const batch = init?.body ? JSON.parse(init.body) : []
-    const body = Array.isArray(batch)
-      ? batch.map((r: { id: number }) => ({ jsonrpc: "2.0", id: r.id, result: results[r.id] }))
+    return Array.isArray(payload)
+      ? payload.map((r: { id: number }) => ({ jsonrpc: "2.0", id: r.id, result: results[r.id] }))
       : {}
-    return { ok: true, status: 200, json: async () => body }
   })
-  vi.stubGlobal("fetch", fn)
-  return fn
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ price: String(opts.bnbPrice ?? 600) }) })),
+  )
+  return bscRpcMock
 }
 
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  bscRpcMock.mockReset()
 })
 
 describe("normalizeBalances (pure)", () => {
@@ -78,13 +87,10 @@ describe("fetchWalletBalances (BSC JSON-RPC)", () => {
   })
 
   it("throws when the RPC returns non-OK (caller degrades to last-good)", async () => {
+    bscRpcMock.mockRejectedValue(new Error("BSC RPC 502"))
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string) =>
-        typeof url === "string" && url.includes("binance.com")
-          ? { ok: true, status: 200, json: async () => ({ price: "600" }) }
-          : { ok: false, status: 502, json: async () => ({}) },
-      ),
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ price: "600" }) })),
     )
     await expect(fetchWalletBalances("0xABC")).rejects.toThrow(/BSC RPC 502/)
   })

@@ -5,7 +5,8 @@ import {
   type TreasuryToken,
   type TreasuryWallet,
 } from "@/lib/financials/treasury/shapes"
-import { TREASURY_WALLETS, BSC_RPC_URL } from "@/lib/financials/treasury/config"
+import { TREASURY_WALLETS } from "@/lib/financials/treasury/config"
+import { bscRpcCall } from "@/lib/financials/treasury/source/bsc-rpc"
 import {
   BSC_TOKENS,
   NATIVE_BNB,
@@ -17,9 +18,11 @@ import { reservesAtHeight } from "@/lib/financials/diesel-valuation"
 
 const TIMEOUT_MS = 12_000
 
-// ── EVM JSON-RPC over fetch ────────────────────────────────────────────────
+// ── EVM JSON-RPC over tlsfetch ─────────────────────────────────────────────
 // Tiny hand-rolled client — one batched POST per wallet (native balance +
-// balanceOf for every registry token). No wallet/RPC SDK dependency.
+// balanceOf for every registry token). No wallet/RPC SDK dependency. The
+// transport (`bscRpcCall`) routes each POST through tlsfetch browser-emulation
+// so the datacenter egress isn't blocked/fingerprinted by the RPC.
 
 interface RpcReq {
   method: string
@@ -39,15 +42,7 @@ function balanceOfData(address: string): string {
  *  transport error or per-call error so the caller degrades to last-good. */
 async function rpcBatch(reqs: RpcReq[]): Promise<string[]> {
   const body = reqs.map((r, i) => ({ jsonrpc: "2.0", id: i, method: r.method, params: r.params }))
-  const res = await fetch(BSC_RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-    cache: "no-store",
-  })
-  if (!res.ok) throw new Error(`BSC RPC ${res.status}`)
-  const json = (await res.json()) as
+  const json = (await bscRpcCall(body)) as
     | Array<{ id: number; result?: string; error?: { message?: string } }>
     | { error?: { message?: string } }
   if (!Array.isArray(json)) throw new Error(json?.error?.message ?? "BSC RPC batch error")

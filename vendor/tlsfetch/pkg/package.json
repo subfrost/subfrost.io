@@ -1,0 +1,13 @@
+{
+  "name": "tlsfetch-web-sys",
+  "description": "wasm-bindgen socket adapter for tlsfetch — wraps a JS-supplied net.Socket / dgram.Socket so the pure-Rust TLS engine drives the JS network stack.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "tlsfetch_web_sys_bg.wasm",
+    "tlsfetch_web_sys.js",
+    "tlsfetch_web_sys.d.ts"
+  ],
+  "main": "tlsfetch_web_sys.js",
+  "types": "tlsfetch_web_sys.d.ts"
+}

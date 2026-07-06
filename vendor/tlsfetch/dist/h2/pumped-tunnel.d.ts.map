@@ -1,0 +1,1 @@
+{"version":3,"file":"pumped-tunnel.d.ts","sourceRoot":"","sources":["../../src/h2/pumped-tunnel.ts"],"names":[],"mappings":"AAOA,OAAO,KAAK,EAAE,eAAe,EAAE,MACtB,0CAA0C,CAAC;AAIpD,MAAM,MAAM,iBAAiB,GAAG,eAAe,CAAC;AAKhD,MAAM,WAAW,UAAU;IACvB,OAAO,EAAE,iBAAiB,CAAC;IAC3B,KAAK,EAAE,MAAM,IAAI,CAAC;CACrB"}

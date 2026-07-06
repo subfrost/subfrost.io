@@ -73,6 +73,10 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/tiny-secp256k1 ./node_modules/tiny-secp256k1
 # Copy entire @alkanes/ts-sdk package (marked as serverExternalPackages in next.config)
 COPY --from=builder /app/node_modules/@alkanes ./node_modules/@alkanes
+# tlsfetch (serverExternalPackages): pure-Rust TLS client compiled to wasm — the
+# treasury provider dials NodeReal (BSC) with a browser fingerprint through it.
+# standalone tracing drops the .wasm, so copy the whole vendored package.
+COPY --from=builder /app/node_modules/tlsfetch ./node_modules/tlsfetch
 # sharp loads libvips (a native .so) via dlopen at runtime, which Next.js
 # standalone tracing can't follow — it copies sharp's JS but drops the .so, so
 # require('sharp') dies with ERR_DLOPEN_FAILED and every CMS image upload fails.
