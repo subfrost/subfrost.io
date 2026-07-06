@@ -20,9 +20,13 @@ export const FUEL_SURPLUS = 1_050_000 // community + treasury (50%)
 // NOT the 2.1M supply marked to the presale price. That mark-to-price figure is
 // a notional overhang shown only as a memo, never as a liability.
 //
-// TODO confirm with rwp — presale $ raised; sized as consideration received,
-// NOT 2.1M × $17.17.
-export const FUEL_PRESALE_PROCEEDS_USD = 0
+// Confirmed with rwp (2026-07-06): the presale landed in the treasury ops wallet
+// 0x35E18d…E9e4. Gross USDT-in there was $1.76M, but that includes $300k of
+// internal self-shuffling and ~$1 of spam-airdrop dust across 389 addresses.
+// Netting to external inflow leaves 9 real investor deposits ($500k/200k/200k/
+// 150k/100k×4/10k) = $1,460,000. Booked as consideration received, NOT
+// 2.1M × $17.17.
+export const FUEL_PRESALE_PROCEEDS_USD = 1_460_000
 
 // Presale unit price ($/FUEL). Used ONLY for the notional overhang memo
 // ((FUEL_TOTAL − issued) × price), never to size the deferred obligation.
