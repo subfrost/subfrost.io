@@ -64,6 +64,15 @@ export interface RevenueSeries {
   range: DateRange
 }
 
+/** Active-subscription rollup for the Stripe MRR card. `activeCount` counts
+ *  currently-billing subscriptions (active + trialing + past_due); `mrr` is their
+ *  combined monthly recurring revenue in USD (yearly/weekly plans normalized to a
+ *  month). Null when the live Stripe API could not be reached. */
+export interface StripeSubscriptionSummary {
+  activeCount: number
+  mrr: number // USD per month
+}
+
 /** Everything the Revenue page renders. Serializable end-to-end. */
 export interface RevenueOverview {
   btcFee: RevenueSeries
@@ -71,6 +80,12 @@ export interface RevenueOverview {
   generatedAt: string // ISO
   /** Source + caveat blurb for the BTC fee series (shown under its chart). */
   btcFeeNote: string
+  /** Active-subscription MRR summary, or null if the live API was unreachable. */
+  stripeSubs: StripeSubscriptionSummary | null
+  /** True when the Stripe series came from the live API; false = webhook-log fallback. */
+  stripeLive: boolean
+  /** Source + caveat blurb for the Stripe series (shown under its chart). */
+  stripeNote: string
 }
 
 /** BTC fee earned on wrapping/unwrapping `sats` satoshis of volume (0.3%). */

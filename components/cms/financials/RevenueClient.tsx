@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import {
   denseDailySeries,
   type RevenueOverview, type RevenueSeries, type RevenueUnit, type PeriodRollups,
+  type StripeSubscriptionSummary,
 } from "@/lib/financials/revenue"
 
 const usd = (n: number) =>
@@ -29,9 +30,15 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
       />
       <RevenueSection
         title="Stripe charges"
-        subtitle="Succeeded Stripe charges synced locally, in USD."
+        subtitle={
+          overview.stripeLive
+            ? "Succeeded Stripe charges, live from the Stripe API, in USD."
+            : "Succeeded Stripe charges from the local webhook log (live API unreachable), in USD."
+        }
         series={overview.stripe}
         config={usdConfig}
+        note={overview.stripeNote}
+        lead={<SubscriptionCard subs={overview.stripeSubs} live={overview.stripeLive} />}
       />
       <p className="text-[11px] text-zinc-600">
         Generated {new Date(overview.generatedAt).toLocaleString("en-US")}. Windows are
@@ -42,13 +49,14 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
 }
 
 function RevenueSection({
-  title, subtitle, series, config, note,
+  title, subtitle, series, config, note, lead,
 }: {
   title: string
   subtitle: string
   series: RevenueSeries
   config: ChartConfig
   note?: string
+  lead?: ReactNode
 }) {
   const f = fmt(series.unit)
   const chartData = useMemo(() => denseDailySeries(series.daily, series.unit === "USD" ? 2 : 8), [series])
@@ -60,6 +68,8 @@ function RevenueSection({
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         <p className="text-xs text-zinc-500">{subtitle}</p>
       </div>
+
+      {lead}
 
       <RollupCards rollups={series.rollups} unit={series.unit} />
 
@@ -123,6 +133,31 @@ function RevenueSection({
         </div>
       )}
     </section>
+  )
+}
+
+function SubscriptionCard({ subs, live }: { subs: StripeSubscriptionSummary | null; live: boolean }) {
+  if (!subs) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-sm text-zinc-500">
+        Active subscriptions unavailable — {live ? "no billing subscriptions found." : "live Stripe API unreachable."}
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-4">
+      <div>
+        <div className="text-xs text-zinc-500">Active subscriptions</div>
+        <div className="mt-0.5 text-2xl font-semibold text-white">{subs.activeCount}</div>
+      </div>
+      <div>
+        <div className="text-xs text-zinc-500">MRR (monthly recurring)</div>
+        <div className="mt-0.5 text-2xl font-semibold text-emerald-300">{usd(subs.mrr)}</div>
+      </div>
+      <div className="ml-auto self-center text-[11px] text-zinc-500">
+        ≈ {usd(subs.mrr * 12)} ARR
+      </div>
+    </div>
   )
 }
 
