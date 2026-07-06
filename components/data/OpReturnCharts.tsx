@@ -40,6 +40,8 @@ export interface OpReturnCopy {
     runesVsAlkanesShare: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
     runesVsAlkanesBytes: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
     byteComposition: { title: string; desc: string; series: { alkanes: string; pureRunes: string; other: string } }
+    runestoneTxShare: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
+    runestoneTxCount: { title: string; desc: string; series: { alkanes: string; pureRunes: string } }
   }
 }
 
@@ -324,6 +326,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const runesVsAlkanesShare = useMemo(() => applyWindow(payload.runesVsAlkanesShare, windowMode, year), [payload.runesVsAlkanesShare, windowMode, year])
   const runesVsAlkanesBytes = useMemo(() => applyWindow(payload.runesVsAlkanesBytes, windowMode, year), [payload.runesVsAlkanesBytes, windowMode, year])
   const byteComposition = useMemo(() => applyWindow(payload.byteComposition, windowMode, year), [payload.byteComposition, windowMode, year])
+  const runestoneTxShare = useMemo(() => applyWindow(payload.runestoneTxShare, windowMode, year), [payload.runestoneTxShare, windowMode, year])
+  const runestoneTxCount = useMemo(() => applyWindow(payload.runestoneTxCount, windowMode, year), [payload.runestoneTxCount, windowMode, year])
 
   if (payload.days === 0) return null
   const donut = payload.latestDonut
@@ -551,6 +555,37 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
             tooltipFormatter={tooltipPct}
             area
             stacked
+            tip={copy.legendTip}
+          />
+        </Card>
+
+        {/* Runestone transactions — Alkanes protostones vs pure Runes (share %) */}
+        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc}>
+          <ToggleLineChart
+            data={runestoneTxShare}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.runestoneTxShare.series.alkanes },
+              { key: "pureRunes", label: copy.charts.runestoneTxShare.series.pureRunes },
+            ]}
+            colors={{ alkanes: ACCENT, pureRunes: SECOND }}
+            yTickFormatter={axisPct}
+            tooltipFormatter={tooltipPct}
+            tip={copy.legendTip}
+          />
+        </Card>
+
+        {/* Runestone transactions per day — Alkanes vs pure Runes (count, log scale) */}
+        <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc}>
+          <ToggleLineChart
+            data={runestoneTxCount}
+            seriesKeys={[
+              { key: "alkanes", label: copy.charts.runestoneTxCount.series.alkanes },
+              { key: "pureRunes", label: copy.charts.runestoneTxCount.series.pureRunes },
+            ]}
+            colors={{ alkanes: ACCENT, pureRunes: SECOND }}
+            yTickFormatter={axisNumCompact}
+            tooltipFormatter={tooltipNum}
+            logScale
             tip={copy.legendTip}
           />
         </Card>

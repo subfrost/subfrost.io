@@ -125,6 +125,16 @@ const copy = {
           series: { alkanes: "Alkanes", pureRunes: "Pure Runes", other: "Other" },
           desc: "How the OP_RETURN byte budget splits between Alkanes, pure Runes and everything else, day by day — the moving version of the all-time donut above.",
         },
+        runestoneTxShare: {
+          title: "Runestone transactions — Alkanes vs pure Runes",
+          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
+          desc: "Of every transaction that carries a Runestone, the share that is Alkanes (a protostone with protocol_tag = 1) vs pure Runes (a Runestone that isn't Alkanes). Runes owned this at genesis; today Alkanes are the overwhelming majority of Runestone transactions.",
+        },
+        runestoneTxCount: {
+          title: "Runestone transactions per day — Alkanes vs pure Runes",
+          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
+          desc: "The same split in absolute terms — estimated Runestone transactions per day (sampled blocks scaled to a full 144-block day), on a log scale so both the early Runes-dominated days and today's Alkanes volume stay readable.",
+        },
       },
     },
   },
@@ -241,6 +251,16 @@ const copy = {
           title: "OP_RETURN 字节构成随时间变化",
           series: { alkanes: "Alkanes", pureRunes: "纯 Runes", other: "其他" },
           desc: "OP_RETURN 字节预算在 Alkanes、纯 Runes 与其他用途之间如何逐日划分——即上方全时段环形图的动态版本。",
+        },
+        runestoneTxShare: {
+          title: "符文石交易 — Alkanes 与纯 Runes",
+          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
+          desc: "在每一笔携带符文石（Runestone）的交易中，属于 Alkanes（protostone 携带 protocol_tag = 1）与纯 Runes（非 Alkanes 的符文石）各自的份额。创世之初 Runes 占据主导；如今 Alkanes 已占符文石交易的绝大多数。",
+        },
+        runestoneTxCount: {
+          title: "每日符文石交易 — Alkanes 与纯 Runes",
+          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
+          desc: "以绝对值展示的同一划分——每日估算的符文石交易数（抽样区块外推至完整的 144 个区块一天），采用对数刻度，使早期以 Runes 为主的时期与如今的 Alkanes 交易量都清晰可读。",
         },
       },
     },
