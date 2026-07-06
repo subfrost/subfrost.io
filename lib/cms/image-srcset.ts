@@ -10,3 +10,8 @@ export function pictureSources(src: string): PictureSources | null {
   const stem = src.replace(OPT_RE, ".opt")
   return { avif: `${stem}.avif`, webp: `${stem}.webp`, fallback: src }
 }
+
+// True for SVG charts hosted on our own bucket — the only SVGs we inline into articles.
+export function isChartSvg(src: string): boolean {
+  return src.startsWith(HOST) && /\.svg$/i.test(src)
+}
