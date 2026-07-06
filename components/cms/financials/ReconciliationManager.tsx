@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import type { InvoiceRow, PaymentRow, InvoiceStatus } from "@/lib/financials/accounting/shapes"
 import { explorerTxUrl } from "@/lib/explorers"
+import { useDieselUsd } from "./use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
 const dsl = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 8 })
@@ -13,8 +14,11 @@ const STATUS_CLS: Record<InvoiceStatus, string> = {
 
 type Filter = "ALL" | "MATCHED" | "UNMATCHED"
 
+const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
+
 export function ReconciliationManager({ invoices, payments }: { invoices: InvoiceRow[]; payments: PaymentRow[] }) {
   const [filter, setFilter] = useState<Filter>("ALL")
+  const { values: usdValues } = useDieselUsd(payments)
 
   const byInvoice = useMemo(() => {
     const m = new Map<string, PaymentRow[]>()
@@ -70,6 +74,7 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
                         <div key={p.id} className="flex items-center gap-2 text-xs">
                           <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(p.txid)}</a>
                           <span className="text-zinc-300">{dsl(p.amountDiesel)} DIESEL</span>
+                          {usdValues[p.id] ? <span className="text-emerald-400/80" title="USD value at the block this payment settled in">{approxUsd(usdValues[p.id].paymentUsd)}</span> : <span className="text-zinc-600">—</span>}
                           <span className="text-zinc-500">{p.paidAt.slice(0, 10)}</span>
                           {p.blockHeight ? <span className="text-zinc-600">#{p.blockHeight}</span> : null}
                         </div>
@@ -89,13 +94,14 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
           <div className="overflow-x-auto rounded-xl border border-amber-900/30">
             <table className="w-full min-w-[520px] text-sm rtable">
               <thead className="bg-amber-950/20 text-left text-xs text-amber-300/70">
-                <tr><th className="px-3 py-2">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th><th>Paid</th></tr>
+                <tr><th className="px-3 py-2">Txid</th><th className="text-right">DIESEL</th><th className="text-right">USD (at payment)</th><th>Recipient</th><th>Paid</th></tr>
               </thead>
               <tbody>
                 {unlinked.map((p) => (
                   <tr key={p.id} className="border-t border-zinc-900">
                     <td data-label="Txid" className="px-3 py-2 font-mono text-xs"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(p.txid)}</a></td>
                     <td data-label="DIESEL" className="text-right text-zinc-200">{dsl(p.amountDiesel)}</td>
+                    <td data-label="USD (at payment)" className="text-right text-emerald-400/80">{usdValues[p.id] ? approxUsd(usdValues[p.id].paymentUsd) : <span className="text-zinc-600">—</span>}</td>
                     <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
                     <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
                   </tr>

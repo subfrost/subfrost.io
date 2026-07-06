@@ -63,6 +63,9 @@ export interface ShareHoldingRow {
   shareClassName: string
   shares: number
   issuedAt: string
+  // false = intended/unissued allocation (e.g. the founder split FUEL derives
+  // from). As-issued cap-table views exclude these; FUEL-split math includes them.
+  issued: boolean
   certificateNo: string | null
   notes: string | null
 }
@@ -122,11 +125,15 @@ export function summarizeCapTable(
   classes: ShareClassRow[],
   holdings: ShareHoldingRow[],
 ): CapTableSummary {
-  const issuedShares = holdings.reduce((s, h) => s + h.shares, 0)
+  // As-issued basis: only actually-issued holdings. Intended (issued=false)
+  // allocations — e.g. the founder split FUEL derives from — are excluded so
+  // they don't distort the 100%-issued ownership view.
+  const issued = holdings.filter((h) => h.issued !== false)
+  const issuedShares = issued.reduce((s, h) => s + h.shares, 0)
   const authorizedShares = classes.reduce((s, c) => s + c.authorizedShares, 0)
 
   const byHolderMap = new Map<string, CapTableHolder>()
-  for (const h of holdings) {
+  for (const h of issued) {
     const cur = byHolderMap.get(h.shareholderId) ?? {
       shareholderId: h.shareholderId,
       name: h.shareholderName,
@@ -142,7 +149,7 @@ export function summarizeCapTable(
     .sort((a, b) => b.shares - a.shares)
 
   const issuedByClass = new Map<string, number>()
-  for (const h of holdings) {
+  for (const h of issued) {
     issuedByClass.set(h.shareClassId, (issuedByClass.get(h.shareClassId) ?? 0) + h.shares)
   }
   const byClass = classes

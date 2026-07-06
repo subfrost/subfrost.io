@@ -1077,6 +1077,17 @@ model DieselPayment {
   @@index([invoiceId])
 }
 
+// Read-through cache for the DIESEL→USD valuation (lib/financials/diesel-valuation.ts).
+// Keyed by block height: pool reserves + BTC spot are fixed once a block is
+// mined, so a block's DIESEL price never changes and can be memoised forever.
+model DieselPriceCache {
+  blockHeight Int      @id
+  dieselUsd   Float // USD per 1 DIESEL at this block
+  btcUsd      Float // BTC/USD spot at the block's time
+  ratio       Float // BTC per DIESEL (frBTC_reserve / DIESEL_reserve)
+  computedAt  DateTime @default(now())
+}
+
 // ============================================
 // DOCUMENTS — e-sign envelopes (Documenso)
 // ============================================
@@ -1281,6 +1292,11 @@ model ShareHolding {
   shareClass    ShareClass  @relation(fields: [shareClassId], references: [id])
   shares        Int
   issuedAt      DateTime
+  // Whether these shares are actually issued (true) or an intended/unissued
+  // allocation (false) — e.g. the founder split that FUEL derives from but that
+  // is not yet reflected in the as-issued cap table. As-issued views filter to
+  // issued=true; FUEL-split derivation counts all holdings.
+  issued        Boolean     @default(true)
   certificateNo String?
   notes         String?
   createdAt     DateTime    @default(now())

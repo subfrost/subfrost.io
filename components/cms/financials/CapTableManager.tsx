@@ -15,6 +15,7 @@ import {
 } from "@/lib/financials/equity/shapes"
 import { CapTableCharts } from "@/components/cms/financials/CapTableCharts"
 import { FuelSupplyMap } from "@/components/cms/financials/FuelSupplyMap"
+import { foundersFromHoldings, teamGrantsFromInstruments } from "@/lib/fuel/supply"
 
 const INPUT = "w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100"
 const num = (n: number) => n.toLocaleString("en-US")
@@ -47,6 +48,10 @@ export function CapTableManager() {
   useEffect(() => { fetchData() }, [fetchData])
 
   const cap = useMemo(() => summarizeCapTable(classes, holdings), [classes, holdings])
+  // FUEL founders split + team grants derived from the DB (all holdings incl.
+  // intended/unissued → 70/25/5 founder ratios; token instruments → grants).
+  const founders = useMemo(() => foundersFromHoldings(holdings), [holdings])
+  const teamGrants = useMemo(() => teamGrantsFromInstruments(instruments), [instruments])
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     startTransition(async () => {
       const r = await fn()
@@ -76,7 +81,7 @@ export function CapTableManager() {
       {/* FUEL supply map (cap-table-descended pool + surplus) */}
       {instruments.length > 0 && (
         <Section title="FUEL supply map">
-          <FuelSupplyMap instruments={instruments} communityAllocated={fuelAllocated} />
+          <FuelSupplyMap instruments={instruments} founders={founders} teamGrants={teamGrants} communityAllocated={fuelAllocated} />
         </Section>
       )}
 

@@ -64,6 +64,7 @@ vi.mock("@/lib/prisma", () => {
   const client = {
     legalEntity: model(), legalAgreement: model(), user: model(), shareholder: model(),
     payee: model(), invoice: model(), dieselPayment: model(), fuelAllocation: model(), envelope: model(),
+    instrument: model(), shareHolding: model(),
   }
   return { prisma: client, default: client }
 })
@@ -86,7 +87,10 @@ const p = prisma as unknown as Record<string, Record<string, Fn>>
 // (re)wire mock implementations — mockReset:true wipes them before each test.
 beforeEach(() => {
   p.legalEntity.findUnique.mockResolvedValue(ENTITY)
+  p.legalEntity.findMany.mockResolvedValue([])
   p.legalAgreement.findMany.mockResolvedValue([])
+  p.instrument.findMany.mockResolvedValue([]) // FUEL cap-table pool: no instruments
+  p.shareHolding.findMany.mockResolvedValue([]) // FUEL founder split: no holdings
   p.user.findMany.mockResolvedValue([])
   p.shareholder.findMany.mockResolvedValue([])
   p.payee.findMany.mockResolvedValue([{ id: "pay1", name: "Acme Corp" }])

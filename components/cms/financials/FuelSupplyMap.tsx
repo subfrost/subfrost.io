@@ -2,16 +2,23 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
-import { buildFuelSupplyMap, FUEL_TOTAL, FOUNDER_FUEL_SPLIT, TEAM_FUEL_GRANTS, type FuelItem } from "@/lib/fuel/supply"
+import { buildFuelSupplyMap, FUEL_TOTAL, type FounderShare, type TeamGrant, type FuelItem } from "@/lib/fuel/supply"
 import type { InstrumentRow } from "@/lib/financials/equity/shapes"
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 })
 
 /** Privilege-gated FUEL supply map: the 2,100,000 supply split into the
  *  cap-table pool (itemized, modeled 2:1 from the cap table) and the surplus
- *  (community + treasury). Reads OUTSTANDING post-money SAFEs for the diluted
- *  investor share; `communityAllocated` is the on-chain allocated total. */
-export function FuelSupplyMap({ instruments, communityAllocated }: { instruments: InstrumentRow[]; communityAllocated: number }) {
+ *  (community + treasury). The `founders` split + `teamGrants` are DB-derived
+ *  (share holdings + token instruments) and passed by the caller; investors are
+ *  read here from OUTSTANDING post-money SAFEs; `communityAllocated` is the
+ *  on-chain allocated total. */
+export function FuelSupplyMap({ instruments, founders, teamGrants, communityAllocated }: {
+  instruments: InstrumentRow[]
+  founders: FounderShare[]
+  teamGrants: TeamGrant[]
+  communityAllocated: number
+}) {
   const map = useMemo(() => {
     // per-investor implied % (grouped by entity), so each SAFE investor is its own line
     const byInvestor = new Map<string, number>()
@@ -21,8 +28,8 @@ export function FuelSupplyMap({ instruments, communityAllocated }: { instruments
       byInvestor.set(name, (byInvestor.get(name) ?? 0) + (i.amountUsd / i.valuationCap) * 100)
     }
     const investors = [...byInvestor.entries()].map(([name, pct]) => ({ name, pct }))
-    return buildFuelSupplyMap({ founderSplit: FOUNDER_FUEL_SPLIT, investors, teamGrants: TEAM_FUEL_GRANTS, communityAllocated })
-  }, [instruments, communityAllocated])
+    return buildFuelSupplyMap({ founderSplit: founders, investors, teamGrants, communityAllocated })
+  }, [instruments, founders, teamGrants, communityAllocated])
 
   const maxItem = map.pool.items[0]?.amount || 1
 

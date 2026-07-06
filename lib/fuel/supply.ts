@@ -9,7 +9,7 @@
 //   • 50% = 1,050,000 "surplus" — Community allocation drawn first, remainder
 //     reserved to the protocol treasury (Subzero Research Inc balance sheet).
 
-import type { InstrumentRow } from "@/lib/financials/equity/shapes"
+import { TOKEN_LIKE, type InstrumentRow, type ShareHoldingRow } from "@/lib/financials/equity/shapes"
 
 export const FUEL_TOTAL = 2_100_000
 export const FUEL_POOL = 1_050_000 // cap-table-descended (50%)
@@ -17,16 +17,53 @@ export const FUEL_SURPLUS = 1_050_000 // community + treasury (50%)
 
 const round2 = (n: number): number => Math.round(n * 100) / 100
 
-// Intended founder split (FUEL basis — equity is as-issued 100% Raymond, but
-// FUEL honors the intended 70/25/5). Team token grants carved from the pool.
-export const FOUNDER_FUEL_SPLIT = [
-  { name: "Raymond Wesley Pulver IV", pct: 70 },
-  { name: "Gabe Lee", pct: 25 }, // entity is "Gabe Lee" (must match for the dossier join)
-  { name: "Sean Pulver", pct: 5 },
-]
-export const TEAM_FUEL_GRANTS = [{ name: "Kevin Yao", amount: 31_500 }]
+// Founders + team grants are DATA, sourced from the DB by callers (share
+// holdings → founder split; token instruments → team grants) and passed in.
+export interface FounderShare {
+  name: string
+  pct: number
+}
+export interface TeamGrant {
+  name: string
+  amount: number
+}
 
 const norm = (s: string) => s.trim().toLowerCase()
+
+/** Derive the founder FUEL split from share holdings: group holdings by
+ *  shareholder (counting ALL holdings, incl. intended/unissued), then pct =
+ *  shares / totalFounderShares * 100 (so 7M/2.5M/0.5M → 70/25/5). `nameFor`
+ *  lets the caller map a shareholder to its linked LegalEntity name so the
+ *  split keys match entity names in the dossier join; defaults to the
+ *  shareholder's own name. */
+export function foundersFromHoldings(
+  holdings: Pick<ShareHoldingRow, "shareholderId" | "shareholderName" | "shares">[],
+  nameFor?: (shareholderId: string, shareholderName: string) => string,
+): FounderShare[] {
+  const byHolder = new Map<string, { name: string; shares: number }>()
+  for (const h of holdings) {
+    const cur = byHolder.get(h.shareholderId) ??
+      { name: nameFor?.(h.shareholderId, h.shareholderName) ?? h.shareholderName, shares: 0 }
+    cur.shares += h.shares
+    byHolder.set(h.shareholderId, cur)
+  }
+  const total = [...byHolder.values()].reduce((s, v) => s + v.shares, 0)
+  if (total <= 0) return []
+  return [...byHolder.values()].map((v) => ({ name: v.name, pct: round2((v.shares / total) * 100) }))
+}
+
+/** Derive team token grants from token-type instruments (TOKEN_WARRANT /
+ *  TOKEN_SIDE_LETTER / SAFT) carrying a tokenAmount, grouped by investor. */
+export function teamGrantsFromInstruments(instruments: InstrumentRow[]): TeamGrant[] {
+  const byName = new Map<string, number>()
+  for (const i of instruments) {
+    if (!TOKEN_LIKE.has(i.type) || !i.tokenAmount) continue
+    const name = i.investorEntity || i.investorName
+    byName.set(name, (byName.get(name) ?? 0) + i.tokenAmount)
+  }
+  return [...byName.entries()].map(([name, amount]) => ({ name, amount }))
+}
+
 function investorImpliedPct(i: InstrumentRow): number {
   if (i.status !== "OUTSTANDING") return 0
   if (!(i.safeKind === "POST_MONEY" && i.valuationCap && i.valuationCap > 0)) return 0
@@ -37,21 +74,27 @@ export interface EntityFuelShare { amount: number; source: string }
 
 /** The cap-table-descended (modeled, 2:1) FUEL for a single entity by name:
  *  founders on the intended split, SAFE investors pro-rata to their implied %,
- *  team grants fixed. Returns null if the entity isn't in the cap-table pool.
- *  Shared by the entity dossier + the FUEL supply map so both agree. */
-export function capTableFuelForEntity(entityName: string, instruments: InstrumentRow[]): EntityFuelShare | null {
+ *  team grants fixed. `founders` + `teamGrants` are DB-derived data passed by
+ *  the caller. Returns null if the entity isn't in the cap-table pool. Shared by
+ *  the entity dossier + the FUEL supply map so both agree. */
+export function capTableFuelForEntity(
+  entityName: string,
+  instruments: InstrumentRow[],
+  founders: FounderShare[],
+  teamGrants: TeamGrant[],
+): EntityFuelShare | null {
   const name = norm(entityName)
-  const team = TEAM_FUEL_GRANTS.find((g) => norm(g.name) === name)
+  const team = teamGrants.find((g) => norm(g.name) === name)
   if (team) return { amount: team.amount, source: "Team token grant" }
 
-  const teamTotal = TEAM_FUEL_GRANTS.reduce((s, g) => s + g.amount, 0)
+  const teamTotal = teamGrants.reduce((s, g) => s + g.amount, 0)
   const equityMapped = Math.max(0, FUEL_POOL - teamTotal)
   const totalInvestorPct = instruments.reduce((s, i) => s + investorImpliedPct(i), 0)
   const investorFuel = round2((equityMapped * totalInvestorPct) / 100)
   const founderFuelTotal = round2(equityMapped - investorFuel)
 
-  const f = FOUNDER_FUEL_SPLIT.find((x) => norm(x.name) === name)
-  if (f) return { amount: round2((founderFuelTotal * f.pct) / 100), source: `Founder · ${f.pct}%` }
+  const f = founders.find((x) => norm(x.name) === name)
+  if (f) return { amount: round2((founderFuelTotal * f.pct) / 100), source: `Founder · ${round2(f.pct)}%` }
 
   const myPct = instruments
     .filter((i) => i.investorEntity && norm(i.investorEntity) === name)
@@ -81,9 +124,9 @@ export interface FuelSupplyMap {
 }
 
 export interface FuelSupplyInput {
-  founderSplit: { name: string; pct: number }[] // intended split among founders (sums ~100)
+  founderSplit: FounderShare[] // intended split among founders (sums ~100)
   investors: { name: string; pct: number }[] // per-investor fully-diluted SAFE implied %
-  teamGrants: { name: string; amount: number }[] // fixed token grants inside the pool
+  teamGrants: TeamGrant[] // fixed token grants inside the pool
   communityAllocated: number // FUEL allocated on-chain so far (fills the surplus first)
 }
 

@@ -13,8 +13,10 @@ import {
 } from "@/lib/financials/accounting/shapes"
 import { PeriodReportChart } from "@/components/cms/financials/PeriodReportChart"
 import { explorerTxUrl } from "@/lib/explorers"
+import { useDieselUsd } from "@/components/cms/financials/use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
+const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
 const short = (s: string, n = 8) => (s.length > n * 2 ? `${s.slice(0, n)}…${s.slice(-4)}` : s)
 
@@ -33,6 +35,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
   const [open, setOpen] = useState<null | "payee" | "invoice" | "payment">(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const { values: usdValues } = useDieselUsd(result.ok ? result.overview.payments : [])
 
   if (!result.ok) {
     return <p className="text-sm text-zinc-400">You do not have access to financials.</p>
@@ -210,7 +213,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
           <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
-                <th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th>
+                <th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th className="text-right">USD (at payment)</th><th>Recipient</th>
                 <th>Paid</th><th>Invoice</th><th>Source</th>
               </tr>
             </thead>
@@ -221,6 +224,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                     <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
                   </td>
                   <td data-label="DIESEL" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                  <td data-label="USD (at payment)" className="text-right text-emerald-400/80" title="USD value at the block this payment settled in">{usdValues[p.id] ? approxUsd(usdValues[p.id].paymentUsd) : <span className="text-zinc-600">—</span>}</td>
                   <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
                   <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
                   <td data-label="Invoice" className="text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>

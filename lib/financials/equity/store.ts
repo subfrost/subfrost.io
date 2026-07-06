@@ -34,13 +34,13 @@ function mapHolder(r: {
 
 function mapHolding(r: {
   id: string; shareholderId: string; shareClassId: string; shares: number; issuedAt: Date
-  certificateNo: string | null; notes: string | null
+  issued: boolean; certificateNo: string | null; notes: string | null
   shareholder?: { name: string } | null; shareClass?: { name: string } | null
 }): ShareHoldingRow {
   return {
     id: r.id, shareholderId: r.shareholderId, shareholderName: r.shareholder?.name ?? "",
     shareClassId: r.shareClassId, shareClassName: r.shareClass?.name ?? "",
-    shares: r.shares, issuedAt: r.issuedAt.toISOString(),
+    shares: r.shares, issuedAt: r.issuedAt.toISOString(), issued: r.issued,
     certificateNo: r.certificateNo, notes: r.notes,
   }
 }

@@ -13,8 +13,8 @@ import { loadPayeeProfile } from "@/lib/financials/accounting/store"
 import { listEntityFiles, breadcrumb, filesPath, driveSlugFromScope } from "@/lib/files/manager"
 import { explorerTxUrl, explorerAddrUrl } from "@/lib/explorers"
 import { KIND_LABELS } from "@/lib/esign/types"
-import { listInstruments } from "@/lib/financials/equity/store"
-import { capTableFuelForEntity } from "@/lib/fuel/supply"
+import { listInstruments, listHoldings } from "@/lib/financials/equity/store"
+import { capTableFuelForEntity, foundersFromHoldings, teamGrantsFromInstruments } from "@/lib/fuel/supply"
 
 export class LegalError extends Error {}
 
@@ -231,9 +231,22 @@ export async function loadEntityDossier(id: string): Promise<EntityDossier | nul
   const fuelTotal = fuel.reduce((s, f) => s + f.amount, 0)
 
   // Cap-table-descended FUEL (founders / SAFE investors / team), modeled from
-  // the executed instruments — the same 2:1 model as the FUEL supply map.
-  const instruments = await listInstruments()
-  const capTableFuel = capTableFuelForEntity(row.name, instruments)
+  // the DB — the same 2:1 model as the FUEL supply map. The founder split is
+  // derived from share holdings (incl. intended/unissued), keyed to the linked
+  // LegalEntity name so it matches this entity's name; team grants come from
+  // token-type instruments.
+  const [instruments, holdings] = await Promise.all([listInstruments(), listHoldings()])
+  const shIds = [...new Set(holdings.map((h) => h.shareholderId))]
+  const linkedEntities = shIds.length
+    ? await prisma.legalEntity.findMany({
+        where: { shareholderId: { in: shIds } },
+        select: { shareholderId: true, name: true },
+      })
+    : []
+  const entityNameBySh = new Map(linkedEntities.map((e) => [e.shareholderId as string, e.name]))
+  const founders = foundersFromHoldings(holdings, (id, shName) => entityNameBySh.get(id) ?? shName)
+  const teamGrants = teamGrantsFromInstruments(instruments)
+  const capTableFuel = capTableFuelForEntity(row.name, instruments, founders, teamGrants)
 
   return {
     entity: row, tags: row.tags, addresses,
