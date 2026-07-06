@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemDirectory } from "@/components/ecosystem/EcosystemDirectory"
+import { HeroMosaic } from "@/components/ecosystem/HeroMosaic"
 import { getEcosystemDirectory } from "@/lib/ecosystem/public"
 import { absoluteUrl } from "@/lib/seo"
 
@@ -16,6 +17,24 @@ const copy = {
     title: "Everything being built on Alkanes",
     subtitle: "Smart contracts on Bitcoin L1 — and the wallets, exchanges, launchpads and tools shipping on them. Find a project, click through, dive in.",
     cta: "Building here? Get listed",
+    submitSubject: "Alkanes ecosystem — listing request",
+    submitTemplate: `Hi SUBFROST team,
+
+I'd like to submit a project for the Alkanes ecosystem directory.
+
+• Project name:
+• Category (DeFi / Wallet / Tooling / Launchpad / NFT / Gaming / Social / Other):
+• Status (Live / Beta / Building):
+• Website:
+• X (Twitter):
+• Docs (optional):
+• Alkane id (optional, e.g. 2:0):
+• One-line description:
+• Anything else we should know:
+
+Thanks!`,
+    disclaimer:
+      "This directory is for discovery only. SUBFROST does not endorse, vet, or vouch for the projects listed here — always do your own research.",
     projectsWord: "projects",
     categoriesWord: "categories",
     directory: {
@@ -35,6 +54,24 @@ const copy = {
     title: "Alkanes 上正在构建的一切",
     subtitle: "比特币主链上的智能合约，以及围绕它们的钱包、交易、发行平台与工具。找到项目，点击进入，即刻参与。",
     cta: "在 Alkanes 上构建？申请收录",
+    submitSubject: "Alkanes 生态系统 — 收录申请",
+    submitTemplate: `你好 SUBFROST 团队，
+
+我想提交一个项目，申请收录到 Alkanes 生态系统目录。
+
+• 项目名称：
+• 分类（DeFi / Wallet / Tooling / Launchpad / NFT / Gaming / Social / Other）：
+• 状态（Live / Beta / Building）：
+• 官网：
+• X（Twitter）：
+• 文档（可选）：
+• Alkane id（可选，例如 2:0）：
+• 一句话简介：
+• 其他补充信息：
+
+谢谢！`,
+    disclaimer:
+      "本目录仅供发现之用。SUBFROST 不对此处列出的项目作任何背书、审查或担保——请务必自行研究（DYOR）。",
     projectsWord: "个项目",
     categoriesWord: "个分类",
     directory: {
@@ -49,7 +86,12 @@ const copy = {
   },
 } // one copy object per locale; keep both shapes identical
 
-const GET_LISTED_URL = "https://x.com/SUBFROSTio"
+const SUBMIT_EMAIL = "vitor@subfrost.io"
+
+/** Prefilled mailto for "get listed" — no backend; devs submit details straight to Vitor. */
+function submitMailto(subject: string, body: string): string {
+  return `mailto:${SUBMIT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<{ lang?: string }> }): Promise<Metadata> {
   const params = searchParams ? await searchParams : {}
@@ -72,29 +114,34 @@ export default async function EcosystemPage({ searchParams }: { searchParams?: P
   const { projects, featuredBandEnabled } = await getEcosystemDirectory(locale)
   const categoryCount = new Set(projects.map((p) => p.category)).size
 
-  // Interim text-only hero on the theme background (no image/logomark, no cover
-  // band) — the design team owns the final hero art later.
   return (
     <EditorialShell>
       <main className="mx-auto w-full max-w-[1280px] px-0 pb-24 pt-8 sm:px-6">
-        <section className="px-6 pb-10 pt-8 sm:px-10 sm:pb-12 sm:pt-10">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--ed-muted)]">{c.eyebrow}</p>
-          <h1 className="mt-3 max-w-[15ch] text-balance text-[clamp(32px,5vw,54px)] font-normal leading-[1.02] tracking-[-0.025em] text-[color:var(--ed-ink)]">{c.title}</h1>
-          <p className="mt-4 max-w-[52ch] text-[16px] leading-[1.55] text-[color:var(--ed-body)]">{c.subtitle}</p>
-          <div className="mt-7 flex flex-wrap items-center gap-5">
-            <a
-              href={GET_LISTED_URL} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-[8px] bg-[color:var(--ed-ink)] px-[18px] py-[10px] text-[14px] font-medium text-[color:var(--ed-canvas)] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
-            >
-              {c.cta} <span className="text-[color:var(--ed-flare)]">→</span>
-            </a>
-            <span className="font-mono text-[12.5px] text-[color:var(--ed-muted)]" style={{ fontVariantNumeric: "tabular-nums" }}>
-              <b className="font-medium text-[color:var(--ed-ink)]">{projects.length}</b> {c.projectsWord} · <b className="font-medium text-[color:var(--ed-ink)]">{categoryCount}</b> {c.categoriesWord}
-            </span>
+        <section className="grid gap-y-8 px-6 pb-10 pt-8 sm:px-10 sm:pb-12 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-center lg:gap-x-10">
+          <div>
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--ed-muted)]">{c.eyebrow}</p>
+            <h1 className="mt-3 max-w-[15ch] text-balance text-[clamp(32px,5vw,54px)] font-normal leading-[1.02] tracking-[-0.025em] text-[color:var(--ed-ink)]">{c.title}</h1>
+            <p className="mt-4 max-w-[52ch] text-[16px] leading-[1.55] text-[color:var(--ed-body)]">{c.subtitle}</p>
+            <div className="mt-7 flex flex-wrap items-center gap-5">
+              <a
+                href={submitMailto(c.submitSubject, c.submitTemplate)}
+                className="inline-flex items-center gap-2 rounded-[8px] bg-[color:var(--ed-ink)] px-[18px] py-[10px] text-[14px] font-medium text-[color:var(--ed-canvas)] transition-transform hover:-translate-y-px motion-reduce:hover:translate-y-0"
+              >
+                {c.cta} <span className="text-[color:var(--ed-flare)]">→</span>
+              </a>
+              <span className="font-mono text-[12.5px] text-[color:var(--ed-muted)]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <b className="font-medium text-[color:var(--ed-ink)]">{projects.length}</b> {c.projectsWord} · <b className="font-medium text-[color:var(--ed-ink)]">{categoryCount}</b> {c.categoriesWord}
+              </span>
+            </div>
           </div>
+          <HeroMosaic projects={projects} />
         </section>
 
         <EcosystemDirectory projects={projects} featuredBandEnabled={featuredBandEnabled} copy={c.directory} />
+
+        <p className="mt-4 border-t border-[color:var(--ed-hair)] px-6 pt-6 font-mono text-[11px] leading-relaxed text-[color:var(--ed-muted)] sm:px-10">
+          {c.disclaimer}
+        </p>
       </main>
     </EditorialShell>
   )
