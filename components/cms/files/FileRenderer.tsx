@@ -9,6 +9,7 @@ import type { FileView } from "@/lib/files/manager"
 import { Markdown } from "@/lib/cms/markdown"
 import { humanSize, previewKind, typeLabel } from "./util"
 import { DocTypeBadge } from "./DocTypeBadge"
+import { DocxViewer } from "./DocxViewer"
 
 export interface FileEntityLink {
   id: string
@@ -112,6 +113,7 @@ export function FileRenderer({
           {url && !error && isPdf && (
             <iframe src={url} title={file.name} className="h-[80vh] w-full rounded-lg border border-zinc-800 bg-white" />
           )}
+          {url && !error && kind === "docx" && <DocxViewer url={url} />}
           {url && !error && kind === "text" && textBody === null && (
             <div className="flex items-center gap-2 py-8 text-sm text-zinc-500"><Loader2 size={16} className="animate-spin" /> Loading contents…</div>
           )}

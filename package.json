@@ -74,6 +74,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "docx-preview": "^0.3.7",
     "dompurify": "^3.4.11",
     "ecpair": "^3.0.0",
     "embla-carousel-react": "8.5.1",

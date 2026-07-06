@@ -22,7 +22,7 @@ export function relTime(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "other"
+export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "docx" | "other"
 
 export function previewKind(mime: string, name: string): PreviewKind {
   const m = (mime || "").toLowerCase()
@@ -31,6 +31,7 @@ export function previewKind(mime: string, name: string): PreviewKind {
   if (m.startsWith("video/")) return "video"
   if (m.startsWith("audio/")) return "audio"
   if (m === "application/pdf" || ext === "pdf") return "pdf"
+  if (m.includes("wordprocessingml") || m === "application/msword" || ext === "docx" || ext === "doc") return "docx"
   if (
     m.startsWith("text/") ||
     m === "application/json" ||
