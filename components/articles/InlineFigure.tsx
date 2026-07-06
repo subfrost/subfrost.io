@@ -2,11 +2,11 @@
 // color:var(--ed-ink) makes the SVG's currentColor ink follow the article theme (incl. toggle).
 export function InlineFigure({ svg, alt = "" }: { svg: string; alt?: string }) {
   return (
-    <figure
+    <span
       className="ed-figure"
       role="img"
       aria-label={alt}
-      style={{ color: "var(--ed-ink)" }}
+      style={{ color: "var(--ed-ink)", display: "block" }}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

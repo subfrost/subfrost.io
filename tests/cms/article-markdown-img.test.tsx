@@ -25,13 +25,13 @@ describe("Markdown inline chart SVGs", () => {
     const { container } = render(
       <Markdown inlinedSvgs={map}>{`![chart](${B2}/inline/c.svg)`}</Markdown>,
     )
-    expect(container.querySelector("figure.ed-figure svg")).not.toBeNull()
-    expect(container.querySelector("figure.ed-figure")?.getAttribute("aria-label")).toBe("chart")
+    expect(container.querySelector("span.ed-figure svg")).not.toBeNull()
+    expect(container.querySelector("span.ed-figure")?.getAttribute("aria-label")).toBe("chart")
     expect(container.querySelector("img")).toBeNull()
   })
   it("falls back to <img> for a chart .svg with no map entry (client context)", () => {
     const { container } = render(<Markdown>{`![c](${B2}/inline/c.svg)`}</Markdown>)
-    expect(container.querySelector("figure.ed-figure")).toBeNull()
+    expect(container.querySelector("span.ed-figure")).toBeNull()
     expect(container.querySelector("img")?.getAttribute("src")).toBe(`${B2}/inline/c.svg`)
   })
 })
