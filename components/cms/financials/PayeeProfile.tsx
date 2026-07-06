@@ -79,18 +79,18 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
 
       <Section title={`Invoices (${invoices.length})`}>
         {invoices.length === 0 ? <Empty>No invoices for this payee.</Empty> : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Ref</th><th className="text-right">USD</th><th>Status</th><th>Settled by</th><th>PDF</th></tr></thead>
             <tbody>
               {invoices.map((i) => {
                 const settling = payments.filter((p) => p.invoiceId === i.id)
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
-                    <td className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
-                    <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
-                    <td className="font-mono text-xs text-zinc-400">{settling.length === 0 ? "—" : settling.map((p) => <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>)}</td>
-                    <td>{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                    <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
+                    <td data-label="USD" className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
+                    <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
+                    <td data-label="Settled by" className="font-mono text-xs text-zinc-400">{settling.length === 0 ? "—" : settling.map((p) => <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>)}</td>
+                    <td data-label="PDF">{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
                   </tr>
                 )
               })}
@@ -101,15 +101,15 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
 
       <Section title={`Payments (${payments.length})`}>
         {payments.length === 0 ? <Empty>No DIESEL payments tied to this payee.</Empty> : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Paid</th><th>Invoice</th></tr></thead>
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id} className="border-t border-zinc-900">
-                  <td className="py-2 font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
-                  <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td className="text-zinc-300">{p.invoiceRef ?? "—"}</td>
+                  <td data-label="Txid" className="py-2 font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
+                  <td data-label="DIESEL" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                  <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                  <td data-label="Invoice" className="text-zinc-300">{p.invoiceRef ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -124,15 +124,15 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
             <Link href="/admin/documents" className="text-sky-400 underline">Send one →</Link>
           </Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Document</th><th>Kind</th><th>Status</th><th>Created</th></tr></thead>
             <tbody>
               {envelopes.map((e) => (
                 <tr key={e.id} className="border-t border-zinc-900">
-                  <td className="py-2 text-zinc-200"><Link href={`/admin/documents/${e.id}`} className="text-sky-400 hover:underline">{e.subject}</Link></td>
-                  <td className="text-xs text-zinc-400">{e.kind}</td>
-                  <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${e.status === "completed" ? "bg-emerald-900/40 text-emerald-300" : e.status === "declined" || e.status === "voided" || e.status === "expired" ? "bg-red-900/40 text-red-300" : "bg-sky-900/40 text-sky-300"}`}>{e.status}</span></td>
-                  <td className="text-zinc-400">{e.createdAt.slice(0, 10)}</td>
+                  <td data-label="Document" className="py-2 text-zinc-200"><Link href={`/admin/documents/${e.id}`} className="text-sky-400 hover:underline">{e.subject}</Link></td>
+                  <td data-label="Kind" className="text-xs text-zinc-400">{e.kind}</td>
+                  <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${e.status === "completed" ? "bg-emerald-900/40 text-emerald-300" : e.status === "declined" || e.status === "voided" || e.status === "expired" ? "bg-red-900/40 text-red-300" : "bg-sky-900/40 text-sky-300"}`}>{e.status}</span></td>
+                  <td data-label="Created" className="text-zinc-400">{e.createdAt.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>

@@ -50,20 +50,20 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-800">
-        <table className="w-full min-w-[680px] text-sm">
+        <table className="w-full min-w-[680px] text-sm rtable">
           <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
             <tr><th className="px-3 py-2">Invoice</th><th>Payee</th><th className="text-right">USD</th><th>Status</th><th>Settled by (on-chain DIESEL)</th></tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-8 text-center text-zinc-500">No invoices in this view.</td></tr>
+              <tr><td data-fullwidth colSpan={5} className="px-3 py-8 text-center text-zinc-500">No invoices in this view.</td></tr>
             ) : rows.map(({ inv, settling }) => (
               <tr key={inv.id} className="border-t border-zinc-900 align-top">
-                <td className="px-3 py-2 font-mono text-zinc-300">{inv.ref}</td>
-                <td className="text-zinc-300">{inv.payeeName}</td>
-                <td className="text-right text-zinc-200">{usd(inv.amountUsd)}</td>
-                <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_CLS[inv.status]}`}>{inv.status}</span></td>
-                <td className="py-2">
+                <td data-label="Invoice" className="px-3 py-2 font-mono text-zinc-300">{inv.ref}</td>
+                <td data-label="Payee" className="text-zinc-300">{inv.payeeName}</td>
+                <td data-label="USD" className="text-right text-zinc-200">{usd(inv.amountUsd)}</td>
+                <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_CLS[inv.status]}`}>{inv.status}</span></td>
+                <td data-label="Settled by" className="py-2">
                   {settling.length === 0 ? <span className="text-zinc-600">— no on-chain match</span> : (
                     <div className="space-y-1">
                       {settling.map((p) => (
@@ -87,17 +87,17 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
         <div>
           <div className="mb-2 text-sm font-semibold text-zinc-300">Unlinked on-chain payments ({unlinked.length})</div>
           <div className="overflow-x-auto rounded-xl border border-amber-900/30">
-            <table className="w-full min-w-[520px] text-sm">
+            <table className="w-full min-w-[520px] text-sm rtable">
               <thead className="bg-amber-950/20 text-left text-xs text-amber-300/70">
                 <tr><th className="px-3 py-2">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th><th>Paid</th></tr>
               </thead>
               <tbody>
                 {unlinked.map((p) => (
                   <tr key={p.id} className="border-t border-zinc-900">
-                    <td className="px-3 py-2 font-mono text-xs"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(p.txid)}</a></td>
-                    <td className="text-right text-zinc-200">{dsl(p.amountDiesel)}</td>
-                    <td className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
-                    <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                    <td data-label="Txid" className="px-3 py-2 font-mono text-xs"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(p.txid)}</a></td>
+                    <td data-label="DIESEL" className="text-right text-zinc-200">{dsl(p.amountDiesel)}</td>
+                    <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
+                    <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
                   </tr>
                 ))}
               </tbody>

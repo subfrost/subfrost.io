@@ -1158,3 +1158,28 @@ div[data-netlify-deploy-id] {
     opacity: 1;
   }
 }
+
+/* ===========================================================================
+ * Responsive admin tables — add `rtable` to a <table> and `data-label` to each
+ * <td>; below 640px the table collapses to stacked label:value cards so the
+ * columns stop clipping on phones. Desktop is unaffected.
+ * ======================================================================== */
+@media (max-width: 639px) {
+  table.rtable { min-width: 0 !important; }
+  table.rtable thead { display: none; }
+  table.rtable tbody, table.rtable tr, table.rtable td { display: block; width: 100%; }
+  table.rtable tr { border: 1px solid rgb(39 39 42); border-radius: 10px; margin: 0 0 10px; padding: 4px 2px; }
+  table.rtable tr:last-child { margin-bottom: 0; }
+  table.rtable td {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+    text-align: right; padding: 6px 12px; border: 0 !important;
+  }
+  table.rtable td::before {
+    content: attr(data-label); color: rgb(113 122 130); font-size: 11px; font-weight: 500;
+    text-align: left; flex: 0 0 auto; letter-spacing: .01em; padding-top: 1px;
+  }
+  /* label-less / full-width cells (empty states, action rows) */
+  table.rtable td[data-label=""]::before { content: none; }
+  table.rtable td[data-fullwidth]::before { content: none; }
+  table.rtable td[data-fullwidth] { justify-content: flex-start; text-align: left; }
+}

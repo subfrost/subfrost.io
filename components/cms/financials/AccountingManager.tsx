@@ -132,7 +132,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         invoices.length === 0 ? (
           <Empty>No invoices yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
                 <th className="py-1.5">Ref</th><th>Payee</th><th className="text-right">USD</th>
@@ -145,17 +145,17 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                 const settling = payments.filter((p) => p.invoiceId === i.id)
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
-                    <td className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
-                    <td className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
-                    <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
-                    <td className="font-mono text-xs text-zinc-400">
+                    <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
+                    <td data-label="Payee" className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
+                    <td data-label="USD" className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
+                    <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
+                    <td data-label="Settled by" className="font-mono text-xs text-zinc-400">
                       {settling.length === 0 ? "—" : settling.map((p) => (
                         <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
                       ))}
                     </td>
-                    <td>{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
-                    <td className="whitespace-nowrap text-right">
+                    <td data-label="PDF">{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                    <td data-fullwidth className="whitespace-nowrap text-right">
                       {i.status !== "PAID" ? (
                         <button disabled={pending} onClick={() => run(() => updateInvoiceStatusAction(i.id, "PAID"))} className="mr-2 text-xs text-emerald-400 hover:underline disabled:opacity-40">Mark paid</button>
                       ) : null}
@@ -175,7 +175,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         payees.length === 0 ? (
           <Empty>No payees yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
                 <th className="py-1.5">Name</th><th>Type</th><th className="text-right">Invoices</th>
@@ -187,14 +187,14 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                 const pe = payeeById.get(t.payeeId)
                 return (
                   <tr key={t.payeeId} className="border-t border-zinc-900">
-                    <td className="py-2 text-zinc-200">
+                    <td data-label="Name" className="py-2 text-zinc-200">
                       <Link href={`/admin/financials/payees/${t.payeeId}`} className="text-sky-300 hover:underline">{t.payeeName}</Link>
                       {pe?.kycIntakeId ? <KycBadge /> : null}
                     </td>
-                    <td className="text-zinc-400">{pe?.type}</td>
-                    <td className="text-right text-zinc-300">{t.invoiceCount}</td>
-                    <td className="text-right text-zinc-200">{usd(t.totalUsd)}</td>
-                    <td className="text-right text-zinc-200">{dsl(t.totalDiesel)}</td>
+                    <td data-label="Type" className="text-zinc-400">{pe?.type}</td>
+                    <td data-label="Invoices" className="text-right text-zinc-300">{t.invoiceCount}</td>
+                    <td data-label="Paid (USD)" className="text-right text-zinc-200">{usd(t.totalUsd)}</td>
+                    <td data-label="Paid (DIESEL)" className="text-right text-zinc-200">{dsl(t.totalDiesel)}</td>
                   </tr>
                 )
               })}
@@ -207,7 +207,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         payments.length === 0 ? (
           <Empty>No payments yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
                 <th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th>
@@ -217,14 +217,14 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id} className="border-t border-zinc-900">
-                  <td className="py-2 font-mono text-xs text-zinc-300">
+                  <td data-label="Txid" className="py-2 font-mono text-xs text-zinc-300">
                     <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
                   </td>
-                  <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
-                  <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td className="text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
-                  <td className="text-zinc-500">{p.source}</td>
+                  <td data-label="DIESEL" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                  <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
+                  <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                  <td data-label="Invoice" className="text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
+                  <td data-label="Source" className="text-zinc-500">{p.source}</td>
                 </tr>
               ))}
             </tbody>
@@ -345,7 +345,7 @@ function ReportsView({ payees, invoices, payments }: {
       {rows.length === 0 ? (
         <Empty>No invoices to report.</Empty>
       ) : (
-        <table className="w-full text-sm">
+        <table className="w-full text-sm rtable">
           <thead>
             <tr className="text-left text-xs text-zinc-500">
               <th className="py-1.5">Period</th><th className="text-right">Invoices</th>
@@ -356,11 +356,11 @@ function ReportsView({ payees, invoices, payments }: {
           <tbody>
             {rows.map((r) => (
               <tr key={r.period} className="border-t border-zinc-900">
-                <td className="py-2 font-mono text-zinc-300">{r.period}</td>
-                <td className="text-right text-zinc-300">{r.invoiceCount}</td>
-                <td className="text-right text-zinc-200">{usd(r.issuedUsd)}</td>
-                <td className="text-right text-zinc-200">{usd(r.paidUsd)}</td>
-                <td className="text-right text-zinc-200">{dsl(r.dieselPaid)}</td>
+                <td data-label="Period" className="py-2 font-mono text-zinc-300">{r.period}</td>
+                <td data-label="Invoices" className="text-right text-zinc-300">{r.invoiceCount}</td>
+                <td data-label="Issued (USD)" className="text-right text-zinc-200">{usd(r.issuedUsd)}</td>
+                <td data-label="Paid (USD)" className="text-right text-zinc-200">{usd(r.paidUsd)}</td>
+                <td data-label="DIESEL Paid" className="text-right text-zinc-200">{dsl(r.dieselPaid)}</td>
               </tr>
             ))}
           </tbody>
