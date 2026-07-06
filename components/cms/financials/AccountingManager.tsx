@@ -138,7 +138,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
           <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
-                <th className="py-1.5">Ref</th><th>Payee</th><th className="text-right">USD</th>
+                <th className="py-1.5">Ref</th><th>Payee</th><th className="text-right">Value</th><th className="text-right">USD value</th>
                 <th>Status</th><th>Settled by</th><th>PDF</th><th></th>
               </tr>
             </thead>
@@ -150,7 +150,8 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                   <tr key={i.id} className="border-t border-zinc-900">
                     <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
                     <td data-label="Payee" className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
-                    <td data-label="USD" className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
+                    <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{i.amountDiesel != null ? dsl(i.amountDiesel) : usd(i.amountUsd)}</td>
+                    <td data-label="USD value" className="text-right text-zinc-400">{i.amountDiesel != null ? usd(i.amountUsd) : <span className="text-zinc-600">—</span>}</td>
                     <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
                     <td data-label="Settled by" className="font-mono text-xs text-zinc-400">
                       {settling.length === 0 ? "—" : settling.map((p) => (

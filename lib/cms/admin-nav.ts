@@ -4,7 +4,7 @@ import {
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
   KanbanSquare, Target, Package, Gavel, Building2, Image, Github, CalendarClock, TrendingUp, AtSign,
-  Contact, Siren, Boxes,
+  Contact, Siren, Boxes, Coins,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -98,6 +98,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: "financials", label: "Financials", icon: Banknote, items: [
+      { label: "Revenue", href: "/admin/financials/revenue", icon: Coins, privilege: FINANCIALS_PRIVILEGE },
       { label: "Treasury", href: "/admin/financials/treasury", icon: Wallet, privilege: FINANCIALS_PRIVILEGE },
       { label: "Accounting", href: "/admin/financials/accounting", icon: ClipboardList, privilege: FINANCIALS_PRIVILEGE },
       { label: "Cap table", href: "/admin/financials/cap-table", icon: PieChart, privilege: FINANCIALS_PRIVILEGE },

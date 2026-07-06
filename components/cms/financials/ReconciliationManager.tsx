@@ -54,18 +54,19 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-800">
-        <table className="w-full min-w-[680px] text-sm rtable">
+        <table className="w-full min-w-[760px] text-sm rtable">
           <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
-            <tr><th className="px-3 py-2">Invoice</th><th>Payee</th><th className="text-right">USD</th><th>Status</th><th>Settled by (on-chain DIESEL)</th></tr>
+            <tr><th className="px-3 py-2">Invoice</th><th>Payee</th><th className="text-right">Value</th><th className="text-right">USD value</th><th>Status</th><th>Settled by (on-chain DIESEL)</th></tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td data-fullwidth colSpan={5} className="px-3 py-8 text-center text-zinc-500">No invoices in this view.</td></tr>
+              <tr><td data-fullwidth colSpan={6} className="px-3 py-8 text-center text-zinc-500">No invoices in this view.</td></tr>
             ) : rows.map(({ inv, settling }) => (
               <tr key={inv.id} className="border-t border-zinc-900 align-top">
                 <td data-label="Invoice" className="px-3 py-2 font-mono text-zinc-300">{inv.ref}</td>
                 <td data-label="Payee" className="text-zinc-300">{inv.payeeName}</td>
-                <td data-label="USD" className="text-right text-zinc-200">{usd(inv.amountUsd)}</td>
+                <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{inv.amountDiesel != null ? `${dsl(inv.amountDiesel)} DIESEL` : usd(inv.amountUsd)}</td>
+                <td data-label="USD value" className="text-right text-zinc-400">{inv.amountDiesel != null ? usd(inv.amountUsd) : <span className="text-zinc-600">—</span>}</td>
                 <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_CLS[inv.status]}`}>{inv.status}</span></td>
                 <td data-label="Settled by" className="py-2">
                   {settling.length === 0 ? <span className="text-zinc-600">— no on-chain match</span> : (
