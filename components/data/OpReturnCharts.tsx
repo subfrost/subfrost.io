@@ -12,6 +12,8 @@ export interface OpReturnCopy {
   title: string
   note: string
   noteLink: string
+  reproduce: string
+  reproduceData: string
   updated: string
   subHeader: string
   windowAll: string
@@ -382,6 +384,20 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         {copy.note}{" "}
         <a href="https://github.com/Vdto88/alkanes-opreturn-stats" target="_blank" rel="noopener noreferrer" className="underline">
           {copy.noteLink}
+        </a>
+      </p>
+      <p className="mt-1 max-w-2xl text-sm" style={{ color: "var(--ed-muted)" }}>
+        {copy.reproduce}{" "}
+        <a href="https://github.com/Vdto88/alkanes-opreturn-decoder" target="_blank" rel="noopener noreferrer" className="underline">
+          alkanes-opreturn-decoder
+        </a>
+        {" · "}
+        <a href="https://github.com/Vdto88/alkanes-opreturn-scanner" target="_blank" rel="noopener noreferrer" className="underline">
+          alkanes-opreturn-scanner
+        </a>
+        {" · "}
+        <a href="https://github.com/Vdto88/alkanes-opreturn-stats" target="_blank" rel="noopener noreferrer" className="underline">
+          {copy.reproduceData}
         </a>
       </p>
 
