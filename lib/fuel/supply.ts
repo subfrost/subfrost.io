@@ -21,7 +21,7 @@ const round2 = (n: number): number => Math.round(n * 100) / 100
 // FUEL honors the intended 70/25/5). Team token grants carved from the pool.
 export const FOUNDER_FUEL_SPLIT = [
   { name: "Raymond Wesley Pulver IV", pct: 70 },
-  { name: "Gabriel Lee", pct: 25 },
+  { name: "Gabe Lee", pct: 25 }, // entity is "Gabe Lee" (must match for the dossier join)
   { name: "Sean Pulver", pct: 5 },
 ]
 export const TEAM_FUEL_GRANTS = [{ name: "Kevin Yao", amount: 31_500 }]
