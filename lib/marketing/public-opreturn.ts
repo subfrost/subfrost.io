@@ -34,6 +34,13 @@ export interface PublicOpReturnPayload {
   dieselCumulative: OpReturnPoint[]
   // Fee paid per transaction (sats), Alkanes tx vs everyone else.
   feePerTx: { date: string; alkanes: number | null; rest: number | null }[]
+  // UNCOMMON•GOODS mints per day (raw sampled counts): DIESEL-driven vs independent Runes.
+  ugMintsPerDay: { date: string; diesel: number | null; independent: number | null }[]
+  // Pure Runes (runestone bytes minus alkanes) vs Alkanes — share of OP_RETURN bytes, and absolute bytes/day.
+  runesVsAlkanesShare: { date: string; alkanes: number | null; pureRunes: number | null }[]
+  runesVsAlkanesBytes: { date: string; alkanes: number | null; pureRunes: number | null }[]
+  // OP_RETURN byte composition over time (shares 0..1): Alkanes / pure Runes / other.
+  byteComposition: { date: string; alkanes: number | null; pureRunes: number | null; other: number | null }[]
   stats: {
     last30: { alkanesOfOpReturnTx: number | null; alkanesOfOpReturnBytes: number | null; alkanesFeeShare: number | null }
     full: { alkanesFeeShare: number | null; opReturnFeeShare: number | null; alkanesBytesPerTx: number | null }
@@ -62,6 +69,10 @@ const EMPTY: PublicOpReturnPayload = {
   dieselMintsPerDay: [],
   dieselCumulative: [],
   feePerTx: [],
+  ugMintsPerDay: [],
+  runesVsAlkanesShare: [],
+  runesVsAlkanesBytes: [],
+  byteComposition: [],
   stats: {
     last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null },
     full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
@@ -208,6 +219,36 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     rest: ratio(r.feeTotalSats - r.feeAlkanesSats, r.totalTx - r.txAlkanes),
   }))
 
+  // UNCOMMON•GOODS mints/day (raw sampled counts, not extrapolated — matches the dashboard):
+  // DIESEL-driven (dieselUg) vs independent Runes (ugMints - dieselUg, clamped ≥ 0). Null when the CSV lacks UG fields.
+  const ugMintsPerDay = rows.map((r) => ({
+    date: r.date,
+    diesel: r.dieselUg ?? null,
+    independent: r.ugMints == null || r.dieselUg == null ? null : Math.max(0, r.ugMints - r.dieselUg),
+  }))
+
+  // "Pure Runes" = runestone bytes that aren't Alkanes (protostones live inside runestones).
+  const pureRunesBytes = (r: OpReturnRow): number => Math.max(0, r.runestoneBytes - r.alkanesBytes)
+  const runesVsAlkanesShare = rows.map((r) => ({
+    date: r.date,
+    alkanes: ratio(r.alkanesBytes, r.opReturnBytes),
+    pureRunes: ratio(pureRunesBytes(r), r.opReturnBytes),
+  }))
+  const runesVsAlkanesBytes = rows.map((r) => {
+    const factor = dayFactor(r)
+    return {
+      date: r.date,
+      alkanes: factor === null ? null : r.alkanesBytes * factor,
+      pureRunes: factor === null ? null : pureRunesBytes(r) * factor,
+    }
+  })
+  const byteComposition = rows.map((r) => ({
+    date: r.date,
+    alkanes: ratio(r.alkanesBytes, r.opReturnBytes),
+    pureRunes: ratio(pureRunesBytes(r), r.opReturnBytes),
+    other: ratio(Math.max(0, r.opReturnBytes - r.runestoneBytes), r.opReturnBytes),
+  }))
+
   const weightEligibleRows = rows.filter((r) => r.weightTotal != null && r.weightAlkanes != null)
   const lastWeightEligible = weightEligibleRows[weightEligibleRows.length - 1]
   const weightStats = {
@@ -268,6 +309,10 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
     dieselMintsPerDay,
     dieselCumulative,
     feePerTx,
+    ugMintsPerDay,
+    runesVsAlkanesShare,
+    runesVsAlkanesBytes,
+    byteComposition,
     stats,
   }
 }

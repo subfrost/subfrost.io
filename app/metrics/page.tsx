@@ -105,6 +105,26 @@ const copy = {
           series: { alkanes: "Alkanes tx", rest: "Non-Alkanes tx" },
           desc: "Average fee paid per transaction, in sats, split between Alkanes transactions and everyone else. Alkanes tx are mostly small DIESEL mints that pay modest fees, so per transaction they typically sit below the rest of Bitcoin's traffic — the mirror image of their share by transaction count. (Per-day fees ÷ tx count in each bucket; subsidy excluded.)",
         },
+        ugMintsPerDay: {
+          title: "UNCOMMON•GOODS mints per day — taken over by DIESEL",
+          series: { diesel: "DIESEL", independent: "Independent Runes" },
+          desc: "Almost every DIESEL mint also mints UNCOMMON•GOODS (Rune 1:0). This splits daily UNCOMMON•GOODS mints into the DIESEL-driven ones vs genuinely independent Runes — DIESEL has come to dominate the count. (Raw counts in the sampled blocks.)",
+        },
+        runesVsAlkanesShare: {
+          title: "Pure Runes vs Alkanes — share of OP_RETURN bytes",
+          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
+          desc: "Of all OP_RETURN data bytes, the share written by Alkanes vs by pure Runes (Runestones that aren't Alkanes protostones). Alkanes have overtaken Runes on Bitcoin's OP_RETURN byte budget.",
+        },
+        runesVsAlkanesBytes: {
+          title: "Real Runes vs Alkanes — absolute bytes per day",
+          series: { alkanes: "Alkanes", pureRunes: "Pure Runes" },
+          desc: "The same comparison in absolute terms — estimated OP_RETURN bytes per day (sampled blocks × 144) for Alkanes vs pure Runes, on a log scale so both early and recent volumes stay readable.",
+        },
+        byteComposition: {
+          title: "OP_RETURN byte composition over time",
+          series: { alkanes: "Alkanes", pureRunes: "Pure Runes", other: "Other" },
+          desc: "How the OP_RETURN byte budget splits between Alkanes, pure Runes and everything else, day by day — the moving version of the all-time donut above.",
+        },
       },
     },
   },
@@ -201,6 +221,26 @@ const copy = {
           title: "每笔交易的手续费 — Alkanes 与其他",
           series: { alkanes: "Alkanes 交易", rest: "非 Alkanes 交易" },
           desc: "每笔交易支付的平均手续费（以 sats 计），拆分为 Alkanes 交易与其余交易。Alkanes 交易大多是支付较少的小额 DIESEL 铸造，因此每笔通常低于比特币其余流量——与其按笔数计的份额恰好相反。（每日手续费 ÷ 各类别交易数；不含区块补贴。）",
+        },
+        ugMintsPerDay: {
+          title: "每日 UNCOMMON•GOODS 铸造 — 被 DIESEL 接管",
+          series: { diesel: "DIESEL", independent: "独立 Runes" },
+          desc: "几乎每一笔 DIESEL 铸造都会同时铸造 UNCOMMON•GOODS（符文 1:0）。此图将每日 UNCOMMON•GOODS 铸造拆分为由 DIESEL 驱动的部分与真正独立的 Runes——DIESEL 已在数量上占据主导。（抽样区块中的原始计数。）",
+        },
+        runesVsAlkanesShare: {
+          title: "纯 Runes 与 Alkanes — 占 OP_RETURN 字节的份额",
+          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
+          desc: "在全部 OP_RETURN 数据字节中，Alkanes 与纯 Runes（非 Alkanes protostone 的符文石）各自写入的份额。在比特币的 OP_RETURN 字节预算上，Alkanes 已超越 Runes。",
+        },
+        runesVsAlkanesBytes: {
+          title: "真实 Runes 与 Alkanes — 每日绝对字节数",
+          series: { alkanes: "Alkanes", pureRunes: "纯 Runes" },
+          desc: "以绝对值进行的同一比较——Alkanes 与纯 Runes 每日估算的 OP_RETURN 字节数（抽样区块 × 144），采用对数刻度，使早期与近期的数据量都清晰可读。",
+        },
+        byteComposition: {
+          title: "OP_RETURN 字节构成随时间变化",
+          series: { alkanes: "Alkanes", pureRunes: "纯 Runes", other: "其他" },
+          desc: "OP_RETURN 字节预算在 Alkanes、纯 Runes 与其他用途之间如何逐日划分——即上方全时段环形图的动态版本。",
         },
       },
     },
