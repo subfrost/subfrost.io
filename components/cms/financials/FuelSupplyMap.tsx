@@ -2,17 +2,8 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
-import { buildFuelSupplyMap, FUEL_TOTAL, type FuelItem } from "@/lib/fuel/supply"
+import { buildFuelSupplyMap, FUEL_TOTAL, FOUNDER_FUEL_SPLIT, TEAM_FUEL_GRANTS, type FuelItem } from "@/lib/fuel/supply"
 import type { InstrumentRow } from "@/lib/financials/equity/shapes"
-
-// Intended founder split (FUEL basis — equity is as-issued 100% Raymond, but
-// FUEL honors the intended 70/25/5). Team token grants carved from the pool.
-const FOUNDER_SPLIT = [
-  { name: "Raymond Wesley Pulver IV", pct: 70 },
-  { name: "Gabriel Lee", pct: 25 },
-  { name: "Sean Pulver", pct: 5 },
-]
-const TEAM_GRANTS = [{ name: "Kevin Yao", amount: 31_500 }]
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 })
 
@@ -22,11 +13,15 @@ const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 
  *  investor share; `communityAllocated` is the on-chain allocated total. */
 export function FuelSupplyMap({ instruments, communityAllocated }: { instruments: InstrumentRow[]; communityAllocated: number }) {
   const map = useMemo(() => {
-    const investorEquityPct = instruments.reduce((s, i) => {
-      if (i.status !== "OUTSTANDING" || !(i.safeKind === "POST_MONEY" && i.valuationCap && i.valuationCap > 0)) return s
-      return s + (i.amountUsd / i.valuationCap) * 100
-    }, 0)
-    return buildFuelSupplyMap({ founderSplit: FOUNDER_SPLIT, investorEquityPct, teamGrants: TEAM_GRANTS, communityAllocated })
+    // per-investor implied % (grouped by entity), so each SAFE investor is its own line
+    const byInvestor = new Map<string, number>()
+    for (const i of instruments) {
+      if (i.status !== "OUTSTANDING" || !(i.safeKind === "POST_MONEY" && i.valuationCap && i.valuationCap > 0)) continue
+      const name = i.investorEntity || i.investorName
+      byInvestor.set(name, (byInvestor.get(name) ?? 0) + (i.amountUsd / i.valuationCap) * 100)
+    }
+    const investors = [...byInvestor.entries()].map(([name, pct]) => ({ name, pct }))
+    return buildFuelSupplyMap({ founderSplit: FOUNDER_FUEL_SPLIT, investors, teamGrants: TEAM_FUEL_GRANTS, communityAllocated })
   }, [instruments, communityAllocated])
 
   const maxItem = map.pool.items[0]?.amount || 1

@@ -238,6 +238,10 @@ export interface EntityDossier {
   onchain: DossierOnchainTx[]
   fuel: DossierFuel[]
   fuelTotal: number
+  // Cap-table-descended (modeled, 2:1) FUEL for founders / SAFE investors /
+  // team — distinct from the address-matched community `fuel` above. Null when
+  // the entity isn't in the cap-table pool.
+  capTableFuel: { amount: number; source: string } | null
 }
 
 /** Pure grouping of envelopes into per-agreement version chains (newest first).

@@ -47,7 +47,7 @@ export function EntityDossier({ dossier: initial, canEdit, viewerHasFinancials }
   const [tab, setTab] = useState<Tab>("overview")
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
-  const { entity, payee, docGroups, signedFiles, onchain, fuel } = dossier
+  const { entity, payee, docGroups, signedFiles, onchain, fuel, capTableFuel } = dossier
 
   const refresh = () => startTransition(async () => {
     const r = await entityDossierAction(entity.id)
@@ -63,7 +63,7 @@ export function EntityDossier({ dossier: initial, canEdit, viewerHasFinancials }
     { key: "documents", label: "Documents", badge: docCount },
     { key: "financials", label: "Financials", badge: invoiceCount + paymentCount },
     { key: "onchain", label: "On-chain", badge: onchain.length },
-    { key: "fuel", label: "FUEL", badge: fuel.length },
+    { key: "fuel", label: "FUEL", badge: fuel.length + (capTableFuel ? 1 : 0) },
   ]
 
   return (
@@ -407,39 +407,56 @@ function OnchainTab({ dossier, viewerHasFinancials }: { dossier: DossierData; vi
 // ---- FUEL -----------------------------------------------------------------
 
 function FuelTab({ dossier }: { dossier: DossierData }) {
-  const { fuel, fuelTotal, addresses } = dossier
-  if (fuel.length === 0) {
+  const { fuel, fuelTotal, addresses, capTableFuel } = dossier
+  const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })
+  if (fuel.length === 0 && !capTableFuel) {
     return (
       <Empty>
         {addresses.length === 0
-          ? "No addresses recorded for this entity, so no FUEL can be matched. Add addresses in the Overview tab."
-          : "None of this entity's addresses have a FUEL allocation."}
+          ? "Not in the cap-table pool and no addresses recorded, so there's no FUEL to show. Add a taproot address in the Overview tab to match community FUEL."
+          : "None of this entity's addresses have a FUEL allocation, and it isn't in the cap-table pool."}
       </Empty>
     )
   }
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-        <Fuel size={16} className="text-amber-400" />
-        <span className="text-sm text-zinc-300">Total FUEL across matched addresses</span>
-        <span className="ml-auto text-lg font-semibold text-white">{fuelTotal.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
-      </div>
-      <div className="overflow-x-auto rounded-xl border border-zinc-800">
-        <table className="w-full min-w-[420px] text-sm">
-          <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
-            <tr><th className="px-3 py-2">Address</th><th className="text-right">FUEL</th><th>Note</th></tr>
-          </thead>
-          <tbody>
-            {fuel.map((f) => (
-              <tr key={f.address} className="border-t border-zinc-900">
-                <td className="px-3 py-2 font-mono text-xs"><a href={f.addrUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(f.address)}</a></td>
-                <td className="text-right text-zinc-200">{f.amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}</td>
-                <td className="text-zinc-400">{f.note ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Cap-table-descended FUEL (founders / SAFE investors / team) */}
+      {capTableFuel && (
+        <div className="flex items-center gap-3 rounded-lg border border-sky-900/50 bg-sky-950/20 p-4">
+          <Fuel size={16} className="shrink-0 text-sky-400" />
+          <div className="min-w-0">
+            <div className="text-sm text-zinc-200">Cap-table FUEL</div>
+            <div className="text-xs text-zinc-500">{capTableFuel.source} · modeled 2:1 from the cap table</div>
+          </div>
+          <span className="ml-auto text-lg font-semibold text-sky-300">{fmt(capTableFuel.amount)}</span>
+        </div>
+      )}
+      {/* Community FUEL (on-chain, address-matched) */}
+      {fuel.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+            <Fuel size={16} className="text-amber-400" />
+            <span className="text-sm text-zinc-300">Community FUEL across matched addresses</span>
+            <span className="ml-auto text-lg font-semibold text-white">{fmt(fuelTotal)}</span>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+            <table className="w-full min-w-[420px] text-sm rtable">
+              <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
+                <tr><th className="px-3 py-2">Address</th><th className="text-right">FUEL</th><th>Note</th></tr>
+              </thead>
+              <tbody>
+                {fuel.map((f) => (
+                  <tr key={f.address} className="border-t border-zinc-900">
+                    <td data-label="Address" className="px-3 py-2 font-mono text-xs"><a href={f.addrUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">{short(f.address)}</a></td>
+                    <td data-label="FUEL" className="text-right text-zinc-200">{fmt(f.amount)}</td>
+                    <td data-label="Note" className="text-zinc-400">{f.note ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   )
 }

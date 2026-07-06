@@ -13,6 +13,8 @@ import { loadPayeeProfile } from "@/lib/financials/accounting/store"
 import { listEntityFiles, breadcrumb, filesPath, driveSlugFromScope } from "@/lib/files/manager"
 import { explorerTxUrl, explorerAddrUrl } from "@/lib/explorers"
 import { KIND_LABELS } from "@/lib/esign/types"
+import { listInstruments } from "@/lib/financials/equity/store"
+import { capTableFuelForEntity } from "@/lib/fuel/supply"
 
 export class LegalError extends Error {}
 
@@ -228,10 +230,15 @@ export async function loadEntityDossier(id: string): Promise<EntityDossier | nul
   }
   const fuelTotal = fuel.reduce((s, f) => s + f.amount, 0)
 
+  // Cap-table-descended FUEL (founders / SAFE investors / team), modeled from
+  // the executed instruments — the same 2:1 model as the FUEL supply map.
+  const instruments = await listInstruments()
+  const capTableFuel = capTableFuelForEntity(row.name, instruments)
+
   return {
     entity: row, tags: row.tags, addresses,
     agreements: agreementRows.map(mapAgreement),
-    payee, docGroups, signedFiles, onchain, fuel, fuelTotal,
+    payee, docGroups, signedFiles, onchain, fuel, fuelTotal, capTableFuel,
   }
 }
 
