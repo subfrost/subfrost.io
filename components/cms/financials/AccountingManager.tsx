@@ -13,7 +13,7 @@ import {
 } from "@/lib/financials/accounting/shapes"
 import { PeriodReportChart } from "@/components/cms/financials/PeriodReportChart"
 import { explorerTxUrl } from "@/lib/explorers"
-import { useDieselUsd } from "@/components/cms/financials/use-diesel-usd"
+import { useDieselUsd, sumSettlingUsd } from "@/components/cms/financials/use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
 const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
@@ -146,19 +146,20 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
               {invoices.map((i) => {
                 const pe = payeeById.get(i.payeeId)
                 const settling = payments.filter((p) => p.invoiceId === i.id)
+                const valuedUsd = i.amountDiesel != null ? sumSettlingUsd(settling, usdValues) : null
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
                     <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
                     <td data-label="Payee" className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
                     <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{i.amountDiesel != null ? dsl(i.amountDiesel) : usd(i.amountUsd)}</td>
-                    <td data-label="USD value" className="text-right text-zinc-400">{i.amountDiesel != null ? usd(i.amountUsd) : <span className="text-zinc-600">—</span>}</td>
+                    <td data-label="USD value" className="text-right text-zinc-400">{i.amountDiesel != null ? (valuedUsd == null ? <span className="text-zinc-600">—</span> : approxUsd(valuedUsd)) : <span className="text-zinc-600">—</span>}</td>
                     <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
                     <td data-label="Settled by" className="font-mono text-xs text-zinc-400">
                       {settling.length === 0 ? "—" : settling.map((p) => (
                         <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
                       ))}
                     </td>
-                    <td data-label="PDF">{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                    <td data-label="PDF">{i.docHref ? <Link href={i.docHref} className="text-sky-400 underline">PDF</Link> : i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
                     <td data-fullwidth className="whitespace-nowrap text-right">
                       {i.status !== "PAID" ? (
                         <button disabled={pending} onClick={() => run(() => updateInvoiceStatusAction(i.id, "PAID"))} className="mr-2 text-xs text-emerald-400 hover:underline disabled:opacity-40">Mark paid</button>

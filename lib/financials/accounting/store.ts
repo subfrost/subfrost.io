@@ -8,8 +8,33 @@ import type {
   PayeeProfile, PayeeUserSummary, PayeeKycSummary,
 } from "@/lib/financials/accounting/shapes"
 import { assemblePayeeProfile } from "@/lib/financials/accounting/shapes"
+import { breadcrumb, filesPath, driveSlugFromScope, effSlug } from "@/lib/files/manager"
 
 export class AccountingError extends Error {}
+
+/** For each invoice with a pdfUrl, resolve the Files file-viewer deep-link to the
+ *  DriveFile whose gcsObject === pdfUrl (same path the entity dossier builds), so
+ *  the PDF link opens the in-app viewer instead of 404ing on the raw GCS path.
+ *  Leaves docHref null when no DriveFile matches. */
+async function withDocHrefs(rows: InvoiceRow[]): Promise<InvoiceRow[]> {
+  const objects = [...new Set(rows.map((r) => r.pdfUrl).filter((u): u is string => !!u))]
+  if (objects.length === 0) return rows
+  const files = await prisma.driveFile.findMany({
+    where: { gcsObject: { in: objects } },
+    select: { id: true, name: true, slug: true, scope: true, folderId: true, gcsObject: true },
+  })
+  const hrefByObject = new Map<string, string>()
+  await Promise.all(
+    files.map(async (df) => {
+      const crumbs = await breadcrumb(df.folderId)
+      const path = filesPath(driveSlugFromScope(df.scope), [...crumbs.map((c) => c.slug), effSlug(df)])
+      hrefByObject.set(df.gcsObject, path)
+    }),
+  )
+  return rows.map((r) =>
+    r.pdfUrl && hrefByObject.has(r.pdfUrl) ? { ...r, docHref: hrefByObject.get(r.pdfUrl)! } : r,
+  )
+}
 
 function mapPayee(r: {
   id: string; name: string; type: string; kycIntakeId: string | null
@@ -33,7 +58,7 @@ function mapInvoice(r: {
     id: r.id, ref: r.ref, payeeId: r.payeeId, payeeName: r.payee?.name ?? "",
     description: r.description, amountUsd: r.amountUsd, amountDiesel: r.amountDiesel,
     issuedAt: r.issuedAt.toISOString(), status: r.status as InvoiceStatus,
-    pdfUrl: r.pdfUrl, createdAt: r.createdAt.toISOString(),
+    pdfUrl: r.pdfUrl, docHref: null, createdAt: r.createdAt.toISOString(),
   }
 }
 
@@ -95,7 +120,7 @@ export async function listInvoices(filters: InvoiceFilters = {}): Promise<Invoic
   const rows = await prisma.invoice.findMany({
     where, orderBy: { issuedAt: "desc" }, include: { payee: { select: { name: true } } },
   })
-  return rows.map(mapInvoice)
+  return withDocHrefs(rows.map(mapInvoice))
 }
 
 export async function createInvoice(input: {

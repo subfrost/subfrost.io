@@ -27,7 +27,7 @@ export function driveSlugFromScope(scope: LegalScope): string {
 }
 /** Effective slug for a row: stored slug, else derived from name (so path
  *  resolution works before the backfill has run). */
-function effSlug(row: { slug: string | null; name: string }): string {
+export function effSlug(row: { slug: string | null; name: string }): string {
   return row.slug || toSlug(row.name)
 }
 

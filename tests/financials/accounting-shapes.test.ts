@@ -9,9 +9,9 @@ const payees: PayeeRow[] = [
   { id: "pe2", name: "Acme, Inc", type: "ORG", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z" },
 ]
 const invoices: InvoiceRow[] = [
-  { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "work", amountUsd: 1000, amountDiesel: 2, issuedAt: "2026-02-10T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-10T00:00:00.000Z" },
-  { id: "i2", ref: "INV-2", payeeId: "pe1", payeeName: "Ada", description: "more", amountUsd: 500, amountDiesel: null, issuedAt: "2026-05-01T00:00:00.000Z", status: "OPEN", pdfUrl: null, createdAt: "2026-05-01T00:00:00.000Z" },
-  { id: "i3", ref: "INV-3", payeeId: "pe2", payeeName: "Acme, Inc", description: "svc", amountUsd: 2000, amountDiesel: 4, issuedAt: "2026-05-20T00:00:00.000Z", status: "PAID", pdfUrl: "https://x/p.pdf", createdAt: "2026-05-20T00:00:00.000Z" },
+  { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "work", amountUsd: 1000, amountDiesel: 2, issuedAt: "2026-02-10T00:00:00.000Z", status: "PAID", pdfUrl: null, docHref: null, createdAt: "2026-02-10T00:00:00.000Z" },
+  { id: "i2", ref: "INV-2", payeeId: "pe1", payeeName: "Ada", description: "more", amountUsd: 500, amountDiesel: null, issuedAt: "2026-05-01T00:00:00.000Z", status: "OPEN", pdfUrl: null, docHref: null, createdAt: "2026-05-01T00:00:00.000Z" },
+  { id: "i3", ref: "INV-3", payeeId: "pe2", payeeName: "Acme, Inc", description: "svc", amountUsd: 2000, amountDiesel: 4, issuedAt: "2026-05-20T00:00:00.000Z", status: "PAID", pdfUrl: "https://x/p.pdf", docHref: null, createdAt: "2026-05-20T00:00:00.000Z" },
 ]
 const payments: PaymentRow[] = [
   { id: "p1", txid: "txa", vout: 0, amountDiesel: 2, recipientAddress: "bc1ada", paidAt: "2026-02-11T00:00:00.000Z", blockHeight: 1, invoiceId: "i1", invoiceRef: "INV-1", source: "MANUAL", createdAt: "2026-02-11T00:00:00.000Z" },

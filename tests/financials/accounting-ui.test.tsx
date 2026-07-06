@@ -23,7 +23,7 @@ const payee = (over: Partial<PayeeRow> = {}): PayeeRow => ({
   id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z", ...over,
 })
 const invoice = (over: Partial<InvoiceRow> = {}): InvoiceRow => ({
-  id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "OPEN", pdfUrl: null, createdAt: "2026-02-01T00:00:00.000Z", ...over,
+  id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "OPEN", pdfUrl: null, docHref: null, createdAt: "2026-02-01T00:00:00.000Z", ...over,
 })
 const payment = (over: Partial<PaymentRow> = {}): PaymentRow => ({
   id: "p1", txid: "txa", vout: null, amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: null, invoiceRef: null, source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z", ...over,

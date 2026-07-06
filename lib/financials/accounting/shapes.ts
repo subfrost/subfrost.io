@@ -28,6 +28,11 @@ export interface InvoiceRow {
   issuedAt: string // ISO
   status: InvoiceStatus
   pdfUrl: string | null
+  // Deep-link into the Files file-viewer for the DriveFile whose gcsObject ===
+  // pdfUrl (resolved server-side). Null when no matching DriveFile exists — then
+  // callers fall back to the raw pdfUrl. Lets the PDF link open the in-app viewer
+  // (with metadata + entity tags) instead of 404ing on the raw GCS object path.
+  docHref: string | null
   createdAt: string // ISO
 }
 

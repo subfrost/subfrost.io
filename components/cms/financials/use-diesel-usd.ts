@@ -51,3 +51,15 @@ export function useDieselUsd(payments: PaymentLike[]): {
 
   return { values, loading }
 }
+
+/** Sum the USD-at-payment valuations of an invoice's settling DIESEL payments.
+ *  Returns null when none of them are priced yet (caller renders "—"). Used to
+ *  show a DIESEL-settled invoice's USD value (~$N) instead of its $0 amountUsd. */
+export function sumSettlingUsd(
+  settling: { id: string }[],
+  values: Record<string, PaymentUsdValue>,
+): number | null {
+  const priced = settling.filter((p) => values[p.id])
+  if (priced.length === 0) return null
+  return priced.reduce((s, p) => s + values[p.id].paymentUsd, 0)
+}

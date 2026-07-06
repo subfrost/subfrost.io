@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import type { InvoiceRow, PaymentRow, InvoiceStatus } from "@/lib/financials/accounting/shapes"
 import { explorerTxUrl } from "@/lib/explorers"
-import { useDieselUsd } from "./use-diesel-usd"
+import { useDieselUsd, sumSettlingUsd } from "./use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
 const dsl = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 8 })
@@ -66,7 +66,7 @@ export function ReconciliationManager({ invoices, payments }: { invoices: Invoic
                 <td data-label="Invoice" className="px-3 py-2 font-mono text-zinc-300">{inv.ref}</td>
                 <td data-label="Payee" className="text-zinc-300">{inv.payeeName}</td>
                 <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{inv.amountDiesel != null ? `${dsl(inv.amountDiesel)} DIESEL` : usd(inv.amountUsd)}</td>
-                <td data-label="USD value" className="text-right text-zinc-400">{inv.amountDiesel != null ? usd(inv.amountUsd) : <span className="text-zinc-600">—</span>}</td>
+                <td data-label="USD value" className="text-right text-zinc-400">{inv.amountDiesel != null ? ((s) => s == null ? <span className="text-zinc-600">—</span> : approxUsd(s))(sumSettlingUsd(settling, usdValues)) : <span className="text-zinc-600">—</span>}</td>
                 <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_CLS[inv.status]}`}>{inv.status}</span></td>
                 <td data-label="Settled by" className="py-2">
                   {settling.length === 0 ? <span className="text-zinc-600">— no on-chain match</span> : (

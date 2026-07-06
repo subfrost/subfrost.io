@@ -6,8 +6,10 @@ import { ArrowLeft, Pencil, Link2, Unlink, FileText, ShieldCheck } from "lucide-
 import { payeeProfileAction, updatePayeeAction, type LinkableUser, type LinkableKycIntake } from "@/actions/cms/accounting"
 import type { InvoiceStatus, PayeeProfile as PayeeProfileData, PayeeType } from "@/lib/financials/accounting/shapes"
 import { explorerTxUrl } from "@/lib/explorers"
+import { useDieselUsd, sumSettlingUsd } from "@/components/cms/financials/use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
+const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
 const short = (s: string, n = 8) => (s.length > n * 2 ? `${s.slice(0, n)}…${s.slice(-4)}` : s)
 
@@ -26,6 +28,7 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const { payee, user, kyc, invoices, payments, envelopes, totals } = profile
+  const { values: usdValues } = useDieselUsd(payments)
 
   function run(patch: Patch, after?: () => void) {
     setError(null)
@@ -84,13 +87,14 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
             <tbody>
               {invoices.map((i) => {
                 const settling = payments.filter((p) => p.invoiceId === i.id)
+                const valuedUsd = i.amountDiesel != null ? sumSettlingUsd(settling, usdValues) : null
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
                     <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td data-label="USD" className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
+                    <td data-label="USD" className="text-right text-zinc-200">{i.amountDiesel != null ? (valuedUsd == null ? <span className="text-zinc-600">—</span> : approxUsd(valuedUsd)) : usd(i.amountUsd)}</td>
                     <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
                     <td data-label="Settled by" className="font-mono text-xs text-zinc-400">{settling.length === 0 ? "—" : settling.map((p) => <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>)}</td>
-                    <td data-label="PDF">{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                    <td data-label="PDF">{i.docHref ? <Link href={i.docHref} className="text-sky-400 underline">PDF</Link> : i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
                   </tr>
                 )
               })}
