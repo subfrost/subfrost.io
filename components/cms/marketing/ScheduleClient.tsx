@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import * as Tabs from "@radix-ui/react-tabs"
 import type { MarketingPush, RecurringPush, PushChannel, PushStatus } from "@prisma/client"
 import type { PushRow, ArticleOption } from "@/lib/cms/marketing-pushes"
@@ -33,6 +33,12 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
   const [cursor, setCursor] = useState({ year: today.getUTCFullYear(), month: today.getUTCMonth() })
   const [editing, setEditing] = useState<Partial<PushRow> | null>(null)
   const [showRecurring, setShowRecurring] = useState(false)
+  // The 7-column month grid can't fit a phone; default small screens to the
+  // Timeline (agenda) view. SSR-safe: start on "calendar", switch on mount.
+  const [view, setView] = useState<"calendar" | "timeline">("calendar")
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches) setView("timeline")
+  }, [])
 
   const weeks = useMemo(() => buildMonthGrid(cursor.year, cursor.month), [cursor])
   const rangeStart = weeks[0][0]
@@ -101,7 +107,7 @@ export function ScheduleClient({ pushes, rules, articleOptions, articleEngagemen
         </button>
       </div>
 
-      <Tabs.Root defaultValue="calendar">
+      <Tabs.Root value={view} onValueChange={(v) => setView(v as "calendar" | "timeline")}>
         <Tabs.List className="flex gap-2 border-b">
           <Tabs.Trigger value="calendar" className="px-3 py-2 text-sm data-[state=active]:font-medium">Calendar</Tabs.Trigger>
           <Tabs.Trigger value="timeline" className="px-3 py-2 text-sm data-[state=active]:font-medium">Timeline</Tabs.Trigger>
