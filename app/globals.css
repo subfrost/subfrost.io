@@ -893,6 +893,12 @@ div[data-netlify-deploy-id] {
   max-width: 100%;
   height: auto;
   display: inline-block;
+  /* Inlined chart SVGs carry a standalone fallback (.figchart: own ink/canvas + a
+     prefers-color-scheme media query) so they stay readable as <img> in the admin preview.
+     This higher-specificity rule takes back control when the site inlines them, so the
+     manual [data-ed-theme] toggle keeps driving the ink. */
+  color: var(--ed-ink);
+  background: transparent;
 }
 .ed-article-prose hr {
   border: 0;
