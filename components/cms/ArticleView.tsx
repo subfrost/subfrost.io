@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Markdown } from "@/lib/cms/markdown"
 import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
 import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
+import { buildInlineSvgMap } from "@/lib/cms/inline-svg"
 
 export interface ArticleViewData {
   title: string
@@ -30,7 +31,8 @@ export function categoryLabel(tag: { slug: string; name: string }, locale: CmsLo
  *  author byline) and Markdown content, closing with the author bio card.
  *  Rendered identically by the public page and the admin preview so the preview
  *  matches published output. The author UI only renders when `author` is given. */
-export function ArticleView({ article, locale }: { article: ArticleViewData; locale: CmsLocale }) {
+export async function ArticleView({ article, locale }: { article: ArticleViewData; locale: CmsLocale }) {
+  const inlinedSvgs = await buildInlineSvgMap(article.body)
   const fallback = locale === "zh" ? "文章" : "Article"
   const primaryTag = article.tags.map((t) => categoryLabel(t, locale)).find((t): t is string => Boolean(t)) ?? fallback
   const author = article.author
@@ -66,7 +68,7 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
       </header>
 
       <div className="mx-auto mt-12 max-w-[680px] sm:mt-14 lg:mt-16">
-        <Markdown variant="article">{article.body}</Markdown>
+        <Markdown variant="article" inlinedSvgs={inlinedSvgs}>{article.body}</Markdown>
       </div>
 
       {(article.sources ?? "").trim() ? (

@@ -885,6 +885,15 @@ div[data-netlify-deploy-id] {
   border-radius: 4px;
   width: 100%;
 }
+.ed-figure {
+  margin: 28px 0;
+  text-align: center;
+}
+.ed-figure svg {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
 .ed-article-prose hr {
   border: 0;
   margin: 36px 0;
