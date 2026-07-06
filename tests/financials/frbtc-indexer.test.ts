@@ -15,6 +15,14 @@ const RANGE_PAYLOAD = {
 
 const hexOf = (obj: unknown) => "0x" + Buffer.from(JSON.stringify(obj), "utf8").toString("hex")
 
+/** The real metashrew `export_bytes` framing: [u32-LE length][payload][NUL pad]. */
+const framedHexOf = (obj: unknown) => {
+  const json = Buffer.from(JSON.stringify(obj), "utf8")
+  const len = Buffer.alloc(4)
+  len.writeUInt32LE(json.length, 0)
+  return "0x" + Buffer.concat([len, json, Buffer.alloc(16)]).toString("hex")
+}
+
 /** Stub fetch: assert the JSON-RPC envelope, then return `result`. */
 function mockRpc(result: unknown, ok = true, status = 200) {
   const fn = vi.fn(async (_url: string, init?: { body?: string }) => {
@@ -70,6 +78,13 @@ describe("getFrbtcVolumeRange (result decoding)", () => {
     mockRpc(RANGE_PAYLOAD)
     const r = await getFrbtcVolumeRange("2026-06-01", "2026-06-02")
     expect(r!.daily[1].unwrapped_sats).toBe(200_000)
+  })
+
+  it("decodes the real metashrew framing (u32-LE length prefix + NUL padding)", async () => {
+    mockRpc(framedHexOf(RANGE_PAYLOAD))
+    const r = await getFrbtcVolumeRange("2026-06-01", "2026-06-02")
+    expect(r!.daily).toHaveLength(2)
+    expect(r!.totals.volume_sats).toBe(350_000)
   })
 
   it("coerces missing/garbage numeric fields to 0", async () => {

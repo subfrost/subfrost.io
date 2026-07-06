@@ -52,19 +52,34 @@ function toHex(s: string): string {
 }
 
 /** Robustly turn a `metashrew_view` result into a parsed object. The view's
- *  exported bytes may come back as: a hex string ("0x…", decode utf8 → JSON), a
- *  plain JSON string, or an already-decoded object/array. */
+ *  exported bytes may come back as: an already-decoded object/array; a plain
+ *  JSON string; or a "0x…" hex string. For the hex case, metashrew's
+ *  `export_bytes` framing is `[u32-LE length][JSON payload][zero padding]`
+ *  (confirmed against a live `frbtc_volume_tip`: 0x0e000000 + `{"tip":…}` +
+ *  NUL padding), so we read the length prefix and slice exactly that many
+ *  bytes. Falls back to whole-buffer utf8 (NUL-trimmed) if the prefix doesn't
+ *  look like a valid length — tolerating hosts that return unframed JSON. */
 function decodeResult(result: unknown): unknown {
   if (result == null) return null
   if (typeof result === "object") return result // already decoded (object/array)
-  if (typeof result === "string") {
-    let text = result
-    if (/^0x[0-9a-fA-F]*$/.test(text)) {
-      text = Buffer.from(text.slice(2), "hex").toString("utf8")
+  if (typeof result !== "string") return result
+  let text = result
+  if (/^0x[0-9a-fA-F]*$/.test(text)) {
+    const buf = Buffer.from(text.slice(2), "hex")
+    if (buf.length >= 4) {
+      const len = buf.readUInt32LE(0)
+      if (len > 0 && len <= buf.length - 4) {
+        const framed = buf.subarray(4, 4 + len).toString("utf8")
+        try {
+          return JSON.parse(framed)
+        } catch {
+          /* not length-framed after all — fall through to whole-buffer */
+        }
+      }
     }
-    return JSON.parse(text)
+    text = buf.toString("utf8").replace(/\0+$/, "").trim()
   }
-  return result
+  return JSON.parse(text)
 }
 
 /** POST a single `metashrew_view` call. `input` is raw JSON, hex-encoded per the
