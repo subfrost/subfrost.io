@@ -12,6 +12,24 @@ export interface DataCardCopy {
   sevenDays: string
 }
 
+// Token icons shown next to each card label. DIESEL/FIRE/frBTC are the same assets the
+// /ecosystem profiles use (CMS bucket); BTC ships in public/. Pairs show both tokens.
+const ECO = "https://storage.googleapis.com/subfrost-cms/ecosystem"
+const BTC_ICON = "/bitcoin-btc-logo.svg"
+const DIESEL_ICON = `${ECO}/cmqlujevl0000tanjvueemeg3-20png-2a346dc0.opt.png`
+const FIRE_ICON = `${ECO}/cmqlujevl0000tanjvueemeg3-fire-orangesvg-1210.svg`
+const FRBTC_ICON = `${ECO}/cmqlujevl0000tanjvueemeg3-frbtcsvg-7977.svg`
+const METRIC_ICONS: Record<PublicMetricKey, string[]> = {
+  "btc-locked": [BTC_ICON],
+  "frbtc-supply": [FRBTC_ICON],
+  "diesel-holders": [DIESEL_ICON],
+  "diesel-price": [DIESEL_ICON],
+  "diesel-marketcap": [DIESEL_ICON],
+  "fire-price": [FIRE_ICON],
+  "btc-diesel": [BTC_ICON, DIESEL_ICON],
+  "btc-fire": [BTC_ICON, FIRE_ICON],
+}
+
 export function MetricCard({
   metric, value, deltaPct, series, showChart, copy, locale,
 }: {
@@ -44,32 +62,49 @@ export function MetricCard({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: "var(--ed-hairline, #22304a)", background: "var(--ed-card, transparent)" }}>
-      <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{label}</div>
-      <div className="text-3xl font-medium" style={{ color: "var(--ed-ink)" }}>{formatMetricValue(metric, value)}</div>
+    // Compact card (~half the previous height): the charts below are the page's emphasis.
+    <div className="flex flex-col gap-1.5 rounded-xl border p-4" style={{ borderColor: "var(--ed-hairline, #22304a)", background: "var(--ed-card, transparent)" }}>
+      <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--ed-muted)" }}>
+        <span className="flex shrink-0 items-center">
+          {METRIC_ICONS[metric].map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={src}
+              src={src}
+              alt=""
+              width={18}
+              height={18}
+              loading="lazy"
+              decoding="async"
+              className={`h-[18px] w-[18px] rounded-full object-cover ${i > 0 ? "-ml-1.5" : ""}`}
+            />
+          ))}
+        </span>
+        {label}
+      </div>
+      <div className="text-[22px] font-medium leading-tight" style={{ color: "var(--ed-ink)" }}>{formatMetricValue(metric, value)}</div>
       {deltaPct !== null ? (
-        <div className="text-sm" style={{ color: deltaPct >= 0 ? "#3aa981" : "#c2633f" }}>
+        <div className="text-xs" style={{ color: deltaPct >= 0 ? "#3aa981" : "#c2633f" }}>
           {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct).toFixed(1)}% · {copy.sevenDays}
         </div>
       ) : null}
       {showChart && points.length >= 2 ? (
-        <div className="h-[160px] w-full">
+        <div className="h-[72px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={32} />
-              <YAxis tick={{ fontSize: 11 }} width={64} domain={["auto", "auto"]} />
+            <LineChart data={points} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+              <XAxis dataKey="date" hide />
+              <YAxis hide domain={["auto", "auto"]} />
               <Tooltip formatter={(v: number) => formatMetricValue(metric, v)} labelStyle={{ color: "#334" }} />
-              <Line type="monotone" dataKey="v" stroke="#5dcaa5" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="v" stroke="#5dcaa5" strokeWidth={1.8} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       ) : null}
-      <div className="mt-auto flex gap-3 text-sm">
-        <button type="button" onClick={copyCard} className="rounded-full border px-4 py-1.5" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
+      <div className="mt-auto flex gap-2 text-xs">
+        <button type="button" onClick={copyCard} className="rounded-full border px-3 py-1" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
           {copied ? copy.copied : copy.share}
         </button>
-        <a href={tweet} target="_blank" rel="noopener noreferrer" className="rounded-full border px-4 py-1.5" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
+        <a href={tweet} target="_blank" rel="noopener noreferrer" className="rounded-full border px-3 py-1" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
           {copy.post}
         </a>
       </div>

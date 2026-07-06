@@ -148,7 +148,7 @@ function ToggleLineChart({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="h-[240px] w-full">
+      <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ChartTag data={plotData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
@@ -401,7 +401,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </a>
       </p>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      {/* 2 columns max — the charts are the emphasis of the page (bigger, easier to read). */}
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
         {/* 1. Daily Alkanes share */}
         <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc}>
           <ToggleLineChart
