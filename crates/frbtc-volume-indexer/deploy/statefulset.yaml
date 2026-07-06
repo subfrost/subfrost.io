@@ -50,7 +50,7 @@ spec:
             - --indexer
             - /indexer/frbtc_volume_indexer.wasm
             - --start-block
-            - "880000" # alkanes genesis — captures frBTC from inception + any signer rotations
+            - "913700" # frBTC genesis: first wrap at 913766 (binary-searched via getstorageat /totalsupply); pad to capture deploy/initialize
             - --host
             - 0.0.0.0
             - --port
