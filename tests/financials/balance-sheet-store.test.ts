@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => {
 import prisma from "@/lib/prisma"
 import { cacheGet } from "@/lib/redis"
 import { buildBalanceSheet } from "@/lib/financials/balance-sheet/store"
+import { round2 } from "@/lib/financials/balance-sheet/shapes"
 import { FUEL_PRESALE_PROCEEDS_USD } from "@/lib/fuel/supply"
 
 const inv = prisma.invoice as unknown as Record<string, ReturnType<typeof vi.fn>>
@@ -92,20 +93,24 @@ describe("buildBalanceSheet computed lines", () => {
     expect(overhang).toBeDefined()
     // (2,100,000 − 100,000) × 17.17 = 34,340,000
     expect(overhang?.amountUsd).toBe(34_340_000)
-    // Not summed into any section total, and the sheet still balances (0 = 0).
+    // The $34.34M overhang is memo-only: it is NOT summed into any section
+    // total. Liabilities carry ONLY the deferred-FUEL obligation (presale $
+    // received), never the notional mark.
     expect(v.totalAssets).toBe(0)
-    expect(v.totalLiabilities).toBe(0)
     expect(v.totalEquity).toBe(0)
-    expect(v.balanced).toBe(true)
+    expect(v.totalLiabilities).toBe(FUEL_PRESALE_PROCEEDS_USD)
+    // With no offsetting asset in this synthetic case, the imbalance equals the
+    // standalone deferred-FUEL liability (proves the memo is excluded).
+    expect(v.difference).toBe(-FUEL_PRESALE_PROCEEDS_USD)
   })
 
   it("computes equity attributable to common (409A) = assets − liabilities − SAFE preference", async () => {
-    cg.mockResolvedValueOnce({ grandTotalUsd: 1_000_000, fetchedAt: "2026-06-20T00:00:00Z" })
+    cg.mockResolvedValueOnce({ grandTotalUsd: 2_500_000, fetchedAt: "2026-06-20T00:00:00Z" })
     inst.aggregate.mockResolvedValueOnce({ _sum: { amountUsd: 350000 }, _count: 2 })
     const v = await buildBalanceSheet()
-    // assets 1,000,000 − liabilities 0 − SAFE preference 350,000 = 650,000
+    // assets 2,500,000 − liabilities (deferred-FUEL) − SAFE preference 350,000
     expect(v.safePreferenceUsd).toBe(350000)
-    expect(v.attributableToCommonUsd).toBe(650000)
+    expect(v.attributableToCommonUsd).toBe(round2(2_500_000 - FUEL_PRESALE_PROCEEDS_USD - 350_000))
     expect(v.attributableToCommonUsd).toBeGreaterThan(0)
   })
 
@@ -117,8 +122,12 @@ describe("buildBalanceSheet computed lines", () => {
       { id: "m3", section: "EQUITY", label: "Equity", amountUsd: 350000, sortOrder: 0, notes: null },
     ])
     const v = await buildBalanceSheet()
+    // Manual + computed lines merge per section. Assets = the one manual asset;
+    // liabilities = manual AP + the computed deferred-FUEL obligation; equity =
+    // the manual equity line.
     expect(v.totalAssets).toBe(351000)
-    expect(v.liabilitiesPlusEquity).toBe(351000)
-    expect(v.balanced).toBe(true)
+    expect(v.totalLiabilities).toBe(round2(1000 + FUEL_PRESALE_PROCEEDS_USD))
+    expect(v.liabilitiesPlusEquity).toBe(round2(1000 + FUEL_PRESALE_PROCEEDS_USD + 350000))
+    expect(v.difference).toBe(round2(351000 - (1000 + FUEL_PRESALE_PROCEEDS_USD + 350000)))
   })
 })
