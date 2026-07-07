@@ -203,11 +203,18 @@ static void streamLoop() {
   String status = client.readStringUntil('\n');
   Serial.print("ntfy: " + status);
   if (status.indexOf(" 200") < 0) {
-    // 401/403 = bad or rotated credentials — descending two-tone, retry rarely
     client.stop();
-    buzz(1200, 250);
-    buzz(600, 500);
-    for (int i = 0; i < 30 && !buttonDown(); i++) delay(1000);
+    // Only genuine auth rejections get the descending "re-provision me" tone;
+    // transient reconnect hiccups (empty status, 5xx) retry silently, else an
+    // idle device boops at the household for no reason.
+    bool authError = status.indexOf(" 401") >= 0 || status.indexOf(" 403") >= 0;
+    if (authError) {
+      buzz(1200, 250);
+      buzz(600, 500);
+      for (int i = 0; i < 30 && !buttonDown(); i++) delay(1000);
+    } else {
+      delay(5000);
+    }
     return;
   }
   while (client.connected()) {
