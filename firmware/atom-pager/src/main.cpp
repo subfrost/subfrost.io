@@ -1,4 +1,4 @@
-// SUBFROST hardware pager — M5Stack Atom Echo S3R + Grove passive buzzer.
+// SUBFROST hardware pager — M5Stack Atom Echo S3R (built-in speaker).
 //
 // Subscribes to the owner's ntfy topics (page-<id> + page-all) on
 // https://page.subfrost.io over a streaming /json connection and turns pages
@@ -12,7 +12,8 @@
 // collects Wi-Fi + member id + device credentials (issued by the "📟 Device"
 // button in /admin/pager). Stored in NVS.
 //
-// The EchoS3R has no user LED, so all status is audible:
+// Sound comes from the EchoS3R's built-in speaker (ES8311 codec + NS4150B
+// amp) — no external buzzer unit needed. No user LED, so all status is audible:
 //   two rising chirps      = powered up, connected, armed
 //   slow lone beep (x3)    = setup portal open (join AP SUBFROST-PAGER)
 //   descending two-tone    = ntfy rejected credentials — re-provision
@@ -22,6 +23,7 @@
 
 #include <Arduino.h>
 #include <HTTPClient.h>
+#include <M5EchoBase.h>
 #include <Preferences.h>
 #include <WiFiClientSecure.h>
 #include <WiFiManager.h>
@@ -29,24 +31,29 @@
 #include <base64.h>
 
 // ---- hardware (Atom Echo S3R) ----
-static const int PIN_BUTTON = 41; // top button, active LOW
-static const int PIN_BUZZER = 1;  // Grove G1; try 2 if silent
-static const int BUZZ_CH = 0;
+static const int PIN_BUTTON = 41;  // top button, active LOW
+static const int PIN_AMP_EN = 18;  // NS4150B amplifier enable
+// ES8311 codec: I2C SDA 45 / SCL 0; I2S WS 3, BCLK 17, ESP->codec data 48,
+// codec->ESP data 4 (verified on hardware — the datasheet names are ambiguous).
+static const int SAMPLE_RATE = 16000;
 
 static const char *NTFY_HOST = "page.subfrost.io";
 static const uint32_t STALL_MS = 150000; // ntfy keepalives every ~45s; 150s silent = dead
 
 Preferences prefs;
 String memberId, devUser, devPass;
+M5EchoBase speaker;
 
 // pending urgent page
 bool alarming = false;
 String pendingAckUrl;
 
+// Blocking sine tone through the built-in speaker (max 500ms per call).
 static void buzz(uint32_t freq, uint32_t ms) {
-  ledcWriteTone(BUZZ_CH, freq);
-  delay(ms);
-  ledcWriteTone(BUZZ_CH, 0);
+  static int16_t buf[SAMPLE_RATE / 2];
+  size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(buf) / sizeof(buf[0]));
+  for (size_t i = 0; i < n; i++) buf[i] = (int16_t)(sinf(2 * PI * freq * i / (float)SAMPLE_RATE) * 14000);
+  speaker.play((uint8_t *)buf, n * 2);
 }
 
 static bool buttonDown() { return digitalRead(PIN_BUTTON) == LOW; }
@@ -145,17 +152,13 @@ static void runAlarm() {
   Serial.println("ALARM — waiting for button");
   uint32_t phase = 0;
   while (alarming) {
-    ledcWriteTone(BUZZ_CH, (phase & 1) ? 2400 : 1800);
-    for (int i = 0; i < 25; i++) { // 250ms per phase, polling the button
-      if (buttonDown()) {
-        alarming = false;
-        break;
-      }
-      delay(10);
-    }
+    buzz((phase & 1) ? 2400 : 1800, 250); // blocking ~250ms per burst
     phase++;
+    for (int i = 0; i < 5 && alarming; i++) { // brief button poll between bursts
+      if (buttonDown()) alarming = false;
+      delay(2);
+    }
   }
-  ledcWriteTone(BUZZ_CH, 0);
   sendAck();
   while (buttonDown()) delay(10); // wait for release
 }
@@ -243,8 +246,12 @@ static void streamLoop() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-  ledcSetup(BUZZ_CH, 2000, 10);
-  ledcAttachPin(PIN_BUZZER, BUZZ_CH);
+  pinMode(PIN_AMP_EN, OUTPUT);
+  digitalWrite(PIN_AMP_EN, HIGH);
+  // sample_rate, i2c_sda, i2c_scl, i2s_di, i2s_ws, i2s_do, i2s_bck
+  if (!speaker.init(SAMPLE_RATE, 45, 0, 4, 3, 48, 17)) Serial.println("codec init FAILED");
+  speaker.setSpeakerVolume(90);
+  speaker.setMute(false);
 
   // button held at power-on = factory reset
   if (buttonDown()) {

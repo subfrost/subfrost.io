@@ -11,9 +11,9 @@ Wi-Fi setup portal, so nothing secret lives in this repo or the binary.
 
 ## Hardware
 
-- M5Stack **Atom Echo S3R** (ESP32-S3; USB id 303a:8000)
-- M5Stack **passive buzzer unit**, plugged into the Grove port (signal on
-  G1 — if it stays silent, change `PIN_BUZZER` to 2)
+- M5Stack **Atom Echo S3R** (ESP32-S3; USB id 303a:8000) — nothing else.
+  Alarms play through the built-in speaker (ES8311 codec, amp enable G18;
+  I2C 45/0, I2S WS 3 / BCLK 17 / data-out 48 — pin map verified on hardware).
 - USB-C power (no battery — this is a desk pager). Use a USB-A→C data cable
   for flashing; the board has no CC resistors, so C-to-C often gets no power.
 
@@ -27,6 +27,9 @@ Wi-Fi setup portal, so nothing secret lives in this repo or the binary.
    pio run -t upload --upload-port /dev/ttyACM0
    pio device monitor           # optional: watch logs at 115200
    ```
+3. **Unplug and replug the device** — the download-mode latch survives
+   esptool's software reset, so until a physical power cycle the app does
+   not start (the board sits silently in the bootloader).
 
 ## Provision (once per person)
 
@@ -41,7 +44,7 @@ Wi-Fi setup portal, so nothing secret lives in this repo or the binary.
 4. **Two rising chirps** = connected and armed. Send a test page from the
    console; the Echo should siren and the button-press should show ✓ ACK.
 
-## Sound / button reference (the S3R has no user LED)
+## Sound / button reference (built-in speaker; the S3R has no user LED)
 
 | Signal | Meaning |
 | --- | --- |
