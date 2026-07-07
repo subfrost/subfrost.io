@@ -1,4 +1,4 @@
-// SUBFROST hardware pager — M5Stack Atom Echo S3R + Grove passive buzzer.
+// SUBFROST hardware pager — M5Stack Atom Echo S3R (built-in speaker).
 //
 // Subscribes to the owner's ntfy topics (page-<id> + page-all) on
 // https://page.subfrost.io over a streaming /json connection and turns pages
@@ -12,7 +12,8 @@
 // collects Wi-Fi + member id + device credentials (issued by the "📟 Device"
 // button in /admin/pager). Stored in NVS.
 //
-// The EchoS3R has no user LED, so all status is audible:
+// Sound comes from the EchoS3R's built-in speaker (ES8311 codec + NS4150B
+// amp) — no external buzzer unit needed. No user LED, so all status is audible:
 //   two rising chirps      = powered up, connected, armed
 //   slow lone beep (x3)    = setup portal open (join AP SUBFROST-PAGER)
 //   descending two-tone    = ntfy rejected credentials — re-provision
@@ -22,6 +23,7 @@
 
 #include <Arduino.h>
 #include <HTTPClient.h>
+#include <M5EchoBase.h>
 #include <Preferences.h>
 #include <WiFiClientSecure.h>
 #include <WiFiManager.h>
@@ -29,24 +31,44 @@
 #include <base64.h>
 
 // ---- hardware (Atom Echo S3R) ----
-static const int PIN_BUTTON = 41; // top button, active LOW
-static const int PIN_BUZZER = 1;  // Grove G1; try 2 if silent
-static const int BUZZ_CH = 0;
+static const int PIN_BUTTON = 41;  // top button, active LOW
+static const int PIN_AMP_EN = 18;  // NS4150B amplifier enable
+// ES8311 codec: I2C SDA 45 / SCL 0; I2S WS 3, BCLK 17, ESP->codec data 48,
+// codec->ESP data 4 (verified on hardware — the datasheet names are ambiguous).
+static const int SAMPLE_RATE = 16000;
 
 static const char *NTFY_HOST = "page.subfrost.io";
 static const uint32_t STALL_MS = 150000; // ntfy keepalives every ~45s; 150s silent = dead
 
 Preferences prefs;
 String memberId, devUser, devPass;
+M5EchoBase speaker;
 
 // pending urgent page
 bool alarming = false;
 String pendingAckUrl;
 
+// Tone engine. Chunks are queued with clear_dma_buffer=false (the library's
+// default true wipes short sounds out of the DMA ring before they play — they
+// come out as clicks); flushSilence() then drains the tail and stops cleanly.
+// Full-scale square waves: far louder than a sine on this tiny driver.
+static int16_t tonebuf[3200]; // 200ms at 16k
+static void toneChunk(uint32_t f1, uint32_t f2, uint32_t ms) {
+  size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(tonebuf) / sizeof(tonebuf[0]));
+  for (size_t i = 0; i < n; i++) {
+    float s = sinf(2 * PI * f1 * i / (float)SAMPLE_RATE);
+    if (f2) s = (s + sinf(2 * PI * f2 * i / (float)SAMPLE_RATE)) * 0.7f;
+    tonebuf[i] = s >= 0 ? 30000 : -30000;
+  }
+  speaker.play((uint8_t *)tonebuf, n * 2, false);
+}
+static void flushSilence() {
+  memset(tonebuf, 0, sizeof(tonebuf));
+  speaker.play((uint8_t *)tonebuf, sizeof(tonebuf), true);
+}
 static void buzz(uint32_t freq, uint32_t ms) {
-  ledcWriteTone(BUZZ_CH, freq);
-  delay(ms);
-  ledcWriteTone(BUZZ_CH, 0);
+  for (uint32_t done = 0; done < ms; done += 200) toneChunk(freq, 0, min(ms - done, (uint32_t)200));
+  flushSilence();
 }
 
 static bool buttonDown() { return digitalRead(PIN_BUTTON) == LOW; }
@@ -112,8 +134,8 @@ static void sendAck() {
     Serial.printf("ack POST -> %d\n", code);
     http.end();
     if (code >= 200 && code < 300) {
-      buzz(1568, 80);
-      buzz(2093, 120);
+      buzz(1568, 150);
+      buzz(2093, 250);
     }
   }
   pendingAckUrl = "";
@@ -143,19 +165,17 @@ static void handleMessage(JsonDocument &doc) {
 // so even a reboot mid-alarm re-alarms within ~90s.
 static void runAlarm() {
   Serial.println("ALARM — waiting for button");
+  // Dissonant dual-tone chords, alternating every ~600ms. Queued in 200ms
+  // chunks with a button check between each, so the press lands fast.
   uint32_t phase = 0;
   while (alarming) {
-    ledcWriteTone(BUZZ_CH, (phase & 1) ? 2400 : 1800);
-    for (int i = 0; i < 25; i++) { // 250ms per phase, polling the button
-      if (buttonDown()) {
-        alarming = false;
-        break;
-      }
-      delay(10);
+    bool a = (phase++ & 1) == 0;
+    for (int c = 0; c < 3 && alarming; c++) {
+      toneChunk(a ? 900 : 700, a ? 1250 : 1000, 200);
+      if (buttonDown()) alarming = false;
     }
-    phase++;
   }
-  ledcWriteTone(BUZZ_CH, 0);
+  flushSilence();
   sendAck();
   while (buttonDown()) delay(10); // wait for release
 }
@@ -183,11 +203,18 @@ static void streamLoop() {
   String status = client.readStringUntil('\n');
   Serial.print("ntfy: " + status);
   if (status.indexOf(" 200") < 0) {
-    // 401/403 = bad or rotated credentials — descending two-tone, retry rarely
     client.stop();
-    buzz(1200, 250);
-    buzz(600, 500);
-    for (int i = 0; i < 30 && !buttonDown(); i++) delay(1000);
+    // Only genuine auth rejections get the descending "re-provision me" tone;
+    // transient reconnect hiccups (empty status, 5xx) retry silently, else an
+    // idle device boops at the household for no reason.
+    bool authError = status.indexOf(" 401") >= 0 || status.indexOf(" 403") >= 0;
+    if (authError) {
+      buzz(1200, 250);
+      buzz(600, 500);
+      for (int i = 0; i < 30 && !buttonDown(); i++) delay(1000);
+    } else {
+      delay(5000);
+    }
     return;
   }
   while (client.connected()) {
@@ -243,8 +270,12 @@ static void streamLoop() {
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-  ledcSetup(BUZZ_CH, 2000, 10);
-  ledcAttachPin(PIN_BUZZER, BUZZ_CH);
+  pinMode(PIN_AMP_EN, OUTPUT);
+  digitalWrite(PIN_AMP_EN, HIGH);
+  // sample_rate, i2c_sda, i2c_scl, i2s_di, i2s_ws, i2s_do, i2s_bck
+  if (!speaker.init(SAMPLE_RATE, 45, 0, 4, 3, 48, 17)) Serial.println("codec init FAILED");
+  speaker.setSpeakerVolume(100);
+  speaker.setMute(false);
 
   // button held at power-on = factory reset
   if (buttonDown()) {
@@ -257,8 +288,8 @@ void setup() {
 
   runPortalIfNeeded();
   Serial.printf("pager for '%s' as '%s'\n", memberId.c_str(), devUser.c_str());
-  buzz(1047, 80); // power-on chirp
-  buzz(1568, 80);
+  buzz(1047, 180); // power-on chirp
+  buzz(1568, 250);
 }
 
 void loop() {
