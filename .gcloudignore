@@ -20,9 +20,9 @@ cli/target/
 
 # Build outputs
 .next/
-out/
-dist/
-build/
+/out/
+/dist/
+/build/
 
 # IDE
 .vscode/
