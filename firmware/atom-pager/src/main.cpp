@@ -1,22 +1,26 @@
-// SUBFROST hardware pager — M5Stack Atom Echo + Grove passive buzzer.
+// SUBFROST hardware pager — M5Stack Atom Echo S3R + Grove passive buzzer.
 //
 // Subscribes to the owner's ntfy topics (page-<id> + page-all) on
 // https://page.subfrost.io over a streaming /json connection and turns pages
 // into noise:
-//   urgent (priority >= 4): siren + red strobe until the top button is
-//     pressed; the press POSTs the page's ACK action URL, which marks the
-//     page acknowledged in /admin/pager and stops the server-side repeats.
+//   urgent (priority >= 4): siren until the top button is pressed; the press
+//     POSTs the page's ACK action URL, which marks the page acknowledged in
+//     /admin/pager and stops the server-side repeats.
 //   info: three short beeps, no ack required.
 //
-// First boot (or after a 5s button hold): purple LED, AP "SUBFROST-PAGER",
-// captive portal collects Wi-Fi + member id + device credentials (issued by
-// the "📟 Device" button in /admin/pager). Stored in NVS.
+// First boot (or after a 5s button hold): AP "SUBFROST-PAGER", captive portal
+// collects Wi-Fi + member id + device credentials (issued by the "📟 Device"
+// button in /admin/pager). Stored in NVS.
 //
-// LED language: purple = setup portal, yellow = connecting, dim blue = armed,
-// red strobe = urgent page, cyan blink = info page, green = ack delivered.
+// The EchoS3R has no user LED, so all status is audible:
+//   two rising chirps      = powered up, connected, armed
+//   slow lone beep (x3)    = setup portal open (join AP SUBFROST-PAGER)
+//   descending two-tone    = ntfy rejected credentials — re-provision
+//   siren                  = urgent page, press button
+//   three mid beeps        = info page
+//   rising chirp after ack = ACK delivered
 
 #include <Arduino.h>
-#include <FastLED.h>
 #include <HTTPClient.h>
 #include <Preferences.h>
 #include <WiFiClientSecure.h>
@@ -24,27 +28,20 @@
 #include <ArduinoJson.h>
 #include <base64.h>
 
-// ---- hardware (Atom Echo) ----
-static const int PIN_BUTTON = 39; // top button, active LOW
-static const int PIN_LED = 27;    // single SK6812
-static const int PIN_BUZZER = 26; // Grove yellow wire; try 32 if silent
+// ---- hardware (Atom Echo S3R) ----
+static const int PIN_BUTTON = 41; // top button, active LOW
+static const int PIN_BUZZER = 1;  // Grove G1; try 2 if silent
 static const int BUZZ_CH = 0;
 
 static const char *NTFY_HOST = "page.subfrost.io";
 static const uint32_t STALL_MS = 150000; // ntfy keepalives every ~45s; 150s silent = dead
 
-CRGB led;
 Preferences prefs;
 String memberId, devUser, devPass;
 
 // pending urgent page
 bool alarming = false;
 String pendingAckUrl;
-
-static void setLed(const CRGB &c) {
-  led = c;
-  FastLED.show();
-}
 
 static void buzz(uint32_t freq, uint32_t ms) {
   ledcWriteTone(BUZZ_CH, freq);
@@ -88,7 +85,9 @@ static void runPortalIfNeeded() {
   });
 
   bool needPortal = memberId.isEmpty() || devUser.isEmpty() || devPass.isEmpty();
-  setLed(needPortal ? CRGB::Purple : CRGB::Yellow);
+  if (needPortal) {
+    for (int i = 0; i < 3; i++) { buzz(880, 300); delay(300); } // "portal open"
+  }
   // autoConnect: joins saved Wi-Fi, else opens the portal. Force the portal
   // when identity is missing even if Wi-Fi creds exist.
   bool ok = needPortal ? wm.startConfigPortal("SUBFROST-PAGER") : wm.autoConnect("SUBFROST-PAGER");
@@ -113,10 +112,8 @@ static void sendAck() {
     Serial.printf("ack POST -> %d\n", code);
     http.end();
     if (code >= 200 && code < 300) {
-      setLed(CRGB::Green);
       buzz(1568, 80);
       buzz(2093, 120);
-      delay(600);
     }
   }
   pendingAckUrl = "";
@@ -138,24 +135,16 @@ static void handleMessage(JsonDocument &doc) {
     alarming = true;
     pendingAckUrl = ackUrl;
   } else {
-    // info: three cyan beeps, done
-    for (int i = 0; i < 3; i++) {
-      setLed(CRGB::Cyan);
-      buzz(1319, 120);
-      setLed(CRGB::Black);
-      delay(120);
-    }
-    setLed(CRGB(0, 0, 24));
+    for (int i = 0; i < 3; i++) { buzz(1319, 120); delay(120); } // info beeps
   }
 }
 
-// Siren + strobe until the button is pressed. Server keeps repeating the page
-// anyway, so even a reboot mid-alarm re-alarms within ~90s.
+// Siren until the button is pressed. Server keeps repeating the page anyway,
+// so even a reboot mid-alarm re-alarms within ~90s.
 static void runAlarm() {
   Serial.println("ALARM — waiting for button");
   uint32_t phase = 0;
   while (alarming) {
-    setLed((phase & 1) ? CRGB::Red : CRGB::Black);
     ledcWriteTone(BUZZ_CH, (phase & 1) ? 2400 : 1800);
     for (int i = 0; i < 25; i++) { // 250ms per phase, polling the button
       if (buttonDown()) {
@@ -169,7 +158,6 @@ static void runAlarm() {
   ledcWriteTone(BUZZ_CH, 0);
   sendAck();
   while (buttonDown()) delay(10); // wait for release
-  setLed(CRGB(0, 0, 24));
 }
 
 // --------------------------------------------------------------------- stream
@@ -179,7 +167,6 @@ static void runAlarm() {
 static void streamLoop() {
   WiFiClientSecure client;
   client.setInsecure();
-  setLed(CRGB::Yellow);
   if (!client.connect(NTFY_HOST, 443)) {
     Serial.println("connect failed");
     delay(5000);
@@ -196,13 +183,11 @@ static void streamLoop() {
   String status = client.readStringUntil('\n');
   Serial.print("ntfy: " + status);
   if (status.indexOf(" 200") < 0) {
-    // 401/403 = bad or rotated credentials — slow purple blink, retry rarely
+    // 401/403 = bad or rotated credentials — descending two-tone, retry rarely
     client.stop();
-    for (int i = 0; i < 30; i++) {
-      setLed((i & 1) ? CRGB::Purple : CRGB::Black);
-      if (buttonDown()) break;
-      delay(1000);
-    }
+    buzz(1200, 250);
+    buzz(600, 500);
+    for (int i = 0; i < 30 && !buttonDown(); i++) delay(1000);
     return;
   }
   while (client.connected()) {
@@ -210,7 +195,7 @@ static void streamLoop() {
     if (h == "\r" || h.isEmpty()) break;
   }
 
-  setLed(CRGB(0, 0, 24)); // armed
+  Serial.println("armed");
   uint32_t lastRx = millis();
   String line;
   while (client.connected() || client.available()) {
@@ -219,7 +204,6 @@ static void streamLoop() {
       uint32_t t0 = millis();
       while (buttonDown()) {
         if (millis() - t0 > 5000) {
-          setLed(CRGB::White);
           buzz(440, 400);
           factoryReset();
         }
@@ -258,9 +242,7 @@ static void streamLoop() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_BUTTON, INPUT);
-  FastLED.addLeds<SK6812, PIN_LED, GRB>(&led, 1);
-  FastLED.setBrightness(255);
+  pinMode(PIN_BUTTON, INPUT_PULLUP);
   ledcSetup(BUZZ_CH, 2000, 10);
   ledcAttachPin(PIN_BUZZER, BUZZ_CH);
 
@@ -268,7 +250,6 @@ void setup() {
   if (buttonDown()) {
     delay(3000);
     if (buttonDown()) {
-      setLed(CRGB::White);
       buzz(440, 400);
       factoryReset();
     }
@@ -282,7 +263,6 @@ void setup() {
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    setLed(CRGB::Yellow);
     WiFi.reconnect();
     for (int i = 0; i < 100 && WiFi.status() != WL_CONNECTED; i++) delay(100);
     if (WiFi.status() != WL_CONNECTED) { delay(5000); return; }
