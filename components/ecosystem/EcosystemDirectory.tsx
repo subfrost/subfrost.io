@@ -105,10 +105,11 @@ export function EcosystemDirectory({
             <div key={p.slug}
               className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-[color:var(--ed-canvas)] p-6 transition-colors hover:border-[color:var(--ed-ice)]">
               {/* Stretched-link overlay: makes the whole card clickable to the project's internal
-                  profile page, while keeping LinksRow's real anchors (website/X/docs) and the
-                  AlkaneBadge as non-nested, independently-clickable external siblings above it (z-10). */}
+                  profile page. Only LinksRow's real anchors (website/X/docs) and the AlkaneBadge
+                  are raised above it (z-10) — everything else must stay below the overlay or it
+                  swallows the click instead of navigating. */}
               <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[14px]" />
-              <div className="relative z-10 flex items-center gap-3.5">
+              <div className="flex items-center gap-3.5">
                 <Mark p={p} size={52} />
                 <div>
                   <h3 className="text-[20px] font-medium tracking-[-0.012em] text-[color:var(--ed-ink)]">{p.name}</h3>
@@ -119,7 +120,7 @@ export function EcosystemDirectory({
                 </div>
                 <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ed-flare)]">{copy.featuredTag}</span>
               </div>
-              <p className="relative z-10 text-[14.5px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
+              <p className="text-[14.5px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
               <AlkaneBadge p={p} />
               <div className="relative z-10">
                 <LinksRow p={p} copy={copy} />
@@ -133,16 +134,17 @@ export function EcosystemDirectory({
         {grid.map((p) => (
           <div key={p.slug}
             className="relative flex flex-col gap-2.5 rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
-            {/* Stretched-link overlay: navigates to the internal profile page; LinksRow and
-                AlkaneBadge remain external, independently-clickable siblings above it (z-10). */}
+            {/* Stretched-link overlay: navigates to the internal profile page. Only the
+                AlkaneBadge (a real external anchor) is raised above it — raising the text
+                content too would swallow the click instead of navigating. */}
             <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
-            <div className="relative z-10 flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
               <Mark p={p} size={34} />
               <h3 className="text-[15px] font-medium text-[color:var(--ed-ink)]">{p.name}</h3>
             </div>
-            <p className="relative z-10 text-[12.8px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
+            <p className="text-[12.8px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
             <AlkaneBadge p={p} />
-            <div className="relative z-10 mt-auto flex items-center justify-between pt-1">
+            <div className="mt-auto flex items-center justify-between pt-1">
               <span className="font-mono text-[10.5px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
               <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
             </div>
