@@ -107,4 +107,21 @@ describe("EcosystemDirectory — internal profile links", () => {
     const websites = screen.getAllByRole("link", { name: /Website/ })
     for (const w of websites) expect(w).toHaveAttribute("target", "_blank")
   })
+
+  // The stretched-link overlay sits at z-0; anything raised above it (z-10)
+  // swallows clicks. Only elements that actually contain interactive targets
+  // (Website/X/docs anchors, the Ordiscan badge) may be raised — the title,
+  // logo, description and category/status rows must stay below the overlay so
+  // clicking them navigates to the profile.
+  it("only interactive card content is raised above the stretched-link overlay", () => {
+    const { container } = render(
+      <EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />,
+    )
+    const raised = Array.from(container.querySelectorAll('[class*="z-10"]'))
+    expect(raised.length).toBeGreaterThan(0)
+    for (const el of raised) {
+      const interactive = el.matches("a, button") || el.querySelector("a, button") !== null
+      expect(interactive, `non-interactive element raised above card overlay: <${el.tagName.toLowerCase()} class="${el.getAttribute("class")}">`).toBe(true)
+    }
+  })
 })
