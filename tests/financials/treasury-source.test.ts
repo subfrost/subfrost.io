@@ -20,25 +20,30 @@ function hex18(n: number): string {
   return "0x" + (BigInt(n) * 10n ** 18n).toString(16)
 }
 
-/** Mocks the transport: `bscRpcCall` returns the JSON-RPC batch results in
- *  request order; `fetch` answers the Binance ticker → BNB price. */
+/** Mocks the transport: `bscRpcCall` answers both the per-wallet balance batch
+ *  (array payload → results in request order) and the single PancakeSwap
+ *  `getReserves()` call for the BNB price (WBNB=1, BUSD=bnbPrice → price). */
 function mockRpc(opts: { bnb?: number; usdt?: number; usdc?: number; busd?: number; wbnb?: number; bnbPrice?: number }) {
+  const pad = (x: bigint) => x.toString(16).padStart(64, "0")
   bscRpcMock.mockImplementation(async (payload: unknown) => {
-    const results = [
-      hex18(opts.bnb ?? 0),
-      hex18(opts.usdt ?? 0),
-      hex18(opts.usdc ?? 0),
-      hex18(opts.busd ?? 0),
-      hex18(opts.wbnb ?? 0),
-    ]
-    return Array.isArray(payload)
-      ? payload.map((r: { id: number }) => ({ jsonrpc: "2.0", id: r.id, result: results[r.id] }))
-      : {}
+    if (Array.isArray(payload)) {
+      const results = [
+        hex18(opts.bnb ?? 0),
+        hex18(opts.usdt ?? 0),
+        hex18(opts.usdc ?? 0),
+        hex18(opts.busd ?? 0),
+        hex18(opts.wbnb ?? 0),
+      ]
+      return payload.map((r: { id: number }) => ({ jsonrpc: "2.0", id: r.id, result: results[r.id] }))
+    }
+    // Single eth_call = PancakeSwap WBNB/BUSD getReserves → [reserve0 WBNB][reserve1 BUSD][ts].
+    const price = BigInt(opts.bnbPrice ?? 600)
+    return {
+      jsonrpc: "2.0",
+      id: 1,
+      result: "0x" + pad(10n ** 18n) + pad(price * 10n ** 18n) + pad(0n),
+    }
   })
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ price: String(opts.bnbPrice ?? 600) }) })),
-  )
   return bscRpcMock
 }
 

@@ -93,16 +93,26 @@ async function btcSpotUsd(): Promise<number | null> {
   }
 }
 
-/** BNB/USD from Binance's public ticker (cheap, keyless). Null on any failure. */
+/** BNB/USD on-chain from the PancakeSwap V2 WBNB/BUSD pool reserves, read over
+ *  the same NodeReal BSC RPC (no external price API — never Binance). The pool
+ *  is token0=WBNB / token1=BUSD (both 18-dec), so price = BUSD reserve ÷ WBNB
+ *  reserve. `getReserves()` selector = 0x0902f1ac. Null on any failure. */
 async function bnbSpotUsd(): Promise<number | null> {
   try {
-    const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT", {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      cache: "no-store",
-    })
-    if (!res.ok) return null
-    const json = (await res.json()) as { price?: string }
-    const usd = json?.price != null ? Number(json.price) : NaN
+    // PancakeSwap V2 WBNB/BUSD pair (deepest WBNB stable pool on BSC).
+    const PAIR = "0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16"
+    const resp = (await bscRpcCall({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [{ to: PAIR, data: "0x0902f1ac" }, "latest"],
+    })) as { result?: string; error?: { message?: string } }
+    const hex = resp?.result?.startsWith("0x") ? resp.result.slice(2) : undefined
+    if (!hex || hex.length < 128) return null
+    const wbnb = BigInt("0x" + hex.slice(0, 64)) // reserve0 = WBNB (18 dec)
+    const busd = BigInt("0x" + hex.slice(64, 128)) // reserve1 = BUSD (18 dec)
+    if (wbnb === 0n) return null
+    const usd = Number(busd) / Number(wbnb)
     return Number.isFinite(usd) && usd > 0 ? usd : null
   } catch {
     return null
