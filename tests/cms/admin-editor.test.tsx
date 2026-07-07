@@ -39,6 +39,18 @@ describe("AdminEditor -- source controls", () => {
   })
 })
 
+describe("AdminEditor -- review entry point", () => {
+  it("links a saved article to its annotated full-page preview", () => {
+    const { getByRole } = render(<AdminEditor initial={initial} canPublish />)
+    expect(getByRole("link", { name: /Review/ })).toHaveAttribute("href", "/admin/articles/a1/preview")
+  })
+
+  it("hides the Review link while the article is unsaved (no id yet)", () => {
+    const { queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
+    expect(queryByRole("link", { name: /Review/ })).toBeNull()
+  })
+})
+
 describe("AdminEditor -- co-authors", () => {
   const members = [
     { id: "u2", name: "Gabe" },
