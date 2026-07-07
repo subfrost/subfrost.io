@@ -1,14 +1,18 @@
 //! frBTC volume indexer — a lightweight metashrew WASM indexer.
 //!
-//! Indexes wrap (opcode 77) and unwrap (opcode 78) activity of the frBTC
-//! alkane (AlkaneId `32:0`) and buckets satoshi volume by UTC day, so the
-//! protocol fee revenue (0.3% = 3/1000 of wrap+unwrap volume) can be computed
-//! from a single view call.
+//! Indexes wrap / unwrap BTC volume of frBTC by **signer-reserve accounting**
+//! and buckets satoshi volume by UTC day, so the protocol fee revenue
+//! (0.3% = 3/1000 of wrap+unwrap volume) can be computed from a single view
+//! call.
 //!
-//! It is intentionally standalone: it decodes each block's transactions with
-//! the same consensus-accurate runestone/protostone decoder the real alkanes
-//! indexer uses (`ordinals` + `protorune-support`), but keeps its own tiny
-//! key-value schema instead of tracking full protorune balances.
+//! The frBTC signer is a single fixed P2TR reserve address that never rotated.
+//! Rather than decoding alkanes protostones (which over-counts unwraps because
+//! the unwrap cellpack's `amount_requested` is not the BTC actually released),
+//! we track the signer's Bitcoin UTXO set and account real BTC flows:
+//!
+//! * **wrap volume**  = BTC paid *into* the signer reserve (deposits).
+//! * **unwrap volume** = BTC the signer pays *out to others* (its own change is
+//!   excluded, since change simply becomes a new signer UTXO).
 //!
 //! # Host ABI (metashrew)
 //! `input()` returns `[u32 height (LE)] ++ consensus-encoded bitcoin::Block`.
@@ -18,65 +22,64 @@
 //! * `/frbtc_volume/daily/<YYYY-MM-DD>` -> 40 bytes, little-endian packed:
 //!   `[wrapped_sats: u128][unwrapped_sats: u128][wrap_count: u32][unwrap_count: u32]`
 //! * `/frbtc_volume/tip`               -> `height: u32` (LE)
-//! * `/frbtc_volume/signer_script`     -> the currently-active signer P2TR
-//!   scriptPubKey bytes (34 bytes for P2TR). Tracks `set-signer`/`initialize`
-//!   rotations so wrap-crediting stays correct across key rotation.
+//! * `/frbtc_volume/u/<txid:32><vout:u32-le>` -> the outpoint's value as
+//!   `u64` LE (8 bytes) while it is an unspent signer UTXO; empty once spent.
+//!   A non-empty `get` means "this outpoint is a live signer UTXO".
 //!
 //! # View functions (metashrew_view)
 //! * `frbtc_volume_range` — input is JSON `{"from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`,
 //!   returns `{ daily: [...], totals: {...} }`.
 //! * `frbtc_volume_tip`   — no input, returns `{ "tip": <height> }`.
 
-use std::cmp::min;
 use std::io::Cursor;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use bitcoin::consensus::Decodable;
-use bitcoin::{Block, ScriptBuf, Transaction};
+use bitcoin::hashes::Hash;
+use bitcoin::{Address, Block, Network, Txid};
 use metashrew_core::{export_bytes, flush, get, input, set};
-use ordinals::{Artifact, Runestone};
-use protorune_support::protostone::Protostone;
-use protorune_support::utils::decode_varint_list;
 use serde::Serialize;
 
 // ---------------------------------------------------------------------------
-// frBTC protocol facts (see subfrost-alkanes/alkanes/fr-btc/{alkanes.toml,src/lib.rs}
-// and crates/fr-btc-support/src/lib.rs).
+// frBTC protocol facts.
 // ---------------------------------------------------------------------------
 
-/// frBTC alkane id: block 32, tx 0.
-const FRBTC_BLOCK: u128 = 32;
-const FRBTC_TX: u128 = 0;
-
-/// Alkanes protocol tag (AlkaneMessageContext::protocol_tag()).
-const ALKANES_PROTOCOL_TAG: u128 = 1;
-
-// Opcodes from alkanes/fr-btc/alkanes.toml
-const OP_INITIALIZE: u128 = 0;
-const OP_SET_SIGNER: u128 = 1;
-const OP_WRAP: u128 = 77;
-const OP_UNWRAP: u128 = 78;
-
-/// Genesis default signer x-only pubkey (fr-btc-support DEFAULT_SIGNER_PUBKEY).
-/// The active signer scriptPubKey is BIP86 tap-tweak(this) unless rotated via
-/// `set-signer` / `initialize`.
-const DEFAULT_SIGNER_PUBKEY: [u8; 32] = [
-    0x79, 0x40, 0xef, 0x3b, 0x65, 0x91, 0x79, 0xa1, 0x37, 0x1d, 0xec, 0x05, 0x79, 0x3c, 0xb0, 0x27,
-    0xcd, 0xe4, 0x78, 0x06, 0xfb, 0x66, 0xce, 0x1e, 0x3d, 0x1b, 0x69, 0xd5, 0x6d, 0xe6, 0x29, 0xdc,
-];
+/// The frBTC signer's fixed P2TR reserve address (mainnet). This address never
+/// rotated — see `SIGNER_P2TR_MAINNET` in subfrost-wallet-api/src/unwrap.rs.
+const SIGNER_P2TR_MAINNET: &str = "bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7";
 
 const FEE_PER_1000: u128 = 3; // 0.3% protocol fee on wrap + unwrap volume.
+
+/// The signer's scriptPubKey bytes, derived once from `SIGNER_P2TR_MAINNET`.
+/// Requires the address to be Bitcoin mainnet.
+fn signer_script() -> Vec<u8> {
+    let addr = Address::from_str(SIGNER_P2TR_MAINNET)
+        .expect("valid signer P2TR address")
+        .require_network(Network::Bitcoin)
+        .expect("signer address must be Bitcoin mainnet");
+    addr.script_pubkey().as_bytes().to_vec()
+}
 
 // ---------------------------------------------------------------------------
 // KV keys
 // ---------------------------------------------------------------------------
 
 const TIP_KEY: &[u8] = b"/frbtc_volume/tip";
-const SIGNER_KEY: &[u8] = b"/frbtc_volume/signer_script";
+const UTXO_PREFIX: &[u8] = b"/frbtc_volume/u/";
 const DAILY_PREFIX: &str = "/frbtc_volume/daily/";
 
 fn daily_key(date: &str) -> Vec<u8> {
     format!("{DAILY_PREFIX}{date}").into_bytes()
+}
+
+/// KV key identifying a signer UTXO: `/frbtc_volume/u/<txid:32><vout:u32-le>`.
+fn utxo_key(txid: &Txid, vout: u32) -> Vec<u8> {
+    let mut k = Vec::with_capacity(UTXO_PREFIX.len() + 32 + 4);
+    k.extend_from_slice(UTXO_PREFIX);
+    k.extend_from_slice(&txid.to_byte_array());
+    k.extend_from_slice(&vout.to_le_bytes());
+    k
 }
 
 fn kv_get(key: &[u8]) -> Vec<u8> {
@@ -123,36 +126,6 @@ impl Daily {
 }
 
 // ---------------------------------------------------------------------------
-// Signer script handling
-// ---------------------------------------------------------------------------
-
-fn is_p2tr(script: &[u8]) -> bool {
-    script.len() == 34 && script[0] == 0x51 && script[1] == 0x20
-}
-
-/// Derive the BIP86 tap-tweaked P2TR scriptPubKey for the genesis default
-/// signer x-only key — mirrors `get_signer_script()` in the frBTC contract.
-fn default_signer_script() -> ScriptBuf {
-    use bitcoin::key::TapTweak;
-    let secp = bitcoin::secp256k1::Secp256k1::verification_only();
-    let xonly = bitcoin::secp256k1::XOnlyPublicKey::from_slice(&DEFAULT_SIGNER_PUBKEY)
-        .expect("invalid default signer x-only pubkey");
-    let (tweaked, _parity) = xonly.tap_tweak(&secp, None);
-    ScriptBuf::new_p2tr_tweaked(tweaked)
-}
-
-/// Load the currently-active signer scriptPubKey bytes. Falls back to the
-/// tap-tweaked genesis default when nothing has been persisted yet.
-fn load_signer_script() -> Vec<u8> {
-    let stored = kv_get(SIGNER_KEY);
-    if is_p2tr(&stored) {
-        stored
-    } else {
-        default_signer_script().as_bytes().to_vec()
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Indexer entrypoint
 // ---------------------------------------------------------------------------
 
@@ -191,82 +164,60 @@ fn index_block(_height: u32, block: &Block) {
     // Per-block accumulators (folded into the daily record once at the end).
     let mut acc = Daily::default();
 
-    // Active signer script, updated live so a `set-signer` earlier in the
-    // block affects wraps later in the same block (matches contract ordering).
-    let mut signer_script = load_signer_script();
-    let mut signer_dirty = false;
+    let signer = signer_script();
 
     for tx in &block.txdata {
-        let runestone = match Runestone::decipher(tx) {
-            Some(Artifact::Runestone(rs)) => rs,
-            _ => continue,
-        };
-        let protostones = Protostone::from_runestone(&runestone).unwrap_or_default();
+        // Coinbase txs never spend or fund the signer meaningfully.
+        if tx.is_coinbase() {
+            continue;
+        }
 
-        for ps in &protostones {
-            if ps.protocol_tag != ALKANES_PROTOCOL_TAG || ps.message.is_empty() {
-                continue;
-            }
-            // The protostone message is the LEB-encoded cellpack:
-            // [block, tx, opcode, ..inputs] as a varint list.
-            let vals = match decode_varint_list(&mut Cursor::new(ps.message.clone())) {
-                Ok(v) => v,
-                Err(_) => continue,
-            };
-            if vals.len() < 3 || vals[0] != FRBTC_BLOCK || vals[1] != FRBTC_TX {
-                continue;
-            }
-            let opcode = vals[2];
-
-            match opcode {
-                OP_WRAP => {
-                    // Coinbase wraps mint ftr-btc futures from the block
-                    // subsidy — protocol-internal, not user wrap volume.
-                    if tx.is_coinbase() {
-                        continue;
-                    }
-                    let wrapped = wrap_value(tx, &signer_script);
-                    if wrapped > 0 {
-                        acc.wrapped_sats = acc.wrapped_sats.saturating_add(wrapped);
-                        acc.wrap_count = acc.wrap_count.saturating_add(1);
-                    }
-                }
-                OP_UNWRAP => {
-                    let burned = unwrap_value(&vals, ps);
-                    if burned > 0 {
-                        acc.unwrapped_sats = acc.unwrapped_sats.saturating_add(burned);
-                        acc.unwrap_count = acc.unwrap_count.saturating_add(1);
-                    }
-                }
-                OP_SET_SIGNER => {
-                    // set-signer(vout): new signer = tx.output[vout].script_pubkey
-                    if let Some(vout) = vals.get(3).and_then(|v| usize::try_from(*v).ok()) {
-                        if let Some(out) = tx.output.get(vout) {
-                            let spk = out.script_pubkey.as_bytes();
-                            if is_p2tr(spk) {
-                                signer_script = spk.to_vec();
-                                signer_dirty = true;
-                            }
-                        }
-                    }
-                }
-                OP_INITIALIZE => {
-                    // initialize(): if the first output is P2TR it becomes the signer.
-                    if let Some(out) = tx.output.first() {
-                        let spk = out.script_pubkey.as_bytes();
-                        if is_p2tr(spk) {
-                            signer_script = spk.to_vec();
-                            signer_dirty = true;
-                        }
-                    }
-                }
-                _ => {}
+        // 1) Detect (and consume) any inputs spending a live signer UTXO.
+        let mut is_signer_spend = false;
+        for input in &tx.input {
+            let key = utxo_key(&input.previous_output.txid, input.previous_output.vout);
+            if !kv_get(&key).is_empty() {
+                is_signer_spend = true;
+                kv_set(&key, Vec::new()); // consume
             }
         }
-    }
 
-    if signer_dirty {
-        kv_set(SIGNER_KEY, signer_script);
+        // 2) Sum outputs paying the signer vs. everyone else.
+        let mut to_signer = 0u128;
+        let mut to_others = 0u128;
+        for out in &tx.output {
+            let val = out.value.to_sat() as u128;
+            if out.script_pubkey.as_bytes() == signer.as_slice() {
+                to_signer = to_signer.saturating_add(val);
+            } else {
+                to_others = to_others.saturating_add(val);
+            }
+        }
+
+        // 3) Register every signer-paying output of this tx as a new signer UTXO.
+        let txid = tx.compute_txid();
+        for (vout, out) in tx.output.iter().enumerate() {
+            if out.script_pubkey.as_bytes() == signer.as_slice() {
+                let key = utxo_key(&txid, vout as u32);
+                kv_set(&key, out.value.to_sat().to_le_bytes().to_vec());
+            }
+        }
+
+        // 4) Classify.
+        if is_signer_spend {
+            // Unwrap (or self-consolidation). The signer released `to_others`
+            // BTC; any output back to the signer is its own change (already
+            // registered in step 3) and is correctly excluded here.
+            acc.unwrapped_sats = acc.unwrapped_sats.saturating_add(to_others);
+            if to_others > 0 {
+                acc.unwrap_count = acc.unwrap_count.saturating_add(1);
+            }
+        } else if to_signer > 0 {
+            // Wrap deposit: BTC flowing into the signer reserve.
+            acc.wrapped_sats = acc.wrapped_sats.saturating_add(to_signer);
+            acc.wrap_count = acc.wrap_count.saturating_add(1);
+        }
+        // else: unrelated tx — skip.
     }
 
     if acc.wrap_count > 0 || acc.unwrap_count > 0 {
@@ -277,48 +228,6 @@ fn index_block(_height: u32, block: &Block) {
         daily.wrap_count = daily.wrap_count.saturating_add(acc.wrap_count);
         daily.unwrap_count = daily.unwrap_count.saturating_add(acc.unwrap_count);
         kv_set(&key, daily.encode());
-    }
-}
-
-/// Wrapped volume for a wrap tx = sum of output values whose scriptPubKey
-/// matches the active signer script (exactly `compute_output()` in the
-/// contract). This is the pre-fee BTC deposited to the signer.
-fn wrap_value(tx: &Transaction, signer_script: &[u8]) -> u128 {
-    tx.output
-        .iter()
-        .filter(|o| o.script_pubkey.as_bytes() == signer_script)
-        .fold(0u128, |acc, o| acc.saturating_add(o.value.to_sat() as u128))
-}
-
-/// Unwrapped volume for an unwrap protostone.
-///
-/// The frBTC contract burns `min(amount_requested, frbtc_sent)` where
-/// `amount_requested` is cellpack input[2] (vals\[4]) and `frbtc_sent` is the
-/// incoming 32:0 alkane balance routed into the protomessage.
-///
-/// ASSUMPTION: a standalone indexer that does not track full protorune
-/// balances cannot always observe `frbtc_sent` — the frBTC being unwrapped
-/// usually enters as the protomessage's runtime balance (from a spent frBTC
-/// UTXO) rather than as an explicit edict, so protostone edicts are frequently
-/// empty on a valid unwrap. We therefore use `amount_requested` as the
-/// unwrapped volume, and when 32:0 edicts *are* present in the same protostone
-/// we take `min(amount_requested, edict_sum)` to mirror the contract's cap.
-/// In the normal wallet-constructed flow `amount_requested == frbtc_sent`, so
-/// this equals the true burned amount; a hostile over-request would be capped
-/// on-chain but slightly over-counted here (negligible for revenue estimation).
-fn unwrap_value(vals: &[u128], ps: &Protostone) -> u128 {
-    let amount_requested = vals.get(4).copied().unwrap_or(0);
-
-    let edict_sum: u128 = ps
-        .edicts
-        .iter()
-        .filter(|e| e.id.block == FRBTC_BLOCK && e.id.tx == FRBTC_TX)
-        .fold(0u128, |acc, e| acc.saturating_add(e.amount));
-
-    if edict_sum > 0 {
-        min(amount_requested, edict_sum)
-    } else {
-        amount_requested
     }
 }
 
@@ -557,8 +466,22 @@ mod tests {
     }
 
     #[test]
-    fn default_signer_is_p2tr() {
-        let s = default_signer_script();
-        assert!(is_p2tr(s.as_bytes()));
+    fn signer_script_is_mainnet_p2tr() {
+        // The fixed signer reserve must resolve to a 34-byte P2TR
+        // scriptPubKey (OP_1 <0x20> <32-byte x-only key>).
+        let s = signer_script();
+        assert_eq!(s.len(), 34);
+        assert_eq!(s[0], 0x51);
+        assert_eq!(s[1], 0x20);
+    }
+
+    #[test]
+    fn utxo_key_layout() {
+        let txid = Txid::from_byte_array([0xabu8; 32]);
+        let k = utxo_key(&txid, 7);
+        assert_eq!(k.len(), UTXO_PREFIX.len() + 32 + 4);
+        assert!(k.starts_with(UTXO_PREFIX));
+        assert_eq!(&k[UTXO_PREFIX.len()..UTXO_PREFIX.len() + 32], &[0xabu8; 32]);
+        assert_eq!(&k[UTXO_PREFIX.len() + 32..], &7u32.to_le_bytes());
     }
 }
