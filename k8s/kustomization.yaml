@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - serviceaccount.yaml
   - external-secrets.yaml
+  - iproyal-proxy-secret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

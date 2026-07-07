@@ -154,6 +154,20 @@ spec:
                   name: subfrost-io-secrets
                   key: FUEL_API_KEY
                   optional: true
+            # IPROYAL residential HTTP proxy for the treasury BSC-RPC path. When
+            # set, lib/financials/treasury/source/bsc-rpc.ts tunnels the tlsfetch
+            # TCP leg through it (HTTP CONNECT) so NodeReal sees a clean IP
+            # instead of the Cloudflare-blocked datacenter NAT (which hangs).
+            # NOTE: sourced from the PLAIN, committed Secret k8s/iproyal-proxy-
+            # secret.yaml (NOT the ESO-managed subfrost-io-secrets) — pending
+            # migration to external-secrets.yaml + gcloud Secret Manager.
+            # optional:true — absent => bsc-rpc.ts dials direct (dev/local).
+            - name: IPROYAL_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: iproyal-proxy
+                  key: IPROYAL_PROXY
+                  optional: true
             # GoldRush (Covalent) key for Financials > Treasury BSC balances.
             # optional:true — absent => the page shows "not configured".
             - name: GOLDRUSH_API_KEY

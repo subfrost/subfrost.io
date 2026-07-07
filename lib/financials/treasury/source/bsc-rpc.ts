@@ -13,8 +13,14 @@
 // only instantiates on first RPC call, never at build/prerender time.
 
 import { BSC_RPC_URL } from "@/lib/financials/treasury/config"
+import type { NetModule } from "tlsfetch"
 
-const TIMEOUT_MS = 12_000
+// Connect-only timeout handed to the (proxy or direct) net module.
+const CONNECT_TIMEOUT_MS = 10_000
+// Hard ceiling on the whole tlsfetch call (connect + TLS + request + response).
+// If the proxy or upstream stalls, we throw instead of hanging forever — the
+// treasury action catches this and degrades to the last-good snapshot.
+const OVERALL_TIMEOUT_MS = 20_000
 
 /** Headers Venus Protocol sends to the NodeReal BSC RPC — replicated so the
  *  request is indistinguishable from the real dapp. The Firefox UA matches the
@@ -40,18 +46,51 @@ function getTlsfetch(): Promise<typeof import("tlsfetch").tlsfetch> {
   return tlsfetchFn
 }
 
+/** Built once when `IPROYAL_PROXY` is set — routes the tlsfetch TCP leg through
+ *  the residential proxy (HTTP CONNECT) so NodeReal sees a clean, non-datacenter
+ *  IP. Absent env => `null` and we dial direct (dev/local keeps working). */
+let proxyNetFn: Promise<NetModule> | null = null
+function getProxyNet(): Promise<NetModule> | null {
+  const url = process.env.IPROYAL_PROXY
+  if (!url) return null
+  if (!proxyNetFn) {
+    proxyNetFn = import("./proxy-net").then((m) => m.proxyNetModule(url))
+  }
+  return proxyNetFn
+}
+
+/** Reject after `ms` so a stalled connect/handshake/response can never hang the
+ *  treasury snapshot — the caller catches and degrades to last-good. */
+function deadline(ms: number): Promise<never> {
+  return new Promise((_resolve, reject) =>
+    setTimeout(() => reject(new Error(`BSC RPC timeout after ${ms}ms`)), ms),
+  )
+}
+
 /** POST a JSON-RPC payload to the BSC RPC over tlsfetch (browser-emulated TLS),
- *  returning the parsed JSON. Throws on transport/HTTP error so the caller can
- *  degrade to last-good rather than serve a partial snapshot. */
+ *  returning the parsed JSON. Routes through the IPROYAL residential proxy when
+ *  `IPROYAL_PROXY` is set (GKE), else dials direct (dev/local). Throws on
+ *  transport/HTTP error — including a hard overall timeout — so the caller can
+ *  degrade to last-good rather than serve a partial snapshot or hang. */
 export async function bscRpcCall(payload: unknown): Promise<unknown> {
   const tlsfetch = await getTlsfetch()
-  const resp = await tlsfetch(BSC_RPC_URL, {
-    method: "POST",
-    headers: VENUS_HEADERS,
-    body: JSON.stringify(payload),
-    fingerprint: "firefox120",
-    connectTimeoutMs: TIMEOUT_MS,
+  const net = await getProxyNet()?.catch((e) => {
+    throw new Error(`IPROYAL proxy init failed: ${e instanceof Error ? e.message : e}`)
   })
+  const resp = await Promise.race([
+    tlsfetch(
+      BSC_RPC_URL,
+      {
+        method: "POST",
+        headers: VENUS_HEADERS,
+        body: JSON.stringify(payload),
+        fingerprint: "firefox120",
+        connectTimeoutMs: CONNECT_TIMEOUT_MS,
+      },
+      net ?? undefined,
+    ),
+    deadline(OVERALL_TIMEOUT_MS),
+  ])
   if (resp.status < 200 || resp.status >= 300) {
     throw new Error(`BSC RPC ${resp.status}`)
   }
