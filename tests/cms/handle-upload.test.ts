@@ -25,6 +25,16 @@ describe("handleUpload", () => {
     expect(uploadSvg).toHaveBeenCalledWith("inline", "c", "<svg/>")
     expect(r.url).toContain(".svg")
   })
+  it("routes a Figma raster-wrapper SVG through the optimized raster set", async () => {
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    const wrapper = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect fill="url(#p)"/><defs><pattern id="p" width="1" height="1"><use xlink:href="#i"/></pattern><image id="i" xlink:href="data:image/png;base64,${png}"/></defs></svg>`
+    const r = await handleUpload("ecosystem", "image/svg+xml", Buffer.from(wrapper), "logo")
+    expect(processRaster).toHaveBeenCalledWith("image/png", expect.any(Buffer))
+    expect(uploadOptimizedSet).toHaveBeenCalled()
+    expect(sanitizeSvg).not.toHaveBeenCalled()
+    expect(uploadSvg).not.toHaveBeenCalled()
+    expect(r.url).toBe("https://x/covers/base.opt.png")
+  })
   it("transcodes + stores an optimized set for png", async () => {
     const r = await handleUpload("cover", "image/png", Buffer.from("x"), "c")
     expect(uploadOptimizedSet).toHaveBeenCalled()
