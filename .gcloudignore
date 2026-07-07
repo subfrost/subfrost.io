@@ -47,3 +47,6 @@ reference/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Rust build dirs in vendored crates (huge; never needed in the build)
+crates/**/target/
