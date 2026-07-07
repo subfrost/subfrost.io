@@ -19,6 +19,10 @@ export interface PagerMemberInfo {
 }
 
 const RESERVED_USERS = new Set(["publisher", "pager-admin"])
+// Hardware pager accounts (firmware/atom-pager): one read-only ntfy user per
+// member's device, separate from their phone login so either can be rotated
+// without touching the other.
+export const DEVICE_PREFIX = "dev-"
 export const MEMBER_ID_RE = /^[a-z][a-z0-9-]{1,31}$/
 
 async function ntfyFetch(path: string, init: RequestInit, token: string | undefined): Promise<Response> {
@@ -62,7 +66,7 @@ export async function listMembers(): Promise<PagerMemberInfo[]> {
   if (!res.ok) throw new Error(`ntfy list users failed (${res.status})`)
   const users = (await res.json()) as Array<{ username: string; role: string }>
   return users
-    .filter((u) => u.role === "user" && !RESERVED_USERS.has(u.username))
+    .filter((u) => u.role === "user" && !RESERVED_USERS.has(u.username) && !u.username.startsWith(DEVICE_PREFIX))
     .map((u) => ({ id: u.username, topic: topicFor(u.username) }))
 }
 
@@ -85,6 +89,7 @@ async function grantRead(username: string, topic: string): Promise<void> {
  * phone apps require username + password; ntfy access tokens only work with
  * an EMPTY username in basic auth, which the apps don't allow. */
 export async function createMember(id: string): Promise<{ id: string; topic: string; password: string }> {
+  if (id.startsWith(DEVICE_PREFIX)) throw new Error(`member ids may not start with "${DEVICE_PREFIX}" (reserved for device accounts)`)
   const password = randomBytes(12).toString("base64url")
   const res = await ntfyFetch(
     "/v1/users",
@@ -103,16 +108,45 @@ export async function createMember(id: string): Promise<{ id: string; topic: str
   return { id, topic: topicFor(id), password }
 }
 
-export async function deleteMember(id: string): Promise<void> {
-  if (RESERVED_USERS.has(id)) throw new Error("cannot delete reserved user")
-  const res = await ntfyFetch(
+async function deleteUser(username: string): Promise<Response> {
+  return ntfyFetch(
     "/v1/users",
     {
       method: "DELETE",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: id }),
+      body: JSON.stringify({ username }),
     },
     NTFY_ADMIN_TOKEN,
   )
+}
+
+export async function deleteMember(id: string): Promise<void> {
+  if (RESERVED_USERS.has(id)) throw new Error("cannot delete reserved user")
+  const res = await deleteUser(id)
   if (!res.ok) throw new Error(`ntfy delete user failed (${res.status})`)
+  // Best-effort: revoke the paired hardware pager too (may not exist).
+  await deleteUser(DEVICE_PREFIX + id).catch(() => {})
+}
+
+/** (Re)issue credentials for a member's hardware pager (M5 Atom Echo,
+ *  firmware/atom-pager). Deletes any existing `dev-<id>` account first, so
+ *  re-provisioning rotates the password and bricks the old device. Read-only
+ *  on the same topics as the member's phone. Password returned ONCE. */
+export async function provisionDevice(memberId: string): Promise<{ username: string; password: string; topic: string }> {
+  const username = DEVICE_PREFIX + memberId
+  const password = randomBytes(12).toString("base64url")
+  await deleteUser(username).catch(() => {}) // 40x when absent — fine
+  const res = await ntfyFetch(
+    "/v1/users",
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    },
+    NTFY_ADMIN_TOKEN,
+  )
+  if (!res.ok) throw new Error(`ntfy create device user failed (${res.status}): ${await res.text().catch(() => "")}`)
+  await grantRead(username, topicFor(memberId))
+  await grantRead(username, ALL_TOPIC)
+  return { username, password, topic: topicFor(memberId) }
 }
