@@ -23,7 +23,7 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
     <div className="space-y-8">
       <RevenueSection
         title="BTC wrap/unwrap fees"
-        subtitle="0.3% of every confirmed wrap + unwrap, accrued in BTC."
+        subtitle="0.1% of every confirmed wrap + unwrap, accrued in BTC."
         series={overview.btcFee}
         config={btcConfig}
         note={overview.btcFeeNote}

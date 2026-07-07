@@ -21,8 +21,8 @@ export type RevenueOverviewResult =
   | { ok: false; error: "unauthorized" }
 
 const BTC_FEE_NOTE =
-  "BTC fee revenue = 0.3% of every confirmed wrap + unwrap (the protocol's " +
-  "3-per-1000 frBTC wrap/unwrap fee), aggregated per UTC day from the " +
+  "BTC fee revenue = 0.1% of every confirmed wrap + unwrap (the frBTC 0.1% wrap " +
+  "premium + the symmetric 0.1% unwrap fee), aggregated per UTC day from the " +
   "WrapTransaction / UnwrapTransaction event cache. This is gross fee earned at " +
   "wrap/unwrap time — the authoritative revenue definition, independent of any " +
   "later treasury withdrawals (unlike the reserve−supply proxy, which nets out " +
@@ -33,9 +33,11 @@ const BTC_FEE_NOTE =
 const INDEXER_RANGE_FROM = "2020-01-01"
 
 const BTC_INDEXER_NOTE =
-  "BTC fee revenue = 0.3% of every confirmed on-chain frBTC wrap + unwrap, read " +
-  "directly from the dedicated frBTC volume metashrew indexer (authoritative, " +
-  "independent of the app's own wrap/unwrap sync). Aggregated per UTC day."
+  "BTC fee revenue = 0.1% of every confirmed on-chain frBTC wrap + unwrap, read " +
+  "directly from the dedicated frBTC volume metashrew indexer — wrap volume is the " +
+  "gross BTC deposited to the signer; unwrap volume is payout-matched (the BTC the " +
+  "signer settles to redeemers), so reserve/fee sweeps are excluded. Authoritative " +
+  "and independent of the app's own wrap/unwrap sync. Aggregated per UTC day."
 
 const STRIPE_LIVE_NOTE =
   "Stripe revenue = succeeded USD charges pulled LIVE from the Stripe API, net of " +

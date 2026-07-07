@@ -12,21 +12,36 @@
 // Result is memoized in-process for a short TTL (mirrors stripeRevenue.ts) so the
 // page stays fast and we don't re-hit the indexer on every render / refresh.
 
-/** One UTC day's frBTC volume, as returned by `frbtc_volume_range`. */
+/** One UTC day's frBTC volume, as returned by `frbtc_volume_range`.
+ *  - `wrapped_sats`   gross BTC deposited to the signer on op-77 wraps.
+ *  - `unwrapped_sats` BTC settled to redeemers on op-78 unwraps (1:1 w/ burn).
+ *  - `swept_sats`     signer outflows that are NOT unwrap settlements (reserve /
+ *                     fee withdrawals off the signer).
+ *  - `miner_sats`     Bitcoin miner fees the signer paid to settle/consolidate. */
 export interface FrbtcDailyBucket {
   date: string // YYYY-MM-DD
   wrapped_sats: number
   unwrapped_sats: number
+  swept_sats: number
+  miner_sats: number
   wrap_count: number
   unwrap_count: number
 }
 
-/** Range totals from `frbtc_volume_range`. fee_revenue_sats = 0.3% of volume. */
+/** Range totals from `frbtc_volume_range`.
+ *  `minted_sats`      = frBTC minted = wrapped − premium (0.999× at default).
+ *  `fee_revenue_sats` = the 0.1% wrap premium — the ONLY protocol fee (unwraps
+ *                       are 1:1, no fee). Accrues as BTC in the signer wallet.
+ *  `swept_sats`       = BTC withdrawn off the signer that is not an unwrap.
+ *  `miner_sats`       = total Bitcoin miner fees the signer paid. */
 export interface FrbtcVolumeTotals {
   wrapped_sats: number
+  minted_sats: number
   unwrapped_sats: number
   volume_sats: number
   fee_revenue_sats: number
+  swept_sats: number
+  miner_sats: number
 }
 
 /** Full `frbtc_volume_range` payload: per-day buckets + range totals. */
@@ -133,6 +148,8 @@ export async function getFrbtcVolumeRange(from: string, to: string): Promise<Frb
       date: String(r.date),
       wrapped_sats: num(r.wrapped_sats),
       unwrapped_sats: num(r.unwrapped_sats),
+      swept_sats: num(r.swept_sats),
+      miner_sats: num(r.miner_sats),
       wrap_count: num(r.wrap_count),
       unwrap_count: num(r.unwrap_count),
     }
@@ -140,9 +157,12 @@ export async function getFrbtcVolumeRange(from: string, to: string): Promise<Frb
   const t = raw?.totals ?? {}
   const totals: FrbtcVolumeTotals = {
     wrapped_sats: num(t.wrapped_sats),
+    minted_sats: num(t.minted_sats),
     unwrapped_sats: num(t.unwrapped_sats),
     volume_sats: num(t.volume_sats),
     fee_revenue_sats: num(t.fee_revenue_sats),
+    swept_sats: num(t.swept_sats),
+    miner_sats: num(t.miner_sats),
   }
   const data: FrbtcVolumeRange = { daily, totals }
   rangeCache.set(key, { at: Date.now(), data })

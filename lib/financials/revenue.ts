@@ -12,10 +12,14 @@
 // The action layer (actions/cms/revenue.ts) maps DB rows into RevenueEvent[]
 // and calls the aggregators below; the client only ever sees these plain shapes.
 
-/** The frBTC wrap AND unwrap fee: 3 per-1000 = 0.3%. Mirrors FrbtcFees::default
- *  (wrap_per_1000 = 3, unwrap_per_1000 = 3) in
- *  ~/subfrost/crates/subfrost-wallet-common/src/swap.rs. */
-export const WRAP_UNWRAP_FEE_RATE = 0.003
+/** The frBTC protocol fee: **0.1%** (1 per-1000) on each of wrap and unwrap.
+ *  On wrap it is the on-chain `premium` (fr-btc `premium()` default 100_000/1e8
+ *  = 0.1% — frBTC minted is 0.999× the BTC deposited). On unwrap the same 0.1%
+ *  is withheld from the BTC paid out at signer-fulfillment time (the fr-btc
+ *  contract records the Payment 1:1; the 0.1% + Bitcoin miner fee are applied by
+ *  the signer daemon, off-chain). The 546-sat anchor and miner fees are NOT
+ *  protocol revenue and are excluded here. */
+export const WRAP_UNWRAP_FEE_RATE = 0.001
 export const SATS_PER_BTC = 100_000_000
 
 const DAY_MS = 86_400_000

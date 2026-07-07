@@ -24,7 +24,13 @@ crate-type = ["cdylib", "rlib"]
 # KeyValueFlush protobuf + ArrayBuffer framing the rockshrew-mono host expects.
 metashrew-core = { git = "https://github.com/kungfuflex/metashrew", branch = "develop" }
 
-# Consensus-accurate Bitcoin block/tx decoding + address parsing.
+# Consensus-accurate runestone -> protostone decoding, reused rather than
+# reimplemented (path deps into the sibling alkanes-rs checkout at ~/alkanes-rs).
+ordinals = { path = "../../../alkanes-rs/crates/ordinals" }
+protorune-support = { path = "../../../alkanes-rs/crates/protorune-support" }
+
+# Must match the version ordinals/protorune-support resolve (alkanes workspace)
+# so bitcoin::{Block,Transaction,...} are the same type across crates.
 bitcoin = { version = "0.32.4", features = ["rand"] }
 
 serde = { version = "1", features = ["derive"] }
