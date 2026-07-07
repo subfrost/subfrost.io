@@ -56,7 +56,8 @@ String pendingAckUrl;
 static void buzz(uint32_t freq, uint32_t ms) {
   static int16_t buf[SAMPLE_RATE / 2];
   size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(buf) / sizeof(buf[0]));
-  for (size_t i = 0; i < n; i++) buf[i] = (int16_t)(sinf(2 * PI * freq * i / (float)SAMPLE_RATE) * 14000);
+  // Square wave at full scale — much louder than a sine on this tiny driver.
+  for (size_t i = 0; i < n; i++) buf[i] = (sinf(2 * PI * freq * i / (float)SAMPLE_RATE) >= 0) ? 30000 : -30000;
   ledcWriteTone(BUZZ_CH, freq);
   speaker.play((uint8_t *)buf, n * 2); // blocks for the tone duration
   ledcWriteTone(BUZZ_CH, 0);
@@ -158,7 +159,7 @@ static void runAlarm() {
   Serial.println("ALARM — waiting for button");
   uint32_t phase = 0;
   while (alarming) {
-    buzz((phase & 1) ? 2400 : 1800, 250); // blocking ~250ms per burst
+    buzz((phase & 1) ? 3200 : 2400, 250); // near resonance = loudest; blocks ~250ms
     phase++;
     for (int i = 0; i < 5 && alarming; i++) { // brief button poll between bursts
       if (buttonDown()) alarming = false;
@@ -258,7 +259,7 @@ void setup() {
   ledcAttachPin(PIN_BUZZER, BUZZ_CH);
   // sample_rate, i2c_sda, i2c_scl, i2s_di, i2s_ws, i2s_do, i2s_bck
   if (!speaker.init(SAMPLE_RATE, 45, 0, 4, 3, 48, 17)) Serial.println("codec init FAILED");
-  speaker.setSpeakerVolume(90);
+  speaker.setSpeakerVolume(100);
   speaker.setMute(false);
 
   // button held at power-on = factory reset
