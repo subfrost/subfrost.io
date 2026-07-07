@@ -126,8 +126,8 @@ static void sendAck() {
     Serial.printf("ack POST -> %d\n", code);
     http.end();
     if (code >= 200 && code < 300) {
-      buzz(1568, 80);
-      buzz(2093, 120);
+      buzz(1568, 150);
+      buzz(2093, 250);
     }
   }
   pendingAckUrl = "";
@@ -159,7 +159,7 @@ static void runAlarm() {
   Serial.println("ALARM — waiting for button");
   uint32_t phase = 0;
   while (alarming) {
-    buzz((phase & 1) ? 3200 : 2400, 250); // near resonance = loudest; blocks ~250ms
+    buzz((phase & 1) ? 1400 : 950, 400); // ~1 kHz = this speaker's loudest band; blocks ~400ms
     phase++;
     for (int i = 0; i < 5 && alarming; i++) { // brief button poll between bursts
       if (buttonDown()) alarming = false;
@@ -273,8 +273,8 @@ void setup() {
 
   runPortalIfNeeded();
   Serial.printf("pager for '%s' as '%s'\n", memberId.c_str(), devUser.c_str());
-  buzz(1047, 80); // power-on chirp
-  buzz(1568, 80);
+  buzz(1047, 180); // power-on chirp
+  buzz(1568, 250);
 }
 
 void loop() {
