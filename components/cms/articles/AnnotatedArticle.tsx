@@ -65,6 +65,7 @@ export function AnnotatedArticle({
   children: React.ReactNode
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
   const [comments, setComments] = useState<CommentDTO[]>(initialComments)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -119,7 +120,11 @@ export function AnnotatedArticle({
   // Show the "Comment" popover when the user selects text inside the article.
   useEffect(() => {
     if (!canComment) return
-    function onSelect() {
+    function onSelect(ev: MouseEvent | TouchEvent) {
+      // Pressing a mouse button inside the popover (textarea, Comment/Cancel)
+      // collapses the article selection before mouseup fires; dismissing the
+      // popover here would unmount its buttons before their click can land.
+      if (ev.target instanceof Node && popoverRef.current?.contains(ev.target)) return
       const sel = window.getSelection()
       const root = rootRef.current
       if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !root) {
@@ -251,6 +256,7 @@ export function AnnotatedArticle({
       {/* Selection → comment popover. */}
       {pending ? (
         <div
+          ref={popoverRef}
           className="fixed z-40 w-64 -translate-x-1/2 -translate-y-full rounded-lg border border-zinc-700 bg-zinc-950 p-2 shadow-xl"
           style={{ top: pending.top, left: pending.left }}
         >
