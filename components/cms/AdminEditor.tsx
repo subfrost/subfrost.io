@@ -28,6 +28,7 @@ import {
   Languages,
   List,
   ListOrdered,
+  MessageSquare,
   PanelRightClose,
   PanelRightOpen,
   Pencil,
@@ -254,6 +255,18 @@ export function AdminEditor({
             <Eye size={15} />
             Preview
           </button>
+          {initial.id ? (
+            // The full-page preview at /admin/articles/<id>/preview carries the
+            // review layer (inline comments + timeline) — it had no entry point
+            // in the UI, so reviewers never found it.
+            <Link
+              href={`/admin/articles/${initial.id}/preview`}
+              className="hidden h-9 items-center gap-2 whitespace-nowrap rounded-[6px] px-3 text-sm text-[color:var(--ed-body)] transition-colors hover:bg-[color:var(--ed-surface)] hover:text-[color:var(--ed-ink)] md:inline-flex"
+            >
+              <MessageSquare size={15} />
+              Review
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => submit("DRAFT")}

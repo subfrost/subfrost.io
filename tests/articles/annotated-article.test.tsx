@@ -10,10 +10,10 @@ vi.mock("@/actions/cms/articles-review", () => ({
 }))
 
 // happy-dom's Range has no layout; the popover only uses the rect for placement.
-if (!Range.prototype.getBoundingClientRect) {
-  Range.prototype.getBoundingClientRect = () =>
-    ({ top: 120, left: 80, width: 40, height: 16, right: 120, bottom: 136, x: 80, y: 120, toJSON: () => ({}) }) as DOMRect
-}
+// Tests steer the reported selection position through `rectTop`.
+let rectTop = 400
+Range.prototype.getBoundingClientRect = () =>
+  ({ top: rectTop, left: 80, width: 40, height: 16, right: 120, bottom: rectTop + 16, x: 80, y: rectTop, toJSON: () => ({}) }) as DOMRect
 
 function renderArticle() {
   return render(
@@ -99,5 +99,33 @@ describe("AnnotatedArticle comment popover", () => {
     window.getSelection()!.removeAllRanges()
     fireEvent.mouseUp(document)
     expect(queryByPlaceholderText("Add a comment…")).toBeNull()
+  })
+
+  // The popover renders above the selection by default (-translate-y-full).
+  // For selections near the top of the viewport there is no room above — it
+  // must flip below the selection or it sits entirely off-screen and the
+  // feature looks dead.
+  it("flips the popover below selections near the top of the viewport", () => {
+    rectTop = 60 // first lines of the article, right under the sticky header
+    try {
+      const { container, getByPlaceholderText } = renderArticle()
+      selectQuote(container, "brown fox")
+      fireEvent.mouseUp(document)
+      const popover = getByPlaceholderText("Add a comment…").closest("div.fixed") as HTMLElement
+      expect(popover.dataset.below).toBe("true")
+      expect(popover.className).not.toContain("-translate-y-full")
+      expect(parseFloat(popover.style.top)).toBeGreaterThanOrEqual(60)
+    } finally {
+      rectTop = 400
+    }
+  })
+
+  it("keeps the popover above the selection when there is room", () => {
+    const { container, getByPlaceholderText } = renderArticle()
+    selectQuote(container, "brown fox")
+    fireEvent.mouseUp(document)
+    const popover = getByPlaceholderText("Add a comment…").closest("div.fixed") as HTMLElement
+    expect(popover.dataset.below).toBeUndefined()
+    expect(popover.className).toContain("-translate-y-full")
   })
 })
