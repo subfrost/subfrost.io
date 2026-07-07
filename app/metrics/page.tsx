@@ -43,6 +43,7 @@ const copy = {
           title: "Daily Alkanes share",
           series: { txShare: "Transactions", opReturnPenetration: "OP_RETURN penetration" },
           desc: "How much of Bitcoin's daily transaction volume is Alkanes, alongside how much of all Bitcoin transactions carry an OP_RETURN at all — Alkanes activity tracks the broader OP_RETURN trend closely.",
+          yLabel: "Share of all Bitcoin transactions",
         },
         opReturnShare: {
           title: "Alkanes' share of OP_RETURN",
@@ -172,6 +173,7 @@ const copy = {
           title: "每日 Alkanes 份额",
           series: { txShare: "交易笔数", opReturnPenetration: "OP_RETURN 渗透率" },
           desc: "比特币每日交易量中有多少是 Alkanes，以及全部比特币交易中携带 OP_RETURN 的比例——Alkanes 活动与整体 OP_RETURN 趋势高度同步。",
+          yLabel: "占全部比特币交易的比例",
         },
         opReturnShare: {
           title: "Alkanes 占 OP_RETURN 的份额",

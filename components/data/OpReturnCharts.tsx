@@ -23,7 +23,7 @@ export interface OpReturnCopy {
   howTitle: string
   how: string[]
   charts: {
-    dailyShare: { title: string; series: { txShare: string; opReturnPenetration: string }; desc: string }
+    dailyShare: { title: string; series: { txShare: string; opReturnPenetration: string }; desc: string; yLabel: string }
     opReturnShare: { title: string; series: { txPct: string; bytesPct: string }; desc: string }
     latestDonut: { title: string; series: { alkanes: string; other: string }; desc: string }
     weightShare: { title: string; desc: string }
@@ -115,7 +115,7 @@ function Card({ title, children, desc }: { title: string; children: React.ReactN
  * Series with a single key render without a Legend (nothing to toggle).
  */
 function ToggleLineChart({
-  data, seriesKeys, colors, dashed, yTickFormatter, tooltipFormatter, area = false, stacked = false, logScale = false, tip,
+  data, seriesKeys, colors, dashed, yTickFormatter, tooltipFormatter, area = false, stacked = false, logScale = false, tip, yLabel,
 }: {
   data: Record<string, unknown>[]
   seriesKeys: { key: string; label: string }[]
@@ -127,6 +127,7 @@ function ToggleLineChart({
   stacked?: boolean
   logScale?: boolean
   tip?: string
+  yLabel?: string
 }) {
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const showLegend = seriesKeys.length > 1
@@ -155,11 +156,12 @@ function ToggleLineChart({
             <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={40} />
             <YAxis
               tick={{ fontSize: 11 }}
-              width={72}
+              width={yLabel ? 88 : 72}
               tickFormatter={yTickFormatter}
               scale={logScale ? "log" : "auto"}
               domain={logScale ? [1, "auto"] : ["auto", "auto"]}
               allowDataOverflow={logScale}
+              label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft", style: { fontSize: 11, textAnchor: "middle" } } : undefined}
             />
             <Tooltip formatter={(v: number) => tooltipFormatter(v)} labelStyle={{ color: "#334" }} />
             {showLegend ? (
@@ -416,6 +418,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
             yTickFormatter={axisPct}
             tooltipFormatter={tooltipPct}
             tip={copy.legendTip}
+            yLabel={copy.charts.dailyShare.yLabel}
           />
         </Card>
 
@@ -450,10 +453,11 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <ToggleLineChart
             data={fourAnswers}
             seriesKeys={[
+              // OP_RETURN bytes last — it is the most specific of the four yardsticks (Gabe, article review)
               { key: "byTx", label: copy.charts.fourAnswers.series.byTx },
-              { key: "byBytes", label: copy.charts.fourAnswers.series.byBytes },
               { key: "byWeight", label: copy.charts.fourAnswers.series.byWeight },
               { key: "byFee", label: copy.charts.fourAnswers.series.byFee },
+              { key: "byBytes", label: copy.charts.fourAnswers.series.byBytes },
             ]}
             colors={{ byTx: ACCENT, byBytes: SECOND, byWeight: MUTED, byFee: FOURTH }}
             yTickFormatter={axisPct}
