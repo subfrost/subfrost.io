@@ -162,6 +162,13 @@ interface NewMember {
   password: string
 }
 
+interface DeviceCreds {
+  memberId: string
+  username: string
+  password: string
+  topic: string
+}
+
 function TeamPanel({
   members,
   displayName,
@@ -182,6 +189,32 @@ function TeamPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<NewMember | null>(null)
+  const [device, setDevice] = useState<DeviceCreds | null>(null)
+
+  async function provisionDevice(id: string) {
+    if (
+      !confirm(
+        `Issue pager-device credentials for ${displayName(id)}? If their Echo was already set up, this rotates the password and the old setup stops receiving.`,
+      )
+    )
+      return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/pager/members/device", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
+      setDevice({ memberId: id, ...(json as Omit<DeviceCreds, "memberId">) })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function addMember() {
     const id = newId.trim().toLowerCase()
@@ -284,13 +317,23 @@ function TeamPanel({
               )}
             </div>
             {canManage && (
-              <button
-                onClick={() => removeMember(m.id)}
-                disabled={busy}
-                className="rounded border border-white/15 px-3 py-1 text-xs text-white/60 hover:border-red-500 hover:text-red-400 disabled:opacity-40"
-              >
-                Remove
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => provisionDevice(m.id)}
+                  disabled={busy}
+                  title="Issue credentials for their M5 Atom Echo pager"
+                  className="rounded border border-white/15 px-3 py-1 text-xs text-white/60 hover:border-blue-400 hover:text-blue-300 disabled:opacity-40"
+                >
+                  📟 Device
+                </button>
+                <button
+                  onClick={() => removeMember(m.id)}
+                  disabled={busy}
+                  className="rounded border border-white/15 px-3 py-1 text-xs text-white/60 hover:border-red-500 hover:text-red-400 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -317,6 +360,7 @@ function TeamPanel({
       </div>
 
       {created && <OnboardingCard member={created} displayName={displayName} onDismiss={() => setCreated(null)} />}
+      {device && <DeviceCard creds={device} displayName={displayName} onDismiss={() => setDevice(null)} />}
     </section>
   )
 }
@@ -345,6 +389,31 @@ function OnboardingCard({ member, displayName, onDismiss }: { member: NewMember;
         </li>
         <li>Android: exempt ntfy from battery optimization (app settings prompt).</li>
         <li>Come back here and send them a test page.</li>
+      </ol>
+    </div>
+  )
+}
+
+/* One-time device card: shown after issuing hardware-pager credentials.
+ * These get typed into the Echo's Wi-Fi setup portal — see firmware/atom-pager. */
+function DeviceCard({ creds, displayName, onDismiss }: { creds: DeviceCreds; displayName: (id: string) => string; onDismiss: () => void }) {
+  return (
+    <div className="mt-4 space-y-3 rounded-lg border border-blue-500/60 bg-blue-950/30 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-blue-300">📟 Pager device for {displayName(creds.memberId)}</h3>
+        <button onClick={onDismiss} className="text-xs text-white/50 hover:text-white">
+          dismiss (password shown only once)
+        </button>
+      </div>
+      <CopyField label="Member id" value={creds.memberId} />
+      <CopyField label="Device username" value={creds.username} />
+      <CopyField label="Device password" value={creds.password} />
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-white/80">
+        <li>Flash the Echo with the pager firmware if not done yet (<code>firmware/atom-pager/README.md</code>).</li>
+        <li>Power the Echo. Its LED turns <b>purple</b>: it broadcasts a Wi-Fi network named <code className="text-blue-300">SUBFROST-PAGER</code>.</li>
+        <li>Join that network from a phone/laptop; a setup page opens (or browse to <code>192.168.4.1</code>).</li>
+        <li>Pick the office Wi-Fi + its password, and enter the <b>member id</b>, <b>device username</b> and <b>device password</b> above.</li>
+        <li>Save — the LED goes dim blue when it's connected and listening. Send a test page; press the top button to ACK.</li>
       </ol>
     </div>
   )
