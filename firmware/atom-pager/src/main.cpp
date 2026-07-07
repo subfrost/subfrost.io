@@ -33,8 +33,6 @@
 // ---- hardware (Atom Echo S3R) ----
 static const int PIN_BUTTON = 41;  // top button, active LOW
 static const int PIN_AMP_EN = 18;  // NS4150B amplifier enable
-static const int PIN_BUZZER = 2;   // optional Grove passive buzzer; harmless if absent
-static const int BUZZ_CH = 0;
 // ES8311 codec: I2C SDA 45 / SCL 0; I2S WS 3, BCLK 17, ESP->codec data 48,
 // codec->ESP data 4 (verified on hardware — the datasheet names are ambiguous).
 static const int SAMPLE_RATE = 16000;
@@ -50,17 +48,27 @@ M5EchoBase speaker;
 bool alarming = false;
 String pendingAckUrl;
 
-// Blocking tone (max 500ms per call) through the built-in speaker, doubled
-// on the Grove buzzer when one is plugged in — louder, and a fallback if
-// either transducer dies.
+// Tone engine. Chunks are queued with clear_dma_buffer=false (the library's
+// default true wipes short sounds out of the DMA ring before they play — they
+// come out as clicks); flushSilence() then drains the tail and stops cleanly.
+// Full-scale square waves: far louder than a sine on this tiny driver.
+static int16_t tonebuf[3200]; // 200ms at 16k
+static void toneChunk(uint32_t f1, uint32_t f2, uint32_t ms) {
+  size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(tonebuf) / sizeof(tonebuf[0]));
+  for (size_t i = 0; i < n; i++) {
+    float s = sinf(2 * PI * f1 * i / (float)SAMPLE_RATE);
+    if (f2) s = (s + sinf(2 * PI * f2 * i / (float)SAMPLE_RATE)) * 0.7f;
+    tonebuf[i] = s >= 0 ? 30000 : -30000;
+  }
+  speaker.play((uint8_t *)tonebuf, n * 2, false);
+}
+static void flushSilence() {
+  memset(tonebuf, 0, sizeof(tonebuf));
+  speaker.play((uint8_t *)tonebuf, sizeof(tonebuf), true);
+}
 static void buzz(uint32_t freq, uint32_t ms) {
-  static int16_t buf[SAMPLE_RATE / 2];
-  size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(buf) / sizeof(buf[0]));
-  // Square wave at full scale — much louder than a sine on this tiny driver.
-  for (size_t i = 0; i < n; i++) buf[i] = (sinf(2 * PI * freq * i / (float)SAMPLE_RATE) >= 0) ? 30000 : -30000;
-  ledcWriteTone(BUZZ_CH, freq);
-  speaker.play((uint8_t *)buf, n * 2); // blocks for the tone duration
-  ledcWriteTone(BUZZ_CH, 0);
+  for (uint32_t done = 0; done < ms; done += 200) toneChunk(freq, 0, min(ms - done, (uint32_t)200));
+  flushSilence();
 }
 
 static bool buttonDown() { return digitalRead(PIN_BUTTON) == LOW; }
@@ -157,15 +165,17 @@ static void handleMessage(JsonDocument &doc) {
 // so even a reboot mid-alarm re-alarms within ~90s.
 static void runAlarm() {
   Serial.println("ALARM — waiting for button");
+  // Dissonant dual-tone chords, alternating every ~600ms. Queued in 200ms
+  // chunks with a button check between each, so the press lands fast.
   uint32_t phase = 0;
   while (alarming) {
-    buzz((phase & 1) ? 1400 : 950, 400); // ~1 kHz = this speaker's loudest band; blocks ~400ms
-    phase++;
-    for (int i = 0; i < 5 && alarming; i++) { // brief button poll between bursts
+    bool a = (phase++ & 1) == 0;
+    for (int c = 0; c < 3 && alarming; c++) {
+      toneChunk(a ? 900 : 700, a ? 1250 : 1000, 200);
       if (buttonDown()) alarming = false;
-      delay(2);
     }
   }
+  flushSilence();
   sendAck();
   while (buttonDown()) delay(10); // wait for release
 }
@@ -255,8 +265,6 @@ void setup() {
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   pinMode(PIN_AMP_EN, OUTPUT);
   digitalWrite(PIN_AMP_EN, HIGH);
-  ledcSetup(BUZZ_CH, 2000, 10);
-  ledcAttachPin(PIN_BUZZER, BUZZ_CH);
   // sample_rate, i2c_sda, i2c_scl, i2s_di, i2s_ws, i2s_do, i2s_bck
   if (!speaker.init(SAMPLE_RATE, 45, 0, 4, 3, 48, 17)) Serial.println("codec init FAILED");
   speaker.setSpeakerVolume(100);
