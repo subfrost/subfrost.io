@@ -6,10 +6,10 @@ export const TREASURY_WALLETS: { address: string; label?: string }[] = [
 ]
 
 /** BSC (BNB Smart Chain) mainnet JSON-RPC endpoint. We hit this via tlsfetch
- *  browser-emulation (see `source/bsc-rpc.ts`) with `eth_getBalance` /
- *  `eth_call` — no third-party balances API (GoldRush) key. Override with
- *  `BSC_RPC_URL`; the default is the NodeReal endpoint the Venus Protocol dapp
- *  (app.venus.io) ships — the embedded key below is Venus's public dapp key. */
+ *  a plain server-side `fetch` (see `source/bsc-rpc.ts`, which also falls back
+ *  across several open dataseeds) with `eth_getBalance` / `eth_call` — no
+ *  third-party balances API key. Override with `BSC_RPC_URL`; the default is an
+ *  open BNB Chain dataseed (also used by the Venus dapp) — unlike NodeReal it is
+ *  not behind Cloudflare, so it works reliably from datacenter egress. */
 export const BSC_RPC_URL =
-  process.env.BSC_RPC_URL ||
-  "https://bsc-mainnet.nodereal.io/v1/7fab7575d1c34150a9ee582167ffac6f"
+  process.env.BSC_RPC_URL || "https://bsc-dataseed1.bnbchain.org"
