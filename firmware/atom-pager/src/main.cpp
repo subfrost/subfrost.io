@@ -33,6 +33,8 @@
 // ---- hardware (Atom Echo S3R) ----
 static const int PIN_BUTTON = 41;  // top button, active LOW
 static const int PIN_AMP_EN = 18;  // NS4150B amplifier enable
+static const int PIN_BUZZER = 2;   // optional Grove passive buzzer; harmless if absent
+static const int BUZZ_CH = 0;
 // ES8311 codec: I2C SDA 45 / SCL 0; I2S WS 3, BCLK 17, ESP->codec data 48,
 // codec->ESP data 4 (verified on hardware — the datasheet names are ambiguous).
 static const int SAMPLE_RATE = 16000;
@@ -48,12 +50,16 @@ M5EchoBase speaker;
 bool alarming = false;
 String pendingAckUrl;
 
-// Blocking sine tone through the built-in speaker (max 500ms per call).
+// Blocking tone (max 500ms per call) through the built-in speaker, doubled
+// on the Grove buzzer when one is plugged in — louder, and a fallback if
+// either transducer dies.
 static void buzz(uint32_t freq, uint32_t ms) {
   static int16_t buf[SAMPLE_RATE / 2];
   size_t n = min((size_t)(ms * SAMPLE_RATE / 1000), sizeof(buf) / sizeof(buf[0]));
   for (size_t i = 0; i < n; i++) buf[i] = (int16_t)(sinf(2 * PI * freq * i / (float)SAMPLE_RATE) * 14000);
-  speaker.play((uint8_t *)buf, n * 2);
+  ledcWriteTone(BUZZ_CH, freq);
+  speaker.play((uint8_t *)buf, n * 2); // blocks for the tone duration
+  ledcWriteTone(BUZZ_CH, 0);
 }
 
 static bool buttonDown() { return digitalRead(PIN_BUTTON) == LOW; }
@@ -248,6 +254,8 @@ void setup() {
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   pinMode(PIN_AMP_EN, OUTPUT);
   digitalWrite(PIN_AMP_EN, HIGH);
+  ledcSetup(BUZZ_CH, 2000, 10);
+  ledcAttachPin(PIN_BUZZER, BUZZ_CH);
   // sample_rate, i2c_sda, i2c_scl, i2s_di, i2s_ws, i2s_do, i2s_bck
   if (!speaker.init(SAMPLE_RATE, 45, 0, 4, 3, 48, 17)) Serial.println("codec init FAILED");
   speaker.setSpeakerVolume(90);
