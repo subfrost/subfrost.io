@@ -32,7 +32,12 @@ interface PendingSelection {
   anchor: TextAnchor
   top: number
   left: number
+  /** Render below the selection when there is no room above it in the viewport. */
+  below: boolean
 }
+
+/** Vertical room (px) the popover needs to render above a selection. */
+const POPOVER_CLEARANCE = 180
 
 /** Group flat comments into root threads + replies (roots keep DB order). */
 function buildThreads(comments: CommentDTO[]): Thread[] {
@@ -138,7 +143,19 @@ export function AnnotatedArticle({
       }
       const anchor = serializeSelection(range, root)
       const rect = range.getBoundingClientRect()
-      setPending({ anchor, top: Math.max(8, rect.top - 8), left: rect.left + rect.width / 2 })
+      // Selections near the top of the viewport (first lines under the sticky
+      // header) have no room for the popover above them — it would render
+      // off-screen and look like nothing happened. Flip it below the selection,
+      // and keep it horizontally inside the viewport (popover is w-64 = 256px).
+      const below = rect.top < POPOVER_CLEARANCE
+      const mid = rect.left + rect.width / 2
+      const left = Math.min(Math.max(mid, 140), Math.max(140, window.innerWidth - 140))
+      setPending({
+        anchor,
+        top: below ? Math.min(rect.bottom + 8, window.innerHeight - 8) : rect.top - 8,
+        left,
+        below,
+      })
       setDraft("")
     }
     document.addEventListener("mouseup", onSelect)
@@ -257,7 +274,8 @@ export function AnnotatedArticle({
       {pending ? (
         <div
           ref={popoverRef}
-          className="fixed z-40 w-64 -translate-x-1/2 -translate-y-full rounded-lg border border-zinc-700 bg-zinc-950 p-2 shadow-xl"
+          data-below={pending.below || undefined}
+          className={`fixed z-40 w-64 -translate-x-1/2 rounded-lg border border-zinc-700 bg-zinc-950 p-2 shadow-xl ${pending.below ? "" : "-translate-y-full"}`}
           style={{ top: pending.top, left: pending.left }}
         >
           <p className="mb-1 line-clamp-2 text-[11px] italic text-zinc-500">“{pending.anchor.quote}”</p>
