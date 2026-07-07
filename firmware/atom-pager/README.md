@@ -11,18 +11,22 @@ Wi-Fi setup portal, so nothing secret lives in this repo or the binary.
 
 ## Hardware
 
-- M5Stack **Atom Echo** (ESP32-PICO)
+- M5Stack **Atom Echo S3R** (ESP32-S3; USB id 303a:8000)
 - M5Stack **passive buzzer unit**, plugged into the Grove port (signal on
-  G26 — if it stays silent, change `PIN_BUZZER` to 32)
-- USB-C power (no battery — this is a desk pager)
+  G1 — if it stays silent, change `PIN_BUZZER` to 2)
+- USB-C power (no battery — this is a desk pager). Use a USB-A→C data cable
+  for flashing; the board has no CC resistors, so C-to-C often gets no power.
 
 ## Flash (once per device, identical for all 5)
 
-```sh
-cd firmware/atom-pager
-pio run -t upload            # PlatformIO CLI; device on /dev/ttyUSB0 or ACM0
-pio device monitor           # optional: watch logs at 115200
-```
+1. Put the board in download mode: hold the reset button ~2 s until the
+   internal green LED lights, then release. It enumerates as
+   `Espressif USB JTAG/serial` → `/dev/ttyACM0` (user must be in `dialout`).
+2. ```sh
+   cd firmware/atom-pager
+   pio run -t upload --upload-port /dev/ttyACM0
+   pio device monitor           # optional: watch logs at 115200
+   ```
 
 ## Provision (once per person)
 
@@ -30,23 +34,24 @@ pio device monitor           # optional: watch logs at 115200
    member id, device username (`dev-<id>`) and one-time device password.
    (Re-clicking rotates the password; an already-configured device stops
    working and must be re-provisioned.)
-2. Power the Echo. LED **purple** = it broadcasts Wi-Fi AP `SUBFROST-PAGER`.
+2. Power the Echo. **Three slow beeps** = it broadcasts Wi-Fi AP
+   `SUBFROST-PAGER`.
 3. Join that AP; the setup page opens (or go to `192.168.4.1`). Choose the
    office Wi-Fi, enter its password plus the three values from step 1. Save.
-4. LED goes **dim blue** = connected and armed. Send a test page from the
+4. **Two rising chirps** = connected and armed. Send a test page from the
    console; the Echo should siren and the button-press should show ✓ ACK.
 
-## LED / button reference
+## Sound / button reference (the S3R has no user LED)
 
 | Signal | Meaning |
 | --- | --- |
-| Purple steady | Setup portal active (AP `SUBFROST-PAGER`) |
-| Purple blinking | ntfy rejected the credentials — re-provision |
-| Yellow | Connecting to Wi-Fi / ntfy |
-| Dim blue | Armed, listening |
-| Red strobe + siren | Urgent page — **press the button to ACK** |
-| Cyan blinks + 3 beeps | Info page (no ack needed) |
-| Green + chirp | ACK delivered |
+| Three slow beeps | Setup portal active (AP `SUBFROST-PAGER`) |
+| Descending two-tone | ntfy rejected the credentials — re-provision |
+| Two rising chirps | Connected, armed |
+| Siren | Urgent page — **press the button to ACK** |
+| Three mid beeps | Info page (no ack needed) |
+| Rising chirp after button | ACK delivered |
+| Low beep | Factory reset triggered |
 
 Button: short press during alarm = ACK. Hold **5 s** (anytime, or at
 power-on) = factory reset, back to the setup portal.
