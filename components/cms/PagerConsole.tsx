@@ -413,7 +413,7 @@ function DeviceCard({ creds, displayName, onDismiss }: { creds: DeviceCreds; dis
         <li>Power the Echo. Its LED turns <b>purple</b>: it broadcasts a Wi-Fi network named <code className="text-blue-300">SUBFROST-PAGER</code>.</li>
         <li>Join that network from a phone/laptop; a setup page opens (or browse to <code>192.168.4.1</code>).</li>
         <li>Pick the office Wi-Fi + its password, and enter the <b>member id</b>, <b>device username</b> and <b>device password</b> above.</li>
-        <li>Save — the LED goes dim blue when it's connected and listening. Send a test page; press the top button to ACK.</li>
+        <li>Save — the LED goes dim blue when it&apos;s connected and listening. Send a test page; press the top button to ACK.</li>
       </ol>
     </div>
   )
