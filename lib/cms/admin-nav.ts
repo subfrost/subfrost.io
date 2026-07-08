@@ -49,6 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "documents", label: "Files", icon: FolderOpen, items: [
       { label: "Files", href: "/admin/files", icon: FolderOpen, privilege: "files.read" },
+      { label: "E-Sign", href: "/admin/documents", icon: FileSignature, privilege: "documents.read" },
     ],
   },
   {
@@ -78,7 +79,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "aml.read" },
       { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "aml.read" },
       { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "aml.read" },
-      { label: "E-Sign", href: "/admin/documents", icon: FileSignature, privilege: "documents.read" },
       { label: "Reviewer links", href: "/admin/compliance/reviews", icon: UserCheck, privilege: "compliance.reviews" },
     ],
   },

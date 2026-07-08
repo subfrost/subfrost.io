@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   denseDailySeries,
   type BtcSource, type RevenueOverview, type RevenueSeries, type RevenueUnit, type PeriodRollups,
@@ -18,34 +19,139 @@ const mmdd = (d: string) => d.slice(5) // YYYY-MM-DD → MM-DD
 const btcConfig: ChartConfig = { amount: { label: "BTC fee revenue", color: "#fb923c" } } // orange-400
 const usdConfig: ChartConfig = { amount: { label: "Stripe revenue (USD)", color: "#a78bfa" } } // violet-400
 
+const tabTrigger =
+  "text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+
 export function RevenueClient({ overview }: { overview: RevenueOverview }) {
   return (
-    <div className="space-y-8">
-      <RevenueSection
-        title="BTC wrap/unwrap fees"
-        subtitle="0.1% of every confirmed wrap + unwrap, accrued in BTC."
-        series={overview.btcFee}
-        config={btcConfig}
-        note={overview.btcFeeNote}
-        badge={<BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />}
-      />
-      <RevenueSection
-        title="Stripe charges"
-        subtitle={
-          overview.stripeLive
-            ? "Succeeded Stripe charges, live from the Stripe API, in USD."
-            : "Succeeded Stripe charges from the local webhook log (live API unreachable), in USD."
-        }
-        series={overview.stripe}
-        config={usdConfig}
-        note={overview.stripeNote}
-        lead={<SubscriptionCard subs={overview.stripeSubs} live={overview.stripeLive} />}
-      />
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList className="bg-zinc-900/70 border border-zinc-800">
+        <TabsTrigger value="overview" className={tabTrigger}>Overview</TabsTrigger>
+        <TabsTrigger value="protocol" className={tabTrigger}>Protocol</TabsTrigger>
+        <TabsTrigger value="api" className={tabTrigger}>API</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview">
+        <CombinedOverview overview={overview} />
+      </TabsContent>
+
+      <TabsContent value="protocol">
+        <RevenueSection
+          title="frBTC wrap/unwrap fees"
+          subtitle="0.1% of every confirmed wrap + unwrap, accrued in BTC."
+          series={overview.btcFee}
+          config={btcConfig}
+          note={overview.btcFeeNote}
+          badge={<BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />}
+        />
+      </TabsContent>
+
+      <TabsContent value="api">
+        <RevenueSection
+          title="Stripe charges"
+          subtitle={
+            overview.stripeLive
+              ? "Succeeded Stripe charges, live from the Stripe API, in USD."
+              : "Succeeded Stripe charges from the local webhook log (live API unreachable), in USD."
+          }
+          series={overview.stripe}
+          config={usdConfig}
+          note={overview.stripeNote}
+          lead={<SubscriptionCard subs={overview.stripeSubs} live={overview.stripeLive} />}
+        />
+      </TabsContent>
+
       <p className="text-[11px] text-zinc-600">
         Generated {new Date(overview.generatedAt).toLocaleString("en-US")}. Windows are
         trailing from now (1d/7d/30d) and calendar year-to-date (UTC).
       </p>
+    </Tabs>
+  )
+}
+
+/** Main tab: headline metrics from both revenue streams side by side, plus a
+ *  compact chart for each. Protocol is BTC (frBTC fees), API is USD (Stripe). */
+function CombinedOverview({ overview }: { overview: RevenueOverview }) {
+  const p = overview.btcFee.rollups
+  const s = overview.stripe.rollups
+  const mrr = overview.stripeSubs?.mrr ?? null
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Metric label="Protocol · all-time" value={btc(p.all)} accent="#fb923c" />
+        <Metric label="Protocol · 30d" value={btc(p.d30)} />
+        <Metric label="API · all-time" value={usd(s.all)} accent="#a78bfa" />
+        <Metric label="API · MRR" value={mrr != null ? usd(mrr) : "—"} sub={mrr != null ? `≈ ${usd(mrr * 12)} ARR` : undefined} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-3 rounded-xl border border-zinc-800 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-white">frBTC fees <span className="font-normal text-zinc-500">(BTC)</span></h3>
+            <BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />
+          </div>
+          <RevenueChart series={overview.btcFee} config={btcConfig} height={200} />
+        </div>
+        <div className="space-y-3 rounded-xl border border-zinc-800 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-white">Stripe charges <span className="font-normal text-zinc-500">(USD)</span></h3>
+            <span className="text-[11px] text-zinc-500">{overview.stripeLive ? "live API" : "webhook log"}</span>
+          </div>
+          <RevenueChart series={overview.stripe} config={usdConfig} height={200} />
+        </div>
+      </div>
     </div>
+  )
+}
+
+function Metric({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
+  return (
+    <div className="rounded-lg border border-zinc-800 p-3">
+      <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        {accent ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} /> : null}
+        {label}
+      </div>
+      <div className="mt-1 break-words text-xl font-semibold text-white">{value}</div>
+      {sub ? <div className="mt-0.5 text-[11px] text-zinc-500">{sub}</div> : null}
+    </div>
+  )
+}
+
+/** The area chart for a revenue series — shared by the overview + detail tabs. */
+function RevenueChart({ series, config, height = 240 }: { series: RevenueSeries; config: ChartConfig; height?: number }) {
+  const f = fmt(series.unit)
+  const chartData = useMemo(() => denseDailySeries(series.daily, series.unit === "USD" ? 2 : 8), [series])
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-sm text-zinc-600" style={{ height }}>
+        No revenue in range yet.
+      </div>
+    )
+  }
+  return (
+    <ChartContainer config={config} className="w-full" style={{ height }}>
+      <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8 }}>
+        <CartesianGrid vertical={false} />
+        <XAxis dataKey="date" tickLine={false} axisLine={false} tickFormatter={mmdd} minTickGap={24} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={64}
+          tickFormatter={(v) => (series.unit === "USD" ? `$${Number(v).toLocaleString("en-US")}` : `₿${Number(v).toFixed(4)}`)}
+        />
+        <ChartTooltip
+          content={<ChartTooltipContent labelFormatter={(l) => String(l)} formatter={(value) => f(Number(value))} />}
+        />
+        <Area
+          dataKey="amount"
+          type="monotone"
+          stroke="var(--color-amount)"
+          fill="var(--color-amount)"
+          fillOpacity={0.18}
+          strokeWidth={2}
+        />
+      </AreaChart>
+    </ChartContainer>
   )
 }
 
@@ -61,7 +167,6 @@ function RevenueSection({
   badge?: ReactNode
 }) {
   const f = fmt(series.unit)
-  const chartData = useMemo(() => denseDailySeries(series.daily, series.unit === "USD" ? 2 : 8), [series])
   const recent = useMemo(() => [...series.daily].reverse().slice(0, 14), [series.daily])
 
   return (
@@ -79,40 +184,7 @@ function RevenueSection({
       <RollupCards rollups={series.rollups} unit={series.unit} />
 
       <div className="rounded-xl border border-zinc-800 p-3">
-        {chartData.length === 0 ? (
-          <div className="flex h-[240px] items-center justify-center text-sm text-zinc-600">
-            No revenue in range yet.
-          </div>
-        ) : (
-          <ChartContainer config={config} className="h-[240px] w-full">
-            <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} tickFormatter={mmdd} minTickGap={24} />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={64}
-                tickFormatter={(v) => (series.unit === "USD" ? `$${Number(v).toLocaleString("en-US")}` : `₿${Number(v).toFixed(4)}`)}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(l) => String(l)}
-                    formatter={(value) => f(Number(value))}
-                  />
-                }
-              />
-              <Area
-                dataKey="amount"
-                type="monotone"
-                stroke="var(--color-amount)"
-                fill="var(--color-amount)"
-                fillOpacity={0.18}
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ChartContainer>
-        )}
+        <RevenueChart series={series} config={config} />
       </div>
 
       {note ? <p className="text-[11px] leading-relaxed text-zinc-500">{note}</p> : null}
