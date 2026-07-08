@@ -158,7 +158,10 @@ export function EcosystemDirectory({
                 it; the name, logo, category, status and description stay below the overlay so
                 clicking the card navigates instead of swallowing the click (see #202). The
                 description reveal is CSS-only (.ec-card / .ec-card-desc in globals.css):
-                hover-in on desktop, hidden with no reserved space on touch. */}
+                hover-in on desktop, hidden with no reserved space on touch. The description
+                MUST keep pointer-events-none: its opacity:0 (idle) creates a stacking context
+                that paints above the z-0 overlay (later in DOM) and would otherwise swallow the
+                click over its reserved band — a subtler #202 than a raised z-index. */}
             <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-[15px] font-medium leading-tight text-[color:var(--ed-ink)]">{p.name}</h3>
@@ -174,7 +177,7 @@ export function EcosystemDirectory({
                 <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
               </div>
             </div>
-            <p className="ec-card-desc mt-2.5 text-[12.5px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
+            <p className="ec-card-desc pointer-events-none mt-2.5 text-[12.5px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
           </div>
         ))}
       </div>

@@ -155,6 +155,10 @@ describe("EcosystemDirectory — grid card redesign (logo-forward + hover-reveal
     const desc = screen.getByText("trade tokens")
     expect(desc).toHaveClass("ec-card-desc")
     expect(desc.className).not.toContain("z-10")
+    // The idle description has opacity:0, which creates a stacking context that paints
+    // above the z-0 stretched-link overlay and would swallow the card click over its
+    // reserved band (a subtler #202). pointer-events-none lets the click fall through.
+    expect(desc).toHaveClass("pointer-events-none")
   })
 
   it("grid card root carries ec-card so the hover-reveal CSS can target it", () => {
