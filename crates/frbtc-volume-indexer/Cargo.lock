@@ -332,6 +332,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "unicode-xid",
+]
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -383,6 +404,8 @@ version = "0.1.0"
 dependencies = [
  "bitcoin 0.32.101",
  "metashrew-core",
+ "ordinals 10.0.0",
+ "protorune-support",
  "serde",
  "serde_json",
 ]
@@ -596,7 +619,7 @@ dependencies = [
  "cfg-if",
  "hex",
  "metashrew-support",
- "ordinals",
+ "ordinals 0.0.8",
  "prost",
  "prost-build",
  "wasm-bindgen",
@@ -676,7 +699,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f69dc8f090e996b63e1f96972f0d619f497c9545464c7bddf65e42d38576b3f3"
 dependencies = [
  "bitcoin 0.30.3",
- "derive_more",
+ "derive_more 0.99.20",
+ "serde",
+ "serde_with",
+ "thiserror",
+]
+
+[[package]]
+name = "ordinals"
+version = "10.0.0"
+dependencies = [
+ "bitcoin 0.32.101",
+ "derive_more 1.0.0",
  "serde",
  "serde_with",
  "thiserror",
@@ -774,6 +808,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9091c90b0a32608e984ff2fa4091273cbdd755d54935c51d520887f4a1dbd5b0"
 dependencies = [
  "prost",
+]
+
+[[package]]
+name = "protorune-support"
+version = "10.0.0"
+dependencies = [
+ "anyhow",
+ "bech32 0.11.1",
+ "bitcoin 0.32.101",
+ "hex",
+ "metashrew-support",
+ "ordinals 10.0.0",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "serde",
 ]
 
 [[package]]
@@ -1168,6 +1218,12 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "walkdir"
