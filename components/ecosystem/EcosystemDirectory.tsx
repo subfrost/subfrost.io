@@ -47,6 +47,25 @@ function AlkaneBadge({ p }: { p: PublicEcosystemProject }) {
   )
 }
 
+// Compact X / Docs links for the grid card footer. Raised above the stretched-link
+// overlay (z-10) so they stay independently clickable; the card itself navigates to
+// the internal profile. Nothing renders when the project exposes neither link.
+function GridLinks({ p, copy }: { p: PublicEcosystemProject; copy: DirectoryCopy }) {
+  if (!p.xUrl && !p.docsUrl) return null
+  return (
+    <div className="relative z-10 flex items-center gap-2.5">
+      {p.xUrl ? (
+        <a href={p.xUrl} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} on X`}
+          className="text-[13px] font-medium leading-none text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-accent)]">𝕏</a>
+      ) : null}
+      {p.docsUrl ? (
+        <a href={p.docsUrl} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} docs`}
+          className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-accent)]">{copy.docs}</a>
+      ) : null}
+    </div>
+  )
+}
+
 export function EcosystemDirectory({
   projects,
   featuredBandEnabled,
@@ -133,21 +152,29 @@ export function EcosystemDirectory({
       <div className="grid grid-cols-1 gap-3.5 px-6 py-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 xl:grid-cols-4">
         {grid.map((p) => (
           <div key={p.slug}
-            className="relative flex flex-col gap-2.5 rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
+            className="ec-card relative flex flex-col rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
             {/* Stretched-link overlay: navigates to the internal profile page. Only the
-                AlkaneBadge (a real external anchor) is raised above it — raising the text
-                content too would swallow the click instead of navigating. */}
+                GridLinks (X/docs) and AlkaneBadge — real external anchors — are raised above
+                it; the name, logo, category, status and description stay below the overlay so
+                clicking the card navigates instead of swallowing the click (see #202). The
+                description reveal is CSS-only (.ec-card / .ec-card-desc in globals.css):
+                hover-in on desktop, hidden with no reserved space on touch. */}
             <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-[15px] font-medium leading-tight text-[color:var(--ed-ink)]">{p.name}</h3>
+              <span className="shrink-0 pt-0.5 font-mono text-[10px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
+            </div>
+            <div className="flex flex-1 items-center justify-center py-6">
+              <Mark p={p} size={56} />
+            </div>
             <div className="flex items-center gap-2.5">
-              <Mark p={p} size={34} />
-              <h3 className="text-[15px] font-medium text-[color:var(--ed-ink)]">{p.name}</h3>
+              <GridLinks p={p} copy={copy} />
+              <AlkaneBadge p={p} />
+              <div className="ml-auto">
+                <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
+              </div>
             </div>
-            <p className="text-[12.8px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
-            <AlkaneBadge p={p} />
-            <div className="mt-auto flex items-center justify-between pt-1">
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
-              <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
-            </div>
+            <p className="ec-card-desc mt-2.5 text-[12.5px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
           </div>
         ))}
       </div>
