@@ -39,9 +39,11 @@
 //! * `/frbtc_volume/daily/<YYYY-MM-DD>` -> 72 bytes LE packed (see `Daily`).
 //! * `/frbtc_volume/tip`               -> `height: u32` (LE)
 //! * `/frbtc_volume/signer_script`     -> active signer P2TR scriptPubKey.
-//! * `/frbtc_volume/u/<txid:32><vout:u32-le>` -> `[value:u64 LE][anchor:u8]`
-//!   while a live signer UTXO; empty once spent. `anchor=1` ⇒ created by an
-//!   op-78 burn (its spend settles an unwrap).
+//! * `/frbtc_volume/u/<txid:32><vout:u32-le>` -> `[value:u64 LE][anchor:u8]
+//!   [recipient scriptPubKey…]?` while a live signer UTXO; empty once spent.
+//!   `anchor=1` ⇒ the op-78 burn's signer-targeted output, followed by the
+//!   redemption recipient script (`tx.output[pointer]`) so its later settlement
+//!   is matched to real unwrap volume (vs reserve/fee sweeps).
 
 use std::io::Cursor;
 use std::str::FromStr;
@@ -201,9 +203,10 @@ pub extern "C" fn _start() {
     flush();
 }
 
-/// Returns the frBTC opcode this tx invokes (via its protostone cellpack), if
-/// any, plus a live-updatable signer rotation side effect handled by the caller.
-fn frbtc_opcode(tx: &Transaction) -> Option<(u128, Vec<u128>)> {
+/// The frBTC op this tx invokes: `(opcode, cellpack vals, protostone pointer)`.
+/// `pointer` is the unwrap protomessage's `pointer` field — the burn tx's output
+/// index whose scriptPubKey is the BTC redemption recipient (see fr-btc `burn`).
+fn frbtc_opcode(tx: &Transaction) -> Option<(u128, Vec<u128>, Option<u32>)> {
     let runestone = match Runestone::decipher(tx) {
         Some(Artifact::Runestone(rs)) => rs,
         _ => return None,
@@ -220,7 +223,7 @@ fn frbtc_opcode(tx: &Transaction) -> Option<(u128, Vec<u128>)> {
         if vals.len() < 3 || vals[0] != FRBTC_BLOCK || vals[1] != FRBTC_TX {
             continue;
         }
-        return Some((vals[2], vals));
+        return Some((vals[2], vals, ps.pointer));
     }
     None
 }
@@ -239,24 +242,28 @@ fn index_block(_height: u32, block: &Block) {
         }
         let txid = tx.compute_txid();
         let op = frbtc_opcode(tx);
-        let opcode = op.as_ref().map(|(o, _)| *o);
 
-        // ── 1) Consume any inputs spending a live signer UTXO. Track whether
-        //       ALL inputs are signer-owned (for miner fee) and whether an
-        //       anchor was spent (⇒ this is an unwrap settlement / payout). ──
+        // ── 1) Consume inputs that spend a live signer UTXO. Collect the
+        //       recipient scripts of any spent anchors (spending an anchor
+        //       settles that unwrap), whether ALL inputs are signer-owned
+        //       (miner fee), and the total spent value. ──
         let mut is_signer_spend = false;
         let mut all_inputs_signer = true;
         let mut spent_value = 0u128;
         let mut anchors_spent = 0u32;
+        let mut recipients: Vec<Vec<u8>> = Vec::new();
         for input in &tx.input {
             let key = utxo_key(&input.previous_output.txid, input.previous_output.vout);
             let rec = kv_get(&key);
-            if rec.len() >= 8 {
+            if rec.len() >= 9 {
                 is_signer_spend = true;
-                spent_value =
-                    spent_value.saturating_add(u64::from_le_bytes(rec[0..8].try_into().unwrap()) as u128);
-                if rec.get(8) == Some(&1u8) {
+                spent_value = spent_value
+                    .saturating_add(u64::from_le_bytes(rec[0..8].try_into().unwrap()) as u128);
+                if rec[8] == 1u8 {
                     anchors_spent += 1;
+                    if rec.len() > 9 {
+                        recipients.push(rec[9..].to_vec());
+                    }
                 }
                 kv_set(&key, Vec::new()); // consume
             } else {
@@ -264,34 +271,58 @@ fn index_block(_height: u32, block: &Block) {
             }
         }
 
-        // ── 2) Tally outputs: to signer vs. to others (non-dust). ──
+        // ── 2) Tally outputs. For a settlement (an anchor was spent) split the
+        //       non-signer outputs into redemptions (paying a recorded unwrap
+        //       recipient) vs sweeps (everything else = subfrost reserve/fee
+        //       withdrawals). ──
         let mut to_signer = 0u128;
-        let mut to_others_nondust = 0u128;
         let mut total_out = 0u128;
+        let mut redeemed = 0u128;
+        let mut swept_here = 0u128;
         for out in &tx.output {
             let val = out.value.to_sat();
             total_out = total_out.saturating_add(val as u128);
-            if out.script_pubkey.as_bytes() == signer.as_slice() {
+            let spk = out.script_pubkey.as_bytes();
+            if spk == signer.as_slice() {
                 to_signer = to_signer.saturating_add(val as u128);
+            } else if recipients.iter().any(|r| r.as_slice() == spk) {
+                redeemed = redeemed.saturating_add(val as u128);
             } else if val != DUST_SATS {
-                to_others_nondust = to_others_nondust.saturating_add(val as u128);
+                swept_here = swept_here.saturating_add(val as u128);
             }
         }
 
-        // ── 3) Register every signer-paying output as a live signer UTXO.
-        //       Flag as an anchor when this tx is an op-78 unwrap burn. ──
-        let is_unwrap_burn = opcode == Some(OP_UNWRAP);
+        // ── 3) Register signer-paying outputs as live signer UTXOs. For an
+        //       op-78 burn, flag ONLY the contract's anchor output (vals[3] =
+        //       the signer-targeted dustVout) and store the redemption recipient
+        //       script (tx.output[pointer]) so its later settlement is matched. ──
+        let (anchor_vout, recipient_spk): (Option<usize>, Vec<u8>) = match &op {
+            Some((OP_UNWRAP, vals, pointer)) => {
+                let av = vals.get(3).and_then(|v| usize::try_from(*v).ok());
+                let rspk = pointer
+                    .and_then(|p| tx.output.get(p as usize))
+                    .map(|o| o.script_pubkey.as_bytes().to_vec())
+                    .unwrap_or_default();
+                (av, rspk)
+            }
+            _ => (None, Vec::new()),
+        };
         for (vout, out) in tx.output.iter().enumerate() {
             if out.script_pubkey.as_bytes() == signer.as_slice() {
                 let mut v = out.value.to_sat().to_le_bytes().to_vec();
-                v.push(if is_unwrap_burn { 1u8 } else { 0u8 });
+                if anchor_vout == Some(vout) {
+                    v.push(1u8);
+                    v.extend_from_slice(&recipient_spk);
+                } else {
+                    v.push(0u8);
+                }
                 kv_set(&utxo_key(&txid, vout as u32), v);
             }
         }
 
-        // ── 4) Classify + accumulate. ──
-        match opcode {
-            Some(OP_WRAP) => {
+        // ── 4) Classify the user's op-77/op-78/set-signer txs. ──
+        match &op {
+            Some((OP_WRAP, ..)) => {
                 // Gross deposit to the signer = compute_output(). Minted/fee are
                 // derived from PREMIUM in the view.
                 if to_signer > 0 {
@@ -299,20 +330,18 @@ fn index_block(_height: u32, block: &Block) {
                     acc.wrap_count = acc.wrap_count.saturating_add(1);
                 }
             }
-            Some(OP_SET_SIGNER) => {
-                if let Some((_, vals)) = &op {
-                    if let Some(vout) = vals.get(3).and_then(|v| usize::try_from(*v).ok()) {
-                        if let Some(o) = tx.output.get(vout) {
-                            let spk = o.script_pubkey.as_bytes();
-                            if is_p2tr(spk) {
-                                signer = spk.to_vec();
-                                signer_dirty = true;
-                            }
+            Some((OP_SET_SIGNER, vals, _)) => {
+                if let Some(vout) = vals.get(3).and_then(|v| usize::try_from(*v).ok()) {
+                    if let Some(o) = tx.output.get(vout) {
+                        let spk = o.script_pubkey.as_bytes();
+                        if is_p2tr(spk) {
+                            signer = spk.to_vec();
+                            signer_dirty = true;
                         }
                     }
                 }
             }
-            Some(OP_INITIALIZE) => {
+            Some((OP_INITIALIZE, ..)) => {
                 if let Some(o) = tx.output.first() {
                     let spk = o.script_pubkey.as_bytes();
                     if is_p2tr(spk) {
@@ -324,19 +353,22 @@ fn index_block(_height: u32, block: &Block) {
             _ => {}
         }
 
-        // Settlement / sweep classification for signer spends (these are the
-        // signer's own txs, distinct from the user's op-77/op-78 txs above).
+        // Signer spends (the signer's own settlement / sweep txs). A settlement
+        // spends ≥1 anchor: its recipient-matched outputs are unwrap volume,
+        // any other external output is a sweep. A signer spend with no anchor is
+        // a pure sweep / consolidation.
         if is_signer_spend {
             if all_inputs_signer && spent_value > total_out {
                 acc.miner_sats = acc.miner_sats.saturating_add(spent_value - total_out);
             }
             if anchors_spent > 0 {
-                // Unwrap settlement: BTC paid to redeemers = value_to_burn (1:1).
-                acc.unwrapped_sats = acc.unwrapped_sats.saturating_add(to_others_nondust);
+                acc.unwrapped_sats = acc.unwrapped_sats.saturating_add(redeemed);
                 acc.unwrap_count = acc.unwrap_count.saturating_add(anchors_spent);
-            } else if to_others_nondust > 0 {
-                // Reserve / fee withdrawal off the signer — not an unwrap.
-                acc.swept_sats = acc.swept_sats.saturating_add(to_others_nondust);
+                acc.swept_sats = acc.swept_sats.saturating_add(swept_here);
+            } else {
+                acc.swept_sats = acc
+                    .swept_sats
+                    .saturating_add(redeemed.saturating_add(swept_here));
             }
         }
     }
