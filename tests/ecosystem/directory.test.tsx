@@ -22,7 +22,7 @@ const p = (over: Partial<PublicEcosystemProject>): PublicEcosystemProject => ({
 const projects = [
   p({ slug: "subfrost", name: "SUBFROST", featured: true }),
   p({ slug: "oyl", name: "Oyl Wallet", category: "Wallet", featured: true }),
-  p({ slug: "bound", name: "Bound", category: "DeFi" }),
+  p({ slug: "bound", name: "Bound", category: "DeFi", xUrl: "https://x.com/bound", docsUrl: "https://docs.bound.io" }),
   p({ slug: "ordiscan", name: "Ordiscan", category: "Tooling" }),
 ]
 
@@ -123,5 +123,55 @@ describe("EcosystemDirectory — internal profile links", () => {
       const interactive = el.matches("a, button") || el.querySelector("a, button") !== null
       expect(interactive, `non-interactive element raised above card overlay: <${el.tagName.toLowerCase()} class="${el.getAttribute("class")}">`).toBe(true)
     }
+  })
+})
+
+describe("EcosystemDirectory — grid card redesign (logo-forward + hover-reveal)", () => {
+  it("grid card exposes X and Docs as external social links when present", () => {
+    render(
+      <EcosystemDirectory
+        projects={[p({ slug: "orca", name: "Orca", xUrl: "https://x.com/orca", docsUrl: "https://docs.orca.io" })]}
+        featuredBandEnabled={false}
+        copy={copy}
+      />,
+    )
+    const x = screen.getByRole("link", { name: /Orca on X/ })
+    expect(x).toHaveAttribute("href", "https://x.com/orca")
+    expect(x).toHaveAttribute("target", "_blank")
+    expect(x).toHaveAttribute("rel", "noopener noreferrer")
+    const docs = screen.getByRole("link", { name: /Orca docs/ })
+    expect(docs).toHaveAttribute("href", "https://docs.orca.io")
+    expect(docs).toHaveAttribute("target", "_blank")
+  })
+
+  it("grid card omits social links when the project has no xUrl/docsUrl", () => {
+    render(<EcosystemDirectory projects={[p({ slug: "bare", name: "Bare" })]} featuredBandEnabled={false} copy={copy} />)
+    expect(screen.queryByRole("link", { name: /on X/ })).toBeNull()
+    expect(screen.queryByRole("link", { name: /docs/i })).toBeNull()
+  })
+
+  it("grid card description carries the reveal class and stays below the overlay (not z-10)", () => {
+    render(<EcosystemDirectory projects={[p({ slug: "bound", name: "Bound", description: "trade tokens" })]} featuredBandEnabled={false} copy={copy} />)
+    const desc = screen.getByText("trade tokens")
+    expect(desc).toHaveClass("ec-card-desc")
+    expect(desc.className).not.toContain("z-10")
+  })
+
+  it("grid card root carries ec-card so the hover-reveal CSS can target it", () => {
+    render(<EcosystemDirectory projects={[p({ slug: "bound", name: "Bound" })]} featuredBandEnabled={false} copy={copy} />)
+    const overlay = screen.getByRole("link", { name: "Bound" })
+    expect(overlay.parentElement).toHaveClass("ec-card")
+  })
+
+  it("featured card keeps its description always visible (no reveal gating)", () => {
+    render(
+      <EcosystemDirectory
+        projects={[p({ slug: "subfrost", name: "SUBFROST", featured: true, description: "the source" })]}
+        featuredBandEnabled
+        copy={copy}
+      />,
+    )
+    const desc = screen.getByText("the source")
+    expect(desc).not.toHaveClass("ec-card-desc")
   })
 })
