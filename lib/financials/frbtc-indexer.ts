@@ -180,6 +180,49 @@ export async function getFrbtcVolumeTip(): Promise<FrbtcVolumeTip | null> {
   return data
 }
 
+/** Read frBTC (alkane 32:0) `/totalsupply` via `getstorageat` on the MAIN
+ *  alkanes indexer (the `FRBTC_INDEXER_RPC_URL` base with the `/frbtc` suffix
+ *  stripped) so the Revenue tab can reconcile supply against the signer reserve
+ *  (net wrap−unwrap). Returns supply in sats, or null on any failure/unset env.
+ *
+ *  The request payload is the protobuf `AlkaneStorageRequest{ id:{32,0},
+ *  path:"/totalsupply" }`; the reply is protobuf field 1 (a length-delimited
+ *  little-endian u128 of sats). */
+export async function getFrbtcTotalSupplySats(): Promise<number | null> {
+  const url = process.env.FRBTC_INDEXER_RPC_URL
+  if (!url) return null
+  const base = url.replace(/\/frbtc\/?$/, "")
+  const KEY = "0x0a060a0208201200120c2f746f74616c737570706c79"
+  try {
+    const res = await fetch(base, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "metashrew_view",
+        params: ["getstorageat", KEY, "latest"],
+      }),
+      signal: AbortSignal.timeout(12_000),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as { result?: string }
+    const r = body.result
+    if (typeof r !== "string" || !r.startsWith("0x")) return null
+    const buf = Buffer.from(r.slice(2), "hex")
+    if (buf.length < 2 || buf[0] !== 0x0a) return null // expect protobuf field 1
+    const len = buf[1]
+    const val = buf.subarray(2, 2 + len)
+    let v = 0n
+    for (let k = val.length - 1; k >= 0; k--) v = (v << 8n) | BigInt(val[k])
+    const sats = Number(v)
+    return Number.isFinite(sats) && sats > 0 ? sats : null
+  } catch {
+    return null
+  }
+}
+
 /** Test-only: clear the in-process memo caches. */
 export function __clearFrbtcIndexerCache(): void {
   rangeCache.clear()

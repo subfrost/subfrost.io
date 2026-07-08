@@ -254,10 +254,12 @@ spec:
             # Financials > Revenue reads the BTC wrap/unwrap fee series on-chain
             # via metashrew_view (frbtc_volume_range / frbtc_volume_tip); when
             # unset it falls back to the WrapTransaction/UnwrapTransaction tables.
-            # Intentionally left unset until the indexer is deployed — uncomment
-            # and point at the in-cluster service to enable.
-            # - name: FRBTC_INDEXER_RPC_URL
-            #   value: "http://frbtc-volume-indexer.default.svc.cluster.local:8080"
+            # The indexer runs in the subvh cluster (revolut), so this is the
+            # public free-tier route (no API key) through its tlsd ingress. The
+            # client strips /frbtc to read frBTC /totalsupply for the reserve
+            # collateralization reconciliation.
+            - name: FRBTC_INDEXER_RPC_URL
+              value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

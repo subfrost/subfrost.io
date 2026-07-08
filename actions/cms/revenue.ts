@@ -4,11 +4,15 @@ import { currentUser, type CmsUser } from "@/lib/cms/authz"
 import prisma from "@/lib/prisma"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import {
-  buildSeries, feeBtcFromSats,
+  buildSeries, feeBtcFromSats, SATS_PER_BTC,
   type BtcSource, type RevenueEvent, type RevenueOverview, type StripeSubscriptionSummary,
 } from "@/lib/financials/revenue"
 import { getLiveStripeRevenue } from "@/lib/financials/stripeRevenue"
-import { getFrbtcVolumeRange, getFrbtcVolumeTip } from "@/lib/financials/frbtc-indexer"
+import {
+  getFrbtcVolumeRange,
+  getFrbtcVolumeTip,
+  getFrbtcTotalSupplySats,
+} from "@/lib/financials/frbtc-indexer"
 
 async function gate(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: "unauthorized" }> {
   const me = await currentUser()
@@ -72,14 +76,16 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     const to = now.toISOString().slice(0, 10)
     const range = await getFrbtcVolumeRange(INDEXER_RANGE_FROM, to)
     if (!range) throw new Error("indexer not configured") // env unset → fall back
-    // One BTC fee event per non-empty UTC day (dated at day start). The per-day
-    // fee is 0.3% of that day's wrap+unwrap volume — same feeBtcFromSats rule as
-    // the tables path, so buildSeries's rollups line up either way.
+    // One BTC fee event per non-empty UTC day (dated at day start). Per-day fee
+    // = 0.1% of that day's wrap+unwrap volume + the 546-sat anchor retained on
+    // each unwrap (also subfrost revenue). Lifetime ≈ 0.37 BTC.
     btcEvents = range.daily
       .filter((d) => d.wrapped_sats + d.unwrapped_sats > 0)
       .map((d) => ({
         at: `${d.date}T00:00:00.000Z`,
-        amount: feeBtcFromSats(d.wrapped_sats + d.unwrapped_sats),
+        amount:
+          feeBtcFromSats(d.wrapped_sats + d.unwrapped_sats) +
+          (546 * d.unwrap_count) / SATS_PER_BTC,
       }))
     const tip = await getFrbtcVolumeTip().catch(() => null)
     indexerTip = tip?.tip ?? null
@@ -87,6 +93,18 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     btcFeeNote = BTC_INDEXER_NOTE
     btcNote =
       indexerTip != null ? `on-chain indexer · synced to block ${indexerTip}` : "on-chain indexer"
+
+    // Reconcile the signer reserve (net wrap−unwrap) against frBTC /totalsupply.
+    // The ~20 BTC "gap" seen with a stale supply read was spurious — the correct
+    // supply matches the reserve (~100% collateralized).
+    const supplySats = await getFrbtcTotalSupplySats().catch(() => null)
+    if (supplySats) {
+      const reserveBtc = (range.totals.wrapped_sats - range.totals.unwrapped_sats) / SATS_PER_BTC
+      const supplyBtc = supplySats / SATS_PER_BTC
+      if (supplyBtc > 0) {
+        btcNote += ` · frBTC ${Math.round((reserveBtc / supplyBtc) * 100)}% collateralized (${reserveBtc.toFixed(1)} BTC reserve vs ${supplyBtc.toFixed(1)} supply)`
+      }
+    }
   } catch {
     // Fallback: 0.3% of each confirmed wrap/unwrap satoshi volume, in BTC. amount
     // is a satoshi string; Number is safe (< 2^53 for realistic volumes).

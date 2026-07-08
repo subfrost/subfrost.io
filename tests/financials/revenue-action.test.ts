@@ -12,6 +12,7 @@ vi.mock("@/lib/financials/stripeRevenue", () => ({ getLiveStripeRevenue: vi.fn()
 vi.mock("@/lib/financials/frbtc-indexer", () => ({
   getFrbtcVolumeRange: vi.fn(),
   getFrbtcVolumeTip: vi.fn(),
+  getFrbtcTotalSupplySats: vi.fn(() => Promise.resolve(null)),
 }))
 
 import { revenueOverviewAction } from "@/actions/cms/revenue"
@@ -54,11 +55,11 @@ describe("revenueOverviewAction — BTC source selection", () => {
     expect(r.overview.btcSource).toBe("indexer")
     expect(r.overview.indexerTip).toBe(901_234)
     expect(r.overview.btcNote).toContain("901234")
-    // The zero-volume day is dropped; the fee equals 0.3% of the day's volume.
-    expect(r.overview.btcFee.daily).toEqual([
-      { date: "2026-06-01", amount: feeBtcFromSats(150_000) },
-    ])
-    expect(r.overview.btcFee.rollups.all).toBe(feeBtcFromSats(150_000))
+    // The zero-volume day is dropped; the fee = 0.1% of the day's volume plus
+    // the 546-sat anchor retained per unwrap (unwrap_count = 1).
+    const dayFee = feeBtcFromSats(150_000) + (546 * 1) / 100_000_000
+    expect(r.overview.btcFee.daily).toEqual([{ date: "2026-06-01", amount: dayFee }])
+    expect(r.overview.btcFee.rollups.all).toBe(dayFee)
     // Indexer path must not touch the ledger tables.
     expect(prismaMock.wrapTransaction.findMany).not.toHaveBeenCalled()
     expect(prismaMock.unwrapTransaction.findMany).not.toHaveBeenCalled()
