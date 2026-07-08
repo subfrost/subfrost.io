@@ -48,6 +48,17 @@ describe("getPublicData", () => {
     expect(p.updatedAt).toBe("2026-06-10T00:00:00.000Z")
   })
 
+  it("flips BTC/token ratios to token-in-sats for the now-value and the series (DIESEL/BTC, FIRE/BTC)", async () => {
+    snapshotStore.listDailySnapshots.mockResolvedValue(Array.from({ length: 10 }, (_, i) => row(i)))
+    const p = await getPublicData()
+    // live btcDieselPrice 1165.9 (BTC/DIESEL) -> DIESEL priced in sats = 1e8 / 1165.9
+    expect(p.now["btc-diesel"]).toBeCloseTo(1e8 / 1165.9, 1)
+    expect(p.now["btc-fire"]).toBeCloseTo(1e8 / 1420.3, 1)
+    // the series is flipped too, so the sparkline/delta stay consistent with the value
+    expect(p.series[0].btcDiesel).toBeCloseTo(1e8 / 1165.9, 1)
+    expect(p.series[0].btcFire).toBeCloseTo(1e8 / 1420.3, 1)
+  })
+
   it("computes 7d deltas from the series (latest vs >=7 days earlier)", async () => {
     snapshotStore.listDailySnapshots.mockResolvedValue(Array.from({ length: 10 }, (_, i) => row(i)))
     const p = await getPublicData()
@@ -110,9 +121,17 @@ describe("helpers", () => {
     expect(formatMetricValue("diesel-holders", 7938)).toBe("7,938")
     expect(formatMetricValue("diesel-price", 50.13)).toBe("$50.13")
     expect(formatMetricValue("btc-locked", 94.74)).toBe("94.74 BTC")
-    expect(formatMetricValue("btc-diesel", 1165.955)).toBe("1,165.96")
+    // DIESEL/BTC and FIRE/BTC are shown in sats (flipped from the BTC/token ratio)
+    expect(formatMetricValue("btc-diesel", 2817)).toBe("2,817 sats")
+    expect(formatMetricValue("btc-fire", 70408)).toBe("70,408 sats")
     expect(formatMetricValue("btc-locked", null)).toBe("—")
     expect(formatMetricValue("frbtc-supply", 93.34766521)).toBe("93.35 BTC")
+  })
+  it("btc-diesel/btc-fire cards read DIESEL/BTC and FIRE/BTC (natural orientation)", () => {
+    expect(CARD_METRICS["btc-diesel"].label).toBe("DIESEL/BTC")
+    expect(CARD_METRICS["btc-fire"].label).toBe("FIRE/BTC")
+    expect(CARD_METRICS["btc-diesel"].kind).toBe("sats")
+    expect(CARD_METRICS["btc-fire"].kind).toBe("sats")
   })
   it("every metric maps to a real SeriesPoint field", () => {
     const fields = ["date","dieselHolders","dieselPrice","btcLocked","firePrice","frbtcSupply","dieselMarketcap","btcUsd","btcDiesel","btcFire"]

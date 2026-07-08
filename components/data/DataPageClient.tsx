@@ -26,8 +26,8 @@ const METRIC_ICONS: Record<PublicMetricKey, string[]> = {
   "diesel-price": [DIESEL_ICON],
   "diesel-marketcap": [DIESEL_ICON],
   "fire-price": [FIRE_ICON],
-  "btc-diesel": [BTC_ICON, DIESEL_ICON],
-  "btc-fire": [BTC_ICON, FIRE_ICON],
+  "btc-diesel": [DIESEL_ICON, BTC_ICON],
+  "btc-fire": [FIRE_ICON, BTC_ICON],
 }
 
 export function MetricCard({

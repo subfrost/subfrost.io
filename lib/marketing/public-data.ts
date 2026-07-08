@@ -17,15 +17,17 @@ export interface PublicDataPayload {
   series: SeriesPoint[]
 }
 
-export const CARD_METRICS: Record<PublicMetricKey, { label: string; kind: "btc" | "usd" | "int" | "ratio"; seriesField: keyof SeriesPoint }> = {
+export const CARD_METRICS: Record<PublicMetricKey, { label: string; kind: "btc" | "usd" | "int" | "ratio" | "sats"; seriesField: keyof SeriesPoint }> = {
   "btc-locked": { label: "BTC locked", kind: "btc", seriesField: "btcLocked" },
   "frbtc-supply": { label: "frBTC supply", kind: "btc", seriesField: "frbtcSupply" },
   "diesel-holders": { label: "DIESEL holders", kind: "int", seriesField: "dieselHolders" },
   "diesel-price": { label: "DIESEL price", kind: "usd", seriesField: "dieselPrice" },
   "diesel-marketcap": { label: "DIESEL market cap", kind: "usd", seriesField: "dieselMarketcap" },
   "fire-price": { label: "FIRE price", kind: "usd", seriesField: "firePrice" },
-  "btc-diesel": { label: "BTC/DIESEL", kind: "ratio", seriesField: "btcDiesel" },
-  "btc-fire": { label: "BTC/FIRE", kind: "ratio", seriesField: "btcFire" },
+  // Shown in the natural orientation: the token priced in BTC (in sats), not BTC/token.
+  // The stored ratio is BTC/token; getPublicData flips it (1e8 / ratio) for value + series.
+  "btc-diesel": { label: "DIESEL/BTC", kind: "sats", seriesField: "btcDiesel" },
+  "btc-fire": { label: "FIRE/BTC", kind: "sats", seriesField: "btcFire" },
 }
 
 export function isPublicMetricKey(v: string): v is PublicMetricKey {
@@ -42,8 +44,14 @@ export function formatMetricValue(key: PublicMetricKey, value: number | null): s
     case "usd": return `$${two.format(value)}`
     case "btc": return `${two.format(value)} BTC`
     case "ratio": return two.format(value)
+    case "sats": return `${int.format(value)} sats`
   }
 }
+
+// DIESEL/FIRE are presented priced in BTC (natural orientation), rendered in sats.
+// Input is the BTC/token ratio (btcUsd / tokenUsd); reciprocal × 1e8 = token price in sats.
+const toSats = (btcPerToken: number | null | undefined): number | null =>
+  typeof btcPerToken === "number" && Number.isFinite(btcPerToken) && btcPerToken !== 0 ? 1e8 / btcPerToken : null
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -73,6 +81,10 @@ export async function getPublicData(): Promise<PublicDataPayload> {
     series = buildProtocolSeries(rows).map((p) => ({
       ...p,
       frbtcSupply: p.frbtcSupply === null ? null : p.frbtcSupply / 1e8,
+      // Flip BTC/token → token-in-sats so the value, sparkline and delta stay consistent.
+      // Local copy only — the admin analytics series (buildProtocolSeries) keeps BTC/token.
+      btcDiesel: toSats(p.btcDiesel),
+      btcFire: toSats(p.btcFire),
     }))
     updatedAt = rows.length ? rows[rows.length - 1].createdAt.toISOString() : null
   } catch (e) {
@@ -100,8 +112,8 @@ export async function getPublicData(): Promise<PublicDataPayload> {
     "diesel-price": pick(live.dieselUsd, "dieselPrice"),
     "diesel-marketcap": pick(null, "dieselMarketcap"),
     "fire-price": pick(live.fireUsd, "firePrice"),
-    "btc-diesel": pick(live.btcDieselPrice, "btcDiesel"),
-    "btc-fire": pick(live.btcFirePrice, "btcFire"),
+    "btc-diesel": pick(toSats(live.btcDieselPrice), "btcDiesel"),
+    "btc-fire": pick(toSats(live.btcFirePrice), "btcFire"),
   }
 
   const deltas7d = Object.fromEntries(
