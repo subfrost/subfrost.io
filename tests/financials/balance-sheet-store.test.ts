@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/redis", () => ({ cacheGet: vi.fn(), cacheSet: vi.fn() }))
+vi.mock("@/lib/financials/treasury/source/live", () => ({ fetchTreasurySnapshot: vi.fn() }))
 vi.mock("@/lib/prisma", () => {
   const invoice = { aggregate: vi.fn() }
   const instrument = { aggregate: vi.fn() }
@@ -14,6 +15,7 @@ vi.mock("@/lib/prisma", () => {
 
 import prisma from "@/lib/prisma"
 import { cacheGet } from "@/lib/redis"
+import { fetchTreasurySnapshot } from "@/lib/financials/treasury/source/live"
 import { buildBalanceSheet } from "@/lib/financials/balance-sheet/store"
 import { round2 } from "@/lib/financials/balance-sheet/shapes"
 import { FUEL_PRESALE_PROCEEDS_USD } from "@/lib/fuel/supply"
@@ -25,9 +27,14 @@ const hold = prisma.shareHolding as unknown as Record<string, ReturnType<typeof 
 const item = prisma.balanceSheetItem as unknown as Record<string, ReturnType<typeof vi.fn>>
 const fuel = prisma.fuelAllocation as unknown as Record<string, ReturnType<typeof vi.fn>>
 const cg = cacheGet as unknown as ReturnType<typeof vi.fn>
+const fetchTreas = fetchTreasurySnapshot as unknown as ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   cg.mockReset()
+  // Empty-cache tests keep their "treasury unavailable" intent: the live fallback
+  // rejects unless a test opts in. Cache-hit tests mock cacheGet so it isn't reached.
+  fetchTreas.mockReset()
+  fetchTreas.mockRejectedValue(new Error("no live treasury fetch in test"))
   ;[inv, inst, cls, hold, item, fuel].forEach((m) => Object.values(m).forEach((f) => f.mockReset()))
   inv.aggregate.mockResolvedValue({ _sum: { amountUsd: 0 }, _count: 0 })
   inst.aggregate.mockResolvedValue({ _sum: { amountUsd: 0 }, _count: 0 })
