@@ -100,6 +100,8 @@ export interface RevenueOverview {
   stripeLive: boolean
   /** Source + caveat blurb for the Stripe series (shown under its chart). */
   stripeNote: string
+  /** Current BTC/USD used to value the frBTC fee series in USD (null ⇒ shown in BTC). */
+  btcUsd: number | null
 }
 
 /** BTC fee earned on wrapping/unwrapping `sats` satoshis of volume (0.3%). */

@@ -5,7 +5,8 @@ import prisma from "@/lib/prisma"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import {
   buildSeries, feeBtcFromSats, SATS_PER_BTC,
-  type BtcSource, type RevenueEvent, type RevenueOverview, type StripeSubscriptionSummary,
+  type BtcSource, type RevenueEvent, type RevenueOverview, type RevenueUnit,
+  type StripeSubscriptionSummary,
 } from "@/lib/financials/revenue"
 import { getLiveStripeRevenue } from "@/lib/financials/stripeRevenue"
 import {
@@ -149,8 +150,18 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     stripeNote = STRIPE_FALLBACK_NOTE
   }
 
+  // Value the frBTC fee series in USD at the CURRENT BTC rate (not per-day
+  // historical) — the wrap/unwrap stats are shown in USD. Null price ⇒ keep BTC.
+  const btcUsd = await currentBtcUsd()
+  const btcUnit: RevenueUnit = btcUsd != null ? "USD" : "BTC"
+  const btcSeriesEvents =
+    btcUsd != null ? btcEvents.map((e) => ({ at: e.at, amount: e.amount * btcUsd })) : btcEvents
+  if (btcUsd != null) {
+    btcNote += ` · valued at $${Math.round(btcUsd).toLocaleString("en-US")}/BTC (current spot)`
+  }
+
   const overview: RevenueOverview = {
-    btcFee: buildSeries("btc_fee", "BTC", btcEvents, now, 8),
+    btcFee: buildSeries("btc_fee", btcUnit, btcSeriesEvents, now, btcUnit === "USD" ? 2 : 8),
     stripe: buildSeries("stripe", "USD", stripeEvents, now, 2),
     generatedAt: now.toISOString(),
     btcFeeNote,
@@ -160,6 +171,27 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     stripeSubs,
     stripeLive,
     stripeNote,
+    btcUsd,
   }
   return { ok: true, overview }
+}
+
+/** Current BTC/USD spot from the subfrost subpricer (same source as the treasury).
+ *  Null on any failure so the fee series falls back to BTC-denominated display. */
+async function currentBtcUsd(): Promise<number | null> {
+  try {
+    const res = await fetch("https://mainnet.subfrost.io/v4/subfrost/get-bitcoin-price", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(12_000),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { data?: { bitcoin?: { usd?: number } } }
+    const usd = json?.data?.bitcoin?.usd
+    return typeof usd === "number" && usd > 0 ? usd : null
+  } catch {
+    return null
+  }
 }

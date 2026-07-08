@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 const prismaMock = vi.hoisted(() => ({
   wrapTransaction: { findMany: vi.fn() },
@@ -30,7 +30,12 @@ beforeEach(() => {
   prismaMock.wrapTransaction.findMany.mockResolvedValue([])
   prismaMock.unwrapTransaction.findMany.mockResolvedValue([])
   prismaMock.stripeWebhookEvent.findMany.mockResolvedValue([])
+  // currentBtcUsd() does a real fetch to the subpricer — stub it non-OK so the
+  // fee series stays BTC-denominated and the assertions below are deterministic.
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 })))
 })
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe("revenueOverviewAction — BTC source selection", () => {
   it("rejects a caller without the financials privilege", async () => {

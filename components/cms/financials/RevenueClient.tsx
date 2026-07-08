@@ -16,7 +16,7 @@ const btc = (n: number) => `₿${n.toLocaleString("en-US", { maximumFractionDigi
 const fmt = (unit: RevenueUnit) => (unit === "USD" ? usd : btc)
 const mmdd = (d: string) => d.slice(5) // YYYY-MM-DD → MM-DD
 
-const btcConfig: ChartConfig = { amount: { label: "BTC fee revenue", color: "#fb923c" } } // orange-400
+const btcConfig: ChartConfig = { amount: { label: "frBTC fees", color: "#fb923c" } } // orange-400
 const usdConfig: ChartConfig = { amount: { label: "Stripe revenue (USD)", color: "#a78bfa" } } // violet-400
 
 const tabTrigger =
@@ -38,7 +38,11 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
       <TabsContent value="protocol">
         <RevenueSection
           title="frBTC wrap/unwrap fees"
-          subtitle="0.1% of every confirmed wrap + unwrap, accrued in BTC."
+          subtitle={
+            overview.btcFee.unit === "USD"
+              ? `0.1% of every confirmed wrap + unwrap, valued in USD at the current BTC rate${overview.btcUsd ? ` ($${Math.round(overview.btcUsd).toLocaleString("en-US")})` : ""}.`
+              : "0.1% of every confirmed wrap + unwrap, accrued in BTC."
+          }
           series={overview.btcFee}
           config={btcConfig}
           note={overview.btcFeeNote}
@@ -74,12 +78,13 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
 function CombinedOverview({ overview }: { overview: RevenueOverview }) {
   const p = overview.btcFee.rollups
   const s = overview.stripe.rollups
+  const pf = fmt(overview.btcFee.unit)
   const mrr = overview.stripeSubs?.mrr ?? null
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric label="Protocol · all-time" value={btc(p.all)} accent="#fb923c" />
-        <Metric label="Protocol · 30d" value={btc(p.d30)} />
+        <Metric label="Protocol · all-time" value={pf(p.all)} accent="#fb923c" />
+        <Metric label="Protocol · 30d" value={pf(p.d30)} />
         <Metric label="API · all-time" value={usd(s.all)} accent="#a78bfa" />
         <Metric label="API · MRR" value={mrr != null ? usd(mrr) : "—"} sub={mrr != null ? `≈ ${usd(mrr * 12)} ARR` : undefined} />
       </div>
@@ -87,7 +92,7 @@ function CombinedOverview({ overview }: { overview: RevenueOverview }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3 rounded-xl border border-zinc-800 p-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-white">frBTC fees <span className="font-normal text-zinc-500">(BTC)</span></h3>
+            <h3 className="text-sm font-semibold text-white">frBTC fees <span className="font-normal text-zinc-500">({overview.btcFee.unit})</span></h3>
             <BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />
           </div>
           <RevenueChart series={overview.btcFee} config={btcConfig} height={200} />
