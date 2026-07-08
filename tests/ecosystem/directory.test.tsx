@@ -22,7 +22,7 @@ const p = (over: Partial<PublicEcosystemProject>): PublicEcosystemProject => ({
 const projects = [
   p({ slug: "subfrost", name: "SUBFROST", featured: true }),
   p({ slug: "oyl", name: "Oyl Wallet", category: "Wallet", featured: true }),
-  p({ slug: "bound", name: "Bound", category: "DeFi" }),
+  p({ slug: "bound", name: "Bound", category: "DeFi", xUrl: "https://x.com/bound", docsUrl: "https://docs.bound.io" }),
   p({ slug: "ordiscan", name: "Ordiscan", category: "Tooling" }),
 ]
 
