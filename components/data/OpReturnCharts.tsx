@@ -458,12 +458,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.weightShare.title} desc={fill(copy.charts.weightShare.desc, {
           weightShareFull: fmtPct(stats.weight.full),
           weightShareLatest: fmtPct(stats.weight.latest),
-        })}>
+        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: "avg7" })}>
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* How much of Bitcoin is Alkanes? Four answers (tx / OP_RETURN bytes / weight / fee revenue) */}
-        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc}>
+        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: "full" })}>
           <ToggleLineChart
             data={fourAnswers}
             seriesKeys={[
@@ -505,7 +505,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         ) : null}
 
         {/* 5. DIESEL mints share of all tx */}
-        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc}>
+        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: "avg7" })}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
@@ -515,7 +515,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* DIESEL minted — cumulative since genesis */}
-        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc}>
+        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc} share={shareFor(copy.charts.dieselCumulative.title, { metric: "dieselMintedCumulative", template: "hero", window: "full" })}>
           <SingleLineChart data={dieselCumulative} dataKey="value" color={ACCENT} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} area />
         </Card>
 
@@ -595,7 +595,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions — Alkanes protostones vs Runes (non-Alkanes) (share %) */}
-        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc}>
+        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: "avg7" })}>
           <ToggleLineChart
             data={runestoneTxShare}
             seriesKeys={[
