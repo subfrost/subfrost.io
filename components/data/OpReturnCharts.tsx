@@ -102,12 +102,21 @@ function fmtDate(iso: string, locale: "en" | "zh"): string {
   return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(d)
 }
 
-function Card({ title, children, desc, share }: { title: string; children: React.ReactNode; desc?: string; share?: { cardUrl: string; text: string; alt: string; locale: "en" | "zh" } }) {
+function Card({ title, children, desc, share, anchorId, shareLink }: {
+  title: string; children: React.ReactNode; desc?: string
+  share?: { cardUrl: string; text: string; alt: string; locale: "en" | "zh" }
+  anchorId?: string
+  shareLink?: { text: string; locale: "en" | "zh" }
+}) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: HAIRLINE, background: "var(--ed-card, transparent)" }}>
+    <div id={anchorId} className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: HAIRLINE, background: "var(--ed-card, transparent)", scrollMarginTop: "88px" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
-        {share ? <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" /> : null}
+        {share ? (
+          <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" />
+        ) : shareLink && anchorId ? (
+          <ShareMenu url={`https://subfrost.io/metrics#${anchorId}`} text={shareLink.text} locale={shareLink.locale} align="end" />
+        ) : null}
       </div>
       {children}
       {desc ? <p className="text-xs leading-relaxed" style={{ color: "var(--ed-muted)" }}>{desc}</p> : null}
@@ -327,6 +336,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
     locale,
   })
 
+  const linkFor = (title: string) => ({ text: `${title} @subfrost_news`, locale })
+
   const dailyShare = useMemo(() => applyWindow(payload.dailyShare, windowMode, year), [payload.dailyShare, windowMode, year])
   const opReturnShare = useMemo(() => applyWindow(payload.opReturnShare, windowMode, year), [payload.opReturnShare, windowMode, year])
   const weightShare = useMemo(() => applyWindow(payload.weightShare, windowMode, year), [payload.weightShare, windowMode, year])
@@ -458,12 +469,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.weightShare.title} desc={fill(copy.charts.weightShare.desc, {
           weightShareFull: fmtPct(stats.weight.full),
           weightShareLatest: fmtPct(stats.weight.latest),
-        })}>
+        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: "avg7" })}>
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* How much of Bitcoin is Alkanes? Four answers (tx / OP_RETURN bytes / weight / fee revenue) */}
-        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc}>
+        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: "full" })}>
           <ToggleLineChart
             data={fourAnswers}
             seriesKeys={[
@@ -493,6 +504,8 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
               alkTx: stats.latest ? fmtNum(stats.latest.txAlkanes) : "—",
               pct: stats.latest ? fmtPct(stats.latest.alkanesOfOpReturnTx) : "—",
             })}
+            anchorId="last-day-composition"
+            shareLink={linkFor(copy.charts.latestDonut.title)}
           >
             <LabeledPie
               height={220}
@@ -505,17 +518,17 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         ) : null}
 
         {/* 5. DIESEL mints share of all tx */}
-        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc}>
+        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: "avg7" })}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* DIESEL mints per day — the birth curve (log scale) */}
-        <Card title={copy.charts.dieselMintsPerDay.title} desc={copy.charts.dieselMintsPerDay.desc}>
+        <Card title={copy.charts.dieselMintsPerDay.title} desc={copy.charts.dieselMintsPerDay.desc} anchorId="diesel-mints-per-day" shareLink={linkFor(copy.charts.dieselMintsPerDay.title)}>
           <SingleLineChart data={dieselMintsPerDay} dataKey="value" color={SECOND} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} logScale />
         </Card>
 
         {/* DIESEL minted — cumulative since genesis */}
-        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc}>
+        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc} share={shareFor(copy.charts.dieselCumulative.title, { metric: "dieselMintedCumulative", template: "hero", window: "full" })}>
           <SingleLineChart data={dieselCumulative} dataKey="value" color={ACCENT} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} area />
         </Card>
 
@@ -524,12 +537,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           ugShareEarly: fmtPct(stats.ug.early30),
           ugShareRecent: fmtPct(stats.ug.last30),
           ugShareFull: fmtPct(stats.ug.full),
-        })}>
+        })} anchorId="ug-diesel-share" shareLink={linkFor(copy.charts.ugDieselShare.title)}>
           <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* UNCOMMON•GOODS mints per day — taken over by DIESEL (stacked, raw sampled counts) */}
-        <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc}>
+        <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc} anchorId="ug-mints-per-day" shareLink={linkFor(copy.charts.ugMintsPerDay.title)}>
           <ToggleLineChart
             data={ugMintsPerDay}
             seriesKeys={[
@@ -561,7 +574,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runes (non-Alkanes) vs Alkanes — absolute bytes per day (log scale) */}
-        <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc}>
+        <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc} anchorId="runes-vs-alkanes-bytes" shareLink={linkFor(copy.charts.runesVsAlkanesBytes.title)}>
           <ToggleLineChart
             data={runesVsAlkanesBytes}
             seriesKeys={[
@@ -577,7 +590,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* OP_RETURN byte composition over time (stacked %) — the temporal view of the since-genesis donut */}
-        <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc}>
+        <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc} anchorId="byte-composition" shareLink={linkFor(copy.charts.byteComposition.title)}>
           <ToggleLineChart
             data={byteComposition}
             seriesKeys={[
@@ -595,7 +608,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions — Alkanes protostones vs Runes (non-Alkanes) (share %) */}
-        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc}>
+        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: "avg7" })}>
           <ToggleLineChart
             data={runestoneTxShare}
             seriesKeys={[
@@ -610,7 +623,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions per day — Alkanes vs Runes (non-Alkanes) (count, log scale) */}
-        <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc}>
+        <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc} anchorId="runestone-tx-count" shareLink={linkFor(copy.charts.runestoneTxCount.title)}>
           <ToggleLineChart
             data={runestoneTxCount}
             seriesKeys={[
@@ -643,7 +656,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         {/* 8. OP_RETURN bytes per tx */}
         <Card title={copy.charts.bytesPerTx.title} desc={fill(copy.charts.bytesPerTx.desc, {
           bytesPerTx: fmtBytesPerTx(stats.full.alkanesBytesPerTx),
-        })}>
+        })} anchorId="bytes-per-tx" shareLink={linkFor(copy.charts.bytesPerTx.title)}>
           <ToggleLineChart
             data={bytesPerTx}
             seriesKeys={[
@@ -658,12 +671,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* 9. Miner fee revenue USD */}
-        <Card title={copy.charts.minerRevenueUsd.title} desc={copy.charts.minerRevenueUsd.desc}>
+        <Card title={copy.charts.minerRevenueUsd.title} desc={copy.charts.minerRevenueUsd.desc} anchorId="miner-revenue-usd" shareLink={linkFor(copy.charts.minerRevenueUsd.title)}>
           <SingleLineChart data={minerRevenueUsd} dataKey="value" color={SECOND} yTickFormatter={axisUsdCompact} tooltipFormatter={tooltipUsd} area />
         </Card>
 
         {/* 10. Miner fees split BTC (stacked) */}
-        <Card title={copy.charts.feesSplitBtc.title} desc={copy.charts.feesSplitBtc.desc}>
+        <Card title={copy.charts.feesSplitBtc.title} desc={copy.charts.feesSplitBtc.desc} anchorId="fees-split-btc" shareLink={linkFor(copy.charts.feesSplitBtc.title)}>
           <ToggleLineChart
             data={feesSplitBtc}
             seriesKeys={[
@@ -690,7 +703,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Fee per transaction — Alkanes vs everyone else (sats/tx) */}
-        <Card title={copy.charts.feePerTx.title} desc={copy.charts.feePerTx.desc}>
+        <Card title={copy.charts.feePerTx.title} desc={copy.charts.feePerTx.desc} anchorId="fee-per-tx" shareLink={linkFor(copy.charts.feePerTx.title)}>
           <ToggleLineChart
             data={feePerTx}
             seriesKeys={[

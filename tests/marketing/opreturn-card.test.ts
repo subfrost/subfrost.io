@@ -45,4 +45,15 @@ describe("opReturnCardUrl", () => {
     // every generated url round-trips through the validator
     expect(parse(u.split("?")[1])).not.toBeNull()
   })
+
+  it("accepts the answers template", () => {
+    expect(parse("template=answers")).toEqual({ ...CARD_DEFAULTS, template: "answers" })
+  })
+
+  it("omits the metric for answers cards and round-trips", () => {
+    const u = opReturnCardUrl({ template: "answers", window: "full" })
+    expect(u).toContain("template=answers")
+    expect(u).not.toContain("metric=")
+    expect(parse(u.split("?")[1])).not.toBeNull()
+  })
 })

@@ -1,5 +1,5 @@
 import { it, expect } from "vitest"
-import { computeMetric, computeBytesComposition, dayValue } from "@/lib/marketing/opreturn-metrics"
+import { computeMetric, computeBytesComposition, dayValue, formatMetricValue } from "@/lib/marketing/opreturn-metrics"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 
 // runestoneBytes INCLUDES alkanesBytes (Alkanes protostones are embedded in runestones),
@@ -28,7 +28,7 @@ it("computeMetric usd cumulative sums daily USD over the window", () => {
   const rows = [row({ feeAlkanesSats: 100_000_000, btcUsd: 50000 }), row({ date: "2026-01-02", feeAlkanesSats: 200_000_000, btcUsd: 50000 })]
   // 1 BTC*50k + 2 BTC*50k = 150000
   expect(computeMetric(rows, "alkanesFeeUsdCumulative", "full").value).toBeCloseTo(150000)
-  expect(computeMetric(rows, "alkanesFeeUsdCumulative", "full").kind).toBe("usd")
+  expect(computeMetric(rows, "alkanesFeeUsdCumulative", "full").format).toBe("usd")
 })
 
 it("computeBytesComposition subtracts alkanes out of runestone bytes (embedded protostones, not disjoint buckets)", () => {
@@ -80,4 +80,50 @@ it("computeMetric ratio returns null when the window denominator is all zero", (
 
 it("computeBytesComposition returns zeros when there are no OP_RETURN bytes", () => {
   expect(computeBytesComposition([row({ opReturnBytes: 0, alkanesBytes: 0, runestoneBytes: 0 })], "full")).toEqual({ alkanes: 0, runes: 0, other: 0 })
+})
+
+it("alkanesWeightShare is a null-safe ratio over rows that have weight data", () => {
+  const rows = [
+    row({ date: "2026-01-01", weightAlkanes: 10, weightTotal: 100 }),
+    row({ date: "2026-01-02", weightAlkanes: null, weightTotal: null }), // old CSV row → skipped
+    row({ date: "2026-01-03", weightAlkanes: 30, weightTotal: 100 }),
+  ]
+  // (10+30)/(100+100) = 0.2 — the null row contributes nothing
+  expect(computeMetric(rows, "alkanesWeightShare", "full").value).toBeCloseTo(0.2)
+})
+
+it("alkanesRunestoneTxShare = alkanes / (alkanes + pure runes), null-safe", () => {
+  const rows = [row({ txAlkRunestone: 3, txPureRunes: 1 })]
+  expect(computeMetric(rows, "alkanesRunestoneTxShare", "full").value).toBeCloseTo(0.75)
+  expect(computeMetric([row({ txAlkRunestone: null, txPureRunes: null })], "alkanesRunestoneTxShare", "full").value).toBeNull()
+})
+
+it("dieselMintedCumulative sums diesel mints over the window", () => {
+  const rows = [row({ dieselMints: 40 }), row({ date: "2026-01-02", dieselMints: 60 })]
+  expect(computeMetric(rows, "dieselMintedCumulative", "full").value).toBeCloseTo(100)
+  expect(computeMetric(rows, "dieselMintedCumulative", "full").format).toBe("count")
+})
+
+it("sum metrics get a monotonic running-sum series (cumulative sparkline)", () => {
+  const rows = [row({ date: "2026-01-01", dieselMints: 40 }), row({ date: "2026-01-02", dieselMints: 60 })]
+  const s = computeMetric(rows, "dieselMintedCumulative", "full").series
+  expect(s.map((p) => p.value)).toEqual([40, 100]) // running sum, not [40, 60]
+})
+
+it("dieselTxShareOfAll is a ratio with oneInN format", () => {
+  const r = computeMetric([row({ dieselMints: 2, totalTx: 100 })], "dieselTxShareOfAll", "full")
+  expect(r.value).toBeCloseTo(0.02)
+  expect(r.format).toBe("oneInN")
+})
+
+it("formatMetricValue renders each format", () => {
+  expect(formatMetricValue(0.042, "pct")).toBe("4.2%")
+  expect(formatMetricValue(1234, "usd")).toBe("$1,234")
+  expect(formatMetricValue(0.023, "oneInN")).toBe("1 in 43")   // round(1/0.023)=43
+  expect(formatMetricValue(1_250_000, "count")).toBe("1.3M")
+  expect(formatMetricValue(null, "pct")).toBe("—")
+})
+
+it("computeMetric reports the metric format", () => {
+  expect(computeMetric([row({})], "alkanesWeightShare", "full").format).toBe("pct")
 })
