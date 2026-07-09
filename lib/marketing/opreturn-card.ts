@@ -3,7 +3,7 @@ import { METRIC_LABELS, WINDOW_DAYS, type MetricKey, type WindowKey } from "./op
 // Shared shapes + validation for the PUBLIC OP_RETURN stat card
 // (app/metrics/card/opreturn) and the share buttons that link to it.
 
-export type CardTemplate = "hero" | "compare"
+export type CardTemplate = "hero" | "compare" | "answers"
 export type CardTheme = "dark" | "light"
 
 export interface CardParams {
@@ -31,13 +31,14 @@ export function parseCardParams(sp: URLSearchParams): CardParams | null {
   const theme = sp.get("theme") ?? CARD_DEFAULTS.theme
   if (!Object.prototype.hasOwnProperty.call(METRIC_LABELS, metric)) return null
   if (!Object.prototype.hasOwnProperty.call(WINDOW_DAYS, window)) return null
-  if (template !== "hero" && template !== "compare") return null
+  if (template !== "hero" && template !== "compare" && template !== "answers") return null
   if (theme !== "dark" && theme !== "light") return null
   return { metric: metric as MetricKey, window: window as WindowKey, template, theme }
 }
 
-/** Build a public OP_RETURN card URL for a share button. `compare` cards ignore
- *  `metric` (they render the bytes composition), so it's omitted there. */
+/** Build a public OP_RETURN card URL for a share button. `compare` and `answers`
+ *  cards ignore `metric` (they render fixed, curated stat sets), so it's only
+ *  set for `hero`. */
 export function opReturnCardUrl(cfg: {
   metric?: MetricKey
   template?: CardTemplate
@@ -47,7 +48,7 @@ export function opReturnCardUrl(cfg: {
   const p = new URLSearchParams()
   const template = cfg.template ?? "hero"
   p.set("template", template)
-  if (template !== "compare" && cfg.metric) p.set("metric", cfg.metric)
+  if (template === "hero" && cfg.metric) p.set("metric", cfg.metric)
   p.set("window", cfg.window ?? "avg7")
   p.set("theme", cfg.theme ?? "dark")
   return `https://subfrost.io/metrics/card/opreturn?${p.toString()}`

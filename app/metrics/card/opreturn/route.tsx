@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
 import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
 import { computeMetric, computeBytesComposition, formatMetricValue } from "@/lib/marketing/opreturn-metrics"
-import { METRIC_LABELS, WINDOW_LABELS } from "@/lib/marketing/opreturn-types"
+import { METRIC_LABELS, WINDOW_LABELS, type MetricKey } from "@/lib/marketing/opreturn-types"
 import { parseCardParams } from "@/lib/marketing/opreturn-card"
 import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
 
@@ -17,6 +17,14 @@ export const dynamic = "force-dynamic"
 
 const SIZE = { width: 1200, height: 675 }
 const CACHE = "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400"
+
+// Curated N-stat card — the flagship's "Three answers" (miner fees deliberately out of the overview).
+// A generic list so future multi-stat cards reuse the template; keep ids/labels stable (embed contract).
+const SHARE_OF_BITCOIN_STATS: { metric: MetricKey; label: string }[] = [
+  { metric: "alkanesTxShare", label: "of transactions" },
+  { metric: "alkanesWeightShare", label: "of block weight" },
+  { metric: "alkanesBytesShare", label: "of OP_RETURN bytes" },
+]
 
 const fmtPct = (v: number | null) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`)
 
@@ -71,6 +79,21 @@ export async function GET(req: NextRequest) {
         {bar("Alkanes", c.alkanes, accent)}
         {bar("Runes", c.runes, "#f0997b")}
         {bar("Other", c.other, muted)}
+      </div>
+    )
+  } else if (template === "answers") {
+    inner = (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
+        <div style={{ display: "flex", fontSize: 40, color: ink }}>How much of Bitcoin is Alkanes?</div>
+        {SHARE_OF_BITCOIN_STATS.map((s) => {
+          const { value, format } = computeMetric(rows, s.metric, window)
+          return (
+            <div key={s.metric} style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
+              <span style={{ display: "flex", fontSize: 76, fontWeight: 500, color: ink, lineHeight: 1 }}>{formatMetricValue(value, format)}</span>
+              <span style={{ display: "flex", fontSize: 32, color: muted }}>{s.label}</span>
+            </div>
+          )
+        })}
       </div>
     )
   } else {
