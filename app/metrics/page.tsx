@@ -273,7 +273,7 @@ const copy = {
   },
 } // one copy object per locale; keep both shapes identical (inference gives full typing)
 
-const GRID: PublicMetricKey[] = ["diesel-holders", "diesel-price", "diesel-marketcap", "fire-price", "btc-diesel", "btc-fire"]
+const GRID: PublicMetricKey[] = ["diesel-holders", "diesel-price", "diesel-marketcap", "fire-price"]
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<{ lang?: string }> }): Promise<Metadata> {
   const params = searchParams ? await searchParams : {}
