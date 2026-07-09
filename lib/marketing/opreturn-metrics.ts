@@ -54,12 +54,14 @@ export function computeMetric(rows: OpReturnRow[], metric: MetricKey, window: Wi
   const win = windowRows(rows, window)
   let value: number | null = null
   if (agg === "ratio") {
-    const den = DEN[metric]!
-    const pairs = win
-      .map((r) => ({ n: NUM[metric](r), d: den(r) }))
-      .filter((p): p is { n: number; d: number } => p.n != null && p.d != null)
-    const denSum = pairs.reduce((s, p) => s + p.d, 0)
-    value = denSum === 0 ? null : pairs.reduce((s, p) => s + p.n, 0) / denSum
+    const den = DEN[metric]
+    if (den) {
+      const pairs = win
+        .map((r) => ({ n: NUM[metric](r), d: den(r) }))
+        .filter((p): p is { n: number; d: number } => p.n != null && p.d != null)
+      const denSum = pairs.reduce((s, p) => s + p.d, 0)
+      value = denSum === 0 ? null : pairs.reduce((s, p) => s + p.n, 0) / denSum
+    }
   } else {
     const vals = win.map((r) => NUM[metric](r)).filter((v): v is number => v != null)
     if (vals.length) {
@@ -67,7 +69,17 @@ export function computeMetric(rows: OpReturnRow[], metric: MetricKey, window: Wi
       value = agg === "avg" ? sum / vals.length : sum
     }
   }
-  const series = rows.slice(-60).map((r) => ({ date: r.date, value: dayValue(r, metric) }))
+  let series: { date: string; value: number | null }[]
+  if (agg === "sum") {
+    let acc = 0
+    series = rows.slice(-60).map((r) => {
+      const v = NUM[metric](r)
+      if (v != null) acc += v
+      return { date: r.date, value: acc }
+    })
+  } else {
+    series = rows.slice(-60).map((r) => ({ date: r.date, value: dayValue(r, metric) }))
+  }
   return { value, format, series }
 }
 

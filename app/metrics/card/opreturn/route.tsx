@@ -20,6 +20,9 @@ const CACHE = "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400
 
 // Curated N-stat card — the flagship's "Three answers" (miner fees deliberately out of the overview).
 // A generic list so future multi-stat cards reuse the template; keep ids/labels stable (embed contract).
+// Embed contract: existing `?template=answers` embeds render exactly this stat set forever. If the
+// stats ever need to change, mint a NEW template id (e.g. "answers2") — do NOT edit this list in place,
+// since that would silently change the meaning of embeds already published/cached elsewhere.
 const SHARE_OF_BITCOIN_STATS: { metric: MetricKey; label: string }[] = [
   { metric: "alkanesTxShare", label: "of transactions" },
   { metric: "alkanesWeightShare", label: "of block weight" },

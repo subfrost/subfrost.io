@@ -104,6 +104,12 @@ it("dieselMintedCumulative sums diesel mints over the window", () => {
   expect(computeMetric(rows, "dieselMintedCumulative", "full").format).toBe("count")
 })
 
+it("sum metrics get a monotonic running-sum series (cumulative sparkline)", () => {
+  const rows = [row({ date: "2026-01-01", dieselMints: 40 }), row({ date: "2026-01-02", dieselMints: 60 })]
+  const s = computeMetric(rows, "dieselMintedCumulative", "full").series
+  expect(s.map((p) => p.value)).toEqual([40, 100]) // running sum, not [40, 60]
+})
+
 it("dieselTxShareOfAll is a ratio with oneInN format", () => {
   const r = computeMetric([row({ dieselMints: 2, totalTx: 100 })], "dieselTxShareOfAll", "full")
   expect(r.value).toBeCloseTo(0.02)
