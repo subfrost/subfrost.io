@@ -90,7 +90,7 @@ export function MetricCard({
         </div>
       ) : null}
       <div className="mt-auto pt-0.5">
-        <ShareMenu url={cardUrl} imageUrl={cardUrl} text={shareText} locale={locale} />
+        <ShareMenu url={cardUrl} imageUrl={cardUrl} embedAlt={label} text={shareText} locale={locale} />
       </div>
     </div>
   )

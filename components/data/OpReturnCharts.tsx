@@ -102,12 +102,12 @@ function fmtDate(iso: string, locale: "en" | "zh"): string {
   return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(d)
 }
 
-function Card({ title, children, desc, share }: { title: string; children: React.ReactNode; desc?: string; share?: { cardUrl: string; text: string; locale: "en" | "zh" } }) {
+function Card({ title, children, desc, share }: { title: string; children: React.ReactNode; desc?: string; share?: { cardUrl: string; text: string; alt: string; locale: "en" | "zh" } }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: HAIRLINE, background: "var(--ed-card, transparent)" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
-        {share ? <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} text={share.text} locale={share.locale} align="end" /> : null}
+        {share ? <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" /> : null}
       </div>
       {children}
       {desc ? <p className="text-xs leading-relaxed" style={{ color: "var(--ed-muted)" }}>{desc}</p> : null}
@@ -323,6 +323,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const shareFor = (title: string, cfg: Parameters<typeof opReturnCardUrl>[0]) => ({
     cardUrl: opReturnCardUrl(cfg),
     text: `${title} @subfrost_news`,
+    alt: title,
     locale,
   })
 
