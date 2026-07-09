@@ -1,6 +1,8 @@
-import { WINDOW_DAYS, type MetricKey, type OpReturnRow, type WindowKey } from "./opreturn-types"
+import { WINDOW_DAYS, METRIC_AGG, METRIC_FORMAT, type MetricFormat, type MetricKey, type OpReturnRow, type WindowKey } from "./opreturn-types"
 
-const NUM: Record<MetricKey, (r: OpReturnRow) => number> = {
+// NUM/DEN may return null for metrics backed by optional CSV columns (weight, runestone tx),
+// which are absent on old rows. computeMetric skips rows where either side is null.
+const NUM: Record<MetricKey, (r: OpReturnRow) => number | null> = {
   alkanesTxShare: (r) => r.txAlkanes,
   alkanesOfOpReturnShare: (r) => r.txAlkanes,
   opReturnTxShare: (r) => r.txWithOpReturn,
@@ -10,9 +12,13 @@ const NUM: Record<MetricKey, (r: OpReturnRow) => number> = {
   alkanesFeeShare: (r) => r.feeAlkanesSats,
   alkanesFeeUsdDaily: (r) => (r.feeAlkanesSats / 1e8) * r.btcUsd,
   alkanesFeeUsdCumulative: (r) => (r.feeAlkanesSats / 1e8) * r.btcUsd,
+  alkanesWeightShare: (r) => r.weightAlkanes ?? null,
+  dieselTxShareOfAll: (r) => r.dieselMints,
+  alkanesRunestoneTxShare: (r) => r.txAlkRunestone ?? null,
+  dieselMintedCumulative: (r) => r.dieselMints,
 }
 
-const DEN: Record<MetricKey, ((r: OpReturnRow) => number) | null> = {
+const DEN: Record<MetricKey, ((r: OpReturnRow) => number | null) | null> = {
   alkanesTxShare: (r) => r.totalTx,
   alkanesOfOpReturnShare: (r) => r.txWithOpReturn,
   opReturnTxShare: (r) => r.totalTx,
@@ -22,17 +28,19 @@ const DEN: Record<MetricKey, ((r: OpReturnRow) => number) | null> = {
   alkanesFeeShare: (r) => r.feeTotalSats,
   alkanesFeeUsdDaily: null,
   alkanesFeeUsdCumulative: null,
-}
-
-export function metricKind(metric: MetricKey): "ratio" | "usd" {
-  return DEN[metric] ? "ratio" : "usd"
+  alkanesWeightShare: (r) => r.weightTotal ?? null,
+  dieselTxShareOfAll: (r) => r.totalTx,
+  alkanesRunestoneTxShare: (r) => (r.txAlkRunestone == null || r.txPureRunes == null ? null : r.txAlkRunestone + r.txPureRunes),
+  dieselMintedCumulative: null,
 }
 
 export function dayValue(r: OpReturnRow, metric: MetricKey): number | null {
+  const n = NUM[metric](r)
   const den = DEN[metric]
-  if (!den) return NUM[metric](r)
+  if (!den) return n
   const d = den(r)
-  return d === 0 ? null : NUM[metric](r) / d
+  if (n == null || d == null || d === 0) return null
+  return n / d
 }
 
 function windowRows(rows: OpReturnRow[], window: WindowKey): OpReturnRow[] {
@@ -41,21 +49,40 @@ function windowRows(rows: OpReturnRow[], window: WindowKey): OpReturnRow[] {
 }
 
 export function computeMetric(rows: OpReturnRow[], metric: MetricKey, window: WindowKey) {
-  const kind = metricKind(metric)
+  const agg = METRIC_AGG[metric]
+  const format = METRIC_FORMAT[metric]
   const win = windowRows(rows, window)
   let value: number | null = null
-  if (kind === "ratio") {
+  if (agg === "ratio") {
     const den = DEN[metric]!
-    const numSum = win.reduce((s, r) => s + NUM[metric](r), 0)
-    const denSum = win.reduce((s, r) => s + den(r), 0)
-    value = denSum === 0 ? null : numSum / denSum
-  } else if (metric === "alkanesFeeUsdCumulative") {
-    value = win.length ? win.reduce((s, r) => s + NUM[metric](r), 0) : null
+    const pairs = win
+      .map((r) => ({ n: NUM[metric](r), d: den(r) }))
+      .filter((p): p is { n: number; d: number } => p.n != null && p.d != null)
+    const denSum = pairs.reduce((s, p) => s + p.d, 0)
+    value = denSum === 0 ? null : pairs.reduce((s, p) => s + p.n, 0) / denSum
   } else {
-    value = win.length ? win.reduce((s, r) => s + NUM[metric](r), 0) / win.length : null
+    const vals = win.map((r) => NUM[metric](r)).filter((v): v is number => v != null)
+    if (vals.length) {
+      const sum = vals.reduce((s, v) => s + v, 0)
+      value = agg === "avg" ? sum / vals.length : sum
+    }
   }
   const series = rows.slice(-60).map((r) => ({ date: r.date, value: dayValue(r, metric) }))
-  return { value, kind, series }
+  return { value, format, series }
+}
+
+const usdFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
+const countFmt = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 })
+
+/** Render a metric value for display on a card, per its format. Pure. */
+export function formatMetricValue(value: number | null, format: MetricFormat): string {
+  if (value === null) return "—"
+  switch (format) {
+    case "pct": return `${(value * 100).toFixed(1)}%`
+    case "usd": return usdFmt.format(value)
+    case "count": return countFmt.format(value)
+    case "oneInN": return value <= 0 ? "—" : `1 in ${Math.round(1 / value)}`
+  }
 }
 
 export function computeBytesComposition(rows: OpReturnRow[], window: WindowKey): { alkanes: number; runes: number; other: number } {

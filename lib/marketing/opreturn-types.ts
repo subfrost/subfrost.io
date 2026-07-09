@@ -28,6 +28,8 @@ export type MetricKey =
   | "alkanesTxShare" | "alkanesOfOpReturnShare" | "opReturnTxShare"
   | "alkanesBytesShare" | "runesBytesShare" | "dieselShareOfAlkanes"
   | "alkanesFeeShare" | "alkanesFeeUsdDaily" | "alkanesFeeUsdCumulative"
+  // D-a niche cards — append-only. NEVER change a key's meaning; a new definition = a new key.
+  | "alkanesWeightShare" | "dieselTxShareOfAll" | "alkanesRunestoneTxShare" | "dieselMintedCumulative"
 
 export type WindowKey = "latest" | "avg7" | "avg30" | "avg60" | "avg120" | "full"
 
@@ -45,9 +47,33 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   alkanesFeeShare: "Alkanes share of Bitcoin fees",
   alkanesFeeUsdDaily: "Daily Bitcoin fees paid by Alkanes (USD)",
   alkanesFeeUsdCumulative: "Total Bitcoin fees paid by Alkanes (USD)",
+  alkanesWeightShare: "Alkanes share of Bitcoin block weight",
+  dieselTxShareOfAll: "DIESEL mints as a share of Bitcoin transactions",
+  alkanesRunestoneTxShare: "Alkanes share of runestone transactions",
+  dieselMintedCumulative: "Total DIESEL minted",
 }
 
 export const WINDOW_LABELS: Record<WindowKey, string> = {
   latest: "Latest day", avg7: "7-day average", avg30: "30-day average",
   avg60: "60-day average", avg120: "120-day average", full: "Full tracked period",
+}
+
+export type MetricFormat = "pct" | "usd" | "count" | "oneInN"
+
+// Display format per metric (how the number reads on the card). Separate from how it's aggregated.
+export const METRIC_FORMAT: Record<MetricKey, MetricFormat> = {
+  alkanesTxShare: "pct", alkanesOfOpReturnShare: "pct", opReturnTxShare: "pct",
+  alkanesBytesShare: "pct", runesBytesShare: "pct", dieselShareOfAlkanes: "pct",
+  alkanesFeeShare: "pct", alkanesFeeUsdDaily: "usd", alkanesFeeUsdCumulative: "usd",
+  alkanesWeightShare: "pct", dieselTxShareOfAll: "oneInN",
+  alkanesRunestoneTxShare: "pct", dieselMintedCumulative: "count",
+}
+
+// Aggregation over the window: ratio (num/den), sum (cumulative), or avg (mean daily).
+export const METRIC_AGG: Record<MetricKey, "ratio" | "sum" | "avg"> = {
+  alkanesTxShare: "ratio", alkanesOfOpReturnShare: "ratio", opReturnTxShare: "ratio",
+  alkanesBytesShare: "ratio", runesBytesShare: "ratio", dieselShareOfAlkanes: "ratio",
+  alkanesFeeShare: "ratio", alkanesFeeUsdDaily: "avg", alkanesFeeUsdCumulative: "sum",
+  alkanesWeightShare: "ratio", dieselTxShareOfAll: "ratio",
+  alkanesRunestoneTxShare: "ratio", dieselMintedCumulative: "sum",
 }
