@@ -77,4 +77,21 @@ describe("ShareMenu", () => {
     expect(getByText("发到 X")).toBeTruthy()
     expect(getByText("复制链接")).toBeTruthy()
   })
+
+  it("card variant shows an Embed item that opens the embed dialog", () => {
+    const img = "https://subfrost.io/metrics/card/opreturn?metric=alkanesTxShare&window=avg7&theme=dark"
+    const { getByRole, getByText, queryByRole } = render(
+      <ShareMenu url={img} imageUrl={img} embedAlt="Alkanes tx share" text="Alkanes tx share @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    expect(queryByRole("dialog")).toBeNull()
+    fireEvent.click(getByText("Embed"))
+    expect(getByRole("dialog")).toBeTruthy()
+  })
+
+  it("article variant has no Embed", () => {
+    const { getByRole, queryByText } = render(<ShareMenu url="u" text="t" locale="en" />)
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    expect(queryByText("Embed")).toBeNull()
+  })
 })
