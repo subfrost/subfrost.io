@@ -30,3 +30,36 @@ export async function copyImageToClipboard(url: string): Promise<boolean> {
     return false
   }
 }
+
+/** Escape a string for safe interpolation into a double-quoted HTML attribute.
+ *  Critical for the card URLs, whose `&` querystring separators would otherwise
+ *  make the <img> tag ambiguous/invalid when pasted into a blog or README. */
+function escapeHtmlAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+/** Build the hotlinkable-embed snippets for a public card image. `imageUrl` must
+ *  be a public, CDN-cacheable card URL (auto-updates on its own); `alt` is a clean,
+ *  controlled label (chart title / metric label — never user free-text). Returns
+ *  ready-to-paste Markdown, HTML, and the raw image URL. Pure + client-safe.
+ *  Contract: `imageUrl` is expected to already be URL-encoded (no raw parens/spaces) —
+ *  the markdown `![]()` snippet has no escaping for `)`, so an unencoded URL containing
+ *  one would silently truncate the link. */
+export function embedSnippets(opts: { imageUrl: string; alt: string }): {
+  markdown: string
+  html: string
+  url: string
+} {
+  const { imageUrl, alt } = opts
+  // Markdown alt can't contain [] without breaking the ![]() syntax; strip them.
+  const mdAlt = alt.replace(/[[\]]/g, "").trim()
+  return {
+    markdown: `![${mdAlt}](${imageUrl})`,
+    html: `<img src="${escapeHtmlAttr(imageUrl)}" alt="${escapeHtmlAttr(alt)}" width="600" />`,
+    url: imageUrl,
+  }
+}
