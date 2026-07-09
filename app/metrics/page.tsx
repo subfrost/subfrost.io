@@ -100,7 +100,7 @@ const copy = {
           desc: "DIESEL was born at block 880,000 on Jan 20 2025. This is the raw volume — estimated mints per day (sampled blocks × 144) — on a log scale so the early days stay visible: from a handful a day in early 2025 to a peak around 551,346/day. The take-off in Aug–Sep 2025 is when DIESEL minting exploded (and began riding UNCOMMON•GOODS).",
         },
         dieselCumulative: {
-          title: "DIESEL minted — cumulative since genesis",
+          title: "DIESEL mint transactions — cumulative since genesis",
           desc: "The running total of estimated DIESEL mints since genesis (block 880,000, Jan 20 2025) — the sum of the daily birth curve above. The curve steepens through 2025 as minting accelerated.",
         },
         feePerTx: {
@@ -230,7 +230,7 @@ const copy = {
           desc: "DIESEL 于 2025 年 1 月 20 日在区块 880,000 诞生。这里展示原始铸造量——每日估算铸造数（抽样区块 × 144）——采用对数刻度以便早期数据仍然可见：从 2025 年初每天寥寥数笔，到峰值约每天 551,346 笔。2025 年 8–9 月的起飞，正是 DIESEL 铸造爆发（并开始搭乘 UNCOMMON•GOODS）之时。",
         },
         dieselCumulative: {
-          title: "DIESEL 铸造总量 — 自创世累计",
+          title: "DIESEL 铸造交易 — 自创世累计",
           desc: "自创世（区块 880,000，2025 年 1 月 20 日）以来估算的 DIESEL 铸造累计总量——即上方每日诞生曲线的累加。随着 2025 年铸造加速，曲线持续变陡。",
         },
         feePerTx: {
