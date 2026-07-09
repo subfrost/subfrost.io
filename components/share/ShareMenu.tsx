@@ -1,33 +1,45 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Share2, Link2, Check } from "lucide-react"
+import { Share2, Link2, Check, Image as ImageIcon } from "lucide-react"
 import XIcon from "@/components/XIcon"
-import { tweetIntentUrl } from "@/lib/share"
+import { tweetIntentUrl, copyImageToClipboard } from "@/lib/share"
 
 const COPY = {
-  en: { share: "Share", postOnX: "Post on X", copyLink: "Copy link", copied: "Link copied" },
-  zh: { share: "分享", postOnX: "发到 X", copyLink: "复制链接", copied: "已复制链接" },
+  en: {
+    share: "Share", postOnX: "Post on X", copyLink: "Copy link", linkCopied: "Link copied",
+    copyImage: "Copy image", imageCopied: "Image copied", pasteHint: "Paste it into your post (⌘/Ctrl+V)",
+  },
+  zh: {
+    share: "分享", postOnX: "发到 X", copyLink: "复制链接", linkCopied: "已复制链接",
+    copyImage: "复制图片", imageCopied: "图片已复制", pasteHint: "粘贴到你的帖子（⌘/Ctrl+V）",
+  },
 } as const
 
-/** Little share button. Opens a menu with "Post on X" (web intent — X unfurls the
- *  page's OG image) and "Copy link". Link-first variant used on articles; the
- *  /metrics cards will add an image-first "Copy image" action on top of this. */
+/** Little share button. Opens a menu with "Post on X" (web intent) + "Copy link".
+ *  - Article (link-first): X unfurls the page's OG cover, no image needed.
+ *  - Card (image-first): pass `imageUrl` to enable "Copy image", and "Post on X"
+ *    also copies the PNG to the clipboard so it can be pasted into the post
+ *    (X can't attach images via web-intent). */
 export function ShareMenu({
   url,
   text,
   locale = "en",
   align = "start",
+  imageUrl,
 }: {
   url: string
   /** Pre-composed tweet body (e.g. the title/stat + "@subfrost_news"). */
   text: string
   locale?: "en" | "zh"
   align?: "start" | "end"
+  /** When set, enables the image-first card variant. */
+  imageUrl?: string
 }) {
   const t = COPY[locale]
+  const isCard = Boolean(imageUrl)
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<"" | "link" | "image">("")
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,11 +61,25 @@ export function ShareMenu({
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
+      setStatus("link")
+      window.setTimeout(() => setStatus((s) => (s === "link" ? "" : s)), 1800)
     } catch {
       /* clipboard blocked (insecure context / denied) — silently no-op */
     }
+  }
+
+  async function copyImage() {
+    if (!imageUrl) return
+    const ok = await copyImageToClipboard(imageUrl)
+    if (ok) setStatus("image")
+    else window.open(imageUrl, "_blank", "noopener,noreferrer") // fallback: open so they can save it
+  }
+
+  // Cards: clicking "Post on X" also copies the image and keeps the menu open so
+  // the "paste it" hint stays visible (the anchor still opens X in a new tab).
+  function onPostX() {
+    if (isCard) void copyImage()
+    else setOpen(false)
   }
 
   const itemClass =
@@ -63,7 +89,10 @@ export function ShareMenu({
     <div ref={ref} className="relative inline-flex">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setStatus("")
+          setOpen((v) => !v)
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         className="font-display inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium outline-none transition-colors hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
@@ -75,7 +104,7 @@ export function ShareMenu({
       {open ? (
         <div
           role="menu"
-          className={`absolute top-full z-30 mt-2 flex min-w-[184px] flex-col gap-0.5 rounded-xl border p-1.5 shadow-lg ${align === "end" ? "right-0" : "left-0"}`}
+          className={`absolute top-full z-30 mt-2 flex min-w-[200px] flex-col gap-0.5 rounded-xl border p-1.5 shadow-lg ${align === "end" ? "right-0" : "left-0"}`}
           style={{ borderColor: "var(--ed-hair)", background: "var(--ed-canvas)", color: "var(--ed-ink)" }}
         >
           <a
@@ -83,20 +112,35 @@ export function ShareMenu({
             href={tweetIntentUrl(text, url)}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
+            onClick={onPostX}
             className={itemClass}
           >
             <XIcon className="h-[15px] w-[15px]" />
             <span>{t.postOnX}</span>
           </a>
+          {isCard ? (
+            <button role="menuitem" type="button" onClick={copyImage} className={itemClass}>
+              {status === "image" ? (
+                <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <ImageIcon className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              )}
+              <span>{status === "image" ? t.imageCopied : t.copyImage}</span>
+            </button>
+          ) : null}
           <button role="menuitem" type="button" onClick={copyLink} className={itemClass}>
-            {copied ? (
+            {status === "link" ? (
               <Check className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             ) : (
               <Link2 className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             )}
-            <span>{copied ? t.copied : t.copyLink}</span>
+            <span>{status === "link" ? t.linkCopied : t.copyLink}</span>
           </button>
+          {isCard && status === "image" ? (
+            <p className="px-3 pb-1 pt-1.5 text-[12px] leading-snug" style={{ color: "var(--ed-muted)" }}>
+              {t.pasteHint}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import type { SeriesPoint } from "@/lib/marketing/protocol-series"
 import { CARD_METRICS, formatMetricValue, type PublicMetricKey } from "@/lib/marketing/public-data"
+import { ShareMenu } from "@/components/share/ShareMenu"
 
 export interface DataCardCopy {
   share: string
@@ -39,7 +40,6 @@ export function MetricCard({
   copy: DataCardCopy
   locale: "en" | "zh"
 }) {
-  const [copied, setCopied] = useState(false)
   const { label, seriesField } = CARD_METRICS[metric]
 
   const points = useMemo(
@@ -48,16 +48,7 @@ export function MetricCard({
   )
 
   const cardUrl = `https://subfrost.io/metrics/card/${metric}`
-  const pageUrl = `https://subfrost.io/metrics${locale === "zh" ? "?lang=zh" : ""}`
-  const tweet = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${label}: ${formatMetricValue(metric, value)} @subfrost_news`)}&url=${encodeURIComponent(pageUrl)}`
-
-  async function copyCard() {
-    try {
-      await navigator.clipboard.writeText(cardUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    } catch { /* clipboard denied: no-op */ }
-  }
+  const shareText = `${label}: ${formatMetricValue(metric, value)} @subfrost_news`
 
   return (
     // Compact card (~half the previous height): the charts below are the page's emphasis.
@@ -98,13 +89,8 @@ export function MetricCard({
           </ResponsiveContainer>
         </div>
       ) : null}
-      <div className="mt-auto flex gap-2 text-xs">
-        <button type="button" onClick={copyCard} className="rounded-full border px-3 py-1" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
-          {copied ? copy.copied : copy.share}
-        </button>
-        <a href={tweet} target="_blank" rel="noopener noreferrer" className="rounded-full border px-3 py-1" style={{ borderColor: "var(--ed-hairline, #22304a)", color: "var(--ed-ink)" }}>
-          {copy.post}
-        </a>
+      <div className="mt-auto pt-0.5">
+        <ShareMenu url={cardUrl} imageUrl={cardUrl} text={shareText} locale={locale} />
       </div>
     </div>
   )

@@ -11,3 +11,22 @@ export const X_HANDLE = "subfrost_news"
 export function tweetIntentUrl(text: string, url: string): string {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
 }
+
+/** Copy the PNG at `url` into the clipboard as an image, so it can be pasted
+ *  straight into an X/social composer (X won't attach images via web-intent).
+ *  Returns false when the browser can't — older Safari/Firefox, insecure context,
+ *  or a fetch/CORS error — so callers can fall back (e.g. open the image to save).
+ *  Note: some Safari versions reject clipboard writes that happen after an await;
+ *  those users hit the fallback. */
+export async function copyImageToClipboard(url: string): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false
+    const res = await fetch(url)
+    if (!res.ok) return false
+    const blob = await res.blob()
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })])
+    return true
+  } catch {
+    return false
+  }
+}

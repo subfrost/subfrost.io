@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, fireEvent } from "@testing-library/react"
+
+// Keep tweetIntentUrl real; stub the image-copy so we can assert it's invoked.
+vi.mock("@/lib/share", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/share")>()
+  return { ...actual, copyImageToClipboard: vi.fn().mockResolvedValue(true) }
+})
+
 import { ShareMenu } from "@/components/share/ShareMenu"
+import { copyImageToClipboard } from "@/lib/share"
 
 describe("ShareMenu", () => {
   let writeText: ReturnType<typeof vi.fn>
@@ -8,6 +16,7 @@ describe("ShareMenu", () => {
     writeText = vi.fn().mockResolvedValue(undefined)
     // navigator.clipboard is a getter-only prop in happy-dom — defineProperty, not assign
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
+    vi.mocked(copyImageToClipboard).mockClear()
   })
 
   it("is closed until the trigger is clicked", () => {
@@ -35,6 +44,31 @@ describe("ShareMenu", () => {
     fireEvent.click(getByRole("button", { name: /share/i }))
     fireEvent.click(getByText("Copy link"))
     expect(writeText).toHaveBeenCalledWith("https://subfrost.io/x")
+  })
+
+  it("article variant has no Copy image", () => {
+    const { getByRole, queryByText } = render(<ShareMenu url="u" text="t" locale="en" />)
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    expect(queryByText("Copy image")).toBeNull()
+  })
+
+  it("card variant (imageUrl) adds Copy image which copies the PNG", () => {
+    const img = "https://subfrost.io/metrics/card/btc-locked"
+    const { getByRole, getByText } = render(
+      <ShareMenu url={img} imageUrl={img} text="BTC locked: 94.74 BTC @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    fireEvent.click(getByText("Copy image"))
+    expect(copyImageToClipboard).toHaveBeenCalledWith(img)
+  })
+
+  it("card Post on X also copies the image (so it can be pasted)", () => {
+    const { getByRole, getByText } = render(
+      <ShareMenu url="https://subfrost.io/metrics" imageUrl="IMG" text="t @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    fireEvent.click(getByText("Post on X"))
+    expect(copyImageToClipboard).toHaveBeenCalledWith("IMG")
   })
 
   it("localizes to zh", () => {
