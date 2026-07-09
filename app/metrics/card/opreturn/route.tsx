@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
 import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
-import { computeMetric, computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
+import { computeMetric, computeBytesComposition, formatMetricValue } from "@/lib/marketing/opreturn-metrics"
 import { METRIC_LABELS, WINDOW_LABELS } from "@/lib/marketing/opreturn-types"
 import { parseCardParams } from "@/lib/marketing/opreturn-card"
 import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
@@ -19,8 +19,6 @@ const SIZE = { width: 1200, height: 675 }
 const CACHE = "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400"
 
 const fmtPct = (v: number | null) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`)
-const fmtUsd = (v: number | null) =>
-  v === null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v)
 
 function sparkline(series: { value: number | null }[], stroke: string) {
   const pts = series.filter((p) => p.value !== null) as { value: number }[]
@@ -76,11 +74,11 @@ export async function GET(req: NextRequest) {
       </div>
     )
   } else {
-    const { value, kind, series } = computeMetric(rows, metric, window)
+    const { value, format, series } = computeMetric(rows, metric, window)
     inner = (
       <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
         <div style={{ display: "flex", fontSize: 150, fontWeight: 500, color: ink, lineHeight: 1 }}>
-          {kind === "usd" ? fmtUsd(value) : fmtPct(value)}
+          {formatMetricValue(value, format)}
         </div>
         <div style={{ display: "flex", fontSize: 38, color: muted, marginTop: 14 }}>{METRIC_LABELS[metric]}</div>
         <div style={{ display: "flex", marginTop: 24 }}>{sparkline(series, accent)}</div>
