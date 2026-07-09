@@ -12,12 +12,13 @@ describe("EmbedDialog", () => {
   })
 
   it("renders a dialog with the three snippet fields", () => {
-    const { getByRole, getByDisplayValue } = render(
+    const { getByRole, getByDisplayValue, getByLabelText } = render(
       <EmbedDialog imageUrl={IMG} alt="Alkanes tx share" locale="en" onClose={() => {}} />,
     )
     expect(getByRole("dialog")).toBeTruthy()
     expect(getByDisplayValue(`![Alkanes tx share](${IMG})`)).toBeTruthy()
     expect(getByDisplayValue(IMG)).toBeTruthy() // the raw-url field
+    expect(getByLabelText("Markdown")).toBeTruthy() // label <-> input association (a11y)
   })
 
   it("copies the markdown snippet to the clipboard", () => {

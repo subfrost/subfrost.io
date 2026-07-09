@@ -110,11 +110,12 @@ export function EmbedDialog({
         <div className="flex flex-col gap-3">
           {fields.map((f) => (
             <div key={f.kind} className="flex flex-col gap-1">
-              <label className="text-[12px]" style={{ color: "var(--ed-muted)" }}>
+              <label htmlFor={`${titleId}-${f.kind}`} className="text-[12px]" style={{ color: "var(--ed-muted)" }}>
                 {f.label}
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id={`${titleId}-${f.kind}`}
                   readOnly
                   value={snippets[f.kind]}
                   onFocus={(e) => e.currentTarget.select()}

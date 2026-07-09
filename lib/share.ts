@@ -45,7 +45,10 @@ function escapeHtmlAttr(s: string): string {
 /** Build the hotlinkable-embed snippets for a public card image. `imageUrl` must
  *  be a public, CDN-cacheable card URL (auto-updates on its own); `alt` is a clean,
  *  controlled label (chart title / metric label — never user free-text). Returns
- *  ready-to-paste Markdown, HTML, and the raw image URL. Pure + client-safe. */
+ *  ready-to-paste Markdown, HTML, and the raw image URL. Pure + client-safe.
+ *  Contract: `imageUrl` is expected to already be URL-encoded (no raw parens/spaces) —
+ *  the markdown `![]()` snippet has no escaping for `)`, so an unencoded URL containing
+ *  one would silently truncate the link. */
 export function embedSnippets(opts: { imageUrl: string; alt: string }): {
   markdown: string
   html: string
