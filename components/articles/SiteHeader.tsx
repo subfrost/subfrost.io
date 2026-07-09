@@ -52,6 +52,7 @@ export function SiteHeader() {
   const locale = searchParams.get("lang") === "zh" ? "zh" : "en"
   const homeHref = locale === "zh" ? "/?lang=zh" : "/"
   const articleHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
+  const metricsHref = locale === "zh" ? "/metrics?lang=zh" : "/metrics"
   const volumeHref = locale === "zh" ? "/volume?lang=zh" : "/volume"
   const copy = {
     en: {
@@ -89,6 +90,7 @@ export function SiteHeader() {
       support: "Support",
       resources: "Resources",
       blog: "Articles",
+      metrics: "Metrics",
       ecosystem: "Ecosystem",
       try: "Launch App",
       tryShort: "Launch",
@@ -137,6 +139,7 @@ export function SiteHeader() {
       support: "支持",
       resources: "资源",
       blog: "文章",
+      metrics: "数据",
       ecosystem: "生态系统",
       try: "启动应用",
       tryShort: "进入",
@@ -208,6 +211,7 @@ export function SiteHeader() {
   // To restore: add an ecosystem entry to navItems (label copy.ecosystem, href
   // locale-aware /ecosystem) and the matching "/ecosystem" branch to activeId.
   const navItems = [
+    { id: "metrics", label: copy.metrics, href: metricsHref },
     { id: "blog", label: copy.blog, href: articleHref },
   ]
   const developerMenu = developerMenus.find((menu) => menu.id === "developer")
@@ -217,7 +221,9 @@ export function SiteHeader() {
       ? "blog"
       : pathname?.startsWith("/developer") || pathname?.startsWith("/docs")
         ? "developer"
-        : null
+        : pathname?.startsWith("/metrics")
+          ? "metrics"
+          : null
 
   useEffect(() => {
     const onScroll = () => {
