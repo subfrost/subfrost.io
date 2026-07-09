@@ -28,10 +28,19 @@ spec:
         app: subfrost-io
     spec:
       serviceAccountName: subfrost-io
-      # Schedule onto the cheap spot node pool. Spot nodes carry this taint; the
-      # toleration + nodeSelector pin the workload there.
-      nodeSelector:
-        cloud.google.com/gke-spot: "true"
+      # Prefer the cheap spot pool, but fall back to on-demand capacity when spot
+      # is unavailable — a hard nodeSelector caused a full outage on 2026-07-09
+      # when GCE ran out of spot in us-central1-a. Soft preference keeps the cost
+      # win while the ondemand-pool guarantees the site stays up.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: cloud.google.com/gke-spot
+                    operator: In
+                    values: ["true"]
       tolerations:
         - key: cloud.google.com/gke-spot
           operator: Equal
