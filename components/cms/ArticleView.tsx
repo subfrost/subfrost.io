@@ -3,6 +3,8 @@ import { Markdown } from "@/lib/cms/markdown"
 import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
 import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
 import { buildInlineSvgMap } from "@/lib/cms/inline-svg"
+import { ShareMenu } from "@/components/share/ShareMenu"
+import { X_HANDLE } from "@/lib/share"
 
 export interface ArticleViewData {
   title: string
@@ -31,7 +33,7 @@ export function categoryLabel(tag: { slug: string; name: string }, locale: CmsLo
  *  author byline) and Markdown content, closing with the author bio card.
  *  Rendered identically by the public page and the admin preview so the preview
  *  matches published output. The author UI only renders when `author` is given. */
-export async function ArticleView({ article, locale }: { article: ArticleViewData; locale: CmsLocale }) {
+export async function ArticleView({ article, locale, shareUrl }: { article: ArticleViewData; locale: CmsLocale; shareUrl?: string }) {
   const inlinedSvgs = await buildInlineSvgMap(article.body)
   const fallback = locale === "zh" ? "文章" : "Article"
   const primaryTag = article.tags.map((t) => categoryLabel(t, locale)).find((t): t is string => Boolean(t)) ?? fallback
@@ -63,6 +65,12 @@ export async function ArticleView({ article, locale }: { article: ArticleViewDat
         {author ? (
           <div className="mt-7 flex justify-start">
             <AuthorByline author={author} coAuthors={article.coAuthors ?? []} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={32} variant="reader" locale={locale} />
+          </div>
+        ) : null}
+
+        {shareUrl ? (
+          <div className="mt-7 flex justify-start">
+            <ShareMenu url={shareUrl} text={`${article.title} @${X_HANDLE}`} locale={locale} />
           </div>
         ) : null}
       </header>
