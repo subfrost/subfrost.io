@@ -7,6 +7,8 @@ import {
 } from "recharts"
 import type { Payload as LegendPayload } from "recharts/types/component/DefaultLegendContent"
 import type { PublicOpReturnPayload, OpReturnPoint } from "@/lib/marketing/public-opreturn"
+import { ShareMenu } from "@/components/share/ShareMenu"
+import { opReturnCardUrl } from "@/lib/marketing/opreturn-card"
 
 export interface OpReturnCopy {
   title: string
@@ -100,10 +102,13 @@ function fmtDate(iso: string, locale: "en" | "zh"): string {
   return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(d)
 }
 
-function Card({ title, children, desc }: { title: string; children: React.ReactNode; desc?: string }) {
+function Card({ title, children, desc, share }: { title: string; children: React.ReactNode; desc?: string; share?: { cardUrl: string; text: string; locale: "en" | "zh" } }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: HAIRLINE, background: "var(--ed-card, transparent)" }}>
-      <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
+        {share ? <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} text={share.text} locale={share.locale} align="end" /> : null}
+      </div>
       {children}
       {desc ? <p className="text-xs leading-relaxed" style={{ color: "var(--ed-muted)" }}>{desc}</p> : null}
     </div>
@@ -313,6 +318,14 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const [windowMode, setWindowMode] = useState<WindowMode>("all")
   const year = useMemo(() => new Date().getUTCFullYear(), [])
 
+  // Headline charts that map cleanly to a card metric get a share button. The card
+  // renders the recent (7-day) value; bytes composition uses the compare template.
+  const shareFor = (title: string, cfg: Parameters<typeof opReturnCardUrl>[0]) => ({
+    cardUrl: opReturnCardUrl(cfg),
+    text: `${title} @subfrost_news`,
+    locale,
+  })
+
   const dailyShare = useMemo(() => applyWindow(payload.dailyShare, windowMode, year), [payload.dailyShare, windowMode, year])
   const opReturnShare = useMemo(() => applyWindow(payload.opReturnShare, windowMode, year), [payload.opReturnShare, windowMode, year])
   const weightShare = useMemo(() => applyWindow(payload.weightShare, windowMode, year), [payload.weightShare, windowMode, year])
@@ -406,7 +419,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
       {/* 2 columns max — the charts are the emphasis of the page (bigger, easier to read). */}
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {/* 1. Daily Alkanes share */}
-        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc}>
+        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc} share={shareFor(copy.charts.dailyShare.title, { metric: "alkanesTxShare", template: "hero", window: "avg7" })}>
           <ToggleLineChart
             data={dailyShare}
             seriesKeys={[
@@ -426,7 +439,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.opReturnShare.title} desc={fill(copy.charts.opReturnShare.desc, {
           txPct30: fmtPct(stats.last30.alkanesOfOpReturnTx),
           bytesPct30: fmtPct(stats.last30.alkanesOfOpReturnBytes),
-        })}>
+        })} share={shareFor(copy.charts.opReturnShare.title, { metric: "alkanesOfOpReturnShare", template: "hero", window: "avg7" })}>
           <ToggleLineChart
             data={opReturnShare}
             seriesKeys={[
@@ -532,7 +545,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runes (non-Alkanes) vs Alkanes — share of OP_RETURN bytes (%) */}
-        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc}>
+        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc} share={shareFor(copy.charts.runesVsAlkanesShare.title, { metric: "alkanesBytesShare", template: "hero", window: "avg7" })}>
           <ToggleLineChart
             data={runesVsAlkanesShare}
             seriesKeys={[
@@ -613,7 +626,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
 
         {/* 7. OP_RETURN bytes (since DIESEL genesis) — donut, fixed composition */}
         {bytesComposition ? (
-          <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc}>
+          <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc} share={shareFor(copy.charts.bytesDonut.title, { template: "compare", window: "full" })}>
             <LabeledPie
               height={230}
               innerRadius={55}
@@ -671,7 +684,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           feeShare30: fmtPct(stats.last30.alkanesFeeShare),
           opRetFeeShare30: fmtPct(stats.last30.opReturnFeeShare),
           opRetFeeShareFull: fmtPct(stats.full.opReturnFeeShare),
-        })}>
+        })} share={shareFor(copy.charts.alkanesFeeShare.title, { metric: "alkanesFeeShare", template: "hero", window: "avg7" })}>
           <SingleLineChart data={alkanesFeeShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
