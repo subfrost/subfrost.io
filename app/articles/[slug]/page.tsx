@@ -146,6 +146,7 @@ export default async function ArticlePage({
       <ArticleView
         article={{ title: a.title, excerpt: a.excerpt, body: a.body, sources: a.sources, publishedAt: a.publishedAt, tags: a.tags, author: a.author, coAuthors: a.coAuthors, readingMinutes: a.readingMinutes }}
         locale={locale}
+        shareUrl={articleUrl(slug, locale)}
       />
     </>
   )
