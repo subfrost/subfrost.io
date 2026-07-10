@@ -30,6 +30,24 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
   const { payee, user, kyc, invoices, payments, envelopes, totals } = profile
   const { values: usdValues } = useDieselUsd(payments)
 
+  // Split USD by how the invoice settled. USD-denominated invoices (amountDiesel
+  // == null) contribute to the headline "Paid (USD)"; DIESEL-denominated invoices
+  // instead surface two numbers under "Paid (DIESEL)": the manually-invoiced USD
+  // face value, and the market value (spot USD of the DIESEL that settled them,
+  // i.e. the sum of the invoices table's USD column).
+  const invoiceById = new Map(invoices.map((i) => [i.id, i]))
+  let paidUsdOnly = 0
+  let invoicedUsd = 0
+  let marketUsd = 0
+  for (const i of invoices) {
+    if (i.amountDiesel != null) {
+      invoicedUsd += i.amountUsd
+      marketUsd += sumSettlingUsd(payments.filter((p) => p.invoiceId === i.id), usdValues) ?? 0
+    } else if (i.status === "PAID") {
+      paidUsdOnly += i.amountUsd
+    }
+  }
+
   function run(patch: Patch, after?: () => void) {
     setError(null)
     startTransition(async () => {
@@ -72,13 +90,46 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric label="Invoices" value={String(totals.invoiceCount)} />
-        <Metric label="Paid (USD)" value={usd(totals.totalUsd)} />
-        <Metric label="Paid (DIESEL)" value={dsl(totals.totalDiesel)} />
+        <Metric label="Paid (USD)" value={usd(paidUsdOnly)} />
+        <Metric label="Paid (DIESEL)" value={dsl(totals.totalDiesel)}>
+          <div className="mt-1.5 space-y-0.5 text-xs">
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Invoiced $:</span><span className="text-zinc-300">{usd(invoicedUsd)}</span></div>
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{approxUsd(marketUsd)}</span></div>
+          </div>
+        </Metric>
         <Metric label="Open invoices" value={String(invoices.filter((i) => i.status === "OPEN").length)} />
       </div>
 
       <AgreementCard url={payee.agreementUrl} disabled={pending}
         onUploaded={(agreementUrl) => run({ agreementUrl })} onClear={() => run({ agreementUrl: null })} onError={setError} />
+
+      <Section title={`Payments (${payments.length})`}>
+        {payments.length === 0 ? <Empty>No DIESEL payments tied to this payee.</Empty> : (
+          <table className="w-full text-sm rtable">
+            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Invoice</th><th>Txid</th><th>Date</th><th className="text-right">DIESEL Paid</th><th className="text-right">USD Paid</th><th className="text-right">Market Price</th></tr></thead>
+            <tbody>
+              {payments.map((p) => {
+                const priced = usdValues[p.id]
+                // "USD Paid" only applies to payments settled in USD. A payment is
+                // USD-denominated when the invoice it settled is (amountDiesel == null);
+                // DIESEL settlements show "—" (their USD is under Market Price instead).
+                const settledInvoice = p.invoiceId != null ? invoiceById.get(p.invoiceId) : undefined
+                const usdPaid = settledInvoice && settledInvoice.amountDiesel == null ? settledInvoice.amountUsd : null
+                return (
+                  <tr key={p.id} className="border-t border-zinc-900">
+                    <td data-label="Invoice" className="py-2 text-zinc-300">{p.invoiceRef ?? "—"}</td>
+                    <td data-label="Txid" className="font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
+                    <td data-label="Date" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                    <td data-label="DIESEL Paid" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                    <td data-label="USD Paid" className="text-right text-zinc-200">{usdPaid == null ? <span className="text-zinc-600">—</span> : usd(usdPaid)}</td>
+                    <td data-label="Market Price" className="text-right text-zinc-200">{priced ? approxUsd(priced.paymentUsd) : <span className="text-zinc-600">—</span>}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </Section>
 
       <Section title={`Invoices (${invoices.length})`}>
         {invoices.length === 0 ? <Empty>No invoices for this payee.</Empty> : (
@@ -98,24 +149,6 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
                   </tr>
                 )
               })}
-            </tbody>
-          </table>
-        )}
-      </Section>
-
-      <Section title={`Payments (${payments.length})`}>
-        {payments.length === 0 ? <Empty>No DIESEL payments tied to this payee.</Empty> : (
-          <table className="w-full text-sm rtable">
-            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Paid</th><th>Invoice</th></tr></thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-t border-zinc-900">
-                  <td data-label="Txid" className="py-2 font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
-                  <td data-label="DIESEL" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td data-label="Invoice" className="text-zinc-300">{p.invoiceRef ?? "—"}</td>
-                </tr>
-              ))}
             </tbody>
           </table>
         )}
@@ -266,11 +299,12 @@ function AgreementCard({ url, onUploaded, onClear, onError, disabled }: {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
     <div className="rounded-lg border border-zinc-800 p-3">
       <div className="text-xs text-zinc-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+      {children}
     </div>
   )
 }
