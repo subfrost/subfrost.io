@@ -330,8 +330,10 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
   const [windowMode, setWindowMode] = useState<WindowMode>("all")
   const year = useMemo(() => new Date().getUTCFullYear(), [])
 
-  // Headline charts that map cleanly to a card metric get a share button. The card
-  // renders the recent (7-day) value; bytes composition uses the compare template.
+  // Share cards inherit the window the reader picked on the page toggle (Fable: "the window is
+  // the toggle already set") — the card matches what's on screen and the same metric reads the
+  // same across cards. Cumulative / since-genesis cards (bytes donut, total DIESEL) stay full.
+  const cardWindow = windowMode === "all" ? "full" : windowMode === "60d" ? "avg60" : "ytd"
   const shareFor = (title: string, cfg: Parameters<typeof opReturnCardUrl>[0]) => ({
     cardUrl: opReturnCardUrl(cfg),
     text: `${title} @subfrost_news`,
@@ -434,7 +436,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
       {/* 2 columns max — the charts are the emphasis of the page (bigger, easier to read). */}
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {/* 1. Daily Alkanes share */}
-        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc} share={shareFor(copy.charts.dailyShare.title, { metric: "alkanesTxShare", template: "hero", window: "avg7" })}>
+        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc} share={shareFor(copy.charts.dailyShare.title, { metric: "alkanesTxShare", template: "hero", window: cardWindow })}>
           <ToggleLineChart
             data={dailyShare}
             seriesKeys={[
@@ -454,7 +456,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.opReturnShare.title} desc={fill(copy.charts.opReturnShare.desc, {
           txPct30: fmtPct(stats.last30.alkanesOfOpReturnTx),
           bytesPct30: fmtPct(stats.last30.alkanesOfOpReturnBytes),
-        })} share={shareFor(copy.charts.opReturnShare.title, { metric: "alkanesOfOpReturnShare", template: "hero", window: "avg7" })}>
+        })} share={shareFor(copy.charts.opReturnShare.title, { metric: "alkanesOfOpReturnShare", template: "hero", window: cardWindow })}>
           <ToggleLineChart
             data={opReturnShare}
             seriesKeys={[
@@ -472,12 +474,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.weightShare.title} desc={fill(copy.charts.weightShare.desc, {
           weightShareFull: fmtPct(stats.weight.full),
           weightShareLatest: fmtPct(stats.weight.latest),
-        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: "avg7" })}>
+        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: cardWindow })}>
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* How much of Bitcoin is Alkanes? Four answers (tx / OP_RETURN bytes / weight / fee revenue) */}
-        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: "full" })}>
+        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: cardWindow })}>
           <ToggleLineChart
             data={fourAnswers}
             seriesKeys={[
@@ -521,7 +523,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         ) : null}
 
         {/* 5. DIESEL mints share of all tx */}
-        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: "avg7" })}>
+        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: cardWindow })}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
@@ -562,7 +564,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runes (non-Alkanes) vs Alkanes — share of OP_RETURN bytes (%) */}
-        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc} share={shareFor(copy.charts.runesVsAlkanesShare.title, { metric: "alkanesBytesShare", template: "hero", window: "avg7" })}>
+        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc} share={shareFor(copy.charts.runesVsAlkanesShare.title, { metric: "alkanesBytesShare", template: "hero", window: cardWindow })}>
           <ToggleLineChart
             data={runesVsAlkanesShare}
             seriesKeys={[
@@ -611,7 +613,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions — Alkanes protostones vs Runes (non-Alkanes) (share %) */}
-        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: "avg7" })}>
+        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: cardWindow })}>
           <ToggleLineChart
             data={runestoneTxShare}
             seriesKeys={[
@@ -701,7 +703,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           feeShare30: fmtPct(stats.last30.alkanesFeeShare),
           opRetFeeShare30: fmtPct(stats.last30.opReturnFeeShare),
           opRetFeeShareFull: fmtPct(stats.full.opReturnFeeShare),
-        })} share={shareFor(copy.charts.alkanesFeeShare.title, { metric: "alkanesFeeShare", template: "hero", window: "avg7" })}>
+        })} share={shareFor(copy.charts.alkanesFeeShare.title, { metric: "alkanesFeeShare", template: "hero", window: cardWindow })}>
           <SingleLineChart data={alkanesFeeShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 

@@ -129,3 +129,13 @@ it("formatMetricValue renders each format", () => {
 it("computeMetric reports the metric format", () => {
   expect(computeMetric([row({})], "alkanesWeightShare", "full").format).toBe("pct")
 })
+
+it("ytd window keeps only rows dated in the latest row's year", () => {
+  const rows = [
+    row({ date: "2025-12-30", txAlkanes: 100, totalTx: 100 }), // prior year → excluded
+    row({ date: "2026-01-05", txAlkanes: 10, totalTx: 100 }),
+    row({ date: "2026-02-05", txAlkanes: 30, totalTx: 100 }),
+  ]
+  // ytd = 2026 rows only: (10+30)/(100+100) = 0.2 (the 2025 row is dropped)
+  expect(computeMetric(rows, "alkanesTxShare", "ytd").value).toBeCloseTo(0.2)
+})
