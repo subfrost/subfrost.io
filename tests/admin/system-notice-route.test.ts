@@ -1,7 +1,8 @@
 import { it, expect, vi, beforeEach } from "vitest"
 
 // Mock only getSystemNotice; keep the REAL toNoticePayload so its audit-field
-// stripping is actually exercised (a leak of updatedBy/updatedAt must fail here).
+// handling is exercised: updatedAt is exposed (shown as a timestamp) but the
+// updatedBy admin id must never leak.
 vi.mock("@/lib/cms/system-notice", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/cms/system-notice")>()
   return { ...actual, getSystemNotice: vi.fn() }
@@ -23,6 +24,7 @@ it("returns the locale-nested payload with a short cache header", async () => {
   const body = await res.json()
   expect(body).toEqual({
     enabled: true, showBanner: true, showModal: false,
+    updatedAt: "2026-07-10T00:00:00.000Z",
     en: { title: "T", message: "M" }, zh: { title: "标题", message: "正文" },
   })
 })
@@ -34,7 +36,7 @@ it("never leaks audit fields onto the public payload", async () => {
     updatedAt: "2026-07-10T00:00:00.000Z", updatedBy: "secret-admin-id",
   })
   const body = await (await GET()).json()
-  expect(body).not.toHaveProperty("updatedAt")
+  expect(body.updatedAt).toBe("2026-07-10T00:00:00.000Z")
   expect(body).not.toHaveProperty("updatedBy")
   expect(JSON.stringify(body)).not.toContain("secret-admin-id")
 })
