@@ -16,6 +16,11 @@ export function highlightColor(authorId: string): string {
   return `hsla(${authorHue(authorId)}, 85%, 55%, 0.28)`
 }
 
+/** Saturated fill for the focused/hovered highlight <mark>. */
+export function highlightColorStrong(authorId: string): string {
+  return `hsla(${authorHue(authorId)}, 85%, 55%, 0.5)`
+}
+
 /** Solid dot/border color for panel + timeline chips. */
 export function accentColor(authorId: string): string {
   return `hsl(${authorHue(authorId)}, 70%, 45%)`
