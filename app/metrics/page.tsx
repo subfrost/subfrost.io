@@ -69,8 +69,8 @@ const copy = {
         },
         bytesDonut: {
           title: "OP_RETURN bytes (since DIESEL genesis)",
-          series: { alkanes: "Alkanes", runes: "Runes (non-Alkanes)", other: "Other" },
-          desc: "Of all OP_RETURN data written to Bitcoin since the DIESEL genesis block (880,000, Jan 20 2025), the share that is Alkanes, non-Alkanes Runes, and everything else — measured in bytes, not transaction count.",
+          series: { alkanes: "Alkanes", runes: "Other Runes", other: "Non-Runes OP_RETURN" },
+          desc: "Alkanes are Runes — each Alkanes transaction carries its protostone inside a Runestone, so Alkanes and Other Runes together are all the Runestones. Share of all OP_RETURN data written to Bitcoin since the DIESEL genesis block (880,000, Jan 20 2025), measured in bytes, not transaction count. The Alkanes share is a floor: the Runestone envelope bytes of Alkanes transactions are credited to Other Runes.",
         },
         bytesPerTx: {
           title: "OP_RETURN bytes per transaction",
@@ -199,8 +199,8 @@ const copy = {
         },
         bytesDonut: {
           title: "OP_RETURN 字节数（自 DIESEL 创世以来）",
-          series: { alkanes: "Alkanes", runes: "Runes（非 Alkanes）", other: "其他" },
-          desc: "自 DIESEL 创世区块（880,000，2025 年 1 月 20 日）以来写入比特币的全部 OP_RETURN 数据中，Alkanes、非 Alkanes 的 Runes 与其他用途各自占比——按字节而非交易笔数衡量。",
+          series: { alkanes: "Alkanes", runes: "其他 Runes", other: "非 Runes OP_RETURN" },
+          desc: "Alkanes 就是 Runes——每笔 Alkanes 交易都把它的 protostone 装在一个符文石（Runestone）里，因此 Alkanes 与「其他 Runes」合起来就是全部符文石。自 DIESEL 创世区块（880,000，2025 年 1 月 20 日）以来写入比特币的全部 OP_RETURN 数据占比，按字节而非交易笔数衡量。Alkanes 的份额是下限：Alkanes 交易的符文石外层字节被计入「其他 Runes」。",
         },
         bytesPerTx: {
           title: "每笔交易的 OP_RETURN 字节数",
