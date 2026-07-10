@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import { CommentCard } from "@/components/cms/articles/CommentCard"
 import type { Thread } from "@/lib/cms/comment-layout"
 
@@ -42,5 +42,16 @@ describe("CommentCard", () => {
         onFocus={noop} onReply={vi.fn()} onResolve={vi.fn()} onReopen={noop} />,
     )
     expect(container.querySelector("[data-comment-card]")?.className).toContain("-translate-x-2")
+  })
+
+  it("does not toggle focus when clicking inside the reply composer (stopPropagation)", () => {
+    const onFocus = vi.fn()
+    render(
+      <CommentCard thread={thread()} focused dimmed={false} canComment busy={false}
+        onFocus={onFocus} onReply={vi.fn()} onResolve={vi.fn()} onReopen={noop} />,
+    )
+    fireEvent.click(screen.getByPlaceholderText("Reply…"))
+    fireEvent.click(screen.getByRole("button", { name: "Resolve" }))
+    expect(onFocus).not.toHaveBeenCalled()
   })
 })

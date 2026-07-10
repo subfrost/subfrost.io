@@ -227,7 +227,8 @@ export function AnnotatedArticle({
     setFocusedId(id)
     if (!id) return
     const mark = rootRef.current?.querySelector<HTMLElement>(`mark[data-comment-thread="${id}"]`)
-    mark?.scrollIntoView({ block: "center", behavior: "smooth" })
+    const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    mark?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" })
   }
 
   async function submitComment() {
@@ -263,7 +264,10 @@ export function AnnotatedArticle({
     setBusy(true)
     try {
       const res = await resolveComment(id)
-      if (res.ok) setComments((prev) => prev.map((c) => (c.id === id ? res.comment : c)))
+      if (res.ok) {
+        setComments((prev) => prev.map((c) => (c.id === id ? res.comment : c)))
+        if (id === focusedId) setFocusedId(null)
+      }
     } finally {
       setBusy(false)
     }

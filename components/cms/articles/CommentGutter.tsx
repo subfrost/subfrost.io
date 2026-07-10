@@ -63,6 +63,10 @@ export function CommentGutter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measuredKey, focusedId, heights, reflowKey])
 
+  const positioned = open.filter((t) => tops.has(t.root.id))
+  const positionedKey = positioned.map((t) => t.root.id).join(",")
+  const topSection = [...orphaned, ...unlocated]
+
   // Track live card heights (reply expansion, font swap) and re-layout.
   useEffect(() => {
     if (typeof ResizeObserver === "undefined") return
@@ -82,10 +86,7 @@ export function CommentGutter({
     for (const el of wrapRefs.current.values()) ro.observe(el)
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openKey, focusedId])
-
-  const positioned = open.filter((t) => tops.has(t.root.id))
-  const topSection = [...orphaned, ...unlocated]
+  }, [openKey, focusedId, positionedKey])
 
   function cardFor(t: Thread) {
     return (

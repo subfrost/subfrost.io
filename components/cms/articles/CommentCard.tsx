@@ -94,7 +94,7 @@ export function CommentCard({
       </div>
 
       {focused ? (
-        <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2">
+        <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2" onClick={(e) => e.stopPropagation()}>
           {replies.map((r) => <CommentRow key={r.id} c={r} />)}
           {canComment ? (
             <div className="space-y-2">
