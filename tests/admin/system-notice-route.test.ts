@@ -1,14 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("@/lib/cms/system-notice", () => ({
-  getSystemNotice: vi.fn(),
-  // use the real toNoticePayload
-  toNoticePayload: (dto: Record<string, unknown>) => ({
-    enabled: dto.enabled, showBanner: dto.showBanner, showModal: dto.showModal,
-    en: { title: dto.titleEn, message: dto.messageEn },
-    zh: { title: dto.titleZh, message: dto.messageZh },
-  }),
-}))
+// Mock only getSystemNotice; keep the REAL toNoticePayload so its audit-field
+// stripping is actually exercised (a leak of updatedBy/updatedAt must fail here).
+vi.mock("@/lib/cms/system-notice", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/cms/system-notice")>()
+  return { ...actual, getSystemNotice: vi.fn() }
+})
 
 import { getSystemNotice } from "@/lib/cms/system-notice"
 import { GET } from "@/app/api/system-notice/route"
@@ -19,7 +16,7 @@ it("returns the locale-nested payload with a short cache header", async () => {
   vi.mocked(getSystemNotice).mockResolvedValue({
     enabled: true, showBanner: true, showModal: false,
     titleEn: "T", messageEn: "M", titleZh: "标题", messageZh: "正文",
-    updatedAt: null, updatedBy: null,
+    updatedAt: "2026-07-10T00:00:00.000Z", updatedBy: "u9",
   })
   const res = await GET()
   expect(res.headers.get("Cache-Control")).toMatch(/max-age=30/)
@@ -28,4 +25,16 @@ it("returns the locale-nested payload with a short cache header", async () => {
     enabled: true, showBanner: true, showModal: false,
     en: { title: "T", message: "M" }, zh: { title: "标题", message: "正文" },
   })
+})
+
+it("never leaks audit fields onto the public payload", async () => {
+  vi.mocked(getSystemNotice).mockResolvedValue({
+    enabled: true, showBanner: true, showModal: true,
+    titleEn: "T", messageEn: "M", titleZh: "", messageZh: "",
+    updatedAt: "2026-07-10T00:00:00.000Z", updatedBy: "secret-admin-id",
+  })
+  const body = await (await GET()).json()
+  expect(body).not.toHaveProperty("updatedAt")
+  expect(body).not.toHaveProperty("updatedBy")
+  expect(JSON.stringify(body)).not.toContain("secret-admin-id")
 })
