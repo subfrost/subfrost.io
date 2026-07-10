@@ -31,10 +31,12 @@ export type MetricKey =
   // D-a niche cards — append-only. NEVER change a key's meaning; a new definition = a new key.
   | "alkanesWeightShare" | "dieselTxShareOfAll" | "alkanesRunestoneTxShare" | "dieselMintedCumulative"
 
-export type WindowKey = "latest" | "avg7" | "avg30" | "avg60" | "avg120" | "full"
+export type WindowKey = "latest" | "avg7" | "avg30" | "avg60" | "avg120" | "ytd" | "full"
 
+// ytd is date-based (rows in the latest row's year), not a fixed row count — windowRows() handles
+// it specially; the null here is a placeholder so it still validates as a known WindowKey.
 export const WINDOW_DAYS: Record<WindowKey, number | null> = {
-  latest: 1, avg7: 7, avg30: 30, avg60: 60, avg120: 120, full: null,
+  latest: 1, avg7: 7, avg30: 30, avg60: 60, avg120: 120, ytd: null, full: null,
 }
 
 export const METRIC_LABELS: Record<MetricKey, string> = {
@@ -55,7 +57,7 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
 
 export const WINDOW_LABELS: Record<WindowKey, string> = {
   latest: "Latest day", avg7: "7-day average", avg30: "30-day average",
-  avg60: "60-day average", avg120: "120-day average", full: "Full tracked period",
+  avg60: "60-day average", avg120: "120-day average", ytd: "Year to date", full: "Full tracked period",
 }
 
 export type MetricFormat = "pct" | "usd" | "count" | "per100"

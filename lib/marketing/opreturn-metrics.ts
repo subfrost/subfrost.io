@@ -44,6 +44,12 @@ export function dayValue(r: OpReturnRow, metric: MetricKey): number | null {
 }
 
 function windowRows(rows: OpReturnRow[], window: WindowKey): OpReturnRow[] {
+  if (window === "ytd") {
+    const last = rows[rows.length - 1]
+    if (!last) return rows
+    const yearStart = `${last.date.slice(0, 4)}-01-01`
+    return rows.filter((r) => r.date >= yearStart)
+  }
   const n = WINDOW_DAYS[window]
   return n === null ? rows : rows.slice(-n)
 }
