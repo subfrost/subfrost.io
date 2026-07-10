@@ -1,11 +1,11 @@
 "use client"
 
 // WS5 — the annotation layer over the rendered article preview. Wraps the
-// server-rendered <ArticleView> (passed as children); on text selection it shows
-// a "Comment" popover that anchors a comment to the selection (W3C TextQuote
-// selector via lib/cms/annotation-anchor), re-renders existing comments as
-// color-coded highlights (per author), and opens threads in a side panel
-// (bottom sheet on mobile). Also renders the review timeline.
+// server-rendered <ArticleView> (children); on text selection it shows a
+// "Comment" popover anchoring a comment to the selection, re-renders existing
+// comments as per-author <mark> highlights, and lays out comment cards in a
+// right-side gutter at the Y of their text (Google-Docs style). Mobile keeps a
+// bottom-sheet. Also renders the review timeline.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -22,8 +22,10 @@ import {
   type VersionDTO,
   type TimelineEntry,
 } from "@/actions/cms/articles-review"
-import { highlightColor } from "./comment-color"
-import { CommentPanel, type Thread } from "./CommentPanel"
+import { highlightColor, highlightColorStrong } from "./comment-color"
+import { isInsideAny, type Thread } from "@/lib/cms/comment-layout"
+import { CommentGutter } from "./CommentGutter"
+import { CommentPanel } from "./CommentPanel"
 import { ReviewTimeline } from "./ReviewTimeline"
 
 type Locale = "en" | "zh"
@@ -32,14 +34,13 @@ interface PendingSelection {
   anchor: TextAnchor
   top: number
   left: number
-  /** Render below the selection when there is no room above it in the viewport. */
   below: boolean
 }
 
-/** Vertical room (px) the popover needs to render above a selection. */
 const POPOVER_CLEARANCE = 180
 
-/** Group flat comments into root threads + replies (roots keep DB order). */
+/** Group flat comments into root threads + replies (roots keep DB order; the
+ *  gutter re-sorts by document position). */
 function buildThreads(comments: CommentDTO[]): Thread[] {
   const roots = comments.filter((c) => !c.parentId)
   const byParent = new Map<string, CommentDTO[]>()
@@ -70,22 +71,24 @@ export function AnnotatedArticle({
   children: React.ReactNode
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const gutterRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const [comments, setComments] = useState<CommentDTO[]>(initialComments)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const [showResolved, setShowResolved] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [reflowKey, setReflowKey] = useState(0)
   const [pending, setPending] = useState<PendingSelection | null>(null)
   const [draft, setDraft] = useState("")
   const [busy, setBusy] = useState(false)
 
   const threads = useMemo(() => buildThreads(comments), [comments])
 
-  // Re-locate every root comment's anchor in the rendered DOM and wrap it in a
-  // color-coded <mark>. Runs after render and whenever comments change.
+  // Re-locate every root comment's anchor and wrap it in a per-author <mark>.
   const applyHighlights = useCallback(() => {
     const root = rootRef.current
     if (!root) return
-    // Clear previous marks (unwrap + coalesce text).
     root.querySelectorAll("mark[data-comment-thread]").forEach((m) => {
       const parent = m.parentNode
       if (!parent) return
@@ -118,35 +121,66 @@ export function AnnotatedArticle({
     }
   }, [threads])
 
+  // Apply highlights after render / when comments change, then trigger a reflow.
   useEffect(() => {
     applyHighlights()
+    setReflowKey((k) => k + 1)
   }, [applyHighlights])
 
-  // Show the "Comment" popover when the user selects text inside the article.
+  // Saturate the focused comment's marks; reset the rest.
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    root.querySelectorAll<HTMLElement>("mark[data-comment-thread]").forEach((m) => {
+      const cid = m.dataset.commentThread
+      if (!cid) return
+      const author = comments.find((c) => c.id === cid)?.author.id ?? cid
+      const on = cid === focusedId
+      m.style.background = on ? highlightColorStrong(author) : highlightColor(author)
+      m.style.outline = on ? "1px solid rgba(255,255,255,0.35)" : "none"
+    })
+  }, [focusedId, comments])
+
+  // Reflow the gutter on container resize + lazy image loads.
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || typeof ResizeObserver === "undefined") return
+    const bump = () => setReflowKey((k) => k + 1)
+    const ro = new ResizeObserver(bump)
+    ro.observe(root)
+    const imgs = Array.from(root.querySelectorAll("img"))
+    imgs.forEach((img) => { if (!img.complete) img.addEventListener("load", bump) })
+    return () => {
+      ro.disconnect()
+      imgs.forEach((img) => img.removeEventListener("load", bump))
+    }
+  }, [comments])
+
+  // Measure a comment's first mark Y, relative to the gutter's top. null when the
+  // mark is absent (anchor drifted) — the gutter then treats it as unanchored.
+  const measureTop = useCallback((id: string): number | null => {
+    const gutter = gutterRef.current
+    const root = rootRef.current
+    if (!gutter || !root) return null
+    const mark = root.querySelector<HTMLElement>(`mark[data-comment-thread="${id}"]`)
+    if (!mark) return null
+    const rects = mark.getClientRects()
+    if (rects.length === 0) return null
+    return rects[0].top - gutter.getBoundingClientRect().top
+  }, [])
+
+  // Show the "Comment" popover on text selection inside the article.
   useEffect(() => {
     if (!canComment) return
     function onSelect(ev: MouseEvent | TouchEvent) {
-      // Pressing a mouse button inside the popover (textarea, Comment/Cancel)
-      // collapses the article selection before mouseup fires; dismissing the
-      // popover here would unmount its buttons before their click can land.
       if (ev.target instanceof Node && popoverRef.current?.contains(ev.target)) return
       const sel = window.getSelection()
       const root = rootRef.current
-      if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !root) {
-        setPending(null)
-        return
-      }
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !root) { setPending(null); return }
       const range = sel.getRangeAt(0)
-      if (!root.contains(range.commonAncestorContainer) || range.toString().trim().length === 0) {
-        setPending(null)
-        return
-      }
+      if (!root.contains(range.commonAncestorContainer) || range.toString().trim().length === 0) { setPending(null); return }
       const anchor = serializeSelection(range, root)
       const rect = range.getBoundingClientRect()
-      // Selections near the top of the viewport (first lines under the sticky
-      // header) have no room for the popover above them — it would render
-      // off-screen and look like nothing happened. Flip it below the selection,
-      // and keep it horizontally inside the viewport (popover is w-64 = 256px).
       const below = rect.top < POPOVER_CLEARANCE
       const mid = rect.left + rect.width / 2
       const left = Math.min(Math.max(mid, 140), Math.max(140, window.innerWidth - 140))
@@ -166,13 +200,34 @@ export function AnnotatedArticle({
     }
   }, [canComment])
 
-  // Clicking a highlight opens its thread in the panel.
+  // Defocus when a pointer goes down outside the gutter / sheet / popover / a mark.
+  // pointerdown + containment (never click/mouseup — the #202 "eats the click" bug).
+  useEffect(() => {
+    function onDown(ev: PointerEvent) {
+      const t = ev.target as Node | null
+      if (isInsideAny(t, [gutterRef.current, sheetRef.current, popoverRef.current])) return
+      if (t instanceof HTMLElement && t.closest("mark[data-comment-thread]")) return
+      setFocusedId(null)
+    }
+    document.addEventListener("pointerdown", onDown)
+    return () => document.removeEventListener("pointerdown", onDown)
+  }, [])
+
+  // Click a highlight → focus its card. The document does NOT scroll.
   function onRootClick(ev: React.MouseEvent) {
     const el = (ev.target as HTMLElement).closest?.("mark[data-comment-thread]") as HTMLElement | null
     if (el?.dataset.commentThread) {
-      setSelectedId(el.dataset.commentThread)
-      setPanelOpen(true)
+      setFocusedId(el.dataset.commentThread)
+      setSheetOpen(true) // mobile: reveal the sheet on the tapped thread
     }
+  }
+
+  // Click a card → focus it and gently scroll the article to the trecho.
+  function focusFromCard(id: string | null) {
+    setFocusedId(id)
+    if (!id) return
+    const mark = rootRef.current?.querySelector<HTMLElement>(`mark[data-comment-thread="${id}"]`)
+    mark?.scrollIntoView({ block: "center", behavior: "smooth" })
   }
 
   async function submitComment() {
@@ -184,8 +239,7 @@ export function AnnotatedArticle({
         setComments((prev) => [...prev, res.comment])
         setPending(null)
         setDraft("")
-        setSelectedId(res.comment.id)
-        setPanelOpen(true)
+        setFocusedId(res.comment.id)
         window.getSelection()?.removeAllRanges()
       }
     } finally {
@@ -225,7 +279,6 @@ export function AnnotatedArticle({
     }
   }
 
-  // Live review timeline = version bumps interleaved with current comments.
   const timeline = useMemo<TimelineEntry[]>(() => {
     const versionEntries: TimelineEntry[] = versions.map((v) => ({ kind: "version", at: v.createdAt, ...v }))
     const commentEntries: TimelineEntry[] = comments.map((c) => ({ kind: "comment", at: c.createdAt, ...c }))
@@ -233,8 +286,9 @@ export function AnnotatedArticle({
   }, [versions, comments])
 
   return (
-    <div className="flex flex-col sm:flex-row">
-      <div className="min-w-0 flex-1">
+    <div className="relative">
+      {/* Article + timeline. On desktop, reserve the right band for the gutter. */}
+      <div className="min-w-0 lg:pr-[340px]">
         <div ref={rootRef} onClick={onRootClick}>
           {children}
         </div>
@@ -245,26 +299,43 @@ export function AnnotatedArticle({
         </div>
       </div>
 
-      {/* Desktop side panel is always mounted; on mobile it's a toggled sheet. */}
-      <div className={panelOpen ? "" : "hidden sm:block"}>
-        <CommentPanel
+      {/* Desktop gutter: absolutely positioned in the shared scroll container. */}
+      <div ref={gutterRef} className="absolute right-4 top-0 hidden h-full w-[300px] lg:block">
+        <CommentGutter
           threads={threads}
-          selectedId={selectedId}
+          focusedId={focusedId}
+          showResolved={showResolved}
+          onToggleResolved={() => setShowResolved((s) => !s)}
+          measureTop={measureTop}
+          reflowKey={reflowKey}
           canComment={canComment}
           busy={busy}
-          onSelect={setSelectedId}
+          onFocus={focusFromCard}
           onReply={submitReply}
           onResolve={doResolve}
           onReopen={doReopen}
-          onClose={() => setPanelOpen(false)}
         />
       </div>
 
-      {/* Mobile FAB to open the panel. */}
-      {!panelOpen ? (
+      {/* Mobile bottom-sheet (Task 5 upgrades this to CommentCard + doc order). */}
+      <div ref={sheetRef} className={`lg:hidden ${sheetOpen ? "" : "hidden"}`}>
+        <CommentPanel
+          threads={threads}
+          selectedId={focusedId}
+          canComment={canComment}
+          busy={busy}
+          onSelect={setFocusedId}
+          onReply={submitReply}
+          onResolve={doResolve}
+          onReopen={doReopen}
+          onClose={() => setSheetOpen(false)}
+        />
+      </div>
+
+      {!sheetOpen ? (
         <button
-          onClick={() => setPanelOpen(true)}
-          className="fixed bottom-4 right-4 z-20 rounded-full bg-zinc-800 px-4 py-2 text-sm text-white shadow-lg sm:hidden"
+          onClick={() => setSheetOpen(true)}
+          className="fixed bottom-4 right-4 z-20 rounded-full bg-zinc-800 px-4 py-2 text-sm text-white shadow-lg lg:hidden"
         >
           Comments ({threads.length})
         </button>
@@ -312,7 +383,6 @@ function textNodesInRange(range: Range): Text[] {
     if (started) out.push(t)
     if (t === range.endContainer) break
   }
-  // Single-node selection where start === end container is handled above.
   if (out.length === 0 && range.startContainer.nodeType === 3) out.push(range.startContainer as Text)
   return out
 }
