@@ -18,6 +18,7 @@ export const CATEGORY_ICON: Record<CategoryKey, LucideIcon> = {
   files: FolderOpen,
   marketing: TrendingUp,
   ecosystem: Boxes,
+  system: Megaphone,
   apikeys: KeyRound,
   audit: ScrollText,
 }
