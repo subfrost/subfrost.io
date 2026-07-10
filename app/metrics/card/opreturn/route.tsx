@@ -80,8 +80,8 @@ export async function GET(req: NextRequest) {
       <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
         <div style={{ display: "flex", fontSize: 40, color: ink }}>OP_RETURN bytes composition</div>
         {bar("Alkanes", c.alkanes, accent)}
-        {bar("Runes", c.runes, "#f0997b")}
-        {bar("Other", c.other, muted)}
+        {bar("Other Runes", c.runes, "#a7ddca")}
+        {bar("Non-Runes OP_RETURN", c.other, muted)}
       </div>
     )
   } else if (template === "answers") {

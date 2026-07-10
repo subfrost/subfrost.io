@@ -54,6 +54,9 @@ const SECOND = "#f0997b"
 const MUTED = "#aab8d6"
 const FOURTH = "#d9a441" // amber — 4th line in the "four answers" overlay
 const SLICE_OTHER = "#4a4a52"
+// Same hue family as ACCENT (Alkanes), a lighter tint — signals the nesting on the composition
+// donut: Alkanes and Other Runes are both Runestones; the grey Other sits outside runestones.
+const RUNES_TINT = "#a7ddca"
 const HAIRLINE = "var(--ed-hairline, #22304a)"
 
 /** Replaces every {token} in `template` with values[token]; missing/null values render "—". */
@@ -646,7 +649,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
               innerRadius={55}
               slices={[
                 { name: copy.charts.bytesDonut.series.alkanes, value: bytesComposition.alkanes, color: ACCENT, pct: (bytesComposition.alkanes * 100).toFixed(1) },
-                { name: copy.charts.bytesDonut.series.runes, value: bytesComposition.runes, color: SECOND, pct: (bytesComposition.runes * 100).toFixed(1) },
+                { name: copy.charts.bytesDonut.series.runes, value: bytesComposition.runes, color: RUNES_TINT, pct: (bytesComposition.runes * 100).toFixed(1) },
                 { name: copy.charts.bytesDonut.series.other, value: bytesComposition.other, color: SLICE_OTHER, pct: (bytesComposition.other * 100).toFixed(1) },
               ]}
             />
