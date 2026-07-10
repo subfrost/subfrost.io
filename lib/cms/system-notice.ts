@@ -29,12 +29,14 @@ export async function getSystemNotice(): Promise<SystemNoticeDTO> {
   }
 }
 
-/** Public wire shape consumed by the app (locale-nested, no audit fields). */
+/** Public wire shape consumed by the app (locale-nested). Exposes `updatedAt`
+ *  (shown on the notice as a timestamp) but never the `updatedBy` admin id. */
 export function toNoticePayload(dto: SystemNoticeDTO) {
   return {
     enabled: dto.enabled,
     showBanner: dto.showBanner,
     showModal: dto.showModal,
+    updatedAt: dto.updatedAt,
     en: { title: dto.titleEn, message: dto.messageEn },
     zh: { title: dto.titleZh, message: dto.messageZh },
   }
