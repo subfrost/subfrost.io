@@ -48,7 +48,7 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   alkanesFeeUsdDaily: "Daily Bitcoin fees paid by Alkanes (USD)",
   alkanesFeeUsdCumulative: "Total Bitcoin fees paid by Alkanes (USD)",
   alkanesWeightShare: "Alkanes share of Bitcoin block weight",
-  dieselTxShareOfAll: "DIESEL mints as a share of Bitcoin transactions",
+  dieselTxShareOfAll: "DIESEL mints per 100 Bitcoin transactions",
   alkanesRunestoneTxShare: "Alkanes share of runestone transactions",
   dieselMintedCumulative: "Total DIESEL minted",
 }
@@ -58,14 +58,14 @@ export const WINDOW_LABELS: Record<WindowKey, string> = {
   avg60: "60-day average", avg120: "120-day average", full: "Full tracked period",
 }
 
-export type MetricFormat = "pct" | "usd" | "count" | "oneInN"
+export type MetricFormat = "pct" | "usd" | "count" | "per100"
 
 // Display format per metric (how the number reads on the card). Separate from how it's aggregated.
 export const METRIC_FORMAT: Record<MetricKey, MetricFormat> = {
   alkanesTxShare: "pct", alkanesOfOpReturnShare: "pct", opReturnTxShare: "pct",
   alkanesBytesShare: "pct", runesBytesShare: "pct", dieselShareOfAlkanes: "pct",
   alkanesFeeShare: "pct", alkanesFeeUsdDaily: "usd", alkanesFeeUsdCumulative: "usd",
-  alkanesWeightShare: "pct", dieselTxShareOfAll: "oneInN",
+  alkanesWeightShare: "pct", dieselTxShareOfAll: "per100",
   alkanesRunestoneTxShare: "pct", dieselMintedCumulative: "count",
 }
 

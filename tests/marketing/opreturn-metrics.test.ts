@@ -110,16 +110,18 @@ it("sum metrics get a monotonic running-sum series (cumulative sparkline)", () =
   expect(s.map((p) => p.value)).toEqual([40, 100]) // running sum, not [40, 60]
 })
 
-it("dieselTxShareOfAll is a ratio with oneInN format", () => {
+it("dieselTxShareOfAll is a ratio with per100 format", () => {
   const r = computeMetric([row({ dieselMints: 2, totalTx: 100 })], "dieselTxShareOfAll", "full")
   expect(r.value).toBeCloseTo(0.02)
-  expect(r.format).toBe("oneInN")
+  expect(r.format).toBe("per100")
 })
 
 it("formatMetricValue renders each format", () => {
   expect(formatMetricValue(0.042, "pct")).toBe("4.2%")
   expect(formatMetricValue(1234, "usd")).toBe("$1,234")
-  expect(formatMetricValue(0.023, "oneInN")).toBe("1 in 43")   // round(1/0.023)=43
+  // per100: a mints:tx ratio shown as a count per 100 tx ("50 per 100 Bitcoin transactions"),
+  // honest even when >1 mint rides in a single tx (unlike a "% of transactions" reading).
+  expect(formatMetricValue(0.5, "per100")).toBe("50")   // round(0.5*100)=50
   expect(formatMetricValue(1_250_000, "count")).toBe("1.3M")
   expect(formatMetricValue(null, "pct")).toBe("—")
 })

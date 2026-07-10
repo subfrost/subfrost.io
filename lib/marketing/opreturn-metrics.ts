@@ -93,7 +93,9 @@ export function formatMetricValue(value: number | null, format: MetricFormat): s
     case "pct": return `${(value * 100).toFixed(1)}%`
     case "usd": return usdFmt.format(value)
     case "count": return countFmt.format(value)
-    case "oneInN": return value <= 0 ? "—" : `1 in ${Math.round(1 / value)}`
+    // A mints:tx ratio (>1 mint can ride in one tx) shown as mints per 100 transactions —
+    // honest even when the ratio exceeds what "% of transactions" could mean.
+    case "per100": return `${Math.round(value * 100)}`
   }
 }
 
