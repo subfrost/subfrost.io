@@ -6,6 +6,7 @@ import { externalAnchorProps } from "@/lib/link-behavior"
 import { SmartPicture } from "@/components/articles/SmartPicture"
 import { isChartSvg } from "@/lib/cms/image-srcset"
 import { InlineFigure } from "@/components/articles/InlineFigure"
+import { ZoomableFigure } from "@/components/articles/ZoomableFigure"
 
 // Server-side Markdown renderer. Sanitizes HTML and highlights fenced code.
 // `variant` switches between the Medium-style reading prose and the compact
@@ -41,13 +42,18 @@ export function Markdown({
             const s = typeof src === "string" ? src : ""
             const a = typeof alt === "string" ? alt : ""
             const inlined = isChartSvg(s) ? inlinedSvgs?.get(s) : undefined
-            if (inlined) return <InlineFigure svg={inlined} alt={a} />
-            if (isChartSvg(s)) {
+            const figure = inlined ? (
+              <InlineFigure svg={inlined} alt={a} />
+            ) : isChartSvg(s) ? (
               // chart svg with no pre-fetched entry (client preview / fetch miss) → plain image
               // eslint-disable-next-line @next/next/no-img-element
-              return <img src={s} alt={a} loading="lazy" decoding="async" />
-            }
-            return <SmartPicture src={s} alt={a} />
+              <img src={s} alt={a} loading="lazy" decoding="async" />
+            ) : (
+              <SmartPicture src={s} alt={a} />
+            )
+            // Reading view: click to enlarge in an overlay. The compact editor
+            // preview keeps figures inline (no zoom while editing).
+            return variant === "article" ? <ZoomableFigure alt={a}>{figure}</ZoomableFigure> : figure
           },
         }}
       >

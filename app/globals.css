@@ -900,6 +900,35 @@ div[data-netlify-deploy-id] {
   color: var(--ed-ink);
   background: transparent;
 }
+/* Enlarged article figure: the ZoomableFigure overlay is portaled to <body>,
+   outside .ed-article-prose, so it needs its own sizing. The dark backdrop wants
+   light ink, so pin --ed-ink for any inlined SVG rendered inside it. Screenshots
+   never scale past their natural size (they would blur); vector figures fill the
+   overlay so small labels become legible (the reason for the zoom). */
+.ed-zoom-content {
+  --ed-ink: #eceae4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ed-zoom-content img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 92vw;
+  max-height: 86vh;
+  border-radius: 6px;
+}
+.ed-zoom-content .ed-figure {
+  margin: 0;
+  width: min(92vw, 1200px);
+}
+.ed-zoom-content .ed-figure svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 86vh;
+}
 .ed-article-prose hr {
   border: 0;
   margin: 36px 0;
