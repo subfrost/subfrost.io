@@ -129,6 +129,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Users", href: "/admin/users", icon: Users, privilege: "iam.list_users" },
       { label: "API keys", href: "/admin/api-keys", icon: KeyRound, privilege: "apikeys.manage" },
       { label: "Audit log", href: "/admin/audit", icon: ScrollText, privilege: "audit.view" },
+      { label: "Site notice", href: "/admin/notice", icon: Megaphone, privilege: "system.view" },
     ],
   },
 ]

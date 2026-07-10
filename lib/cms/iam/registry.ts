@@ -37,6 +37,7 @@ export type CategoryKey =
   | "marketing"
   | "tasks"
   | "ecosystem"
+  | "system"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -55,6 +56,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "files", label: "Documents" },
   { key: "marketing", label: "Marketing" },
   { key: "ecosystem", label: "Ecosystem" },
+  { key: "system", label: "System" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -117,6 +119,10 @@ export const PRIVILEGES: PrivilegeDef[] = [
   // --- Ecosystem directory ---
   { code: "ecosystem.view", label: "Ecosystem — view", description: "View the Alkanes ecosystem project directory admin.", category: "ecosystem", implies: [] },
   { code: "ecosystem.edit", label: "Ecosystem — edit", description: "Create, edit, publish, and delete ecosystem projects; toggle the featured band.", category: "ecosystem", implies: ["ecosystem.view"] },
+
+  // --- System ---
+  { code: "system.view", label: "Site notice — view", description: "View the site notice / announcement control.", category: "system", implies: [] },
+  { code: "system.edit", label: "Site notice — edit", description: "Turn the site notice on/off and edit its title/message.", category: "system", implies: ["system.view"] },
 
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
@@ -258,4 +264,5 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/board/intake": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/products": { view: "tasks.view", edit: "tasks.edit" },
+  "/admin/notice": { view: "system.view", edit: "system.edit" },
 }

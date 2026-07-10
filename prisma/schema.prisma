@@ -1864,3 +1864,17 @@ model EcosystemSettings {
   id                  Int     @id @default(1)
   featuredBandEnabled Boolean @default(true)
 }
+
+// One global, admin-controlled site notice (banner + modal). Singleton row id=1.
+model SystemNotice {
+  id         Int      @id @default(1)
+  enabled    Boolean  @default(false)
+  showBanner Boolean  @default(true)
+  showModal  Boolean  @default(true)
+  titleEn    String?
+  messageEn  String?
+  titleZh    String?
+  messageZh  String?
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?
+}
