@@ -56,13 +56,21 @@ export function FuelSupplyMap({ instruments, founders, teamGrants, communityAllo
           <span className="text-xs font-medium text-zinc-400">Cap-table pool · itemized</span>
           <span className="text-xs text-zinc-500 tabular-nums">{fmt(map.pool.total)} FUEL (50%)</span>
         </div>
+        <div className="mb-1 flex items-center gap-2 px-1 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+          <span className="w-40 shrink-0">Name</span>
+          <span className="w-20 shrink-0">Role</span>
+          <span className="w-16 shrink-0 text-right">Equity</span>
+          <span className="flex-1" />
+          <span className="w-24 shrink-0 text-right">FUEL</span>
+          <span className="hidden w-14 shrink-0 text-right sm:block">% FUEL</span>
+        </div>
         <div className="space-y-1.5">
           {map.pool.items.map((v) => {
             const row = (
               <div className="flex items-center gap-2 text-xs">
-                <span className="w-40 shrink-0 truncate text-zinc-300" title={v.label}>{v.label}
-                  {v.sub && <span className="text-zinc-600"> · {v.sub}</span>}
-                </span>
+                <span className="w-40 shrink-0 truncate text-zinc-300" title={v.label}>{v.label}</span>
+                <span className="w-20 shrink-0 truncate text-zinc-500">{v.role ?? "—"}</span>
+                <span className="w-16 shrink-0 text-right tabular-nums text-zinc-400">{v.equityPct != null ? `${v.equityPct}%` : "—"}</span>
                 <div className="h-2.5 flex-1 overflow-hidden rounded bg-zinc-800">
                   <div className="h-full rounded" style={{ width: `${(v.amount / maxItem) * 100}%`, background: v.color }} />
                 </div>

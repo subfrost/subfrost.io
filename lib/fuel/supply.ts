@@ -129,6 +129,8 @@ export interface FuelItem {
   pctSupply: number // % of the 2,100,000 total
   color: string
   sub?: string
+  role?: string // "Founder" | "SAFE" | "Team grant" (pool items only)
+  equityPct?: number // equity ownership %: founder split % or SAFE implied % (team grants: n/a)
   href?: string
 }
 
@@ -171,17 +173,17 @@ export function buildFuelSupplyMap(i: FuelSupplyInput): FuelSupplyMap {
   for (const f of i.founderSplit) {
     const amount = round2((founderFuelTotal * f.pct) / 100)
     items.push({ key: `f:${f.name}`, label: f.name, amount, pctSupply: supplyPct(amount),
-      color: C.founder, sub: `founder · ${f.pct}%`, href: "/admin/financials/cap-table" })
+      color: C.founder, sub: `founder · ${f.pct}%`, role: "Founder", equityPct: f.pct, href: "/admin/financials/cap-table" })
   }
   // one line per SAFE investor (pro-rata to their implied %), so each shows up
   for (const inv of i.investors) {
     const amount = round2((equityMapped * inv.pct) / 100)
     items.push({ key: `i:${inv.name}`, label: inv.name, amount, pctSupply: supplyPct(amount),
-      color: C.investor, sub: `SAFE · ${inv.pct.toFixed(3)}%`, href: `/admin/entities?q=${encodeURIComponent(inv.name)}` })
+      color: C.investor, sub: `SAFE · ${inv.pct.toFixed(3)}%`, role: "SAFE", equityPct: inv.pct, href: `/admin/entities?q=${encodeURIComponent(inv.name)}` })
   }
   for (const g of i.teamGrants) {
     items.push({ key: `t:${g.name}`, label: g.name, amount: g.amount, pctSupply: supplyPct(g.amount),
-      color: C.team, sub: "team grant", href: "/admin/entities?category=EMPLOYEE" })
+      color: C.team, sub: "team grant", role: "Team grant", href: "/admin/entities?category=EMPLOYEE" })
   }
   items.sort((a, b) => b.amount - a.amount)
 

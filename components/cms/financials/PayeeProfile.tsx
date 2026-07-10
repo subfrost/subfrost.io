@@ -89,14 +89,14 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
         onLink={(kycIntakeId) => run({ kycIntakeId })} onUnlink={() => run({ kycIntakeId: null })} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Invoices" value={String(totals.invoiceCount)} />
         <Metric label="Paid (USD)" value={usd(paidUsdOnly)} />
         <Metric label="Paid (DIESEL)" value={dsl(totals.totalDiesel)}>
           <div className="mt-1.5 space-y-0.5 text-xs">
             <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Invoiced $:</span><span className="text-zinc-300">{usd(invoicedUsd)}</span></div>
-            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{approxUsd(marketUsd)}</span></div>
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{`~${usd(marketUsd)}`}</span></div>
           </div>
         </Metric>
+        <Metric label="Invoices" value={String(totals.invoiceCount)} />
         <Metric label="Open invoices" value={String(invoices.filter((i) => i.status === "OPEN").length)} />
       </div>
 

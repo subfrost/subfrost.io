@@ -145,7 +145,12 @@ function RevenueChart({ series, config, height = 240 }: { series: RevenueSeries;
           tickFormatter={(v) => (series.unit === "USD" ? `$${Number(v).toLocaleString("en-US")}` : `₿${Number(v).toFixed(4)}`)}
         />
         <ChartTooltip
-          content={<ChartTooltipContent labelFormatter={(l) => String(l)} formatter={(value) => f(Number(value))} />}
+          content={
+            <ChartTooltipContent
+              labelFormatter={(l) => String(l)}
+              formatter={(value) => f(Number(value))}
+            />
+          }
         />
         <Area
           dataKey="amount"
@@ -172,7 +177,7 @@ function RevenueSection({
   badge?: ReactNode
 }) {
   const f = fmt(series.unit)
-  const recent = useMemo(() => [...series.daily].reverse().slice(0, 14), [series.daily])
+  const recent = useMemo(() => [...series.daily].reverse(), [series.daily])
 
   return (
     <section className="space-y-4">
@@ -195,9 +200,9 @@ function RevenueSection({
       {note ? <p className="text-[11px] leading-relaxed text-zinc-500">{note}</p> : null}
 
       {recent.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="max-h-96 overflow-auto rounded-xl border border-zinc-800">
           <table className="w-full min-w-[360px] text-sm rtable">
-            <thead className="bg-zinc-900/60 text-left text-xs text-zinc-500">
+            <thead className="sticky top-0 z-10 bg-zinc-900 text-left text-xs text-zinc-500">
               <tr>
                 <th className="px-3 py-2">Day (UTC)</th>
                 <th className="px-3 py-2 text-right">Revenue ({series.unit})</th>

@@ -43,9 +43,26 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
 
   const { payees, invoices, payments, metrics } = result.overview
   const payeeById = new Map(payees.map((p) => [p.id, p]))
+  const invoiceById = new Map(invoices.map((i) => [i.id, i]))
   const unlinked = payments.filter((p) => p.invoiceId === null)
   const openInvoices = invoices.filter((i) => i.status === "OPEN")
   const payeeTotals = totalsByPayee(payees, invoices, payments)
+
+  // Split USD by how each invoice settled (mirrors the payee profile). USD-denominated
+  // PAID invoices contribute to "Paid (USD)"; DIESEL-denominated invoices instead surface
+  // two numbers under "Paid (DIESEL)": the invoiced USD face value and the market value
+  // (spot USD of the DIESEL that settled them).
+  let paidUsdOnly = 0
+  let invoicedUsd = 0
+  let marketUsd = 0
+  for (const i of invoices) {
+    if (i.amountDiesel != null) {
+      invoicedUsd += i.amountUsd
+      marketUsd += sumSettlingUsd(payments.filter((p) => p.invoiceId === i.id), usdValues) ?? 0
+    } else if (i.status === "PAID") {
+      paidUsdOnly += i.amountUsd
+    }
+  }
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null)
@@ -76,8 +93,13 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Total paid (USD)" value={usd(metrics.totalPaidUsd)} />
-        <Metric label="Total paid (DIESEL)" value={dsl(metrics.totalPaidDiesel)} />
+        <Metric label="Paid (USD)" value={usd(paidUsdOnly)} />
+        <Metric label="Paid (DIESEL)" value={dsl(metrics.totalPaidDiesel)}>
+          <div className="mt-1.5 space-y-0.5 text-xs">
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Invoiced $:</span><span className="text-zinc-300">{usd(invoicedUsd)}</span></div>
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{`~${usd(marketUsd)}`}</span></div>
+          </div>
+        </Metric>
         <Metric label="Open invoices" value={String(metrics.openInvoices)} />
         <Metric label="Unlinked payments" value={String(metrics.unlinkedPayments)} accent={metrics.unlinkedPayments > 0} />
       </div>
@@ -150,7 +172,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
                     <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td data-label="Payee" className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
+                    <td data-label="Payee" className="text-zinc-200"><Link href={`/admin/financials/payees/${i.payeeId}`} className="text-sky-300 hover:underline">{i.payeeName}</Link>{pe?.kycIntakeId ? <KycBadge /> : null}</td>
                     <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{i.amountDiesel != null ? dsl(i.amountDiesel) : usd(i.amountUsd)}</td>
                     <td data-label="USD value" className="text-right text-zinc-400">{i.amountDiesel != null ? (valuedUsd == null ? <span className="text-zinc-600">—</span> : approxUsd(valuedUsd)) : <span className="text-zinc-600">—</span>}</td>
                     <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
@@ -215,24 +237,27 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
           <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
-                <th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th className="text-right">USD (at payment)</th><th>Recipient</th>
-                <th>Paid</th><th>Invoice</th><th>Source</th>
+                <th className="py-1.5">Invoice</th><th>Txid</th><th>Recipient</th><th>Date</th>
+                <th className="text-right">DIESEL Paid</th><th className="text-right">USD Paid</th><th className="text-right">Market Price</th>
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-t border-zinc-900">
-                  <td data-label="Txid" className="py-2 font-mono text-xs text-zinc-300">
-                    <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
-                  </td>
-                  <td data-label="DIESEL" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td data-label="USD (at payment)" className="text-right text-emerald-400/80" title="USD value at the block this payment settled in">{usdValues[p.id] ? approxUsd(usdValues[p.id].paymentUsd) : <span className="text-zinc-600">—</span>}</td>
-                  <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
-                  <td data-label="Paid" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td data-label="Invoice" className="text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
-                  <td data-label="Source" className="text-zinc-500">{p.source}</td>
-                </tr>
-              ))}
+              {payments.map((p) => {
+                const priced = usdValues[p.id]
+                const settledInvoice = p.invoiceId != null ? invoiceById.get(p.invoiceId) : undefined
+                const usdPaid = settledInvoice && settledInvoice.amountDiesel == null ? settledInvoice.amountUsd : null
+                return (
+                  <tr key={p.id} className="border-t border-zinc-900">
+                    <td data-label="Invoice" className="py-2 text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
+                    <td data-label="Txid" className="font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
+                    <td data-label="Recipient" className="font-mono text-xs text-zinc-400"><a href={`https://espo.sh/address/${p.recipientAddress}`} target="_blank" rel="noreferrer" className="underline">{`${p.recipientAddress.slice(0, 5)}...${p.recipientAddress.slice(-4)}`}</a></td>
+                    <td data-label="Date" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                    <td data-label="DIESEL Paid" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                    <td data-label="USD Paid" className="text-right text-zinc-200">{usdPaid == null ? <span className="text-zinc-600">—</span> : usd(usdPaid)}</td>
+                    <td data-label="Market Price" className="text-right text-zinc-200">{priced ? approxUsd(priced.paymentUsd) : <span className="text-zinc-600">—</span>}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )
@@ -243,11 +268,12 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
   )
 }
 
-function Metric({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Metric({ label, value, accent, children }: { label: string; value: string; accent?: boolean; children?: ReactNode }) {
   return (
     <div className={`rounded-lg border p-3 ${accent ? "border-yellow-800/60 bg-yellow-900/10" : "border-zinc-800"}`}>
       <div className="text-xs text-zinc-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+      {children}
     </div>
   )
 }
