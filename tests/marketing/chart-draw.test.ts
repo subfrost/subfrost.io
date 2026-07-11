@@ -168,13 +168,16 @@ describe("ChartBody", () => {
   it("renders a valid element for a line chart without throwing", () => {
     const el = ChartBody({ spec: lineSpec, rows, width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
     expect(el).toBeTruthy()
-    expect(el.type).toBe("svg")
+    // Top-level wrapper is a <div> (position:relative), not a raw <svg> -- axis/tick text is
+    // rendered as absolutely-positioned <div>s next to the <svg>, since satori rejects <text>
+    // nodes embedded inside a raw <svg> subtree (see the comment above anchorTransform()).
+    expect(el.type).toBe("div")
   })
 
   it("renders a valid element for an empty dataset without throwing", () => {
     const el = ChartBody({ spec: lineSpec, rows: [], width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
     expect(el).toBeTruthy()
-    expect(el.type).toBe("svg")
+    expect(el.type).toBe("div")
   })
 
   it("renders a valid element for a donut chart without throwing", () => {
@@ -193,6 +196,6 @@ describe("ChartBody", () => {
     const donutRows = [{ date: "2026-01-04", alkanes: 70, other: 30 }]
     const el = ChartBody({ spec: donutSpec, rows: donutRows, width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
     expect(el).toBeTruthy()
-    expect(el.type).toBe("svg")
+    expect(el.type).toBe("div")
   })
 })

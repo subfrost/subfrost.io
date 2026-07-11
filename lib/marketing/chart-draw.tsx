@@ -280,6 +280,25 @@ const TICK_COUNT = 5
 const LINE_WIDTH = 3.5
 const AXIS_FONT = 20
 
+/**
+ * satori (next/og's renderer) rejects literal `<text>` nodes embedded inside a raw `<svg>`
+ * subtree -- confirmed directly against the bundled renderer (node_modules/next/dist/compiled/
+ * @vercel/og/index.node.js): any SVG-tree node of type "text" throws `<text> nodes are not
+ * currently supported, please convert them to <path>` at PNG-ENCODE time, not at JSX-construction
+ * time -- so a smoke test that only inspects the returned element (never actually consuming the
+ * ImageResponse body) doesn't catch it; this was found via the Task 3 route test, which does. Every
+ * axis/legend/total label below is therefore rendered as an absolutely positioned `<div>` OUTSIDE
+ * the `<svg>` (satori's own div/span text layout DOES support text; only its raw-SVG-embed path
+ * doesn't) using `transform: translate(...)` to emulate SVG's textAnchor start/middle/end and
+ * vertical centering -- satori supports `position: absolute`/`relative` and `transform` on div
+ * nodes (its bundled Tailwind-utility compiler maps "absolute"/"relative" classes to exactly this,
+ * confirmed in the same bundle). Only `<line>`/`<polygon>`/`<path>`/`<rect>` (no text) remain
+ * inside the `<svg>` now.
+ */
+type Anchor = "start" | "middle" | "end"
+const anchorTransform = (anchor: Anchor): string =>
+  anchor === "start" ? "translate(0, -50%)" : anchor === "end" ? "translate(-100%, -50%)" : "translate(-50%, -50%)"
+
 /** The axes + gridlines + series for one chart, sized to fit inside the frame's content area
  *  (`width`/`height` are the full area ChartBody draws into -- the caller's outer frame already
  *  accounts for its own title/logo/footer padding). Pure; no ImageResponse, no fetch. */
@@ -302,11 +321,9 @@ export function ChartBody({
 }): JSX.Element {
   if (rows.length === 0) {
     return (
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
-        <text x={width / 2} y={height / 2} fill={muted} fontSize={22} textAnchor="middle">
-          No data
-        </text>
-      </svg>
+      <div style={{ display: "flex", width, height, alignItems: "center", justifyContent: "center" }}>
+        <div style={{ display: "flex", color: muted, fontSize: 22 }}>No data</div>
+      </div>
     )
   }
 
@@ -323,45 +340,70 @@ export function ChartBody({
   const domain = computeDomain(rawSeries, spec.scale, spec.type === "stacked")
   const ticks = niceTicks(domain.min, domain.max, TICK_COUNT, spec.scale)
 
+  // niceTicks rounds UP/DOWN to a "nice" round number, which can land outside [domain.min,
+  // domain.max] (e.g. data maxing at 102% rounds its top gridline to 150%). If the actual scaling
+  // below kept using the un-widened domain, that overrun tick would project to a negative y (above
+  // the plot's own top edge) and, since it's no longer clipped by an enclosing <svg> viewBox now
+  // that labels are absolutely-positioned <div>s (see the satori <text> note above), it visibly
+  // bled into the header/title above the chart -- caught by inspecting an actual rendered PNG, not
+  // by any status/type assertion. Widening (never narrowing) the plotted range to also cover the
+  // ticks' own min/max keeps every tick AND all data inside [0, plotH].
+  const plotMin = Math.min(domain.min, ticks[0] ?? domain.min)
+  const plotMax = Math.max(domain.max, ticks[ticks.length - 1] ?? domain.max)
+
   const n = rows.length
   const midIdx = Math.floor((n - 1) / 2)
 
   const gridLines = ticks.map((t) => {
-    const y = round(plotY0 + projectY(t, domain.min, domain.max, plotH, spec.scale))
+    const y = round(plotY0 + projectY(t, plotMin, plotMax, plotH, spec.scale))
     return <line key={`grid-${t}`} x1={plotX0} y1={y} x2={plotX0 + plotW} y2={y} stroke={grid} strokeWidth={1} />
   })
 
   const tickLabels = ticks.map((t) => {
-    const y = round(plotY0 + projectY(t, domain.min, domain.max, plotH, spec.scale))
+    const y = round(plotY0 + projectY(t, plotMin, plotMax, plotH, spec.scale))
     return (
-      <text key={`tick-${t}`} x={plotX0 - 10} y={y + 6} fill={muted} fontSize={AXIS_FONT} textAnchor="end">
+      <div
+        key={`tick-${t}`}
+        style={{ position: "absolute", left: plotX0 - 10, top: y, transform: anchorTransform("end"), display: "flex", color: muted, fontSize: AXIS_FONT }}
+      >
         {formatTickLabel(t, spec.valueFormat)}
-      </text>
+      </div>
     )
   })
 
   const xLabelY = plotY0 + plotH + 28
   const xLabelIdx = [0, midIdx, n - 1].filter((i, idx, arr) => arr.indexOf(i) === idx)
   const xLabels = xLabelIdx.map((i, idx) => {
-    const anchor = idx === 0 ? "start" : idx === xLabelIdx.length - 1 ? "end" : "middle"
+    const anchor: Anchor = idx === 0 ? "start" : idx === xLabelIdx.length - 1 ? "end" : "middle"
     return (
-      <text key={`x-${i}`} x={round(plotX0 + projectX(i, n, plotW))} y={xLabelY} fill={ink} fontSize={AXIS_FONT} textAnchor={anchor}>
+      <div
+        key={`x-${i}`}
+        style={{
+          position: "absolute",
+          left: round(plotX0 + projectX(i, n, plotW)),
+          top: xLabelY,
+          transform: anchorTransform(anchor),
+          display: "flex",
+          color: ink,
+          fontSize: AXIS_FONT,
+        }}
+      >
         {rows[i].date}
-      </text>
+      </div>
     )
   })
 
   let seriesNodes: JSX.Element[] = []
   if (spec.type === "stacked") {
-    const polys = stackedAreaPolygons(rawSeries, domain.min, domain.max, plotW, plotH, spec.scale)
+    const polys = stackedAreaPolygons(rawSeries, plotMin, plotMax, plotW, plotH, spec.scale)
     seriesNodes = spec.series.map((s: SeriesRef, idx) => (
       <polygon key={s.key} points={shiftCoords(polys[idx] ?? "", plotX0, plotY0)} fill={s.color} fillOpacity={0.75} stroke="none" />
     ))
   } else if (spec.type === "area") {
     seriesNodes = spec.series.flatMap((s: SeriesRef, idx) => {
       const values = rawSeries[idx]
-      const area = shiftCoords(areaPolygon(values, domain.min, domain.max, plotW, plotH, spec.scale), plotX0, plotY0)
-      const line = shiftCoords(linePath(values, domain.min, domain.max, plotW, plotH, spec.scale), plotX0, plotY0)
+      const area = shiftCoords(areaPolygon(values, plotMin, plotMax, plotW, plotH, spec.scale), plotX0, plotY0)
+      const line = shiftCoords(linePath(values, plotMin, plotMax, plotW, plotH, spec.scale), plotX0, plotY0)
       return [
         <polygon key={`${s.key}-fill`} points={area} fill={s.color} fillOpacity={0.22} stroke="none" />,
         <path key={`${s.key}-line`} d={line} fill="none" stroke={s.color} strokeWidth={LINE_WIDTH} />,
@@ -370,7 +412,7 @@ export function ChartBody({
   } else {
     seriesNodes = spec.series.map((s: SeriesRef, idx) => {
       const values = rawSeries[idx]
-      const d = shiftCoords(linePath(values, domain.min, domain.max, plotW, plotH, spec.scale), plotX0, plotY0)
+      const d = shiftCoords(linePath(values, plotMin, plotMax, plotW, plotH, spec.scale), plotX0, plotY0)
       return (
         <path key={s.key} d={d} fill="none" stroke={s.color} strokeWidth={LINE_WIDTH} {...(s.dashed ? { strokeDasharray: "12 9" } : {})} />
       )
@@ -378,12 +420,14 @@ export function ChartBody({
   }
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
-      {gridLines}
+    <div style={{ display: "flex", position: "relative", width, height }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
+        {gridLines}
+        {seriesNodes}
+      </svg>
       {tickLabels}
       {xLabels}
-      {seriesNodes}
-    </svg>
+    </div>
   )
 }
 
@@ -426,31 +470,40 @@ function DonutBody({
   )
 
   const legendGap = width / Math.max(1, donutSlices.length)
-  const legend = donutSlices.flatMap((s, i) => {
+  const legendSwatches = donutSlices.map((s, i) => {
+    const x = legendGap * i + 12
+    const swatchY = plotH + legendH / 2 - 10
+    return <rect key={`${s.key}-swatch`} x={x} y={swatchY} width={16} height={16} fill={s.color} />
+  })
+  const legendLabels = donutSlices.map((s, i) => {
     const pct = total > 0 ? (Math.max(0, values[i]) / total) * 100 : 0
     const label = `${s.label} ${round1(pct)}%`
     const x = legendGap * i + 12
-    const swatchY = plotH + legendH / 2 - 10
     const textY = plotH + legendH / 2 + 6
-    return [
-      <rect key={`${s.key}-swatch`} x={x} y={swatchY} width={16} height={16} fill={s.color} />,
-      <text key={`${s.key}-label`} x={x + 22} y={textY} fill={muted} fontSize={AXIS_FONT}>
+    return (
+      <div
+        key={`${s.key}-label`}
+        style={{ position: "absolute", left: x + 22, top: textY, transform: "translate(0, -50%)", display: "flex", color: muted, fontSize: AXIS_FONT }}
+      >
         {label}
-      </text>,
-    ]
+      </div>
+    )
   })
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
-      {arcs.map((a, i) => (
-        <path key={donutSlices[i]?.key ?? i} d={a.d} fill={a.color} stroke="none" />
-      ))}
+    <div style={{ display: "flex", position: "relative", width, height }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
+        {arcs.map((a, i) => (
+          <path key={donutSlices[i]?.key ?? i} d={a.d} fill={a.color} stroke="none" />
+        ))}
+        {legendSwatches}
+      </svg>
       {rInner > 20 && (
-        <text x={cx} y={cy + 8} fill={ink} fontSize={28} textAnchor="middle">
+        <div style={{ position: "absolute", left: cx, top: cy, transform: "translate(-50%, -50%)", display: "flex", color: ink, fontSize: 28 }}>
           {formatTickLabel(total, spec.valueFormat)}
-        </text>
+        </div>
       )}
-      {legend}
-    </svg>
+      {legendLabels}
+    </div>
   )
 }
