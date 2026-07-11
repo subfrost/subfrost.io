@@ -107,9 +107,30 @@ describe("donutArcs", () => {
     expect(arcs[0].d.startsWith("M50,10")).toBe(true)
   })
 
-  it("sweeps clockwise: the first slice's end point moves toward 3 o'clock before 6 o'clock", () => {
+  it("sweeps clockwise: for a 25% first slice, the SVG sweep-flag is 1 and the endpoint moves toward 3 o'clock", () => {
+    // 25% / 75% split (pie wedges, rInner=0): first slice should run 12 o'clock -> 3 o'clock.
+    // d = "M{cx},{cy} L{startX},{startY} A{r},{r} 0 {largeArc} {sweep} {endX},{endY} Z"
+    const arcs = donutArcs(
+      [
+        { value: 1, color: "#111" }, // 25%
+        { value: 3, color: "#222" }, // 75%
+      ],
+      50,
+      50,
+      40,
+      0,
+    )
+    const match = arcs[0].d.match(/A[\d.]+,[\d.]+ 0 \d (\d) (-?[\d.]+),(-?[\d.]+)/)
+    expect(match).not.toBeNull()
+    const [, sweepFlag, endX] = match!
+    // SVG sweep-flag=1 = positive-angle direction, i.e. clockwise in SVG's y-down coordinate space
+    expect(sweepFlag).toBe("1")
+    // 12 o'clock start is (cx, cy - r) = (50, 10); clockwise from there moves toward 3 o'clock (x increases past cx=50)
+    expect(Number(endX)).toBeGreaterThan(50)
+  })
+
+  it("a lone full-circle slice (start === end at 12 o'clock) still renders a valid path", () => {
     const arcs = donutArcs([{ value: 1, color: "#111" }], 0, 0, 10, 0)
-    // a lone slice is a full circle starting/ending at 12 o'clock; just assert it renders as a path
     expect(arcs[0].d).toMatch(/^M/)
   })
 
