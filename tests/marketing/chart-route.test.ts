@@ -4,8 +4,10 @@ const store = vi.hoisted(() => ({ listOpReturnDaily: vi.fn() }))
 vi.mock("@/lib/marketing/opreturn-store", () => store)
 
 import { NextRequest } from "next/server"
-import { GET } from "@/app/metrics/chart/opreturn/route"
+import { GET, resolveRows } from "@/app/metrics/chart/opreturn/route"
+import { CHART_SPECS } from "@/lib/marketing/chart-specs"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
+import type { PublicOpReturnPayload } from "@/lib/marketing/public-opreturn"
 
 // Same fixture shape as tests/marketing/public-opreturn.test.ts — reused here so the resolved
 // series (byteComposition, bytesComposition, etc.) come out with real, non-degenerate numbers.
@@ -49,6 +51,109 @@ async function expectPng(res: Response) {
   const buf = new Uint8Array(await res.arrayBuffer())
   expect(buf.length).toBeGreaterThan(500) // a real rasterized 1200x675 PNG, not an empty/stub body
   expect(Array.from(buf.slice(0, 8))).toEqual(PNG_MAGIC)
+}
+
+/**
+ * A fully-populated PublicOpReturnPayload fixture, built directly (not via `listOpReturnDaily` +
+ * `getPublicOpReturnData`) so `resolveRows` can be unit-tested in isolation against known values.
+ * Every field that shares a shape with another field (e.g. all seven `OpReturnPoint[]` fields —
+ * `dieselTxShare`/`minerRevenueUsd`/`alkanesFeeShare`/`weightShare`/`ugDieselShare`/
+ * `dieselMintsPerDay`/`dieselCumulative` — or the four `{date,alkanes,pureRunes}[]` fields —
+ * `runesVsAlkanesShare`/`runesVsAlkanesBytes`/`runestoneTxShare`/`runestoneTxCount`) gets its own
+ * DISTINCT numbers on purpose: if `resolveRows` ever read the wrong same-typed field for a given
+ * chart id (a swap that type-checks cleanly since every field in a group shares one type), the
+ * resolved values below would no longer match the fixture for the field the test actually asserts
+ * on, and the test would fail.
+ */
+const FIXTURE_PAYLOAD: PublicOpReturnPayload = {
+  updatedAt: "2026-06-02",
+  days: 2,
+  header: { firstDate: "2026-06-01", lastDate: "2026-06-02", totalTxSampled: 600000 },
+  dailyShare: [
+    { date: "2026-06-01", txShare: 0.11, opReturnPenetration: 0.51 },
+    { date: "2026-06-02", txShare: 0.12, opReturnPenetration: 0.52 },
+  ],
+  opReturnShare: [
+    { date: "2026-06-01", txPct: 0.21, bytesPct: 0.31 },
+    { date: "2026-06-02", txPct: 0.22, bytesPct: 0.32 },
+  ],
+  latestDonut: { date: "2026-06-02", diesel: 900, alkanesOther: 100, other: 500 },
+  dieselTxShare: [
+    { date: "2026-06-01", value: 1001 },
+    { date: "2026-06-02", value: 1002 },
+  ],
+  bytesComposition: { alkanes: 0.6, runes: 0.25, other: 0.15 },
+  bytesPerTx: [
+    { date: "2026-06-01", alkanes: 41, rest: 42 },
+    { date: "2026-06-02", alkanes: 43, rest: 44 },
+  ],
+  minerRevenueUsd: [
+    { date: "2026-06-01", value: 2001 },
+    { date: "2026-06-02", value: 2002 },
+  ],
+  feesSplitBtc: [
+    { date: "2026-06-01", alkanes: 51, rest: 52 },
+    { date: "2026-06-02", alkanes: 53, rest: 54 },
+  ],
+  alkanesFeeShare: [
+    { date: "2026-06-01", value: 3001 },
+    { date: "2026-06-02", value: 3002 },
+  ],
+  weightShare: [
+    { date: "2026-06-01", value: 4001 },
+    { date: "2026-06-02", value: 4002 },
+  ],
+  ugDieselShare: [
+    { date: "2026-06-01", value: 5001 },
+    { date: "2026-06-02", value: 5002 },
+  ],
+  fourAnswers: [
+    { date: "2026-06-01", byTx: 0.61, byBytes: 0.62, byWeight: 0.63, byFee: 0.64 },
+    { date: "2026-06-02", byTx: 0.65, byBytes: 0.66, byWeight: 0.67, byFee: 0.68 },
+  ],
+  dieselMintsPerDay: [
+    { date: "2026-06-01", value: 111 },
+    { date: "2026-06-02", value: 222 },
+  ],
+  dieselCumulative: [
+    { date: "2026-06-01", value: 6001 },
+    { date: "2026-06-02", value: 6002 },
+  ],
+  feePerTx: [
+    { date: "2026-06-01", alkanes: 71, rest: 72 },
+    { date: "2026-06-02", alkanes: 73, rest: 74 },
+  ],
+  ugMintsPerDay: [
+    { date: "2026-06-01", diesel: 81, independent: 82 },
+    { date: "2026-06-02", diesel: 83, independent: 84 },
+  ],
+  runesVsAlkanesShare: [
+    { date: "2026-06-01", alkanes: 0.73, pureRunes: 0.27 },
+    { date: "2026-06-02", alkanes: 0.74, pureRunes: 0.26 },
+  ],
+  runesVsAlkanesBytes: [
+    { date: "2026-06-01", alkanes: 9001, pureRunes: 9002 },
+    { date: "2026-06-02", alkanes: 9003, pureRunes: 9004 },
+  ],
+  byteComposition: [
+    { date: "2026-06-01", alkanes: 0.81, pureRunes: 0.11, other: 0.08 },
+    { date: "2026-06-02", alkanes: 0.82, pureRunes: 0.1, other: 0.08 },
+  ],
+  runestoneTxShare: [
+    { date: "2026-06-01", alkanes: 0.91, pureRunes: 0.09 },
+    { date: "2026-06-02", alkanes: 0.92, pureRunes: 0.08 },
+  ],
+  runestoneTxCount: [
+    { date: "2026-06-01", alkanes: 9501, pureRunes: 9502 },
+    { date: "2026-06-02", alkanes: 9503, pureRunes: 9504 },
+  ],
+  stats: {
+    last30: { alkanesOfOpReturnTx: null, alkanesOfOpReturnBytes: null, alkanesFeeShare: null, opReturnFeeShare: null },
+    full: { alkanesFeeShare: null, opReturnFeeShare: null, alkanesBytesPerTx: null },
+    latest: null,
+    weight: { full: null, latest: null },
+    ug: { early30: null, last30: null, full: null },
+  },
 }
 
 describe("GET /metrics/chart/opreturn", () => {
@@ -122,5 +227,29 @@ describe("GET /metrics/chart/opreturn", () => {
     store.listOpReturnDaily.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=diesel-mints-per-day&window=full&theme=light"))
     await expectPng(res)
+  })
+})
+
+// Regression guard for the "Data-mapping regression coverage is thin" review finding: every test
+// above only checks "renders a real PNG" (status + magic bytes + length), which can't distinguish
+// correct values from a swapped-field bug (e.g. resolveRows accidentally reading `alkanesFeeShare`
+// for `diesel-tx-share` — both `OpReturnPoint[]`, both routed through `spreadRows`, so no type
+// error would result). These tests call `resolveRows` directly and assert the EXACT values it
+// returns, keyed by each chart's own `spec.series[].key`, against the deliberately-distinct
+// FIXTURE_PAYLOAD above — a field mixup changes the asserted numbers, not just presence/shape.
+describe("resolveRows (exact value mapping)", () => {
+  it("maps diesel-mints-per-day (1-series) from payload.dieselMintsPerDay, not a same-shaped sibling field", () => {
+    const spec = CHART_SPECS["diesel-mints-per-day"]
+    const rows = resolveRows("diesel-mints-per-day", FIXTURE_PAYLOAD, "full")
+    expect(rows.map((r) => r.date)).toEqual(["2026-06-01", "2026-06-02"])
+    expect(rows.map((r) => r[spec.series[0].key])).toEqual([111, 222])
+  })
+
+  it("maps runes-vs-alkanes-share (multi-series) from payload.runesVsAlkanesShare, not a same-shaped sibling field", () => {
+    const spec = CHART_SPECS["runes-vs-alkanes-share"]
+    const rows = resolveRows("runes-vs-alkanes-share", FIXTURE_PAYLOAD, "full")
+    expect(rows.map((r) => r.date)).toEqual(["2026-06-01", "2026-06-02"])
+    expect(rows.map((r) => r[spec.series[0].key])).toEqual([0.73, 0.74]) // "alkanes"
+    expect(rows.map((r) => r[spec.series[1].key])).toEqual([0.27, 0.26]) // "pureRunes"
   })
 })

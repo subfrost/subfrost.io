@@ -1,10 +1,8 @@
 import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
-import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
 import { getPublicOpReturnData, type PublicOpReturnPayload } from "@/lib/marketing/public-opreturn"
 import { parseChartParams } from "@/lib/marketing/chart-specs"
 import { WINDOW_DAYS, WINDOW_LABELS, type WindowKey } from "@/lib/marketing/opreturn-types"
-import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
 import { ChartBody, type ChartRow } from "@/lib/marketing/chart-draw"
 
@@ -80,7 +78,7 @@ function spreadRows<T extends { date: string }>(arr: T[]): ChartRow[] {
  * of a 500. Unknown ids can't reach here (parseChartParams already 400s them); default is a safety
  * net, not a code path expected to run.
  */
-function resolveRows(id: string, payload: PublicOpReturnPayload, window: WindowKey): ChartRow[] {
+export function resolveRows(id: string, payload: PublicOpReturnPayload, window: WindowKey): ChartRow[] {
   switch (id) {
     case "daily-alkanes-share":
       return windowSlice(payload.dailyShare, window)
@@ -140,20 +138,12 @@ export async function GET(req: NextRequest) {
   const { spec, window, theme } = params
   const dark = theme !== "light"
 
-  // Never throw on a stats failure -- render the frame with an empty plot instead of a 500.
-  // getPublicOpReturnData already swallows a listOpReturnDaily failure internally (returns its
-  // EMPTY payload); this direct call (only used for the footer's "as of" date, same as the card
-  // route) needs its own guard for the same reason.
-  let rows: OpReturnRow[] = []
-  try {
-    rows = await listOpReturnDaily()
-  } catch (e) {
-    console.error("[chart-route] listOpReturnDaily failed", e)
-  }
-  const asOf = rows.length ? rows[rows.length - 1].date : null
-
+  // getPublicOpReturnData never throws on a stats failure -- it swallows a listOpReturnDaily
+  // failure internally and returns its EMPTY payload (lastDate: null), so the frame still
+  // renders (empty plot, no "as of" suffix) instead of a 500.
   const payload = await getPublicOpReturnData()
   const chartRows = resolveRows(spec.id, payload, window)
+  const asOf = payload.header.lastDate
 
   const [logo, font] = await Promise.all([loadOgLogomark(), loadOgFont()])
 
