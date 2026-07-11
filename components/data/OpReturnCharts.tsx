@@ -9,6 +9,37 @@ import type { Payload as LegendPayload } from "recharts/types/component/DefaultL
 import type { PublicOpReturnPayload, OpReturnPoint } from "@/lib/marketing/public-opreturn"
 import { ShareMenu } from "@/components/share/ShareMenu"
 import { opReturnCardUrl } from "@/lib/marketing/opreturn-card"
+import { chartImageUrl } from "@/lib/marketing/chart-specs"
+
+// Maps each Card below to its CHART_SPECS id (lib/marketing/chart-specs.ts) — the single source
+// of truth both the component (chartUrl={chartImageUrl(CHART_ID.x, ...)}) and
+// tests/marketing/chart-wiring.test.ts read from, so the wiring can't silently drift from the
+// spec map. Append-only, same contract as CHART_SPECS itself.
+const CHART_ID = {
+  dailyShare: "daily-alkanes-share",
+  opReturnShare: "alkanes-share-of-opreturn",
+  weightShare: "alkanes-weight-share",
+  fourAnswers: "four-answers",
+  latestDonut: "last-day-composition",
+  dieselTxShare: "diesel-tx-share",
+  dieselMintsPerDay: "diesel-mints-per-day",
+  dieselCumulative: "diesel-mints-cumulative",
+  ugDieselShare: "ug-diesel-share",
+  ugMintsPerDay: "ug-mints-per-day",
+  runesVsAlkanesShare: "runes-vs-alkanes-share",
+  runesVsAlkanesBytes: "runes-vs-alkanes-bytes",
+  byteComposition: "byte-composition",
+  runestoneTxShare: "runestone-tx-share",
+  runestoneTxCount: "runestone-tx-count",
+  bytesDonut: "bytes-donut",
+  bytesPerTx: "bytes-per-tx",
+  minerRevenueUsd: "miner-revenue-usd",
+  feesSplitBtc: "fees-split-btc",
+  alkanesFeeShare: "alkanes-fee-share",
+  feePerTx: "fee-per-tx",
+} as const
+
+export const CHART_IDS: string[] = Object.values(CHART_ID)
 
 export interface OpReturnCopy {
   title: string
@@ -105,20 +136,24 @@ function fmtDate(iso: string, locale: "en" | "zh"): string {
   return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(d)
 }
 
-function Card({ title, children, desc, share, anchorId, shareLink }: {
+function Card({ title, children, desc, share, anchorId, shareLink, chartUrl }: {
   title: string; children: React.ReactNode; desc?: string
   share?: { cardUrl: string; text: string; alt: string; locale: "en" | "zh" }
   anchorId?: string
   shareLink?: { text: string; locale: "en" | "zh" }
+  /** "Copy chart" PNG url (chartImageUrl from lib/marketing/chart-specs.ts) — passed to every
+   *  ShareMenu below regardless of branch, so ALL 21 charts expose "Copy chart", not just the
+   *  8 that already have a stat card. */
+  chartUrl?: string
 }) {
   return (
     <div id={anchorId} className="flex flex-col gap-3 rounded-2xl border p-6" style={{ borderColor: HAIRLINE, background: "var(--ed-card, transparent)", scrollMarginTop: "88px" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
         {share ? (
-          <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" />
+          <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} chartUrl={chartUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" />
         ) : shareLink && anchorId ? (
-          <ShareMenu url={`https://subfrost.io/metrics#${anchorId}`} text={shareLink.text} locale={shareLink.locale} align="end" />
+          <ShareMenu url={`https://subfrost.io/metrics#${anchorId}`} chartUrl={chartUrl} text={shareLink.text} locale={shareLink.locale} align="end" />
         ) : null}
       </div>
       {children}
@@ -436,7 +471,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
       {/* 2 columns max — the charts are the emphasis of the page (bigger, easier to read). */}
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {/* 1. Daily Alkanes share */}
-        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc} share={shareFor(copy.charts.dailyShare.title, { metric: "alkanesTxShare", template: "hero", window: cardWindow })}>
+        <Card title={copy.charts.dailyShare.title} desc={copy.charts.dailyShare.desc} share={shareFor(copy.charts.dailyShare.title, { metric: "alkanesTxShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.dailyShare, cardWindow, "dark")}>
           <ToggleLineChart
             data={dailyShare}
             seriesKeys={[
@@ -456,7 +491,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.opReturnShare.title} desc={fill(copy.charts.opReturnShare.desc, {
           txPct30: fmtPct(stats.last30.alkanesOfOpReturnTx),
           bytesPct30: fmtPct(stats.last30.alkanesOfOpReturnBytes),
-        })} share={shareFor(copy.charts.opReturnShare.title, { metric: "alkanesOfOpReturnShare", template: "hero", window: cardWindow })}>
+        })} share={shareFor(copy.charts.opReturnShare.title, { metric: "alkanesOfOpReturnShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.opReturnShare, cardWindow, "dark")}>
           <ToggleLineChart
             data={opReturnShare}
             seriesKeys={[
@@ -474,12 +509,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         <Card title={copy.charts.weightShare.title} desc={fill(copy.charts.weightShare.desc, {
           weightShareFull: fmtPct(stats.weight.full),
           weightShareLatest: fmtPct(stats.weight.latest),
-        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: cardWindow })}>
+        })} share={shareFor(copy.charts.weightShare.title, { metric: "alkanesWeightShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.weightShare, cardWindow, "dark")}>
           <SingleLineChart data={weightShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* How much of Bitcoin is Alkanes? Four answers (tx / OP_RETURN bytes / weight / fee revenue) */}
-        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: cardWindow })}>
+        <Card title={copy.charts.fourAnswers.title} desc={copy.charts.fourAnswers.desc} share={shareFor(copy.charts.fourAnswers.title, { template: "answers", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.fourAnswers, cardWindow, "dark")}>
           <ToggleLineChart
             data={fourAnswers}
             seriesKeys={[
@@ -511,6 +546,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
             })}
             anchorId="last-day-composition"
             shareLink={linkFor(copy.charts.latestDonut.title)}
+            chartUrl={chartImageUrl(CHART_ID.latestDonut, "full", "dark")}
           >
             <LabeledPie
               height={220}
@@ -523,17 +559,17 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         ) : null}
 
         {/* 5. DIESEL mints share of all tx */}
-        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: cardWindow })}>
+        <Card title={copy.charts.dieselTxShare.title} desc={copy.charts.dieselTxShare.desc} share={shareFor(copy.charts.dieselTxShare.title, { metric: "dieselTxShareOfAll", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.dieselTxShare, cardWindow, "dark")}>
           <SingleLineChart data={dieselTxShare} dataKey="value" color={SECOND} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* DIESEL mints per day — the birth curve (log scale) */}
-        <Card title={copy.charts.dieselMintsPerDay.title} desc={copy.charts.dieselMintsPerDay.desc} anchorId="diesel-mints-per-day" shareLink={linkFor(copy.charts.dieselMintsPerDay.title)}>
+        <Card title={copy.charts.dieselMintsPerDay.title} desc={copy.charts.dieselMintsPerDay.desc} anchorId="diesel-mints-per-day" shareLink={linkFor(copy.charts.dieselMintsPerDay.title)} chartUrl={chartImageUrl(CHART_ID.dieselMintsPerDay, cardWindow, "dark")}>
           <SingleLineChart data={dieselMintsPerDay} dataKey="value" color={SECOND} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} logScale />
         </Card>
 
         {/* DIESEL minted — cumulative since genesis */}
-        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc} share={shareFor(copy.charts.dieselCumulative.title, { metric: "dieselMintedCumulative", template: "hero", window: "full" })}>
+        <Card title={copy.charts.dieselCumulative.title} desc={copy.charts.dieselCumulative.desc} share={shareFor(copy.charts.dieselCumulative.title, { metric: "dieselMintedCumulative", template: "hero", window: "full" })} chartUrl={chartImageUrl(CHART_ID.dieselCumulative, "full", "dark")}>
           <SingleLineChart data={dieselCumulative} dataKey="value" color={ACCENT} yTickFormatter={axisNumCompact} tooltipFormatter={tooltipNum} area />
         </Card>
 
@@ -542,12 +578,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           ugShareEarly: fmtPct(stats.ug.early30),
           ugShareRecent: fmtPct(stats.ug.last30),
           ugShareFull: fmtPct(stats.ug.full),
-        })} anchorId="ug-diesel-share" shareLink={linkFor(copy.charts.ugDieselShare.title)}>
+        })} anchorId="ug-diesel-share" shareLink={linkFor(copy.charts.ugDieselShare.title)} chartUrl={chartImageUrl(CHART_ID.ugDieselShare, cardWindow, "dark")}>
           <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* UNCOMMON•GOODS mints per day — taken over by DIESEL (stacked, raw sampled counts) */}
-        <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc} anchorId="ug-mints-per-day" shareLink={linkFor(copy.charts.ugMintsPerDay.title)}>
+        <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc} anchorId="ug-mints-per-day" shareLink={linkFor(copy.charts.ugMintsPerDay.title)} chartUrl={chartImageUrl(CHART_ID.ugMintsPerDay, cardWindow, "dark")}>
           <ToggleLineChart
             data={ugMintsPerDay}
             seriesKeys={[
@@ -564,7 +600,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runes (non-Alkanes) vs Alkanes — share of OP_RETURN bytes (%) */}
-        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc} share={shareFor(copy.charts.runesVsAlkanesShare.title, { metric: "alkanesBytesShare", template: "hero", window: cardWindow })}>
+        <Card title={copy.charts.runesVsAlkanesShare.title} desc={copy.charts.runesVsAlkanesShare.desc} share={shareFor(copy.charts.runesVsAlkanesShare.title, { metric: "alkanesBytesShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.runesVsAlkanesShare, cardWindow, "dark")}>
           <ToggleLineChart
             data={runesVsAlkanesShare}
             seriesKeys={[
@@ -579,7 +615,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runes (non-Alkanes) vs Alkanes — absolute bytes per day (log scale) */}
-        <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc} anchorId="runes-vs-alkanes-bytes" shareLink={linkFor(copy.charts.runesVsAlkanesBytes.title)}>
+        <Card title={copy.charts.runesVsAlkanesBytes.title} desc={copy.charts.runesVsAlkanesBytes.desc} anchorId="runes-vs-alkanes-bytes" shareLink={linkFor(copy.charts.runesVsAlkanesBytes.title)} chartUrl={chartImageUrl(CHART_ID.runesVsAlkanesBytes, cardWindow, "dark")}>
           <ToggleLineChart
             data={runesVsAlkanesBytes}
             seriesKeys={[
@@ -595,7 +631,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* OP_RETURN byte composition over time (stacked %) — the temporal view of the since-genesis donut */}
-        <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc} anchorId="byte-composition" shareLink={linkFor(copy.charts.byteComposition.title)}>
+        <Card title={copy.charts.byteComposition.title} desc={copy.charts.byteComposition.desc} anchorId="byte-composition" shareLink={linkFor(copy.charts.byteComposition.title)} chartUrl={chartImageUrl(CHART_ID.byteComposition, cardWindow, "dark")}>
           <ToggleLineChart
             data={byteComposition}
             seriesKeys={[
@@ -613,7 +649,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions — Alkanes protostones vs Runes (non-Alkanes) (share %) */}
-        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: cardWindow })}>
+        <Card title={copy.charts.runestoneTxShare.title} desc={copy.charts.runestoneTxShare.desc} share={shareFor(copy.charts.runestoneTxShare.title, { metric: "alkanesRunestoneTxShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.runestoneTxShare, cardWindow, "dark")}>
           <ToggleLineChart
             data={runestoneTxShare}
             seriesKeys={[
@@ -628,7 +664,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* Runestone transactions per day — Alkanes vs Runes (non-Alkanes) (count, log scale) */}
-        <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc} anchorId="runestone-tx-count" shareLink={linkFor(copy.charts.runestoneTxCount.title)}>
+        <Card title={copy.charts.runestoneTxCount.title} desc={copy.charts.runestoneTxCount.desc} anchorId="runestone-tx-count" shareLink={linkFor(copy.charts.runestoneTxCount.title)} chartUrl={chartImageUrl(CHART_ID.runestoneTxCount, cardWindow, "dark")}>
           <ToggleLineChart
             data={runestoneTxCount}
             seriesKeys={[
@@ -645,7 +681,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
 
         {/* 7. OP_RETURN bytes (since DIESEL genesis) — donut, fixed composition */}
         {bytesComposition ? (
-          <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc} share={shareFor(copy.charts.bytesDonut.title, { template: "compare", window: "full" })}>
+          <Card title={copy.charts.bytesDonut.title} desc={copy.charts.bytesDonut.desc} share={shareFor(copy.charts.bytesDonut.title, { template: "compare", window: "full" })} chartUrl={chartImageUrl(CHART_ID.bytesDonut, "full", "dark")}>
             <LabeledPie
               height={230}
               innerRadius={55}
@@ -661,7 +697,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         {/* 8. OP_RETURN bytes per tx */}
         <Card title={copy.charts.bytesPerTx.title} desc={fill(copy.charts.bytesPerTx.desc, {
           bytesPerTx: fmtBytesPerTx(stats.full.alkanesBytesPerTx),
-        })} anchorId="bytes-per-tx" shareLink={linkFor(copy.charts.bytesPerTx.title)}>
+        })} anchorId="bytes-per-tx" shareLink={linkFor(copy.charts.bytesPerTx.title)} chartUrl={chartImageUrl(CHART_ID.bytesPerTx, cardWindow, "dark")}>
           <ToggleLineChart
             data={bytesPerTx}
             seriesKeys={[
@@ -676,12 +712,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
         </Card>
 
         {/* 9. Miner fee revenue USD */}
-        <Card title={copy.charts.minerRevenueUsd.title} desc={copy.charts.minerRevenueUsd.desc} anchorId="miner-revenue-usd" shareLink={linkFor(copy.charts.minerRevenueUsd.title)}>
+        <Card title={copy.charts.minerRevenueUsd.title} desc={copy.charts.minerRevenueUsd.desc} anchorId="miner-revenue-usd" shareLink={linkFor(copy.charts.minerRevenueUsd.title)} chartUrl={chartImageUrl(CHART_ID.minerRevenueUsd, cardWindow, "dark")}>
           <SingleLineChart data={minerRevenueUsd} dataKey="value" color={SECOND} yTickFormatter={axisUsdCompact} tooltipFormatter={tooltipUsd} area />
         </Card>
 
         {/* 10. Miner fees split BTC (stacked) */}
-        <Card title={copy.charts.feesSplitBtc.title} desc={copy.charts.feesSplitBtc.desc} anchorId="fees-split-btc" shareLink={linkFor(copy.charts.feesSplitBtc.title)}>
+        <Card title={copy.charts.feesSplitBtc.title} desc={copy.charts.feesSplitBtc.desc} anchorId="fees-split-btc" shareLink={linkFor(copy.charts.feesSplitBtc.title)} chartUrl={chartImageUrl(CHART_ID.feesSplitBtc, cardWindow, "dark")}>
           <ToggleLineChart
             data={feesSplitBtc}
             seriesKeys={[
@@ -703,12 +739,12 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           feeShare30: fmtPct(stats.last30.alkanesFeeShare),
           opRetFeeShare30: fmtPct(stats.last30.opReturnFeeShare),
           opRetFeeShareFull: fmtPct(stats.full.opReturnFeeShare),
-        })} share={shareFor(copy.charts.alkanesFeeShare.title, { metric: "alkanesFeeShare", template: "hero", window: cardWindow })}>
+        })} share={shareFor(copy.charts.alkanesFeeShare.title, { metric: "alkanesFeeShare", template: "hero", window: cardWindow })} chartUrl={chartImageUrl(CHART_ID.alkanesFeeShare, cardWindow, "dark")}>
           <SingleLineChart data={alkanesFeeShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
         {/* Fee per transaction — Alkanes vs everyone else (sats/tx) */}
-        <Card title={copy.charts.feePerTx.title} desc={copy.charts.feePerTx.desc} anchorId="fee-per-tx" shareLink={linkFor(copy.charts.feePerTx.title)}>
+        <Card title={copy.charts.feePerTx.title} desc={copy.charts.feePerTx.desc} anchorId="fee-per-tx" shareLink={linkFor(copy.charts.feePerTx.title)} chartUrl={chartImageUrl(CHART_ID.feePerTx, cardWindow, "dark")}>
           <ToggleLineChart
             data={feePerTx}
             seriesKeys={[

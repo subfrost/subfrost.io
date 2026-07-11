@@ -52,14 +52,58 @@ describe("ShareMenu", () => {
     expect(queryByText("Copy image")).toBeNull()
   })
 
-  it("card variant (imageUrl) adds Copy image which copies the PNG", () => {
+  it("card variant (imageUrl) adds Copy stat card which copies the PNG", () => {
     const img = "https://subfrost.io/metrics/card/btc-locked"
     const { getByRole, getByText } = render(
       <ShareMenu url={img} imageUrl={img} text="BTC locked: 94.74 BTC @subfrost_news" locale="en" />,
     )
     fireEvent.click(getByRole("button", { name: /share/i }))
-    fireEvent.click(getByText("Copy image"))
+    fireEvent.click(getByText("Copy stat card"))
     expect(copyImageToClipboard).toHaveBeenCalledWith(img)
+  })
+
+  it("card variant no longer shows the old Copy image label", () => {
+    const img = "https://subfrost.io/metrics/card/btc-locked"
+    const { getByRole, queryByText } = render(
+      <ShareMenu url={img} imageUrl={img} text="BTC locked: 94.74 BTC @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    expect(queryByText("Copy image")).toBeNull()
+  })
+
+  it("chartUrl adds a Copy chart item which copies the PNG", () => {
+    const chart = "https://subfrost.io/metrics/chart/opreturn?metric=alkanesTxShare"
+    const { getByRole, getByText } = render(
+      <ShareMenu url="https://subfrost.io/metrics" chartUrl={chart} text="t @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    fireEvent.click(getByText("Copy chart"))
+    expect(copyImageToClipboard).toHaveBeenCalledWith(chart)
+  })
+
+  it("with both chartUrl and imageUrl, Copy chart renders before Copy stat card", () => {
+    const chart = "https://subfrost.io/metrics/chart/opreturn?metric=alkanesTxShare"
+    const img = "https://subfrost.io/metrics/card/btc-locked"
+    const { getByRole, getByText } = render(
+      <ShareMenu url="https://subfrost.io/metrics" chartUrl={chart} imageUrl={img} text="t @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    const chartItem = getByText("Copy chart")
+    const cardItem = getByText("Copy stat card")
+    expect(chartItem).toBeTruthy()
+    expect(cardItem).toBeTruthy()
+    expect(chartItem.compareDocumentPosition(cardItem) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("Post on X copies chartUrl when present (not imageUrl)", () => {
+    const chart = "https://subfrost.io/metrics/chart/opreturn?metric=alkanesTxShare"
+    const img = "https://subfrost.io/metrics/card/btc-locked"
+    const { getByRole, getByText } = render(
+      <ShareMenu url="https://subfrost.io/metrics" chartUrl={chart} imageUrl={img} text="t @subfrost_news" locale="en" />,
+    )
+    fireEvent.click(getByRole("button", { name: /share/i }))
+    fireEvent.click(getByText("Post on X"))
+    expect(copyImageToClipboard).toHaveBeenCalledWith(chart)
   })
 
   it("card Post on X also copies the image (so it can be pasted)", () => {
