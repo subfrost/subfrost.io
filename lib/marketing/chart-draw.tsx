@@ -331,10 +331,18 @@ export function ChartBody({
     return DonutBody({ spec, rows, width, height, ink, muted })
   }
 
+  // A legend disambiguates which colored line/area is which series -- required once there's more
+  // than one (a single-series chart is already unambiguous: the title names the one series, same
+  // gate the page itself uses for its own Legend, see ToggleLineChart's `seriesKeys.length > 1`).
+  // It eats a fixed band out of the bottom of `height`, below the x-axis date labels, so the plot
+  // area shrinks a bit rather than the legend clipping the frame's footer.
+  const hasLegend = spec.series.length > 1
+  const LEGEND_H = hasLegend ? 32 : 0
+
   const plotX0 = LEFT_AXIS_W
   const plotY0 = TOP_PAD
   const plotW = Math.max(1, width - LEFT_AXIS_W - RIGHT_PAD)
-  const plotH = Math.max(1, height - TOP_PAD - BOTTOM_AXIS_H)
+  const plotH = Math.max(1, height - TOP_PAD - BOTTOM_AXIS_H - LEGEND_H)
 
   const rawSeries = spec.series.map((s) => sanitizeForScale(collectValues(rows, s.key), spec.scale))
   const domain = computeDomain(rawSeries, spec.scale, spec.type === "stacked")
@@ -419,14 +427,46 @@ export function ChartBody({
     })
   }
 
+  // Mirrors DonutBody's legend markup below: a swatch <rect> per series inside the <svg>, paired
+  // with an absolutely-positioned <div> label outside it (satori rejects <text> nodes inside a raw
+  // <svg> subtree -- see the note above anchorTransform()). One row, evenly spread across plotW,
+  // sitting in the LEGEND_H band reserved below the x-axis date labels.
+  let legendSwatches: JSX.Element[] = []
+  let legendLabels: JSX.Element[] = []
+  if (hasLegend) {
+    const legendY = plotY0 + plotH + BOTTOM_AXIS_H + LEGEND_H / 2
+    const legendGap = plotW / spec.series.length
+    legendSwatches = spec.series.map((s: SeriesRef, i) => (
+      <rect key={`${s.key}-legend-swatch`} x={round(plotX0 + legendGap * i)} y={round(legendY - 7)} width={14} height={14} fill={s.color} />
+    ))
+    legendLabels = spec.series.map((s: SeriesRef, i) => (
+      <div
+        key={`${s.key}-legend-label`}
+        style={{
+          position: "absolute",
+          left: round(plotX0 + legendGap * i + 20),
+          top: legendY,
+          transform: "translate(0, -50%)",
+          display: "flex",
+          color: muted,
+          fontSize: AXIS_FONT,
+        }}
+      >
+        {s.label}
+      </div>
+    ))
+  }
+
   return (
     <div style={{ display: "flex", position: "relative", width, height }}>
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "flex" }}>
         {gridLines}
         {seriesNodes}
+        {legendSwatches}
       </svg>
       {tickLabels}
       {xLabels}
+      {legendLabels}
     </div>
   )
 }

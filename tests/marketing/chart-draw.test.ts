@@ -149,6 +149,19 @@ describe("donutArcs", () => {
   })
 })
 
+/** Recursively collects every string/number leaf under a React element tree (JSX.Element from
+ *  ChartBody is never mounted to a DOM in these tests, so we can't query rendered text -- walk
+ *  `.props.children` by hand instead). Used to assert a legend label is (or isn't) present. */
+function collectText(node: unknown): string[] {
+  if (node === null || node === undefined || typeof node === "boolean") return []
+  if (typeof node === "string" || typeof node === "number") return [String(node)]
+  if (Array.isArray(node)) return node.flatMap(collectText)
+  if (typeof node === "object" && node !== null && "props" in node) {
+    return collectText((node as { props?: { children?: unknown } }).props?.children)
+  }
+  return []
+}
+
 describe("ChartBody", () => {
   const lineSpec = {
     id: "test-line",
@@ -197,5 +210,34 @@ describe("ChartBody", () => {
     const el = ChartBody({ spec: donutSpec, rows: donutRows, width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
     expect(el).toBeTruthy()
     expect(el.type).toBe("div")
+  })
+
+  it("renders a legend with every series' label for a multi-series line chart", () => {
+    const twoSeriesSpec = {
+      id: "test-two-series",
+      title: "Test two series",
+      type: "line" as const,
+      scale: "linear" as const,
+      valueFormat: "pct" as const,
+      series: [
+        { key: "a", label: "Series Alpha", color: "#5dcaa5" },
+        { key: "b", label: "Series Beta", color: "#f0997b" },
+      ],
+    }
+    const twoSeriesRows = [
+      { date: "2026-01-01", a: 0.1, b: 0.2 },
+      { date: "2026-01-02", a: 0.2, b: 0.3 },
+    ]
+    const el = ChartBody({ spec: twoSeriesSpec, rows: twoSeriesRows, width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
+    const texts = collectText(el)
+    expect(texts).toContain("Series Alpha")
+    expect(texts).toContain("Series Beta")
+  })
+
+  it("does NOT render a legend row for a single-series chart", () => {
+    const el = ChartBody({ spec: lineSpec, rows, width: 800, height: 400, ink: "#fff", muted: "#aab8d6", grid: "#22304d" })
+    const texts = collectText(el)
+    // lineSpec has exactly one series (label "A"); the title already names it, so no legend text.
+    expect(texts).not.toContain("A")
   })
 })
