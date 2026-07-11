@@ -277,8 +277,8 @@ export function parseChartParams(sp: URLSearchParams): { spec: ChartSpec; window
   const id = sp.get("id") ?? ""
   const window = sp.get("window") ?? DEFAULT_WINDOW
   const theme = sp.get("theme") ?? DEFAULT_THEME
+  if (!Object.prototype.hasOwnProperty.call(CHART_SPECS, id)) return null
   const spec = CHART_SPECS[id]
-  if (!spec) return null
   if (!Object.prototype.hasOwnProperty.call(WINDOW_DAYS, window)) return null
   if (theme !== "dark" && theme !== "light") return null
   return { spec, window: window as WindowKey, theme }

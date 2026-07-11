@@ -78,6 +78,11 @@ describe("parseChartParams", () => {
     expect(parseChartParams(new URLSearchParams(""))).toBeNull()
   })
 
+  it("returns null for Object.prototype member ids (prototype pollution guard)", () => {
+    expect(parseChartParams(new URLSearchParams("id=toString&window=full&theme=dark"))).toBeNull()
+    expect(parseChartParams(new URLSearchParams("id=__proto__&window=full&theme=dark"))).toBeNull()
+  })
+
   it("returns the spec for a known id with default window/theme", () => {
     const result = parseChartParams(new URLSearchParams("id=diesel-mints-per-day"))
     expect(result).not.toBeNull()
