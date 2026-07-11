@@ -15,7 +15,7 @@ type Locale = "en" | "zh"
 const copy: Record<Locale, ProfileCopy> = {
   en: {
     back: "← Ecosystem",
-    disclaimer: "Listed for discovery only — SUBFROST does not endorse or vouch for this project. Always do your own research.",
+    disclaimer: "This is an independent third-party project. SUBFROST did not build, does not control, and has not audited it. Listing is not an endorsement, and nothing here is financial advice. Do your own research.",
     website: "Website", docs: "Docs", overview: "Overview",
     contractsTitle: "Contracts", contractCol: "Contract", idCol: "Alkane ID", notesCol: "Notes",
     statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
@@ -24,7 +24,7 @@ const copy: Record<Locale, ProfileCopy> = {
   },
   zh: {
     back: "← 生态系统",
-    disclaimer: "仅供发现之用——SUBFROST 不对该项目作背书或担保。请务必自行研究（DYOR）。",
+    disclaimer: "这是一个独立的第三方项目。SUBFROST 未构建、不控制、也未审计它。列入本目录不代表背书，本页内容也不构成财务建议。请务必自行研究（DYOR）。",
     website: "官网", docs: "文档", overview: "概览",
     contractsTitle: "合约", contractCol: "合约", idCol: "Alkane ID", notesCol: "说明",
     statuses: { Live: "已上线", Beta: "测试版", Building: "构建中" },
