@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import { EcosystemDirectory } from "@/components/ecosystem/EcosystemDirectory"
+import { EcosystemNotice } from "@/components/ecosystem/EcosystemNotice"
 import { HeroMosaic } from "@/components/ecosystem/HeroMosaic"
 import { getEcosystemDirectory } from "@/lib/ecosystem/public"
 import { absoluteUrl } from "@/lib/seo"
@@ -34,7 +35,7 @@ I'd like to submit a project for the Alkanes ecosystem directory.
 
 Thanks!`,
     disclaimer:
-      "This directory is for discovery only. SUBFROST does not endorse, vet, or vouch for the projects listed here — always do your own research.",
+      "This directory celebrates what independent teams are building on Alkanes. SUBFROST did not build, does not control, and has not audited these projects. A listing is not an endorsement, a partnership, or a safety review, and nothing on this page is financial advice. Do your own research before you use any of them.",
     projectsWord: "projects",
     categoriesWord: "categories",
     directory: {
@@ -71,7 +72,7 @@ Thanks!`,
 
 谢谢！`,
     disclaimer:
-      "本目录仅供发现之用。SUBFROST 不对此处列出的项目作任何背书、审查或担保——请务必自行研究（DYOR）。",
+      "本目录展示独立团队在 Alkanes 上构建的项目。SUBFROST 未构建、不控制、也未审计这些项目。列入本目录并不代表背书、合作或安全审查，本页任何内容也不构成财务建议。在使用任何项目之前，请务必自行研究（DYOR）。",
     projectsWord: "个项目",
     categoriesWord: "个分类",
     directory: {
@@ -137,11 +138,9 @@ export default async function EcosystemPage({ searchParams }: { searchParams?: P
           <HeroMosaic projects={projects} />
         </section>
 
-        <EcosystemDirectory projects={projects} featuredBandEnabled={featuredBandEnabled} copy={c.directory} />
+        <EcosystemNotice text={c.disclaimer} className="mx-6 mb-8 sm:mx-10" />
 
-        <p className="mt-4 border-t border-[color:var(--ed-hair)] px-6 pt-6 font-mono text-[11px] leading-relaxed text-[color:var(--ed-muted)] sm:px-10">
-          {c.disclaimer}
-        </p>
+        <EcosystemDirectory projects={projects} featuredBandEnabled={featuredBandEnabled} copy={c.directory} />
       </main>
     </EditorialShell>
   )
