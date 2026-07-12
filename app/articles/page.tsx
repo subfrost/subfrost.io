@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { getPublishedPreviews, type ArticlePreview, type CmsLocale } from "@/lib/cms/articles"
+import { selectArticleIndexSections } from "@/lib/cms/articleIndexLayout"
 import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
@@ -174,7 +175,8 @@ function RecentMiniArticleCard({ a, locale, coverVariant }: { a: ArticlePreview;
         background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
       }}
     >
-      <Link href={articleHref(a.slug, locale)} className="aspect-[16/9] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]" prefetch={false}>
+      {/* Covers are authored at 24:11 (house rule); any other frame crops the banner text. */}
+      <Link href={articleHref(a.slug, locale)} className="aspect-[24/11] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]" prefetch={false}>
         <CmsCoverImage src={a.coverImage} className="h-full w-full object-cover" fallbackVariant={coverVariant} />
       </Link>
       <div className="min-w-0 flex-1">
@@ -206,7 +208,7 @@ function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[n
         background: "color-mix(in srgb, var(--ed-surface) 28%, transparent)",
       }}
     >
-      <div className="aspect-[16/9] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]">
+      <div className="aspect-[24/11] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]">
         <CoverArt className="h-full w-full" variant={`recent-${doc.href}`} />
       </div>
       <div className="min-w-0 flex-1">
@@ -266,11 +268,9 @@ export default async function ArticlesIndex({
   const isAllTopic = !selectedTopic
   const isDocsTopic = selectedTopic?.id === "docs"
   const articles = selectedTopic ? allArticles.filter((article) => articleMatchesTopic(article, selectedTopic.aliases)) : allArticles
-  const [featuredLead] = allArticles
-  const latest = allArticles.slice(1, 6)
+  const { featuredLead, latest, feedArticles } = selectArticleIndexSections(allArticles, isAllTopic ? null : articles)
   const recentDocs: Array<(typeof docsBackfill)[number]> = []
   const hasRecent = latest.length + recentDocs.length > 0
-  const feedArticles = isAllTopic ? allArticles.slice(0, 3) : articles
   const showArticleGrid = feedArticles.length > 0
   const showDocsGrid = isDocsTopic || isAllTopic
   const articleIndexHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
