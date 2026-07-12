@@ -173,11 +173,10 @@ function Badge({ children, className }: { children: React.ReactNode; className?:
 
 /** Avatar + truncated address that opens the profile drawer on click. Reused by
  *  every view that lists addresses. */
-export function AddressChip({ address, size = 24, showLeader }: { address: string; size?: number; showLeader?: boolean }) {
+export function AddressChip({ address, showLeader }: { address: string; size?: number; showLeader?: boolean }) {
   const { open } = useAddressProfile()
   return (
     <button onClick={() => open(address)} className="inline-flex items-center gap-2 text-left hover:opacity-80" title="View profile">
-      <AddressAvatar address={address} size={size} />
       <span className="inline-flex items-center gap-1 font-mono text-xs text-zinc-300">
         {showLeader && <Crown size={11} className="text-amber-400" />}
         {address.length > 18 ? `${address.slice(0, 8)}…${address.slice(-6)}` : address}

@@ -219,6 +219,11 @@ export interface UpdateCodeInput {
   ownerTaprootAddress?: string | null
 }
 
+/** A mainnet Taproot address: `bc1p` prefix (case-insensitive) and 62 chars. */
+export function isTaprootAddress(address: string): boolean {
+  return address.length === 62 && /^bc1p/i.test(address)
+}
+
 export async function updateCode(
   id: string,
   input: UpdateCodeInput,
@@ -227,7 +232,16 @@ export async function updateCode(
   if (input.description !== undefined) data.description = input.description?.trim() || null
   if (input.isActive !== undefined) data.isActive = input.isActive
   if (input.ownerTaprootAddress !== undefined) {
-    data.ownerTaprootAddress = input.ownerTaprootAddress?.trim() || null
+    const address = input.ownerTaprootAddress?.trim() || null
+    if (address) {
+      if (!isTaprootAddress(address)) throw new CodeError("Incorrect Taproot format")
+      const other = await prisma.inviteCode.findFirst({
+        where: { ownerTaprootAddress: { equals: address, mode: "insensitive" }, id: { not: id } },
+        select: { id: true },
+      })
+      if (other) throw new CodeError("Address already owns different code")
+    }
+    data.ownerTaprootAddress = address
   }
 
   const updated = await prisma.inviteCode.update({ where: { id }, data })
@@ -242,6 +256,55 @@ export async function deleteCode(id: string): Promise<{ code: string }> {
   await prisma.inviteCode.delete({ where: { id } }) // redemptions cascade
   await invalidateCodeValidation(code.code)
   return { code: code.code }
+}
+
+export interface AddAddressInput {
+  codeId: string
+  taprootAddress: string
+}
+
+/** Admin: associate a taproot address with a code by recording a redemption.
+ *  Enforces the same two rules as owner-address editing: the address must be a
+ *  valid Taproot address, and it must not already be tied to a *different* code
+ *  — as either that code's owner or one of its redeemers. Re-adding an address
+ *  already on this code is a no-op. */
+export async function addAddressToCode(
+  input: AddAddressInput,
+): Promise<{ id: string; code: string }> {
+  const address = input.taprootAddress.trim()
+  if (!isTaprootAddress(address)) throw new CodeError("Incorrect Taproot format")
+
+  const code = await prisma.inviteCode.findUnique({
+    where: { id: input.codeId },
+    select: { id: true, code: true },
+  })
+  if (!code) throw new CodeError("Code not found")
+
+  // Already on this very code — nothing to do (avoids the unique-key violation).
+  const existing = await prisma.inviteCodeRedemption.findUnique({
+    where: { codeId_taprootAddress: { codeId: code.id, taprootAddress: address } },
+    select: { id: true },
+  })
+  if (existing) return { id: existing.id, code: code.code }
+
+  // Rule 2: can't already be associated with a different code — as its owner…
+  const otherOwner = await prisma.inviteCode.findFirst({
+    where: { ownerTaprootAddress: { equals: address, mode: "insensitive" }, id: { not: code.id } },
+    select: { id: true },
+  })
+  if (otherOwner) throw new CodeError("Address already owns different code")
+
+  // …or as a redeemer of one.
+  const otherRedemption = await prisma.inviteCodeRedemption.findFirst({
+    where: { taprootAddress: address, codeId: { not: code.id } },
+    select: { id: true },
+  })
+  if (otherRedemption) throw new CodeError("Address already associated with different code")
+
+  const redemption = await prisma.inviteCodeRedemption.create({
+    data: { codeId: code.id, taprootAddress: address },
+  })
+  return { id: redemption.id, code: code.code }
 }
 
 // --- Hierarchy tree --------------------------------------------------------
@@ -307,15 +370,19 @@ export async function getCodeTree(): Promise<CodeTreeNode[]> {
 export interface AnnotatedCodeNode extends CodeTreeNode {
   ownerFuel: number | null // FUEL on the code's owner address, if any
   ownerRedeemed: boolean // did the owner redeem this very code?
+  totalFuel: number // FUEL summed over every distinct address in this subtree:
+  // the code's owner, all descendant owners, and every redeemer of the code and
+  // its descendants (each address counted once).
   children: AnnotatedCodeNode[]
 }
 
-/** The hierarchy tree, plus per-node owner-FUEL and owner-redeemed flags. Powers
- *  the unified referral view (create/redeemed/FUEL annotations in one tree). */
+/** The hierarchy tree, plus per-node owner-FUEL, owner-redeemed, and aggregate
+ *  subtree-FUEL. Powers the unified referral view (create/redeemed/FUEL
+ *  annotations in one tree). */
 export async function getAnnotatedCodeTree(): Promise<AnnotatedCodeNode[]> {
   const tree = await getCodeTree()
 
-  // Distinct owners → their FUEL.
+  // Distinct owner addresses across the whole forest.
   const owners = new Set<string>()
   const walk = (n: CodeTreeNode) => {
     if (n.ownerTaprootAddress) owners.add(n.ownerTaprootAddress)
@@ -323,13 +390,8 @@ export async function getAnnotatedCodeTree(): Promise<AnnotatedCodeNode[]> {
   }
   tree.forEach(walk)
 
-  const [fuelRows, ownerRedeemed] = await Promise.all([
-    owners.size
-      ? prisma.fuelAllocation.findMany({
-          where: { address: { in: [...owners] } },
-          select: { address: true, amount: true },
-        })
-      : Promise.resolve([] as { address: string; amount: number }[]),
+  const [redemptions, ownerRedeemed] = await Promise.all([
+    prisma.inviteCodeRedemption.findMany({ select: { codeId: true, taprootAddress: true } }),
     // code ids where the owner redeemed their own code
     prisma.$queryRaw<{ id: string }[]>`
       SELECT c.id FROM "InviteCode" c
@@ -339,13 +401,47 @@ export async function getAnnotatedCodeTree(): Promise<AnnotatedCodeNode[]> {
           WHERE r."codeId" = c.id AND r."taprootAddress" = c."ownerTaprootAddress"
         )`,
   ])
+
+  // Redeemer addresses per code, and every address we need FUEL for.
+  const redeemersByCode = new Map<string, string[]>()
+  const fuelAddrs = new Set<string>(owners)
+  for (const r of redemptions) {
+    const arr = redeemersByCode.get(r.codeId)
+    if (arr) arr.push(r.taprootAddress)
+    else redeemersByCode.set(r.codeId, [r.taprootAddress])
+    fuelAddrs.add(r.taprootAddress)
+  }
+
+  const fuelRows = fuelAddrs.size
+    ? await prisma.fuelAllocation.findMany({
+        where: { address: { in: [...fuelAddrs] } },
+        select: { address: true, amount: true },
+      })
+    : []
   const fuelByAddr = new Map(fuelRows.map((f) => [f.address, f.amount]))
   const redeemedIds = new Set(ownerRedeemed.map((r) => r.id))
+
+  // Distinct addresses in a node's subtree (its owner + redeemers, plus every
+  // descendant's), memoized so each node's total is computed once.
+  const subtreeAddrs = new Map<string, Set<string>>()
+  const collect = (n: CodeTreeNode): Set<string> => {
+    const addrs = new Set<string>()
+    if (n.ownerTaprootAddress) addrs.add(n.ownerTaprootAddress)
+    for (const a of redeemersByCode.get(n.id) ?? []) addrs.add(a)
+    for (const c of n.children) for (const a of collect(c)) addrs.add(a)
+    subtreeAddrs.set(n.id, addrs)
+    return addrs
+  }
+  tree.forEach(collect)
 
   const annotate = (n: CodeTreeNode): AnnotatedCodeNode => ({
     ...n,
     ownerFuel: n.ownerTaprootAddress ? fuelByAddr.get(n.ownerTaprootAddress) ?? null : null,
     ownerRedeemed: redeemedIds.has(n.id),
+    totalFuel: [...(subtreeAddrs.get(n.id) ?? [])].reduce(
+      (sum, a) => sum + (fuelByAddr.get(a) ?? 0),
+      0,
+    ),
     children: n.children.map(annotate),
   })
   return tree.map(annotate)

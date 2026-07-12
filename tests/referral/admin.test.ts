@@ -6,12 +6,19 @@ vi.mock('@/lib/prisma', () => {
     findMany: vi.fn(),
     count: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
   };
-  const inviteCodeRedemption = { findMany: vi.fn(), count: vi.fn() };
+  const inviteCodeRedemption = {
+    findMany: vi.fn(),
+    count: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  };
   const client = { inviteCode, inviteCodeRedemption };
   return { prisma: client, default: client };
 });
@@ -26,6 +33,7 @@ import {
   createCode,
   updateCode,
   deleteCode,
+  addAddressToCode,
   bulkCreateCodes,
   buildCodeTree,
   redemptionsToCsv,
@@ -42,7 +50,16 @@ const ic = prisma.inviteCode as unknown as {
   createMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
 };
+
+const red = prisma.inviteCodeRedemption as unknown as {
+  findUnique: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
+};
+
+const TAPROOT = 'bc1p' + 'q'.repeat(58); // 62-char valid Taproot address
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -270,5 +287,71 @@ describe('deleteCode', () => {
     ic.findUnique.mockResolvedValueOnce(null);
     await expect(deleteCode('nope')).rejects.toBeInstanceOf(CodeError);
     expect(ic.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('addAddressToCode', () => {
+  it('rejects a non-Taproot address before touching the db', async () => {
+    await expect(
+      addAddressToCode({ codeId: 'c1', taprootAddress: 'bc1qnottaproot' }),
+    ).rejects.toBeInstanceOf(CodeError);
+    expect(ic.findUnique).not.toHaveBeenCalled();
+    expect(red.create).not.toHaveBeenCalled();
+  });
+
+  it('records a redemption when the address is free', async () => {
+    ic.findUnique.mockResolvedValueOnce({ id: 'c1', code: 'ABC' });
+    red.findUnique.mockResolvedValueOnce(null); // not already on this code
+    ic.findFirst.mockResolvedValueOnce(null); // owns no other code
+    red.findFirst.mockResolvedValueOnce(null); // redeems no other code
+    red.create.mockResolvedValueOnce({ id: 'r1' });
+
+    const res = await addAddressToCode({ codeId: 'c1', taprootAddress: TAPROOT });
+
+    expect(res).toEqual({ id: 'r1', code: 'ABC' });
+    expect(red.create).toHaveBeenCalledWith({
+      data: { codeId: 'c1', taprootAddress: TAPROOT },
+    });
+  });
+
+  it('is a no-op when the address is already on this code', async () => {
+    ic.findUnique.mockResolvedValueOnce({ id: 'c1', code: 'ABC' });
+    red.findUnique.mockResolvedValueOnce({ id: 'existing' });
+
+    const res = await addAddressToCode({ codeId: 'c1', taprootAddress: TAPROOT });
+
+    expect(res).toEqual({ id: 'existing', code: 'ABC' });
+    expect(red.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an address that owns a different code', async () => {
+    ic.findUnique.mockResolvedValueOnce({ id: 'c1', code: 'ABC' });
+    red.findUnique.mockResolvedValueOnce(null);
+    ic.findFirst.mockResolvedValueOnce({ id: 'other' }); // owns a different code
+
+    await expect(
+      addAddressToCode({ codeId: 'c1', taprootAddress: TAPROOT }),
+    ).rejects.toBeInstanceOf(CodeError);
+    expect(red.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an address already redeemed on a different code', async () => {
+    ic.findUnique.mockResolvedValueOnce({ id: 'c1', code: 'ABC' });
+    red.findUnique.mockResolvedValueOnce(null);
+    ic.findFirst.mockResolvedValueOnce(null);
+    red.findFirst.mockResolvedValueOnce({ id: 'other-red' }); // on a different code
+
+    await expect(
+      addAddressToCode({ codeId: 'c1', taprootAddress: TAPROOT }),
+    ).rejects.toBeInstanceOf(CodeError);
+    expect(red.create).not.toHaveBeenCalled();
+  });
+
+  it('throws when the code does not exist', async () => {
+    ic.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      addAddressToCode({ codeId: 'nope', taprootAddress: TAPROOT }),
+    ).rejects.toBeInstanceOf(CodeError);
+    expect(red.create).not.toHaveBeenCalled();
   });
 });

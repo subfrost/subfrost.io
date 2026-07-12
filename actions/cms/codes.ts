@@ -14,6 +14,7 @@ import {
   bulkCreateCodes,
   updateCode,
   deleteCode,
+  addAddressToCode,
   getCodeTree,
   getAnnotatedCodeTree,
   getCodeRedeemers,
@@ -22,6 +23,7 @@ import {
   type CreateCodeInput,
   type BulkCreateInput,
   type UpdateCodeInput,
+  type AddAddressInput,
   type ListCodesQuery,
   type ListCodesResult,
   type ListRedemptionsQuery,
@@ -164,6 +166,21 @@ export async function updateCodeAction(
       actorId: a.me.id,
       target: updated.code,
       details: input as Prisma.InputJsonValue,
+      ip: await ip(),
+    })
+    revalidatePath("/admin/codes")
+  })
+}
+
+export async function addAddressToCodeAction(input: AddAddressInput): Promise<CodeActionResult> {
+  const a = await actor("referral.edit")
+  if (!a.ok) return a
+  return run(async () => {
+    const { code } = await addAddressToCode(input)
+    await audit("update_code", {
+      actorId: a.me.id,
+      target: code,
+      details: { addAddress: input.taprootAddress } as Prisma.InputJsonValue,
       ip: await ip(),
     })
     revalidatePath("/admin/codes")

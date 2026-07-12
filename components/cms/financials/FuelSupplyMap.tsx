@@ -70,7 +70,7 @@ export function FuelSupplyMap({ instruments, founders, teamGrants, communityAllo
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-40 shrink-0 truncate text-zinc-300" title={v.label}>{v.label}</span>
                 <span className="w-20 shrink-0 truncate text-zinc-500">{v.role ?? "—"}</span>
-                <span className="w-16 shrink-0 text-right tabular-nums text-zinc-400">{v.equityPct != null ? `${v.equityPct}%` : "—"}</span>
+                <span className="w-16 shrink-0 text-right tabular-nums text-zinc-400">{v.equityPct != null ? `${+v.equityPct.toFixed(3)}%` : "—"}</span>
                 <div className="h-2.5 flex-1 overflow-hidden rounded bg-zinc-800">
                   <div className="h-full rounded" style={{ width: `${(v.amount / maxItem) * 100}%`, background: v.color }} />
                 </div>
