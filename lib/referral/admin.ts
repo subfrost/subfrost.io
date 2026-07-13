@@ -373,6 +373,7 @@ export interface AnnotatedCodeNode extends CodeTreeNode {
   totalFuel: number // FUEL summed over every distinct address in this subtree:
   // the code's owner, all descendant owners, and every redeemer of the code and
   // its descendants (each address counted once).
+  redeemerAddresses: string[] // addresses that redeemed this very code
   children: AnnotatedCodeNode[]
 }
 
@@ -442,6 +443,7 @@ export async function getAnnotatedCodeTree(): Promise<AnnotatedCodeNode[]> {
       (sum, a) => sum + (fuelByAddr.get(a) ?? 0),
       0,
     ),
+    redeemerAddresses: redeemersByCode.get(n.id) ?? [],
     children: n.children.map(annotate),
   })
   return tree.map(annotate)
