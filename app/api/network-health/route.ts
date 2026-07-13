@@ -25,7 +25,15 @@ async function fetchNetworkHealth(): Promise<unknown> {
       cache: "no-store",
     })
     if (!res.ok) throw new Error(`upstream ${res.status}`)
-    return await res.json()
+    const data = await res.json()
+    // A 200 with a partial body (e.g. missing endpoints[] during an upstream
+    // rollout) must NOT be cached and served: the dashboard maps over endpoints,
+    // so a shape without it crashes every load for the 3-min TTL. Reject it here
+    // so it falls through to the degraded envelope instead of poisoning the cache.
+    if (!data || !Array.isArray((data as { endpoints?: unknown }).endpoints)) {
+      throw new Error("upstream health payload missing endpoints[]")
+    }
+    return data
   } finally {
     clearTimeout(timer)
   }
