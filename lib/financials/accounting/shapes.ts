@@ -50,6 +50,20 @@ export interface PaymentRow {
   createdAt: string // ISO
 }
 
+export interface UsdPaymentRow {
+  id: string
+  txid: string | null // optional external reference (wire ref / tx id)
+  vout: number | null
+  amountUsd: number
+  recipientAddress: string | null // optional
+  paidAt: string // ISO
+  blockHeight: number | null
+  invoiceId: string | null
+  invoiceRef: string | null // resolved from the linked invoice, when any
+  source: PaymentSource
+  createdAt: string // ISO
+}
+
 export interface SummaryMetrics {
   totalPaidUsd: number // sum amountUsd of PAID invoices
   totalPaidDiesel: number // sum amountDiesel across all payments

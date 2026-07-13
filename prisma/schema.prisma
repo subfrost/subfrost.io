@@ -1055,6 +1055,7 @@ model Invoice {
   pdfUrl       String? // GCS object (CMS_BUCKET)
   createdAt    DateTime        @default(now())
   payments     DieselPayment[]
+  usdPayments  UsdPayment[]
 
   @@index([payeeId])
   @@index([status])
@@ -1074,6 +1075,25 @@ model DieselPayment {
   createdAt        DateTime      @default(now())
 
   @@unique([txid, vout]) // idempotent vs SP-2 ingestion
+  @@index([invoiceId])
+}
+
+// Payments settled in USD (bank/wire), recorded manually. Distinct from
+// DieselPayment: no on-chain settlement is required, so txid and recipient
+// address are optional, and the amount is denominated in USD instead of DIESEL.
+model UsdPayment {
+  id               String        @id @default(cuid())
+  txid             String? // optional external reference (wire ref / tx id)
+  vout             Int?
+  amountUsd        Float
+  recipientAddress String? // optional
+  paidAt           DateTime
+  blockHeight      Int?
+  invoiceId        String?
+  invoice          Invoice?      @relation(fields: [invoiceId], references: [id])
+  source           PaymentSource @default(MANUAL)
+  createdAt        DateTime      @default(now())
+
   @@index([invoiceId])
 }
 

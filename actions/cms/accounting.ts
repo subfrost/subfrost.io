@@ -7,13 +7,13 @@ import { audit } from "@/lib/cms/audit"
 import { FINANCIALS_PRIVILEGE } from "@/lib/financials/privilege"
 import {
   AccountingError, createInvoice, createPayee, linkPayment, listInvoices,
-  listPayees, listPayments, recordPayment, updateInvoiceStatus,
-  loadPayeeProfile, updatePayee, listLinkableUsers, listLinkableKycIntakes,
+  listPayees, listPayments, listUsdPayments, recordPayment, recordUsdPayment,
+  updateInvoiceStatus, loadPayeeProfile, updatePayee, listLinkableUsers, listLinkableKycIntakes,
 } from "@/lib/financials/accounting/store"
 import {
   summaryMetrics, toCsv, type InvoiceRow, type InvoiceStatus, type PayeeRow,
-  type PayeeType, type PaymentRow, type PaymentSource, type SummaryMetrics,
-  type PayeeProfile,
+  type PayeeType, type PaymentRow, type PaymentSource, type UsdPaymentRow,
+  type SummaryMetrics, type PayeeProfile,
 } from "@/lib/financials/accounting/shapes"
 
 const PATH = "/admin/financials/accounting"
@@ -33,6 +33,7 @@ export interface AccountingOverview {
   payees: PayeeRow[]
   invoices: InvoiceRow[]
   payments: PaymentRow[]
+  usdPayments: UsdPaymentRow[]
   metrics: SummaryMetrics
 }
 export type AccountingOverviewResult =
@@ -44,8 +45,10 @@ export type MutResult<T> = { ok: true; value: T } | { ok: false; error: string }
 export async function accountingOverviewAction(): Promise<AccountingOverviewResult> {
   const g = await gate()
   if (!g.ok) return g
-  const [payees, invoices, payments] = await Promise.all([listPayees(), listInvoices(), listPayments()])
-  return { ok: true, overview: { payees, invoices, payments, metrics: summaryMetrics(invoices, payments) } }
+  const [payees, invoices, payments, usdPayments] = await Promise.all([
+    listPayees(), listInvoices(), listPayments(), listUsdPayments(),
+  ])
+  return { ok: true, overview: { payees, invoices, payments, usdPayments, metrics: summaryMetrics(invoices, payments) } }
 }
 
 export async function createPayeeAction(input: {
@@ -100,13 +103,32 @@ export async function updateInvoiceStatusAction(
 
 export async function recordPaymentAction(input: {
   txid: string; vout?: number | null; amountDiesel: number; recipientAddress: string
-  paidAt: string; blockHeight?: number | null; source?: PaymentSource
+  paidAt: string; blockHeight?: number | null; source?: PaymentSource; invoiceId?: string | null
 }): Promise<MutResult<PaymentRow>> {
   const g = await gate()
   if (!g.ok) return { ok: false, error: "unauthorized" }
   try {
     const payment = await recordPayment(input)
     await audit("accounting_payment_record", { actorId: g.me.id, target: payment.txid, ip: await ip() })
+    revalidatePath(PATH)
+    return { ok: true, value: payment }
+  } catch (e) {
+    if (e instanceof AccountingError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+export async function recordUsdPaymentAction(input: {
+  txid?: string | null; vout?: number | null; amountUsd: number; recipientAddress?: string | null
+  paidAt: string; blockHeight?: number | null; source?: PaymentSource; invoiceId?: string | null
+}): Promise<MutResult<UsdPaymentRow>> {
+  const g = await gate()
+  if (!g.ok) return { ok: false, error: "unauthorized" }
+  try {
+    const payment = await recordUsdPayment(input)
+    await audit("accounting_payment_record", {
+      actorId: g.me.id, target: payment.txid ?? `USD ${payment.amountUsd}`, ip: await ip(),
+    })
     revalidatePath(PATH)
     return { ok: true, value: payment }
   } catch (e) {
