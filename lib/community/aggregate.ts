@@ -3,11 +3,15 @@
  *
  * A *community* is a root invite code (no parent) and its entire subtree. Its
  * *leader* is the owner of the root code (or, if the root is just a label, the
- * address that owns the most codes in the subtree). Its *members* are every
- * address that redeemed any code in the subtree, and a member's FUEL is its
+ * address that owns the most codes in the subtree). This links the referral
+ * graph (codes/owners/redemptions) to the per-address FUEL table, which have no
+ * DB-level relation today.
+ *
+ * Its *members* are every address that either redeemed any code in the subtree
+ * or owns any code in the subtree (root or sub-code) — an owner who never
+ * redeemed a code themselves is still a member — and a member's FUEL is its
  * `FuelAllocation.amount`. A community's FUEL total is the sum over its distinct
- * members. This links the referral graph (codes/owners/redemptions) to the
- * per-address FUEL table, which have no DB-level relation today.
+ * members.
  *
  * The aggregation is a pure function over plain rows so it can be unit-tested
  * without a DB; `loadCommunityData` wires it to Prisma.
@@ -152,6 +156,18 @@ export function aggregateCommunities(input: AggregateInput): CommunityAggregate 
     if (!m.has(red.address)) m.set(red.address, new Set())
     m.get(red.address)!.add(red.code)
     globalMembers.add(red.address)
+  }
+
+  // Every code owner is also a member of that code's community — root owners
+  // (leaders) and sub-code owners alike — even if they never redeemed a code.
+  // Seeds an empty codes-claimed set so they appear with an accurate FUEL total.
+  for (const c of input.codes) {
+    if (!c.ownerTaprootAddress) continue
+    const r = rootOf(c.id, byId, rootMemo)
+    if (!membersByRoot.has(r)) membersByRoot.set(r, new Map())
+    const m = membersByRoot.get(r)!
+    if (!m.has(c.ownerTaprootAddress)) m.set(c.ownerTaprootAddress, new Set())
+    globalMembers.add(c.ownerTaprootAddress)
   }
 
   const communities: Community[] = []

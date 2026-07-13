@@ -5,7 +5,7 @@
 import prisma from "@/lib/prisma"
 import type {
   InvoiceRow, InvoiceStatus, PayeeRow, PayeeType, PaymentRow, PaymentSource,
-  PayeeProfile, PayeeUserSummary, PayeeKycSummary,
+  UsdPaymentRow, PayeeProfile, PayeeUserSummary, PayeeKycSummary,
 } from "@/lib/financials/accounting/shapes"
 import { assemblePayeeProfile } from "@/lib/financials/accounting/shapes"
 import { breadcrumb, filesPath, driveSlugFromScope, effSlug } from "@/lib/files/manager"
@@ -69,6 +69,19 @@ function mapPayment(r: {
 }): PaymentRow {
   return {
     id: r.id, txid: r.txid, vout: r.vout, amountDiesel: r.amountDiesel,
+    recipientAddress: r.recipientAddress, paidAt: r.paidAt.toISOString(),
+    blockHeight: r.blockHeight, invoiceId: r.invoiceId, invoiceRef: r.invoice?.ref ?? null,
+    source: r.source as PaymentSource, createdAt: r.createdAt.toISOString(),
+  }
+}
+
+function mapUsdPayment(r: {
+  id: string; txid: string | null; vout: number | null; amountUsd: number
+  recipientAddress: string | null; paidAt: Date; blockHeight: number | null
+  invoiceId: string | null; source: string; createdAt: Date; invoice?: { ref: string } | null
+}): UsdPaymentRow {
+  return {
+    id: r.id, txid: r.txid, vout: r.vout, amountUsd: r.amountUsd,
     recipientAddress: r.recipientAddress, paidAt: r.paidAt.toISOString(),
     blockHeight: r.blockHeight, invoiceId: r.invoiceId, invoiceRef: r.invoice?.ref ?? null,
     source: r.source as PaymentSource, createdAt: r.createdAt.toISOString(),
@@ -171,11 +184,15 @@ export async function listUnlinkedPayments(): Promise<PaymentRow[]> {
 
 export async function recordPayment(input: {
   txid: string; vout?: number | null; amountDiesel: number; recipientAddress: string
-  paidAt: string; blockHeight?: number | null; source?: PaymentSource
+  paidAt: string; blockHeight?: number | null; source?: PaymentSource; invoiceId?: string | null
 }): Promise<PaymentRow> {
   const txid = input.txid.trim()
   if (!txid) throw new AccountingError("txid is required")
   const vout = input.vout ?? null
+  const invoiceId = input.invoiceId || null
+  if (invoiceId && !(await prisma.invoice.findUnique({ where: { id: invoiceId } }))) {
+    throw new AccountingError("Invoice not found")
+  }
   // Idempotent on (txid, vout): update an existing row, else create. Explicit
   // findFirst (not upsert) keeps it idempotent even when vout is null, since
   // Postgres treats NULLs as distinct in the @@unique index.
@@ -183,7 +200,7 @@ export async function recordPayment(input: {
   const data = {
     txid, vout, amountDiesel: input.amountDiesel,
     recipientAddress: input.recipientAddress.trim(), paidAt: new Date(input.paidAt),
-    blockHeight: input.blockHeight ?? null, source: input.source ?? "MANUAL",
+    blockHeight: input.blockHeight ?? null, source: input.source ?? "MANUAL", invoiceId,
   }
   const row = existing
     ? await prisma.dieselPayment.update({
@@ -193,6 +210,52 @@ export async function recordPayment(input: {
         data, include: { invoice: { select: { ref: true } } },
       })
   return mapPayment(row)
+}
+
+export async function listUsdPayments(): Promise<UsdPaymentRow[]> {
+  try {
+    const rows = await prisma.usdPayment.findMany({
+      orderBy: { paidAt: "desc" },
+      include: { invoice: { select: { ref: true } } },
+    })
+    return rows.map(mapUsdPayment)
+  } catch (e) {
+    // Table not yet created (pnpm db:push pending): don't break the whole
+    // accounting overview — just show no USD payments until the table exists.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2021") return []
+    throw e
+  }
+}
+
+export async function recordUsdPayment(input: {
+  txid?: string | null; vout?: number | null; amountUsd: number; recipientAddress?: string | null
+  paidAt: string; blockHeight?: number | null; source?: PaymentSource; invoiceId?: string | null
+}): Promise<UsdPaymentRow> {
+  if (!(input.amountUsd > 0)) throw new AccountingError("USD amount must be greater than zero")
+  const invoiceId = input.invoiceId || null
+  if (invoiceId && !(await prisma.invoice.findUnique({ where: { id: invoiceId } }))) {
+    throw new AccountingError("Invoice not found")
+  }
+  let row
+  try {
+    row = await prisma.usdPayment.create({
+      data: {
+        txid: input.txid?.trim() || null, vout: input.vout ?? null, amountUsd: input.amountUsd,
+        recipientAddress: input.recipientAddress?.trim() || null, paidAt: new Date(input.paidAt),
+        blockHeight: input.blockHeight ?? null, source: input.source ?? "MANUAL", invoiceId,
+      },
+      include: { invoice: { select: { ref: true } } },
+    })
+  } catch (e) {
+    // The UsdPayment table is added by schema push, not a runtime migration. Until
+    // `pnpm db:push` has run against this environment the table is absent (Prisma
+    // P2021), so surface an actionable message instead of a raw 500.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2021") {
+      throw new AccountingError("pnpm db:push required to add USDPayment table")
+    }
+    throw e
+  }
+  return mapUsdPayment(row)
 }
 
 export async function linkPayment(paymentId: string, invoiceId: string): Promise<PaymentRow> {

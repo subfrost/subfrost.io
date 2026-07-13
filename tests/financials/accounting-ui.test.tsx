@@ -17,7 +17,7 @@ vi.mock("@/components/cms/financials/PeriodReportChart", () => ({
 
 import { AccountingManager } from "@/components/cms/financials/AccountingManager"
 import type { AccountingOverviewResult } from "@/actions/cms/accounting"
-import type { InvoiceRow, PayeeRow, PaymentRow } from "@/lib/financials/accounting/shapes"
+import type { InvoiceRow, PayeeRow, PaymentRow, UsdPaymentRow } from "@/lib/financials/accounting/shapes"
 
 const payee = (over: Partial<PayeeRow> = {}): PayeeRow => ({
   id: "pe1", name: "Ada", type: "PERSON", kycIntakeId: null, kycCustomerName: null, notes: null, userId: null, agreementUrl: null, createdAt: "2026-01-01T00:00:00.000Z", ...over,
@@ -28,14 +28,15 @@ const invoice = (over: Partial<InvoiceRow> = {}): InvoiceRow => ({
 const payment = (over: Partial<PaymentRow> = {}): PaymentRow => ({
   id: "p1", txid: "txa", vout: null, amountDiesel: 1, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: null, invoiceRef: null, source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z", ...over,
 })
-const ok = (over: Partial<{ payees: PayeeRow[]; invoices: InvoiceRow[]; payments: PaymentRow[] }> = {}): AccountingOverviewResult => {
+const ok = (over: Partial<{ payees: PayeeRow[]; invoices: InvoiceRow[]; payments: PaymentRow[]; usdPayments: UsdPaymentRow[] }> = {}): AccountingOverviewResult => {
   const payees = over.payees ?? []
   const invoices = over.invoices ?? []
   const payments = over.payments ?? []
+  const usdPayments = over.usdPayments ?? []
   return {
     ok: true,
     overview: {
-      payees, invoices, payments,
+      payees, invoices, payments, usdPayments,
       metrics: { totalPaidUsd: 0, totalPaidDiesel: 0, openInvoices: invoices.filter((i) => i.status === "OPEN").length, unlinkedPayments: payments.filter((p) => p.invoiceId === null).length },
     },
   }

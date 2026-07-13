@@ -9,10 +9,12 @@ vi.mock("@/lib/financials/accounting/store", () => ({
   listPayees: vi.fn(),
   listInvoices: vi.fn(),
   listPayments: vi.fn(),
+  listUsdPayments: vi.fn(),
   createPayee: vi.fn(),
   createInvoice: vi.fn(),
   updateInvoiceStatus: vi.fn(),
   recordPayment: vi.fn(),
+  recordUsdPayment: vi.fn(),
   linkPayment: vi.fn(),
   loadPayeeProfile: vi.fn(),
   updatePayee: vi.fn(),
@@ -85,6 +87,7 @@ describe("accountingOverviewAction", () => {
     vi.mocked(store.listPayments).mockResolvedValue([
       { id: "p1", txid: "t", vout: null, amountDiesel: 3, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: null, invoiceRef: null, source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z" },
     ])
+    vi.mocked(store.listUsdPayments).mockResolvedValue([])
     const r = await accountingOverviewAction()
     expect(r.ok).toBe(true)
     if (r.ok) {
