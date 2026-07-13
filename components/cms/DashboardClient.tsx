@@ -113,7 +113,7 @@ export function DashboardClient() {
             <Skeleton className="h-16 rounded-[6px]" />
             <Skeleton className="h-40 rounded-[6px]" />
           </div>
-        ) : !health || health.error ? (
+        ) : !health || health.error || !Array.isArray(health.endpoints) ? (
           <div className="border-t border-[#f0c3b7] py-4 text-sm text-[#b8321a]">
             <Activity size={15} className="mb-1 inline" /> Health unavailable{health?.error ? ` — ${health.error}` : ""}.
           </div>
@@ -125,9 +125,12 @@ export function DashboardClient() {
   )
 }
 
-function HealthPanel({ health }: { health: HealthSnapshot }) {
+export function HealthPanel({ health }: { health: HealthSnapshot }) {
   const c = health.comparison
-  const maxHeight = Math.max(0, ...health.endpoints.map((e) => e.height ?? 0))
+  // Defense in depth: the parent guard already requires an endpoints array, but
+  // never let this panel be the thing that throws if that ever regresses.
+  const endpoints = Array.isArray(health.endpoints) ? health.endpoints : []
+  const maxHeight = Math.max(0, ...endpoints.map((e) => e.height ?? 0))
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 border-t border-[color:var(--ed-hair)] py-4">
@@ -159,7 +162,7 @@ function HealthPanel({ health }: { health: HealthSnapshot }) {
             </tr>
           </thead>
           <tbody>
-            {health.endpoints.map((e) => {
+            {endpoints.map((e) => {
               const lag = e.height != null && maxHeight > 0 ? e.height - maxHeight : null
               return (
                 <tr key={e.id} className="border-t border-[color:var(--ed-hair)]">
