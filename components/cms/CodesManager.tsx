@@ -25,15 +25,20 @@ const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 
 /** A mainnet Taproot address: `bc1p` prefix (case-insensitive) and 62 chars. */
 const isTaprootAddress = (address: string) => address.length === 62 && /^bc1p/i.test(address)
 
-// Keep a node if it (or any descendant) matches the search + redeemed filter.
-function filterTree(nodes: AnnotatedCodeNode[], q: string, onlyRedeemed: boolean): AnnotatedCodeNode[] {
+// Keep a node if it (or any descendant) matches the code/owner search and the
+// redeemed-address search. `addr` matches against the code's redeemer addresses
+// (and its owner address), so searching an address surfaces the codes it claimed.
+function filterTree(nodes: AnnotatedCodeNode[], q: string, addr: string): AnnotatedCodeNode[] {
   const out: AnnotatedCodeNode[] = []
   for (const n of nodes) {
-    const kids = filterTree(n.children, q, onlyRedeemed)
-    const selfMatch =
-      (!q || n.code.toLowerCase().includes(q) || (n.ownerTaprootAddress ?? "").toLowerCase().includes(q)) &&
-      (!onlyRedeemed || n.redemptionCount > 0)
-    if (selfMatch || kids.length) out.push({ ...n, children: kids })
+    const kids = filterTree(n.children, q, addr)
+    const codeMatch =
+      !q || n.code.toLowerCase().includes(q) || (n.ownerTaprootAddress ?? "").toLowerCase().includes(q)
+    const addrMatch =
+      !addr ||
+      (n.ownerTaprootAddress ?? "").toLowerCase().includes(addr) ||
+      n.redeemerAddresses.some((a) => a.toLowerCase().includes(addr))
+    if ((codeMatch && addrMatch) || kids.length) out.push({ ...n, children: kids })
   }
   return out
 }
@@ -42,7 +47,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   const [tree, setTree] = useState<AnnotatedCodeNode[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [onlyRedeemed, setOnlyRedeemed] = useState(false)
+  const [addressSearch, setAddressSearch] = useState("")
   const [form, setForm] = useState<{ type: "child" | "bulk" | "address"; parentId: string | null } | null>(null)
   const [, startTransition] = useTransition()
 
@@ -54,7 +59,8 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   useEffect(() => { reload() }, [])
 
   const q = search.trim().toLowerCase()
-  const filtered = useMemo(() => (tree ? filterTree(tree, q, onlyRedeemed) : []), [tree, q, onlyRedeemed])
+  const addr = addressSearch.trim().toLowerCase()
+  const filtered = useMemo(() => (tree ? filterTree(tree, q, addr) : []), [tree, q, addr])
 
   return (
     <div className="space-y-4">
@@ -66,9 +72,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
           </>
         )}
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or owner…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
-        <label className="flex items-center gap-1.5 text-xs text-zinc-400">
-          <input type="checkbox" checked={onlyRedeemed} onChange={(e) => setOnlyRedeemed(e.target.checked)} /> Only redeemed
-        </label>
+        <Input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder="Search address…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
         <Button size="sm" variant="ghost" className="ml-auto"
           onClick={() => startTransition(async () => { const r = await exportRedemptionsCsvAction(); if (r.ok) downloadCsv(r.csv, r.filename) })}>
           <Download size={14} /> Export redemptions
