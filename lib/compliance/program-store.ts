@@ -4,11 +4,12 @@
 // actions/cms/compliance.ts (gated on aml.read / aml.edit).
 
 import prisma from "@/lib/prisma"
-import { PROGRAM_PILLARS, type PillarStatus } from "./program"
+import { PROGRAM_PILLARS, PILLAR_STATUSES, type PillarStatus } from "./program"
 
 export class ProgramError extends Error {}
 
-export const PILLAR_STATUSES: PillarStatus[] = ["OK", "PARTIAL", "GAP"]
+// Re-exported for server callers that already import from this module.
+export { PILLAR_STATUSES }
 
 export interface ProgramItemRow {
   key: string

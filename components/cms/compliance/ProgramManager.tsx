@@ -9,8 +9,8 @@ import {
   seedProgramItemsAction,
   updateProgramItemAction,
 } from "@/actions/cms/compliance"
-import { PILLAR_STATUSES, type ProgramItemRow } from "@/lib/compliance/program-store"
-import type { PillarStatus } from "@/lib/compliance/program"
+import type { ProgramItemRow } from "@/lib/compliance/program-store"
+import { PILLAR_STATUSES, type PillarStatus } from "@/lib/compliance/program"
 
 const BADGE: Record<PillarStatus, { label: string; cls: string }> = {
   OK: { label: "In place", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },

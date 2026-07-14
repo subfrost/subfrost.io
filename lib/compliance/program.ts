@@ -13,6 +13,10 @@
 
 export type PillarStatus = "OK" | "PARTIAL" | "GAP"
 
+// Client-safe (this module imports no prisma/node) so the ProgramManager can use
+// it for the status dropdown without pulling the server store into the bundle.
+export const PILLAR_STATUSES: PillarStatus[] = ["OK", "PARTIAL", "GAP"]
+
 export interface ProgramPillar {
   key: string
   title: string
