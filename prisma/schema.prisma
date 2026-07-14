@@ -891,6 +891,87 @@ model MtlEntry {
 }
 
 // ============================================
+// COMPLIANCE — company obligation calendar + program register (F2-E)
+// ============================================
+//
+// The obligation calendar is the company-wide compliance/tax/corporate ledger:
+// one row per recurring or one-time thing the company must do (franchise tax,
+// Form 1120, 1099s, MSB renewal, BOI, 409A, AML training + independent review,
+// license filings). Broader than the AML surfaces (KYC/FinCEN/MTL) — it answers
+// "what does the company owe, to whom, and by when." Dates are ISO date strings
+// (date-only, no TZ) to match MtlEntry.nextFilingDue.
+
+enum ComplianceCategory {
+  TAX
+  CORPORATE
+  AML_BSA
+  LICENSING
+  SECURITIES
+  EMPLOYMENT
+  DATA_PRIVACY
+}
+
+enum ComplianceCadence {
+  ONE_TIME
+  ANNUAL
+  BIENNIAL
+  QUARTERLY
+  MONTHLY
+  AS_NEEDED
+}
+
+enum ComplianceStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  FILED
+  COMPLETE
+  BLOCKED
+  NOT_APPLICABLE
+}
+
+model ComplianceObligation {
+  id              String             @id @default(cuid())
+  key             String             @unique // stable slug for idempotent seeding
+  title           String
+  category        ComplianceCategory
+  authority       String? // who it's owed to: IRS, Delaware, FinCEN, …
+  description     String? // what it is / why it matters, plain English
+  cadence         ComplianceCadence  @default(ANNUAL)
+  dueDate         String? // ISO date (YYYY-MM-DD); null for AS_NEEDED
+  status          ComplianceStatus   @default(NOT_STARTED)
+  owner           String? // responsible person
+  lastCompletedAt String? // ISO date of the last completion, for recurring items
+  docUrl          String? // link to the receipt / filing evidence
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([category])
+  @@index([status])
+}
+
+// The BSA program register: the five things a registered MSB must maintain.
+// Seeded once from lib/compliance/program.ts, then editable in the UI so the
+// director can flip a pillar from Gap → In place without a code change.
+enum ProgramPillarStatus {
+  OK
+  PARTIAL
+  GAP
+}
+
+model ComplianceProgramItem {
+  key       String              @id // stable slug
+  title     String
+  status    ProgramPillarStatus @default(GAP)
+  detail    String
+  action    String? // the next step to close a gap
+  sortOrder Int                 @default(0)
+  updatedBy String? // operator email of the last edit
+  updatedAt DateTime            @updatedAt
+  createdAt DateTime            @default(now())
+}
+
+// ============================================
 // BILLING — Stripe console (F2-D)
 // ============================================
 

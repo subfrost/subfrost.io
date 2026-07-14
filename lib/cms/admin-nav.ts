@@ -75,6 +75,8 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: "compliance", label: "Compliance", icon: ShieldCheck, items: [
+      { label: "Overview", href: "/admin/compliance", icon: LayoutDashboard, privilege: "aml.read" },
+      { label: "Obligations", href: "/admin/compliance/obligations", icon: CalendarClock, privilege: "aml.read" },
       { label: "KYC review", href: "/admin/kyc", icon: ShieldCheck, privilege: "aml.read" },
       { label: "FinCEN filings", href: "/admin/fincen", icon: FileText, privilege: "aml.read" },
       { label: "MTL licensing", href: "/admin/mtl", icon: MapPin, privilege: "aml.read" },
