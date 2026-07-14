@@ -14,6 +14,7 @@ import { envelopes } from "@/lib/esign/store"
 import { ENVELOPE_STATUS_LABELS } from "@/lib/esign/document-ui"
 import { listObligations } from "@/lib/compliance/obligations"
 import { listProgramItems } from "@/lib/compliance/program-store"
+import { getRegister } from "@/lib/compliance/register"
 import {
   dueState, daysUntil, CATEGORY_LABELS, STATUS_LABELS,
   type ObligationCategory, type ObligationStatus,
@@ -42,7 +43,8 @@ export default async function ReviewPortalPage({ params }: { params: Promise<{ t
   await recordReviewPageView(ctx.sessionId, "dashboard")
   const surfaces = scopeSurfaces(ctx.scope)
 
-  const [program, obligations, form107, sars, ctrs, submissions, intakes, mtl, envs] = await Promise.all([
+  const [register, program, obligations, form107, sars, ctrs, submissions, intakes, mtl, envs] = await Promise.all([
+    scopeAllows(ctx.scope, "program") ? getRegister() : Promise.resolve(null),
     scopeAllows(ctx.scope, "program") ? listProgramItems() : Promise.resolve([]),
     scopeAllows(ctx.scope, "obligations") ? listObligations() : Promise.resolve([]),
     scopeAllows(ctx.scope, "fincen") ? getForm107() : Promise.resolve(null),
@@ -72,6 +74,17 @@ export default async function ReviewPortalPage({ params }: { params: Promise<{ t
         This is a read-only reviewer view. You can see {surfaces.map((s) => s.label).join(", ")}. All
         access is logged. Contact your SUBFROST point of contact with questions.
       </p>
+
+      {scopeAllows(ctx.scope, "program") && register && (register.entityName || register.bsaId) && (
+        <Section title="Registration">
+          <KV label="Legal entity" value={register.entityName || "—"} />
+          <KV label="MSB registered" value={register.msbRegistered ? "Yes" : "No"} />
+          <KV label="BSA ID" value={register.bsaId || "—"} />
+          <KV label="MSB tracking #" value={register.msbTracking || "—"} />
+          <KV label="Compliance officer" value={register.ccoName || "—"} />
+          <KV label="CCO designated" value={register.ccoDesignated || "—"} />
+        </Section>
+      )}
 
       {scopeAllows(ctx.scope, "program") && program.length > 0 && (
         <Section title="AML/BSA program status">

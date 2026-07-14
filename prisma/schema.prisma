@@ -971,6 +971,23 @@ model ComplianceProgramItem {
   createdAt DateTime            @default(now())
 }
 
+// The compliance program's identity/registration facts — the header line on the
+// dashboard. A singleton (id always "default"). DB-backed + UI-editable so the
+// confidential values (legal name, BSA ID, tracking, compliance officer) live in
+// the database, never in this public repo. Empty defaults render as an em dash.
+model ComplianceRegister {
+  id            String   @id @default("default")
+  entityName    String   @default("")
+  msbRegistered Boolean  @default(true)
+  bsaId         String   @default("")
+  msbTracking   String   @default("")
+  ccoName       String   @default("")
+  ccoDesignated String   @default("") // ISO date (YYYY-MM-DD)
+  updatedBy     String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
 // ============================================
 // BILLING — Stripe console (F2-D)
 // ============================================

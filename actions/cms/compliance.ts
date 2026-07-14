@@ -23,6 +23,12 @@ import {
   type ProgramItemRow,
   type ProgramItemUpdate,
 } from "@/lib/compliance/program-store"
+import {
+  RegisterError,
+  getRegister,
+  updateRegister,
+  type RegisterRow,
+} from "@/lib/compliance/register"
 
 type Fail = { ok: false; error: string }
 
@@ -132,6 +138,30 @@ export async function updateProgramItemAction(
     return { ok: true }
   } catch (e) {
     if (e instanceof ProgramError) return { ok: false, error: e.message }
+    throw e
+  }
+}
+
+// ---- Register (identity / registration facts) ---------------------------
+
+export async function getRegisterAction(): Promise<
+  { ok: true; register: RegisterRow } | Fail
+> {
+  const a = await actor("aml.read")
+  if (!a.ok) return a
+  return { ok: true, register: await getRegister() }
+}
+
+export async function updateRegisterAction(input: unknown): Promise<{ ok: true } | Fail> {
+  const a = await actor("aml.edit")
+  if (!a.ok) return a
+  try {
+    await updateRegister(input, a.me.email)
+    await audit("update_register", { actorId: a.me.id, target: "compliance-register", ip: await ip() })
+    revalidatePath("/admin/compliance")
+    return { ok: true }
+  } catch (e) {
+    if (e instanceof RegisterError) return { ok: false, error: e.message }
     throw e
   }
 }

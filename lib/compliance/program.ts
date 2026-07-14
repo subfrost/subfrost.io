@@ -1,15 +1,11 @@
-// The AML/BSA program register: the identity of the compliance program plus the
-// SEED for the five BSA pillars. The pillar rows are seeded from PROGRAM_PILLARS
-// into ComplianceProgramItem once, then edited in the UI
-// (lib/compliance/program-store.ts).
-//
-// This repository is PUBLIC, so no confidential identifiers live here. The
-// registration facts (legal entity name, BSA ID, tracking number, compliance
-// officer) are injected from the deployment environment (server-only env vars;
-// see .env.example) and fall back to a neutral placeholder when unset. The seed
-// pillar/obligation text is a generic best-practice template — the real,
-// company-specific status and detail are entered through the admin UI (stored
-// in the database) after deploy.
+// The SEED for the five BSA program pillars. The pillar rows are seeded from
+// PROGRAM_PILLARS into ComplianceProgramItem once, then edited in the UI
+// (lib/compliance/program-store.ts). The program's identity/registration facts
+// (legal entity, BSA ID, tracking, compliance officer) live in a DB-backed,
+// UI-editable singleton — see lib/compliance/register.ts — so the confidential
+// values stay out of this PUBLIC repo. The seed pillar/obligation text is a
+// generic best-practice template; real company-specific status and detail are
+// entered through the admin UI (stored in the database) after deploy.
 
 export type PillarStatus = "OK" | "PARTIAL" | "GAP"
 
@@ -23,23 +19,6 @@ export interface ProgramPillar {
   status: PillarStatus
   detail: string
   action?: string
-}
-
-const env = process.env
-const PLACEHOLDER = "—"
-
-export const PROGRAM_REGISTER = {
-  entity: env.COMPLIANCE_ENTITY_NAME || "The company",
-  msb: {
-    registered: (env.COMPLIANCE_MSB_REGISTERED ?? "true") === "true",
-    bsaId: env.COMPLIANCE_BSA_ID || PLACEHOLDER,
-    tracking: env.COMPLIANCE_MSB_TRACKING || PLACEHOLDER,
-    form: "FinCEN Form 107 (MSB registration)",
-  },
-  cco: {
-    name: env.COMPLIANCE_CCO_NAME || PLACEHOLDER,
-    designatedOn: env.COMPLIANCE_CCO_DESIGNATED || PLACEHOLDER,
-  },
 }
 
 // The five things a registered MSB must maintain (registration + the four BSA
