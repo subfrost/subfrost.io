@@ -289,9 +289,9 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
     openGraph: {
       title: c.title,
       description: c.subtitle,
-      images: [{ url: absoluteUrl("/metrics/card/btc-locked"), width: 1200, height: 675 }],
+      images: [{ url: absoluteUrl("/og/metrics.jpg"), width: 1200, height: 550 }],
     },
-    twitter: { card: "summary_large_image" },
+    twitter: { card: "summary_large_image", images: [absoluteUrl("/og/metrics.jpg")] },
   }
 }
 
