@@ -15,6 +15,7 @@ import {
   updateCode,
   deleteCode,
   addAddressToCode,
+  removeAddressFromCode,
   getCodeTree,
   getAnnotatedCodeTree,
   getCodeRedeemers,
@@ -24,6 +25,7 @@ import {
   type BulkCreateInput,
   type UpdateCodeInput,
   type AddAddressInput,
+  type RemoveAddressInput,
   type ListCodesQuery,
   type ListCodesResult,
   type ListRedemptionsQuery,
@@ -185,6 +187,30 @@ export async function addAddressToCodeAction(input: AddAddressInput): Promise<Co
     })
     revalidatePath("/admin/codes")
   })
+}
+
+export async function removeAddressFromCodeAction(
+  input: RemoveAddressInput,
+): Promise<{ ok: true; addressDeleted: boolean } | { ok: false; error: string }> {
+  const a = await actor("referral.edit")
+  if (!a.ok) return a
+  try {
+    const { code, addressDeleted } = await removeAddressFromCode(input)
+    await audit("update_code", {
+      actorId: a.me.id,
+      target: code,
+      details: {
+        removeAddress: input.taprootAddress,
+        addressDeleted,
+      } as Prisma.InputJsonValue,
+      ip: await ip(),
+    })
+    revalidatePath("/admin/codes")
+    return { ok: true, addressDeleted }
+  } catch (e) {
+    if (e instanceof CodeError) return { ok: false, error: e.message }
+    throw e
+  }
 }
 
 /** Convenience for the inline activate/deactivate toggle. */

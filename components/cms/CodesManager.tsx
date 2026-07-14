@@ -16,6 +16,7 @@ import {
   updateCodeAction,
   deleteCodeAction,
   addAddressToCodeAction,
+  removeAddressFromCodeAction,
   exportRedemptionsCsvAction,
 } from "@/actions/cms/codes"
 import type { AnnotatedCodeNode, CodeRedeemer } from "@/lib/referral/admin"
@@ -67,8 +68,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
       <div className="flex flex-wrap items-center gap-2">
         {canEdit && (
           <>
-            <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New root code</Button>
-            <Button size="sm" variant="outline" onClick={() => setForm({ type: "bulk", parentId: null })}><Layers size={14} /> Bulk generate</Button>
+            <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New Parent Code</Button>
           </>
         )}
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or owner…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
@@ -127,6 +127,21 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
     setAddrDraft(node.ownerTaprootAddress ?? "")
     setAddrError(null)
     setEditingAddr(true)
+  }
+
+  function removeRedeemer(r: CodeRedeemer) {
+    const warning =
+      r.fuel != null
+        ? `Remove ${r.address} from ${node.code}?\n\nThe address will no longer be a redeemer of this code. Because it has FUEL allocated, it stays in the system and will appear under "Unattributed" in /admin/fuel.`
+        : `Remove ${r.address} from ${node.code}?\n\nThe address will no longer be a redeemer of this code. It has no FUEL allocated, so it will be deleted from the system entirely.`
+    if (!confirm(warning)) return
+    startTransition(async () => {
+      const res = await removeAddressFromCodeAction({ codeId: node.id, taprootAddress: r.address })
+      if (res.ok) {
+        setRedeemers((prev) => (prev ? prev.filter((x) => x.address !== r.address) : prev))
+        reload()
+      }
+    })
   }
 
   function saveAddr() {
@@ -210,12 +225,17 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
                 <>
                   <div className="space-y-1">
                     {redeemers.slice(0, limit).map((r) => (
-                      <div key={r.address} className="flex items-center gap-2 text-xs">
+                      <div key={r.address} className="group flex items-center gap-2 text-xs">
                         <AddressChip address={r.address} />
                         {r.fuel != null
                           ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)} FUEL</span>
                           : <span className="rounded bg-zinc-800 px-1 text-[10px] text-zinc-500">no FUEL</span>}
                         <span className="text-zinc-600">{r.redeemedAt.slice(0, 10)}</span>
+                        {canEdit && (
+                          <span className="opacity-0 transition-opacity group-hover:opacity-100">
+                            <IconBtn title="Remove address from this code" danger onClick={() => removeRedeemer(r)}><Trash2 size={12} /></IconBtn>
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
