@@ -12,6 +12,13 @@ import { listIntakes } from "@/lib/kyc/admin"
 import { listEntries } from "@/lib/mtl/admin"
 import { envelopes } from "@/lib/esign/store"
 import { ENVELOPE_STATUS_LABELS } from "@/lib/esign/document-ui"
+import { listObligations } from "@/lib/compliance/obligations"
+import { listProgramItems } from "@/lib/compliance/program-store"
+import {
+  dueState, daysUntil, CATEGORY_LABELS, STATUS_LABELS,
+  type ObligationCategory, type ObligationStatus,
+} from "@/lib/compliance/obligations-schema"
+import type { PillarStatus } from "@/lib/compliance/program"
 import { ReviewLogin } from "@/components/cms/compliance/ReviewLogin"
 import { ReviewLogout } from "@/components/cms/compliance/ReviewLogout"
 
@@ -35,7 +42,9 @@ export default async function ReviewPortalPage({ params }: { params: Promise<{ t
   await recordReviewPageView(ctx.sessionId, "dashboard")
   const surfaces = scopeSurfaces(ctx.scope)
 
-  const [form107, sars, ctrs, submissions, intakes, mtl, envs] = await Promise.all([
+  const [program, obligations, form107, sars, ctrs, submissions, intakes, mtl, envs] = await Promise.all([
+    scopeAllows(ctx.scope, "program") ? listProgramItems() : Promise.resolve([]),
+    scopeAllows(ctx.scope, "obligations") ? listObligations() : Promise.resolve([]),
     scopeAllows(ctx.scope, "fincen") ? getForm107() : Promise.resolve(null),
     scopeAllows(ctx.scope, "fincen") ? listSar() : Promise.resolve([]),
     scopeAllows(ctx.scope, "fincen") ? listCtr() : Promise.resolve([]),
@@ -44,6 +53,7 @@ export default async function ReviewPortalPage({ params }: { params: Promise<{ t
     scopeAllows(ctx.scope, "mtl") ? listEntries() : Promise.resolve([]),
     scopeAllows(ctx.scope, "documents") ? envelopes.list() : Promise.resolve([]),
   ])
+  const nowMs = Date.now()
 
   return (
     <main className="mx-auto min-h-screen max-w-4xl bg-zinc-950 px-4 py-8 text-zinc-200">
@@ -62,6 +72,46 @@ export default async function ReviewPortalPage({ params }: { params: Promise<{ t
         This is a read-only reviewer view. You can see {surfaces.map((s) => s.label).join(", ")}. All
         access is logged. Contact your SUBFROST point of contact with questions.
       </p>
+
+      {scopeAllows(ctx.scope, "program") && program.length > 0 && (
+        <Section title="AML/BSA program status">
+          <div className="space-y-2">
+            {program.map((p) => (
+              <div key={p.key} className="border-b border-zinc-900 pb-2 last:border-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-zinc-200">{p.title}</span>
+                  <PillarBadge status={p.status} />
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">{p.detail}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {scopeAllows(ctx.scope, "obligations") && obligations.length > 0 && (
+        <Section title={`Obligation calendar (${obligations.length})`}>
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1">Obligation</th><th>Category</th><th>Status</th><th>Due</th></tr></thead>
+            <tbody>
+              {obligations.map((r) => {
+                const st = dueState(r.dueDate, r.status as ObligationStatus, nowMs)
+                const days = daysUntil(r.dueDate, nowMs)
+                return (
+                  <tr key={r.id} className="border-t border-zinc-900">
+                    <td className="py-1.5 text-zinc-200">{r.title}</td>
+                    <td className="text-xs text-zinc-400">{CATEGORY_LABELS[r.category as ObligationCategory] ?? r.category}</td>
+                    <td className="text-xs text-zinc-400">{STATUS_LABELS[r.status as ObligationStatus] ?? r.status}</td>
+                    <td className={`text-xs ${st === "overdue" ? "text-red-400" : st === "due-soon" ? "text-amber-400" : "text-zinc-400"}`}>
+                      {r.dueDate ?? "—"}{days != null && st === "overdue" ? ` (${Math.abs(days)}d over)` : ""}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </Section>
+      )}
 
       {scopeAllows(ctx.scope, "fincen") && (
         <Section title="FinCEN filings">
@@ -161,4 +211,13 @@ function KV({ label, value }: { label: string; value: string }) {
 }
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-zinc-500">{children}</p>
+}
+function PillarBadge({ status }: { status: PillarStatus }) {
+  const map: Record<PillarStatus, { label: string; cls: string }> = {
+    OK: { label: "In place", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+    PARTIAL: { label: "Partial", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+    GAP: { label: "Gap", cls: "bg-red-500/10 text-red-400 border-red-500/30" },
+  }
+  const b = map[status]
+  return <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${b.cls}`}>{b.label}</span>
 }
