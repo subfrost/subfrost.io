@@ -102,7 +102,7 @@ function FuelDistribution({ manageSlot }: { manageSlot?: React.ReactNode }) {
       <div>
         <div className="mb-1.5 text-xs uppercase tracking-wide text-zinc-500">Distribution by community (share of gross)</div>
         <div className="flex h-3 overflow-hidden rounded-full bg-zinc-800">
-          {ov.communities.slice(0, 12).map((c, i) => (
+          {ov.communities.map((c, i) => (
             <div key={c.rootId} title={`${c.rootCode}: ${fmt(c.totalFuel)} (${((c.totalFuel / gross) * 100).toFixed(1)}%)`}
               style={{ width: `${(c.totalFuel / gross) * 100}%`, background: `hsl(${(i * 31) % 360} 60% 55%)` }} />
           ))}

@@ -307,6 +307,48 @@ export async function addAddressToCode(
   return { id: redemption.id, code: code.code }
 }
 
+export interface RemoveAddressInput {
+  codeId: string
+  taprootAddress: string
+}
+
+/** Admin: remove a redeemer address from a code by deleting its redemption.
+ *  The address stops appearing as a redeemer of the code. If it still has a
+ *  FUEL allocation it stays in the system (surfacing as "unattributed" FUEL in
+ *  /admin/fuel); if it has no FUEL it is removed entirely, including any address
+ *  profile note. Returns whether the address was fully deleted so the caller can
+ *  tell the operator what happened. */
+export async function removeAddressFromCode(
+  input: RemoveAddressInput,
+): Promise<{ code: string; addressDeleted: boolean }> {
+  const address = input.taprootAddress.trim()
+
+  const code = await prisma.inviteCode.findUnique({
+    where: { id: input.codeId },
+    select: { id: true, code: true },
+  })
+  if (!code) throw new CodeError("Code not found")
+
+  const redemption = await prisma.inviteCodeRedemption.findUnique({
+    where: { codeId_taprootAddress: { codeId: code.id, taprootAddress: address } },
+    select: { id: true },
+  })
+  if (!redemption) throw new CodeError("Address is not a redeemer of this code")
+
+  await prisma.inviteCodeRedemption.delete({ where: { id: redemption.id } })
+
+  // Keep the address if it holds FUEL (it becomes "unattributed"); otherwise
+  // drop it from the system entirely, including any profile note.
+  const fuel = await prisma.fuelAllocation.findUnique({
+    where: { address },
+    select: { id: true },
+  })
+  if (fuel) return { code: code.code, addressDeleted: false }
+
+  await prisma.addressProfile.deleteMany({ where: { address } })
+  return { code: code.code, addressDeleted: true }
+}
+
 // --- Hierarchy tree --------------------------------------------------------
 
 export interface CodeTreeInputRow {
