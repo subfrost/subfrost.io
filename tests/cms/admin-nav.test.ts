@@ -16,8 +16,10 @@ describe("visibleNav", () => {
     const groups = visibleNav(["aml.read"])
     expect(groups.map((g) => g.key)).toEqual(["overview", "articles", "compliance", "ops"])
     const compliance = groups.find((g) => g.key === "compliance")!
+    // E-Sign (documents.read) and Reviewer links (compliance.reviews) are gated
+    // by other privileges, so an aml.read-only user sees only these five.
     expect(compliance.items.map((i) => i.href)).toEqual([
-      "/admin/kyc", "/admin/fincen", "/admin/mtl",
+      "/admin/compliance", "/admin/compliance/obligations", "/admin/kyc", "/admin/fincen", "/admin/mtl",
     ])
   })
 
