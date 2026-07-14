@@ -32,7 +32,7 @@ describe("visibleNav", () => {
       "/admin/board", "/admin/board/intake", "/admin/board/initiatives", "/admin/board/products",
     ])
     expect(groups.find((g) => g.key === "documents")!.items.map((i) => i.href)).toEqual([
-      "/admin/files",
+      "/admin/files", "/admin/documents",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(10)
     expect(groups.find((g) => g.key === "financials")!.items.map((i) => i.href)).toEqual([

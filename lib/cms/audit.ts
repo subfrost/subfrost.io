@@ -72,6 +72,7 @@ export type AuditAction =
   | "complete_obligation"
   | "seed_program"
   | "update_program_item"
+  | "update_register"
   | "equity_class_upsert"
   | "equity_class_delete"
   | "equity_shareholder_upsert"

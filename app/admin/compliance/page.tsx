@@ -2,10 +2,11 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { currentUser } from "@/lib/cms/authz"
 import { complianceOverview, type AttentionItem } from "@/lib/compliance/overview"
-import { PROGRAM_REGISTER } from "@/lib/compliance/program"
+import { getRegister } from "@/lib/compliance/register"
 import { MTL_STATUS_LABELS, type MtlStatusValue } from "@/lib/mtl/schema"
 import { CATEGORY_LABELS, type ObligationCategory } from "@/lib/compliance/obligations-schema"
 import { ProgramManager } from "@/components/cms/compliance/ProgramManager"
+import { RegisterManager } from "@/components/cms/compliance/RegisterManager"
 
 export const dynamic = "force-dynamic"
 
@@ -49,8 +50,8 @@ export default async function CompliancePage() {
   if (!me.privileges.includes("aml.read")) redirect("/admin")
   const canEdit = me.privileges.includes("aml.edit")
 
-  const o = await complianceOverview()
-  const entityName = PROGRAM_REGISTER.entity.replace(" (Delaware C-corp)", "")
+  const [o, register] = await Promise.all([complianceOverview(), getRegister()])
+  const entityName = register.entityName.trim() || "the company"
 
   return (
     <div className="max-w-5xl">
@@ -135,13 +136,22 @@ export default async function CompliancePage() {
         )}
       </section>
 
+      {/* ---- Register (editable identity facts) ---- */}
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-400">Registration</h2>
+        <p className="mb-3 text-xs text-zinc-600">
+          The company&apos;s identity and MSB registration facts. Stored in the database and editable
+          here — the confidential values live only in this authenticated app, never in the codebase.
+        </p>
+        <RegisterManager canEdit={canEdit} />
+      </section>
+
       {/* ---- Program pillars (editable) ---- */}
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-400">AML/BSA program status</h2>
         <p className="mb-3 text-xs text-zinc-600">
-          The Bank Secrecy Act requires a registered MSB to maintain all five of these. MSB registration:
-          BSA ID {PROGRAM_REGISTER.msb.bsaId}. Compliance officer: {PROGRAM_REGISTER.cco.name}. Edit a
-          pillar as its status changes — no code deploy needed.
+          The Bank Secrecy Act requires a registered MSB to maintain all five of these. Edit a pillar
+          as its status changes — no code deploy needed.
         </p>
         <ProgramManager canEdit={canEdit} />
       </section>
