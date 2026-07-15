@@ -109,7 +109,7 @@ const copy = {
           desc: "Average fee paid per transaction, in sats, split between Alkanes transactions and everyone else. Alkanes tx are mostly small DIESEL mints that pay modest fees, so per transaction they typically sit below the rest of Bitcoin's traffic — the mirror image of their share by transaction count. (Per-day fees ÷ tx count in each bucket; subsidy excluded.)",
         },
         ugMintsPerDay: {
-          title: "UNCOMMON•GOODS mints per day — taken over by DIESEL",
+          title: "UNCOMMON•GOODS mints per day: DIESEL-driven vs independent",
           series: { diesel: "DIESEL", independent: "Independent Runes" },
           desc: "Almost every DIESEL mint also mints UNCOMMON•GOODS (Rune 1:0). This splits daily UNCOMMON•GOODS mints into the DIESEL-driven ones vs genuinely independent Runes — DIESEL has come to dominate the count. (Raw counts in the sampled blocks.)",
         },
