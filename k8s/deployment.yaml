@@ -163,6 +163,12 @@ spec:
                   name: subfrost-io-secrets
                   key: FUEL_API_KEY
                   optional: true
+            - name: REFERRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: REFERRAL_API_KEY
+                  optional: true
             # IPROYAL residential HTTP proxy for the treasury BSC-RPC path. When
             # set, lib/financials/treasury/source/bsc-rpc.ts tunnels the tlsfetch
             # TCP leg through it (HTTP CONNECT) so NodeReal sees a clean IP
