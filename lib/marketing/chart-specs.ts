@@ -134,7 +134,7 @@ export const CHART_SPECS: Record<string, ChartSpec> = {
   },
   "ug-mints-per-day": {
     id: "ug-mints-per-day",
-    title: "UNCOMMON•GOODS mints per day: taken over by DIESEL",
+    title: "UNCOMMON•GOODS mints per day: DIESEL-driven vs independent",
     type: "stacked",
     scale: "linear",
     valueFormat: "count",

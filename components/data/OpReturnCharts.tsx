@@ -582,7 +582,7 @@ export function OpReturnCharts({ payload, copy, locale }: { payload: PublicOpRet
           <SingleLineChart data={ugDieselShare} dataKey="value" color={ACCENT} yTickFormatter={axisPct} tooltipFormatter={tooltipPct} area />
         </Card>
 
-        {/* UNCOMMON•GOODS mints per day — taken over by DIESEL (stacked, raw sampled counts) */}
+        {/* UNCOMMON•GOODS mints per day: DIESEL-driven vs independent (stacked, raw sampled counts) */}
         <Card title={copy.charts.ugMintsPerDay.title} desc={copy.charts.ugMintsPerDay.desc} anchorId="ug-mints-per-day" shareLink={linkFor(copy.charts.ugMintsPerDay.title)} chartUrl={chartImageUrl(CHART_ID.ugMintsPerDay, cardWindow, "dark")}>
           <ToggleLineChart
             data={ugMintsPerDay}
