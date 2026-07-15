@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
-import { ChevronRight, Plus, Layers, Flame, Check, Power, Trash2, Download, Pencil, X, UserPlus } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { ChevronRight, Plus, Layers, Flame, Check, Power, Trash2, Download, Pencil, X, UserPlus, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,28 +18,30 @@ import {
   addAddressToCodeAction,
   removeAddressFromCodeAction,
   exportRedemptionsCsvAction,
+  listFlatRedemptionsAction,
 } from "@/actions/cms/codes"
-import type { AnnotatedCodeNode, CodeRedeemer } from "@/lib/referral/admin"
+import type { AnnotatedCodeNode, CodeRedeemer, FlatRedemption } from "@/lib/referral/admin"
+
+const PAGE_SIZE = 100
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })
 
 /** A mainnet Taproot address: `bc1p` prefix (case-insensitive) and 62 chars. */
 const isTaprootAddress = (address: string) => address.length === 62 && /^bc1p/i.test(address)
 
-// Keep a node if it (or any descendant) matches the code/owner search and the
-// redeemed-address search. `addr` matches against the code's redeemer addresses
-// (and its owner address), so searching an address surfaces the codes it claimed.
-function filterTree(nodes: AnnotatedCodeNode[], q: string, addr: string): AnnotatedCodeNode[] {
+// Keep a node if it (or any descendant) matches the query. `q` matches against
+// the code, its owner address, and its redeemer addresses, so searching an
+// address surfaces both the codes it owns and the codes it claimed.
+function filterTree(nodes: AnnotatedCodeNode[], q: string): AnnotatedCodeNode[] {
   const out: AnnotatedCodeNode[] = []
   for (const n of nodes) {
-    const kids = filterTree(n.children, q, addr)
-    const codeMatch =
-      !q || n.code.toLowerCase().includes(q) || (n.ownerTaprootAddress ?? "").toLowerCase().includes(q)
-    const addrMatch =
-      !addr ||
-      (n.ownerTaprootAddress ?? "").toLowerCase().includes(addr) ||
-      n.redeemerAddresses.some((a) => a.toLowerCase().includes(addr))
-    if ((codeMatch && addrMatch) || kids.length) out.push({ ...n, children: kids })
+    const kids = filterTree(n.children, q)
+    const match =
+      !q ||
+      n.code.toLowerCase().includes(q) ||
+      (n.ownerTaprootAddress ?? "").toLowerCase().includes(q) ||
+      n.redeemerAddresses.some((a) => a.toLowerCase().includes(q))
+    if (match || kids.length) out.push({ ...n, children: kids })
   }
   return out
 }
@@ -48,7 +50,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   const [tree, setTree] = useState<AnnotatedCodeNode[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [addressSearch, setAddressSearch] = useState("")
+  const [redemptionView, setRedemptionView] = useState(false)
   const [form, setForm] = useState<{ type: "child" | "bulk" | "address"; parentId: string | null } | null>(null)
   const [, startTransition] = useTransition()
 
@@ -60,8 +62,7 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   useEffect(() => { reload() }, [])
 
   const q = search.trim().toLowerCase()
-  const addr = addressSearch.trim().toLowerCase()
-  const filtered = useMemo(() => (tree ? filterTree(tree, q, addr) : []), [tree, q, addr])
+  const filtered = useMemo(() => (tree ? filterTree(tree, q) : []), [tree, q])
 
   return (
     <div className="space-y-4">
@@ -71,8 +72,11 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
             <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New Parent Code</Button>
           </>
         )}
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or owner…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
-        <Input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder="Search address…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code, owner, or redemption address…" className="h-9 w-full max-w-md bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <Button size="sm" variant={redemptionView ? "default" : "ghost"} aria-pressed={redemptionView}
+          onClick={() => setRedemptionView((v) => !v)}>
+          <List size={14} /> Redemption View
+        </Button>
         <Button size="sm" variant="ghost" className="ml-auto"
           onClick={() => startTransition(async () => { const r = await exportRedemptionsCsvAction(); if (r.ok) downloadCsv(r.csv, r.filename) })}>
           <Download size={14} /> Export redemptions
@@ -83,7 +87,9 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
         <NodeForm type={form.type} parentId={null} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
       )}
 
-      {loading ? (
+      {redemptionView ? (
+        <RedemptionView search={q} />
+      ) : loading ? (
         <SkeletonList rows={10} height="h-8" />
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 px-4 py-8 text-center text-zinc-600">No codes match.</div>
@@ -96,6 +102,97 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
       )}
     </div>
   )
+}
+
+/** Flat, newest-first list of every redemption. Loads 100 rows at a time,
+ *  fetching the next page when the sentinel at the bottom of the scroll
+ *  container comes into view. `search` (already lowercased/trimmed) filters
+ *  server-side on address, code, and parent code. */
+function RedemptionView({ search }: { search: string }) {
+  const [rows, setRows] = useState<FlatRedemption[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  // Guards against a stale in-flight page landing after the search changed.
+  const reqRef = useRef(0)
+
+  const load = useCallback(async (offset: number) => {
+    const req = ++reqRef.current
+    setLoading(true)
+    const res = await listFlatRedemptionsAction({ search, offset, limit: PAGE_SIZE })
+    if (req !== reqRef.current) return // superseded by a newer query
+    if (res.ok) {
+      setRows((prev) => (offset === 0 ? res.redemptions : [...prev, ...res.redemptions]))
+      setTotal(res.total)
+    }
+    setLoading(false)
+  }, [search])
+
+  // Reset to the first page whenever the query changes.
+  useEffect(() => {
+    setRows([])
+    setTotal(0)
+    scrollRef.current?.scrollTo({ top: 0 })
+    load(0)
+  }, [load])
+
+  const hasMore = rows.length < total
+  useEffect(() => {
+    if (!hasMore || loading) return
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) load(rows.length) },
+      { root: scrollRef.current, rootMargin: "200px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loading, rows.length, load])
+
+  const cols = "grid-cols-[minmax(0,3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]"
+
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+      <div className={`grid ${cols} gap-2 border-b border-zinc-800 px-3 py-2 text-[10px] uppercase tracking-wide text-zinc-500`}>
+        <span>Address</span><span>Code</span><span>Parent Code</span><span>FUEL Allocation</span><span>Date &amp; Time</span>
+      </div>
+      <div ref={scrollRef} className="max-h-[70vh] overflow-y-auto">
+        {rows.map((r) => (
+          <div key={r.id} className={`grid ${cols} items-center gap-2 border-b border-zinc-800/40 px-3 py-1.5 text-xs hover:bg-zinc-900/40`}>
+            <span className="min-w-0"><AddressChip address={r.address} /></span>
+            <span className="truncate font-mono text-zinc-200">{r.code}</span>
+            <span className="truncate font-mono text-zinc-500">{r.parentCode ?? "—"}</span>
+            <span>
+              {r.fuel != null
+                ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)}</span>
+                : <span className="rounded bg-zinc-800 px-1 text-[10px] text-zinc-500">no FUEL</span>}
+            </span>
+            <span className="text-zinc-500">{formatDateTime(r.redeemedAt)}</span>
+          </div>
+        ))}
+        {loading && <div className="px-3 py-2"><SkeletonText lines={rows.length ? 2 : 8} /></div>}
+        {!loading && rows.length === 0 && (
+          <div className="px-4 py-8 text-center text-zinc-600">No redemptions match.</div>
+        )}
+        <div ref={sentinelRef} />
+      </div>
+      {rows.length > 0 && (
+        <div className="border-t border-zinc-800 px-3 py-1.5 text-[10px] text-zinc-600">
+          Showing {rows.length} of {total}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Redemption timestamps are stored in UTC; render them there so two admins in
+ *  different timezones read the same value. */
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
+    year: "numeric", month: "short", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short",
+  })
 }
 
 function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {

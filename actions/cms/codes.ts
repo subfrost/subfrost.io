@@ -20,6 +20,7 @@ import {
   getAnnotatedCodeTree,
   getCodeRedeemers,
   listRedemptions,
+  listFlatRedemptions,
   exportRedemptionsCsv,
   type CreateCodeInput,
   type BulkCreateInput,
@@ -30,6 +31,7 @@ import {
   type ListCodesResult,
   type ListRedemptionsQuery,
   type ListRedemptionsResult,
+  type FlatRedemptionsResult,
   type CodeTreeNode,
   type AnnotatedCodeNode,
   type CodeRedeemer,
@@ -100,6 +102,14 @@ export async function listRedemptionsAction(
   const a = await actor("referral.read")
   if (!a.ok) return a
   return { ok: true, ...(await listRedemptions(query)) }
+}
+
+export async function listFlatRedemptionsAction(
+  query: { search?: string; offset?: number; limit?: number },
+): Promise<({ ok: true } & FlatRedemptionsResult) | { ok: false; error: string }> {
+  const a = await actor("referral.read")
+  if (!a.ok) return a
+  return { ok: true, ...(await listFlatRedemptions(query)) }
 }
 
 export async function exportRedemptionsCsvAction(): Promise<

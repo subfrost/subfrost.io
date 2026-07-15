@@ -7,6 +7,7 @@
  * `app/api/admin/codes/*` + `app/api/admin/redemptions/*`.
  */
 import crypto from "crypto"
+import type { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { normalizeCode, invalidateCodeValidation } from "@/lib/referral/codes"
 
@@ -589,6 +590,79 @@ export async function listRedemptions(
       redeemedAt: r.redeemedAt.toISOString(),
     })),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
+}
+
+export interface FlatRedemption {
+  id: string
+  address: string
+  code: string
+  parentCode: string | null
+  fuel: number | null
+  redeemedAt: string
+}
+
+export interface FlatRedemptionsResult {
+  redemptions: FlatRedemption[]
+  total: number
+}
+
+/** Every redemption as a flat, newest-first page — address, the code it claimed,
+ *  that code's parent, and the address's FUEL allocation. Powers the admin
+ *  "Redemption View" list, which pages in 100 at a time as the operator scrolls.
+ *  `search` matches the address, the code, or the parent code. */
+export async function listFlatRedemptions(
+  query: { search?: string; offset?: number; limit?: number } = {},
+): Promise<FlatRedemptionsResult> {
+  const search = query.search?.trim() ?? ""
+  const limit = Math.min(MAX_LIMIT, Math.max(1, query.limit ?? 100))
+  const offset = Math.max(0, query.offset ?? 0)
+
+  const where: Prisma.InviteCodeRedemptionWhereInput = search
+    ? {
+        OR: [
+          { taprootAddress: { contains: search, mode: "insensitive" } },
+          { code: { code: { contains: search, mode: "insensitive" } } },
+          { code: { parentCode: { code: { contains: search, mode: "insensitive" } } } },
+        ],
+      }
+    : {}
+
+  const [rows, total] = await Promise.all([
+    prisma.inviteCodeRedemption.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: { redeemedAt: "desc" },
+      select: {
+        id: true,
+        taprootAddress: true,
+        redeemedAt: true,
+        code: { select: { code: true, parentCode: { select: { code: true } } } },
+      },
+    }),
+    prisma.inviteCodeRedemption.count({ where }),
+  ])
+
+  const addrs = [...new Set(rows.map((r) => r.taprootAddress))]
+  const fuels = addrs.length
+    ? await prisma.fuelAllocation.findMany({
+        where: { address: { in: addrs } },
+        select: { address: true, amount: true },
+      })
+    : []
+  const fuelByAddr = new Map(fuels.map((f) => [f.address, f.amount]))
+
+  return {
+    redemptions: rows.map((r) => ({
+      id: r.id,
+      address: r.taprootAddress,
+      code: r.code.code,
+      parentCode: r.code.parentCode?.code ?? null,
+      fuel: fuelByAddr.get(r.taprootAddress) ?? null,
+      redeemedAt: r.redeemedAt.toISOString(),
+    })),
+    total,
   }
 }
 
