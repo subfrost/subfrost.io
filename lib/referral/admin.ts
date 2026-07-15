@@ -7,7 +7,7 @@
  * `app/api/admin/codes/*` + `app/api/admin/redemptions/*`.
  */
 import crypto from "crypto"
-import type { Prisma } from "@prisma/client"
+import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { normalizeCode, invalidateCodeValidation } from "@/lib/referral/codes"
 
@@ -596,8 +596,10 @@ export async function listRedemptions(
 export interface FlatRedemption {
   id: string
   address: string
-  code: string
-  parentCode: string | null
+  /** The sub-code claimed, or null when a top-level parent code was claimed directly. */
+  childCode: string | null
+  /** Always set: the parent of the claimed code, or the claimed code itself when top-level. */
+  parentCode: string
   fuel: number | null
   redeemedAt: string
 }
@@ -607,16 +609,32 @@ export interface FlatRedemptionsResult {
   total: number
 }
 
-/** Every redemption as a flat, newest-first page — address, the code it claimed,
- *  that code's parent, and the address's FUEL allocation. Powers the admin
+export type FlatRedemptionSort = "redeemedAt" | "fuel"
+
+export interface FlatRedemptionsQuery {
+  search?: string
+  offset?: number
+  limit?: number
+  sort?: FlatRedemptionSort
+  dir?: "asc" | "desc"
+}
+
+/** Every redemption as a flat page — address, the code it claimed (split into the
+ *  sub-code and its parent), and the address's FUEL allocation. Powers the admin
  *  "Redemption View" list, which pages in 100 at a time as the operator scrolls.
- *  `search` matches the address, the code, or the parent code. */
+ *  `search` matches the address, the code, or the parent code.
+ *
+ *  Raw SQL rather than Prisma: FUEL lives in a separate table keyed by address, so
+ *  ordering the whole result set by allocation needs the join in the database — a
+ *  page-local sort would only order the rows already fetched. Addresses with no
+ *  allocation sort last in both directions. */
 export async function listFlatRedemptions(
-  query: { search?: string; offset?: number; limit?: number } = {},
+  query: FlatRedemptionsQuery = {},
 ): Promise<FlatRedemptionsResult> {
   const search = query.search?.trim() ?? ""
   const limit = Math.min(MAX_LIMIT, Math.max(1, query.limit ?? 100))
   const offset = Math.max(0, query.offset ?? 0)
+  const dir = query.dir === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`
 
   const where: Prisma.InviteCodeRedemptionWhereInput = search
     ? {
@@ -628,38 +646,44 @@ export async function listFlatRedemptions(
       }
     : {}
 
+  const like = `%${search}%`
+  const filter = search
+    ? Prisma.sql`WHERE (r."taprootAddress" ILIKE ${like} OR c.code ILIKE ${like} OR p.code ILIKE ${like})`
+    : Prisma.empty
+  // id is a stable tiebreaker so paging can't repeat or skip rows when two
+  // redemptions share a timestamp or allocation.
+  const order =
+    query.sort === "fuel"
+      ? Prisma.sql`ORDER BY f.amount ${dir} NULLS LAST, r.id ASC`
+      : Prisma.sql`ORDER BY r."redeemedAt" ${dir}, r.id ASC`
+
   const [rows, total] = await Promise.all([
-    prisma.inviteCodeRedemption.findMany({
-      where,
-      skip: offset,
-      take: limit,
-      orderBy: { redeemedAt: "desc" },
-      select: {
-        id: true,
-        taprootAddress: true,
-        redeemedAt: true,
-        code: { select: { code: true, parentCode: { select: { code: true } } } },
-      },
-    }),
+    prisma.$queryRaw<
+      { id: string; address: string; childCode: string | null; parentCode: string; fuel: number | null; redeemedAt: Date }[]
+    >(Prisma.sql`
+      SELECT r.id,
+             r."taprootAddress" AS address,
+             CASE WHEN p.code IS NULL THEN NULL ELSE c.code END AS "childCode",
+             COALESCE(p.code, c.code) AS "parentCode",
+             f.amount AS fuel,
+             r."redeemedAt" AS "redeemedAt"
+      FROM "InviteCodeRedemption" r
+      JOIN "InviteCode" c ON c.id = r."codeId"
+      LEFT JOIN "InviteCode" p ON p.id = c."parentCodeId"
+      LEFT JOIN "FuelAllocation" f ON f.address = r."taprootAddress"
+      ${filter}
+      ${order}
+      LIMIT ${limit} OFFSET ${offset}`),
     prisma.inviteCodeRedemption.count({ where }),
   ])
-
-  const addrs = [...new Set(rows.map((r) => r.taprootAddress))]
-  const fuels = addrs.length
-    ? await prisma.fuelAllocation.findMany({
-        where: { address: { in: addrs } },
-        select: { address: true, amount: true },
-      })
-    : []
-  const fuelByAddr = new Map(fuels.map((f) => [f.address, f.amount]))
 
   return {
     redemptions: rows.map((r) => ({
       id: r.id,
-      address: r.taprootAddress,
-      code: r.code.code,
-      parentCode: r.code.parentCode?.code ?? null,
-      fuel: fuelByAddr.get(r.taprootAddress) ?? null,
+      address: r.address,
+      childCode: r.childCode,
+      parentCode: r.parentCode,
+      fuel: r.fuel,
       redeemedAt: r.redeemedAt.toISOString(),
     })),
     total,

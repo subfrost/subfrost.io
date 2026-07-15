@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
-import { ChevronRight, Plus, Layers, Flame, Check, Power, Trash2, Download, Pencil, X, UserPlus, List } from "lucide-react"
+import { ChevronRight, ChevronUp, ChevronDown, Plus, Layers, Flame, Check, Power, Trash2, Download, Pencil, X, UserPlus, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,7 +20,7 @@ import {
   exportRedemptionsCsvAction,
   listFlatRedemptionsAction,
 } from "@/actions/cms/codes"
-import type { AnnotatedCodeNode, CodeRedeemer, FlatRedemption } from "@/lib/referral/admin"
+import type { AnnotatedCodeNode, CodeRedeemer, FlatRedemption, FlatRedemptionSort } from "@/lib/referral/admin"
 
 const PAGE_SIZE = 100
 
@@ -112,6 +112,8 @@ function RedemptionView({ search }: { search: string }) {
   const [rows, setRows] = useState<FlatRedemption[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [sort, setSort] = useState<FlatRedemptionSort>("redeemedAt")
+  const [dir, setDir] = useState<"asc" | "desc">("desc")
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   // Guards against a stale in-flight page landing after the search changed.
@@ -120,22 +122,29 @@ function RedemptionView({ search }: { search: string }) {
   const load = useCallback(async (offset: number) => {
     const req = ++reqRef.current
     setLoading(true)
-    const res = await listFlatRedemptionsAction({ search, offset, limit: PAGE_SIZE })
+    const res = await listFlatRedemptionsAction({ search, offset, limit: PAGE_SIZE, sort, dir })
     if (req !== reqRef.current) return // superseded by a newer query
     if (res.ok) {
       setRows((prev) => (offset === 0 ? res.redemptions : [...prev, ...res.redemptions]))
       setTotal(res.total)
     }
     setLoading(false)
-  }, [search])
+  }, [search, sort, dir])
 
-  // Reset to the first page whenever the query changes.
+  // Reset to the first page whenever the query changes. Sorting is server-side so
+  // it orders every redemption, not just the pages already scrolled into view.
   useEffect(() => {
     setRows([])
     setTotal(0)
     scrollRef.current?.scrollTo({ top: 0 })
     load(0)
   }, [load])
+
+  // Clicking the active column flips direction; a new column starts descending.
+  const toggleSort = (key: FlatRedemptionSort) => {
+    if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"))
+    else { setSort(key); setDir("desc") }
+  }
 
   const hasMore = rows.length < total
   useEffect(() => {
@@ -155,14 +164,16 @@ function RedemptionView({ search }: { search: string }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
       <div className={`grid ${cols} gap-2 border-b border-zinc-800 px-3 py-2 text-[10px] uppercase tracking-wide text-zinc-500`}>
-        <span>Address</span><span>Code</span><span>Parent Code</span><span>FUEL Allocation</span><span>Date &amp; Time</span>
+        <span>Address</span><span>Child Code</span><span>Parent Code</span>
+        <SortHeader label="FUEL Allocation" active={sort === "fuel"} dir={dir} onClick={() => toggleSort("fuel")} />
+        <SortHeader label="Date & Time" active={sort === "redeemedAt"} dir={dir} onClick={() => toggleSort("redeemedAt")} />
       </div>
       <div ref={scrollRef} className="max-h-[70vh] overflow-y-auto">
         {rows.map((r) => (
           <div key={r.id} className={`grid ${cols} items-center gap-2 border-b border-zinc-800/40 px-3 py-1.5 text-xs hover:bg-zinc-900/40`}>
             <span className="min-w-0"><AddressChip address={r.address} /></span>
-            <span className="truncate font-mono text-zinc-200">{r.code}</span>
-            <span className="truncate font-mono text-zinc-500">{r.parentCode ?? "—"}</span>
+            <span className="truncate font-mono text-zinc-200">{r.childCode ?? ""}</span>
+            <span className="truncate font-mono text-zinc-500">{r.parentCode}</span>
             <span>
               {r.fuel != null
                 ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)}</span>
@@ -183,6 +194,23 @@ function RedemptionView({ search }: { search: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+function SortHeader({ label, active, dir, onClick }: {
+  label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void
+}) {
+  const Arrow = dir === "asc" ? ChevronUp : ChevronDown
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      className={`flex items-center gap-0.5 text-left text-[10px] uppercase tracking-wide hover:text-zinc-300 ${active ? "text-zinc-300" : "text-zinc-500"}`}
+    >
+      {label}
+      <Arrow size={11} className={active ? "opacity-100" : "opacity-0"} />
+    </button>
   )
 }
 

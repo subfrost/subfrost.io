@@ -31,6 +31,7 @@ import {
   type ListCodesResult,
   type ListRedemptionsQuery,
   type ListRedemptionsResult,
+  type FlatRedemptionsQuery,
   type FlatRedemptionsResult,
   type CodeTreeNode,
   type AnnotatedCodeNode,
@@ -105,7 +106,7 @@ export async function listRedemptionsAction(
 }
 
 export async function listFlatRedemptionsAction(
-  query: { search?: string; offset?: number; limit?: number },
+  query: FlatRedemptionsQuery,
 ): Promise<({ ok: true } & FlatRedemptionsResult) | { ok: false; error: string }> {
   const a = await actor("referral.read")
   if (!a.ok) return a
