@@ -325,4 +325,69 @@ export const OBLIGATION_SEED: ObligationSeed[] = [
     dueDate: "2026-12-31", status: "NOT_STARTED", owner: "CPA",
     description: "Confirm no state sales/use tax registration obligations arise from the product or any physical/economic nexus. Likely low-risk but should be affirmatively checked yearly.",
   },
+
+  // ---- State payroll tax --------------------------------------------------
+  // One row per state agency with employees. Gusto files these, but only once
+  // it holds both the account number and third-party agent access. Middesk's
+  // registration service explicitly excludes TPA/POA, so "registration
+  // complete" is not the same as "filing works" — that gap is what produced
+  // the CT Q1 2026 miss. Account numbers, rates, and agency correspondence IDs
+  // are deliberately not in this file: it is public. They belong in the
+  // auth-gated admin UI, same rule as the compliance register.
+  {
+    key: "ct-ui-quarterly",
+    title: "CT unemployment insurance quarterly return (UC-2 / UC-5A)",
+    category: "EMPLOYMENT", authority: "CT Department of Labor (ReEmployCT)", cadence: "QUARTERLY",
+    dueDate: "2026-07-31", status: "IN_PROGRESS", owner: "Gusto",
+    description: "Quarterly UI contribution + wage report, due the last day of the month after quarter-end. Required even at zero wages. Account number and assigned rate live in Gusto and ReEmployCT. Note ReEmployCT schedules maintenance the day before the Q2 due date.",
+  },
+  {
+    key: "ct-ui-prior-quarter-delinquent",
+    title: "CT UI — resolve unfiled prior-quarter return",
+    category: "EMPLOYMENT", authority: "CT Department of Labor (ReEmployCT)", cadence: "ONE_TIME",
+    dueDate: "2026-07-31", status: "IN_PROGRESS", owner: "Gusto",
+    description: "A prior quarter shows Not Filed, plus a small outstanding balance. Root cause: Gusto never received TPA access, so it could not file. Gusto re-engaged 2026-07-15. Open question: Gusto files/amends vs. filing directly in ReEmployCT. See ct-gusto-tpa.",
+  },
+  {
+    key: "ct-withholding-quarterly",
+    title: "CT withholding return (CT-941 DRS)",
+    category: "TAX", authority: "CT Department of Revenue Services (myconneCT)", cadence: "QUARTERLY",
+    dueDate: "2026-07-31", status: "IN_PROGRESS", owner: "Gusto",
+    description: "Quarterly withholding return. Suspected outstanding DRS balance as of 2026-07-15 — hold filing until Gusto has TPA and can inspect the account. Separate agency and separate delinquency from the DOL/UI side; do not treat a clean answer on one as clearing the other.",
+  },
+  {
+    key: "ct-gusto-tpa",
+    title: "Grant Gusto third-party agent access — CT DRS + CT DOL",
+    category: "EMPLOYMENT", authority: "CT DRS / CT DOL", cadence: "ONE_TIME",
+    dueDate: "2026-07-29", status: "IN_PROGRESS", owner: "Gusto",
+    description: "CT requires TPA at both agencies before Gusto can file or pay; Middesk does not set it up. DRS verification sent 2026-07-15. DOL: employer portal account now exists, Gusto handles the rest. Blocker to watch — TPA requires company name, FEIN, and address to match exactly between Gusto and each agency; verify no stale Middesk registration address remains on either account.",
+  },
+  {
+    key: "ct-paid-leave-registration",
+    title: "Register with the CT Paid Leave Authority (PFML)",
+    category: "EMPLOYMENT", authority: "CT Paid Leave Authority", cadence: "ONE_TIME",
+    dueDate: "2026-07-31", status: "NOT_STARTED", owner: "COO",
+    description: "Third CT agency, separate from DRS and DOL. Gusto deducts 0.5% from CT employee wages and files against the FEIN — no account number to enter — but the employer must still register directly. Excluded from Middesk's service. Unverified whether this was ever done.",
+  },
+  {
+    key: "tx-ui-quarterly",
+    title: "TX unemployment insurance quarterly return",
+    category: "EMPLOYMENT", authority: "Texas Workforce Commission", cadence: "QUARTERLY",
+    dueDate: "2026-07-31", status: "IN_PROGRESS", owner: "Gusto",
+    description: "TWC registration completed via Middesk 2026-07-15, after the 2026-06-30 deadline. Confirm the account number propagated into Gusto and that the first quarterly return files normally.",
+  },
+  {
+    key: "fl-ui-quarterly",
+    title: "FL reemployment tax quarterly return (RT-6)",
+    category: "EMPLOYMENT", authority: "Florida Department of Revenue", cadence: "QUARTERLY",
+    dueDate: "2026-07-31", status: "BLOCKED", owner: "Gusto",
+    description: "Registration in government processing as of 2026-07-15, account number estimated ~2 weeks out against a 07-31 due date. Gusto cannot file until it lands — watch for a late first return and flag it with the agency early if it slips.",
+  },
+  {
+    key: "payroll-state-coverage-review",
+    title: "Review state payroll registrations against current headcount",
+    category: "EMPLOYMENT", authority: "Internal", cadence: "QUARTERLY",
+    dueDate: "2026-10-15", status: "NOT_STARTED", owner: "COO",
+    description: "Standing check: for every state with an employee, confirm registration exists, the account number is in Gusto, TPA/POA is granted, and returns are actually filing. Registration completing is not the same as filing working — both failures behind the CT miss lived in that gap.",
+  },
 ]
