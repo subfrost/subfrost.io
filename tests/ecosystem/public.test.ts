@@ -17,7 +17,7 @@ const row = (over: Record<string, unknown>) => ({
   kind: "App", alkaneId: null,
   url: "https://x.io", xUrl: null, docsUrl: null,
   descriptionEn: "english", descriptionZh: "中文",
-  featured: false, sortOrder: 0, published: true, ...over,
+  featured: false, inMosaic: false, sortOrder: 0, published: true, ...over,
 })
 
 beforeEach(() => vi.clearAllMocks())
@@ -69,6 +69,17 @@ describe("getEcosystemDirectory", () => {
     const p = projects.find((p) => p.slug === "c")
     expect(p?.kind).toBe("Contract")
     expect(p?.alkaneId).toBe("2:0")
+  })
+
+  it("maps inMosaic verbatim", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "d", inMosaic: true }),
+      row({ slug: "e", inMosaic: false }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.find((p) => p.slug === "d")?.inMosaic).toBe(true)
+    expect(projects.find((p) => p.slug === "e")?.inMosaic).toBe(false)
   })
 })
 
