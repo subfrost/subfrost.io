@@ -108,3 +108,18 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
     expect(screen.getByTestId("price-chart-slot")).toBeInTheDocument()
   })
 })
+
+describe("EcosystemProfile — first-party disclaimer suppression", () => {
+  it("shows the disclaimer for a third-party project", () => {
+    render(<EcosystemProfile p={profile({ slug: "arbuzino" })} copy={copy} backHref="/ecosystem" />)
+    expect(screen.getByText("Discovery only; not endorsed by SUBFROST.")).toBeInTheDocument()
+  })
+  it("hides the disclaimer for a first-party product (diesel)", () => {
+    render(<EcosystemProfile p={profile({ slug: "diesel", name: "DIESEL" })} copy={copy} backHref="/ecosystem" />)
+    expect(screen.queryByText("Discovery only; not endorsed by SUBFROST.")).toBeNull()
+  })
+  it("hides the disclaimer for the SUBFROST app itself", () => {
+    render(<EcosystemProfile p={profile({ slug: "subfrost", name: "SUBFROST" })} copy={copy} backHref="/ecosystem" />)
+    expect(screen.queryByText("Discovery only; not endorsed by SUBFROST.")).toBeNull()
+  })
+})
