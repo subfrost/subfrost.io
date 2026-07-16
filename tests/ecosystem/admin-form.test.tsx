@@ -82,3 +82,37 @@ describe("EcosystemAdmin — translate profile", () => {
     await waitFor(() => expect(getByLabelText("Profile (ZH)")).toHaveValue("## 中文正文"))
   })
 })
+
+describe("EcosystemAdmin — hero mosaic toggle", () => {
+  it("submits inMosaic when the form checkbox is ticked", async () => {
+    vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "e1" })
+    const { getByText, getByLabelText } = render(
+      <EcosystemAdmin projects={[]} featuredBandEnabled={false} canEdit />,
+    )
+    fireEvent.click(getByText("New project"))
+    fireEvent.change(getByLabelText("Name"), { target: { value: "Pizza.fun" } })
+    fireEvent.change(getByLabelText("Website URL"), { target: { value: "https://pizza.fun" } })
+    fireEvent.click(getByLabelText("Show in hero mosaic"))
+    fireEvent.click(getByText("Create project"))
+    await waitFor(() => expect(saveEcosystemProject).toHaveBeenCalled())
+    expect(vi.mocked(saveEcosystemProject).mock.calls[0][0]).toMatchObject({ inMosaic: true })
+  })
+
+  it("per-row toggle saves inMosaic for an existing project", async () => {
+    vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "p1" })
+    const proj = {
+      id: "p1", slug: "surtur", name: "Surtur", logoUrl: null, bannerUrl: null,
+      category: "Social", status: "Live", kind: "App", alkaneId: null,
+      url: "https://surtur.io", xUrl: null, docsUrl: null,
+      descriptionEn: "d", descriptionZh: "", featured: false, inMosaic: false,
+      sortOrder: 0, published: true, profileEn: "", profileZh: "",
+      contracts: [], createdAt: "", updatedAt: "",
+    }
+    const { getByLabelText } = render(
+      <EcosystemAdmin projects={[proj]} featuredBandEnabled={false} canEdit />,
+    )
+    fireEvent.click(getByLabelText("In mosaic: Surtur"))
+    await waitFor(() => expect(saveEcosystemProject).toHaveBeenCalled())
+    expect(vi.mocked(saveEcosystemProject).mock.calls[0][0]).toMatchObject({ inMosaic: true })
+  })
+})
