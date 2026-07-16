@@ -38,6 +38,7 @@ export interface EcosystemProjectInput {
   descriptionEn: string
   descriptionZh: string
   featured: boolean
+  inMosaic: boolean
   sortOrder: number
   published: boolean
   profileEn?: string
@@ -103,6 +104,7 @@ export async function saveEcosystemProject(
     descriptionEn: input.descriptionEn.trim(),
     descriptionZh: input.descriptionZh.trim(),
     featured: input.featured,
+    inMosaic: input.inMosaic,
     sortOrder: Number.isFinite(input.sortOrder) ? Math.trunc(input.sortOrder) : 0,
     published: input.published,
   }

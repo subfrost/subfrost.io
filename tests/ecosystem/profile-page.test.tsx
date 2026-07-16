@@ -14,7 +14,7 @@ const copy: ProfileCopy = {
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({
   slug: "arbuzino", name: "Arbuzino", logoUrl: null, bannerUrl: null, category: "Gaming", status: "Live",
   kind: "App", alkaneId: "2:25349", url: "https://arbuzino.com", xUrl: "https://x.com/arbuzino",
-  docsUrl: null, description: "Casino-themed on-chain games.", featured: false,
+  docsUrl: null, description: "Casino-themed on-chain games.", featured: false, inMosaic: false,
   profile: "## Products\n\nFully on-chain lottery paid in **DIESEL**.",
   // ids distintos do alkaneId principal (2:25349) — evita getByRole ambíguo
   contracts: [
@@ -107,4 +107,21 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
     )
     expect(screen.getByTestId("price-chart-slot")).toBeInTheDocument()
   })
+})
+
+describe("EcosystemProfile — first-party disclaimer suppression", () => {
+  it("shows the disclaimer for a third-party project", () => {
+    render(<EcosystemProfile p={profile({ slug: "arbuzino" })} copy={copy} backHref="/ecosystem" />)
+    expect(screen.getByText("Discovery only; not endorsed by SUBFROST.")).toBeInTheDocument()
+  })
+  // Hardcoded list (not imported from FIRST_PARTY_SLUGS) so that dropping or mistyping any of
+  // the four slugs in the source set is caught here — that profile would start showing the
+  // third-party disclaimer again, which is exactly the regression this asserts against.
+  it.each(["diesel", "frbtc", "fire", "subfrost"])(
+    "hides the disclaimer for first-party %s",
+    (slug) => {
+      render(<EcosystemProfile p={profile({ slug })} copy={copy} backHref="/ecosystem" />)
+      expect(screen.queryByText("Discovery only; not endorsed by SUBFROST.")).toBeNull()
+    },
+  )
 })

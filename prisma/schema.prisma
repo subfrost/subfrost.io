@@ -1943,6 +1943,7 @@ model EcosystemProject {
   descriptionEn String   @default("")
   descriptionZh String   @default("")
   featured      Boolean  @default(false)
+  inMosaic      Boolean  @default(false)
   sortOrder     Int      @default(0)
   published     Boolean  @default(false)
   profileEn     String   @default("")

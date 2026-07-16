@@ -40,6 +40,7 @@ const validInput = {
   descriptionEn: "Bitcoin minting made easy.",
   descriptionZh: "",
   featured: false,
+  inMosaic: false,
   sortOrder: 10,
   published: true,
 }
@@ -116,6 +117,14 @@ describe("saveEcosystemProject", () => {
     vi.mocked(currentUser).mockResolvedValue(editor as never)
     const res = await saveEcosystemProject({ ...validInput, kind: "Contract", alkaneId: "2-0" } as never)
     expect(res).toEqual({ ok: false, error: "Alkane ID must look like block:tx (e.g. 2:0)" })
+  })
+
+  it("persists inMosaic", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "m1" } as never)
+    await saveEcosystemProject({ ...validInput, inMosaic: true })
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.inMosaic).toBe(true)
   })
 
   it("persists bannerUrl trimmed and rejects a non-http banner", async () => {

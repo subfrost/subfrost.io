@@ -7,10 +7,11 @@ import type { PublicEcosystemProject } from "@/lib/ecosystem/public"
  * edges so it reads as "the ecosystem" rather than a hard grid. Purely ornamental
  * (aria-hidden, pointer-events-none) — the real, clickable projects live in the grid below.
  */
-export function HeroMosaic({ projects }: { projects: Pick<PublicEcosystemProject, "slug" | "name" | "logoUrl">[] }) {
-  // Fill a 4-wide grid; fewer than 8 marks looks sparse, so bail rather than show a stub.
-  const marks = projects.slice(0, 16)
-  if (marks.length < 8) return null
+export function HeroMosaic({ projects }: { projects: Pick<PublicEcosystemProject, "slug" | "name" | "logoUrl" | "inMosaic">[] }) {
+  // Curated: only the projects the admin marked for the mosaic. Cap at 16 to keep the 4-wide
+  // grid tidy; hide entirely when none are marked (curation replaces the old minimum-count guard).
+  const marks = projects.filter((p) => p.inMosaic).slice(0, 16)
+  if (marks.length === 0) return null
   return (
     <div aria-hidden className="ec-hero-mosaic pointer-events-none relative hidden select-none justify-self-end lg:block">
       <div className="grid grid-cols-4 gap-3.5">

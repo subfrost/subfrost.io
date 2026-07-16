@@ -17,6 +17,7 @@ export interface PublicEcosystemProject {
   docsUrl: string | null
   description: string
   featured: boolean
+  inMosaic: boolean
 }
 
 export async function getEcosystemDirectory(locale: "en" | "zh"): Promise<{
@@ -45,6 +46,7 @@ export async function getEcosystemDirectory(locale: "en" | "zh"): Promise<{
     docsUrl: r.docsUrl,
     description: locale === "zh" && r.descriptionZh ? r.descriptionZh : r.descriptionEn,
     featured: r.featured,
+    inMosaic: r.inMosaic,
   }))
 
   return { projects, featuredBandEnabled: settings?.featuredBandEnabled ?? true }
@@ -84,6 +86,7 @@ export async function getEcosystemProfile(
     docsUrl: r.docsUrl,
     description: locale === "zh" && r.descriptionZh ? r.descriptionZh : r.descriptionEn,
     featured: r.featured,
+    inMosaic: r.inMosaic,
     profile: locale === "zh" && r.profileZh ? r.profileZh : r.profileEn,
     contracts: r.contracts.map((c) => ({
       label: c.label,

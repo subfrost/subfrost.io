@@ -60,3 +60,15 @@ export function isValidOptionalAlkaneId(v: string | null | undefined): boolean {
 export function isValidAlkaneId(v: string): boolean {
   return /^\d+:\d+$/.test(v)
 }
+
+/**
+ * SUBFROST's own products (not third-party). The directory-wide "SUBFROST did not build / does
+ * not control / has not audited these projects" notice is self-contradictory on their profiles,
+ * so it is suppressed there. The directory-level notice still frames the directory as a whole.
+ * Small and stable, so it lives in code rather than the DB.
+ */
+export const FIRST_PARTY_SLUGS = new Set(["diesel", "frbtc", "fire", "subfrost"])
+
+export function isFirstParty(slug: string): boolean {
+  return FIRST_PARTY_SLUGS.has(slug)
+}

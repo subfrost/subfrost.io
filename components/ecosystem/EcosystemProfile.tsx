@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { Markdown } from "@/lib/cms/markdown"
 import { Mark, StatusBadge } from "@/components/ecosystem/visuals"
 import { EcosystemNotice } from "@/components/ecosystem/EcosystemNotice"
+import { isFirstParty } from "@/lib/ecosystem/constants"
 import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
 import type { StatHeroCopy } from "./StatHero"
@@ -68,7 +69,7 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
             {p.xUrl ? <a href={p.xUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>𝕏</a> : null}
             {p.docsUrl ? <a href={p.docsUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>{copy.docs}</a> : null}
           </div>
-          <EcosystemNotice text={copy.disclaimer} className="mt-5" />
+          {isFirstParty(p.slug) ? null : <EcosystemNotice text={copy.disclaimer} className="mt-5" />}
         </div>
       </header>
 

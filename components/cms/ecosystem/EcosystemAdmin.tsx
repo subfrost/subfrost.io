@@ -40,6 +40,7 @@ export interface AdminProject {
   descriptionEn: string
   descriptionZh: string
   featured: boolean
+  inMosaic: boolean
   sortOrder: number
   published: boolean
   profileEn: string
@@ -70,6 +71,7 @@ function blankProject(): AdminProject {
     descriptionEn: "",
     descriptionZh: "",
     featured: false,
+    inMosaic: false,
     sortOrder: 0,
     published: false,
     profileEn: "",
@@ -125,6 +127,15 @@ export function EcosystemAdmin({ projects, featuredBandEnabled, canEdit }: {
     setError(null)
     startTransition(async () => {
       const res = await saveEcosystemProject(toInput({ ...p, featured: !p.featured }))
+      if (res.ok) router.refresh()
+      else setError(res.error ?? "Save failed")
+    })
+  }
+
+  function toggleMosaic(p: AdminProject) {
+    setError(null)
+    startTransition(async () => {
+      const res = await saveEcosystemProject(toInput({ ...p, inMosaic: !p.inMosaic }))
       if (res.ok) router.refresh()
       else setError(res.error ?? "Save failed")
     })
@@ -188,6 +199,7 @@ export function EcosystemAdmin({ projects, featuredBandEnabled, canEdit }: {
               <th className="px-3 py-2 font-medium">Category</th>
               <th className="px-3 py-2 font-medium">Status</th>
               <th className="px-3 py-2 font-medium">Featured</th>
+              <th className="px-3 py-2 font-medium">Mosaic</th>
               <th className="px-3 py-2 font-medium">Published</th>
               {canEdit && <th className="px-3 py-2 font-medium">Actions</th>}
             </tr>
@@ -215,6 +227,15 @@ export function EcosystemAdmin({ projects, featuredBandEnabled, canEdit }: {
                     disabled={!canEdit || pending}
                     onChange={() => toggleFeatured(p)}
                     aria-label={`Featured: ${p.name}`}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={p.inMosaic}
+                    disabled={!canEdit || pending}
+                    onChange={() => toggleMosaic(p)}
+                    aria-label={`In mosaic: ${p.name}`}
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -252,7 +273,7 @@ export function EcosystemAdmin({ projects, featuredBandEnabled, canEdit }: {
             ))}
             {projects.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 6 : 5} className="px-3 py-8 text-center text-sm text-zinc-600">
+                <td colSpan={canEdit ? 7 : 6} className="px-3 py-8 text-center text-sm text-zinc-600">
                   No ecosystem projects yet.
                 </td>
               </tr>
@@ -281,6 +302,7 @@ function toInput(p: AdminProject): EcosystemProjectInput {
     descriptionEn: p.descriptionEn,
     descriptionZh: p.descriptionZh,
     featured: p.featured,
+    inMosaic: p.inMosaic,
     sortOrder: p.sortOrder,
     published: p.published,
     profileEn: p.profileEn,
@@ -320,6 +342,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [descriptionEn, setDescriptionEn] = useState(initial.descriptionEn)
   const [descriptionZh, setDescriptionZh] = useState(initial.descriptionZh)
   const [featured, setFeatured] = useState(initial.featured)
+  const [inMosaic, setInMosaic] = useState(initial.inMosaic)
   const [sortOrder, setSortOrder] = useState(initial.sortOrder)
   const [published, setPublished] = useState(initial.published)
   const [profileEn, setProfileEn] = useState(initial.profileEn)
@@ -401,6 +424,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         descriptionEn,
         descriptionZh,
         featured,
+        inMosaic,
         sortOrder,
         published,
         profileEn,
@@ -624,6 +648,9 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
       <div className="flex flex-wrap items-center gap-6">
         <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} /> Featured
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
+          <input type="checkbox" checked={inMosaic} onChange={(e) => setInMosaic(e.target.checked)} /> Show in hero mosaic
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> Published
