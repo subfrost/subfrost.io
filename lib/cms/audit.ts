@@ -32,6 +32,7 @@ export type AuditAction =
   | "create_fincen_draft"
   | "update_fincen_draft"
   | "queue_fincen_submission"
+  | "record_fincen_filing"
   | "seed_mtl"
   | "update_mtl"
   | "ofac_rescreen"

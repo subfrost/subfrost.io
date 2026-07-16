@@ -32,6 +32,9 @@ export interface SubmissionRow {
   trackingId: string
   status: string
   message: string | null
+  bsaId: string | null
+  enrollmentCode: string | null
+  acknowledgedAt: string | null
   submittedBy: string
   submittedAt: string
 }
@@ -102,10 +105,10 @@ export async function updateCtr(id: string, input: unknown, updatedBy: string): 
 
 // --- Submissions (queued; real BSA transport deferred) ---
 
-type DbSubmission = { id: string; draftId: string; type: string; trackingId: string; status: string; message: string | null; submittedBy: string; submittedAt: Date }
+type DbSubmission = { id: string; draftId: string; type: string; trackingId: string; status: string; message: string | null; bsaId: string | null; enrollmentCode: string | null; acknowledgedAt: Date | null; submittedBy: string; submittedAt: Date }
 
 function mapSubmission(s: DbSubmission): SubmissionRow {
-  return { id: s.id, draftId: s.draftId, type: s.type as FincenType, trackingId: s.trackingId, status: s.status, message: s.message, submittedBy: s.submittedBy, submittedAt: s.submittedAt.toISOString() }
+  return { id: s.id, draftId: s.draftId, type: s.type as FincenType, trackingId: s.trackingId, status: s.status, message: s.message, bsaId: s.bsaId, enrollmentCode: s.enrollmentCode, acknowledgedAt: s.acknowledgedAt ? s.acknowledgedAt.toISOString() : null, submittedBy: s.submittedBy, submittedAt: s.submittedAt.toISOString() }
 }
 
 export async function listSubmissions(): Promise<SubmissionRow[]> {
@@ -127,5 +130,43 @@ export async function queueSubmission(draftId: string, submittedBy: string): Pro
       submittedBy,
     },
   })
+  return mapSubmission(saved as DbSubmission)
+}
+
+// Record a filing that was actually submitted through the BSA E-Filing portal
+// (outside this system) and its FinCEN-assigned identifiers. Use this to keep
+// the dash's record of truth in sync with the real portal — e.g. an
+// acknowledged Form 107 registration. Idempotent on trackingId.
+export interface AcknowledgedFilingInput {
+  draftId: string
+  trackingId: string // real BSA E-Filing Tracking ID, e.g. MRX26-00005866
+  bsaId?: string // permanent FinCEN BSA ID, e.g. 31000331323980
+  enrollmentCode?: string // org enrollment code, e.g. SRI174904
+  status?: "TRANSMITTED" | "ACCEPTED" | "ACKNOWLEDGED" | "REJECTED"
+  submittedAt?: Date // when filed in the portal
+  acknowledgedAt?: Date // when FinCEN acknowledged it
+  message?: string
+}
+
+export async function recordAcknowledgedFiling(input: AcknowledgedFilingInput, submittedBy: string): Promise<SubmissionRow> {
+  const draft = await prisma.fincenDraft.findUnique({ where: { id: input.draftId } })
+  if (!draft) throw new FincenError("Draft not found")
+  const status = input.status ?? "ACKNOWLEDGED"
+  const existing = await prisma.fincenSubmission.findFirst({ where: { trackingId: input.trackingId } })
+  const data = {
+    draftId: input.draftId,
+    type: draft.type,
+    trackingId: input.trackingId,
+    status,
+    message: input.message ?? "Filed via BSA E-Filing portal; identifiers recorded manually.",
+    bsaId: input.bsaId ?? null,
+    enrollmentCode: input.enrollmentCode ?? null,
+    acknowledgedAt: input.acknowledgedAt ?? null,
+    submittedBy,
+    ...(input.submittedAt ? { submittedAt: input.submittedAt } : {}),
+  }
+  const saved = existing
+    ? await prisma.fincenSubmission.update({ where: { id: existing.id }, data })
+    : await prisma.fincenSubmission.create({ data })
   return mapSubmission(saved as DbSubmission)
 }

@@ -43,7 +43,9 @@ const CTR_TEMPLATE = JSON.stringify(
 
 const STATUS_CLS: Record<string, string> = {
   QUEUED: "bg-amber-950/50 text-amber-300 border-amber-800/50",
+  TRANSMITTED: "bg-sky-950/50 text-sky-300 border-sky-800/50",
   ACCEPTED: "bg-emerald-950/50 text-emerald-300 border-emerald-800/50",
+  ACKNOWLEDGED: "bg-emerald-950/50 text-emerald-200 border-emerald-700/60",
   REJECTED: "bg-red-950/50 text-red-300 border-red-800/50",
 }
 
@@ -473,8 +475,25 @@ export function FincenManager({ canEdit }: { canEdit: boolean }) {
                           {s.message && (
                             <div className="mt-1 text-xs text-zinc-500">{s.message}</div>
                           )}
+                          {(s.bsaId || s.enrollmentCode) && (
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                              {s.bsaId && (
+                                <span className="text-zinc-400">
+                                  BSA ID <span className="font-mono text-zinc-200">{s.bsaId}</span>
+                                </span>
+                              )}
+                              {s.enrollmentCode && (
+                                <span className="text-zinc-400">
+                                  Enrollment <span className="font-mono text-zinc-200">{s.enrollmentCode}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="mt-1 text-xs text-zinc-500">
-                            {new Date(s.submittedAt).toLocaleString()} · {s.submittedBy}
+                            Filed {new Date(s.submittedAt).toLocaleString()} · {s.submittedBy}
+                            {s.acknowledgedAt && (
+                              <> · Acknowledged {new Date(s.acknowledgedAt).toLocaleString()}</>
+                            )}
                           </div>
                         </div>
                       </div>

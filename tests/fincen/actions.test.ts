@@ -94,7 +94,7 @@ describe('mutations', () => {
   });
 
   it('queueSubmissionAction audits with the draftId target', async () => {
-    vi.mocked(fincen.queueSubmission).mockResolvedValueOnce({ id: 'sub1', draftId: 'd1', type: 'SAR', trackingId: 'LOCAL-X', status: 'QUEUED', message: null, submittedBy: 'op@x.io', submittedAt: 'x' });
+    vi.mocked(fincen.queueSubmission).mockResolvedValueOnce({ id: 'sub1', draftId: 'd1', type: 'SAR', trackingId: 'LOCAL-X', status: 'QUEUED', message: null, bsaId: null, enrollmentCode: null, acknowledgedAt: null, submittedBy: 'op@x.io', submittedAt: 'x' });
     const res = await queueSubmissionAction('d1');
     expect(res).toEqual({ ok: true });
     expect(audit).toHaveBeenCalledWith('queue_fincen_submission', expect.objectContaining({ target: 'd1' }));

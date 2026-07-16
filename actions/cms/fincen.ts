@@ -10,8 +10,8 @@ import {
   getForm107, saveForm107,
   listSar, createSar, updateSar,
   listCtr, createCtr, updateCtr,
-  listSubmissions, queueSubmission,
-  type DraftRow, type SubmissionRow,
+  listSubmissions, queueSubmission, recordAcknowledgedFiling,
+  type DraftRow, type SubmissionRow, type AcknowledgedFilingInput,
 } from "@/lib/fincen/admin"
 import type { Form107, Sar, Ctr } from "@/lib/fincen/schemas"
 
@@ -40,7 +40,7 @@ export async function getFincenDataAction(): Promise<
 
 async function mutate(
   fn: () => Promise<unknown>,
-  action: "save_form107" | "create_fincen_draft" | "update_fincen_draft" | "queue_fincen_submission",
+  action: "save_form107" | "create_fincen_draft" | "update_fincen_draft" | "queue_fincen_submission" | "record_fincen_filing",
   target: string | undefined,
   me: CmsUser,
 ): Promise<{ ok: true } | Fail> {
@@ -78,4 +78,8 @@ export async function updateCtrAction(id: string, input: unknown): Promise<{ ok:
 export async function queueSubmissionAction(draftId: string): Promise<{ ok: true } | Fail> {
   const a = await actor("aml.edit"); if (!a.ok) return a
   return mutate(() => queueSubmission(draftId, a.me.email), "queue_fincen_submission", draftId, a.me)
+}
+export async function recordAcknowledgedFilingAction(input: AcknowledgedFilingInput): Promise<{ ok: true } | Fail> {
+  const a = await actor("aml.edit"); if (!a.ok) return a
+  return mutate(() => recordAcknowledgedFiling(input, a.me.email), "record_fincen_filing", input.trackingId, a.me)
 }

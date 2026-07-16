@@ -836,7 +836,9 @@ enum FincenFormType {
 
 enum FincenSubmissionStatus {
   QUEUED
+  TRANSMITTED
   ACCEPTED
+  ACKNOWLEDGED
   REJECTED
 }
 
@@ -857,9 +859,13 @@ model FincenSubmission {
   draftId     String
   draft       FincenDraft            @relation(fields: [draftId], references: [id], onDelete: Cascade)
   type        FincenFormType
-  trackingId  String // LOCAL-<...> until real BSA transport
+  trackingId  String // LOCAL-<...> for queued; real BSA E-Filing Tracking ID (e.g. MRX26-…) once transmitted
   status      FincenSubmissionStatus @default(QUEUED)
   message     String?
+  // Real BSA E-Filing identifiers, populated once a filing is actually transmitted/acknowledged.
+  bsaId          String?   // permanent FinCEN BSA ID assigned on acknowledgement (e.g. 31000331323980)
+  enrollmentCode String?   // org enrollment code on the BSA E-Filing account (e.g. SRI174904)
+  acknowledgedAt DateTime? // when FinCEN acknowledged the filing (distinct from submittedAt)
   submittedBy String
   submittedAt DateTime               @default(now())
 
