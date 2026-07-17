@@ -3,10 +3,13 @@ import { firstNonArticleLeaf } from "@/lib/cms/admin-nav"
 
 describe("firstNonArticleLeaf", () => {
   it("retorna a 1ª folha não-Articles visível", () => {
-    expect(firstNonArticleLeaf(["aml.read"])).toBe("/admin/kyc")
+    // Compliance group now leads with an Overview leaf (/admin/compliance, aml.read).
+    expect(firstNonArticleLeaf(["aml.read"])).toBe("/admin/compliance")
     expect(firstNonArticleLeaf(["fuel.read"])).toBe("/admin/fuel")
   })
-  it("retorna null quando só há Articles", () => {
-    expect(firstNonArticleLeaf([])).toBeNull()
+  it("cai no Pager (ungated) quando não há outra folha visível", () => {
+    // The Ops → Pager leaf is intentionally ungated (any admin may raise a page),
+    // so a user with no other privileges lands there rather than nowhere.
+    expect(firstNonArticleLeaf([])).toBe("/admin/pager")
   })
 })

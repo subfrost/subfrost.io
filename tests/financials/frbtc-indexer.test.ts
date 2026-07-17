@@ -64,6 +64,7 @@ describe("getFrbtcVolumeRange (result decoding)", () => {
     expect(r!.daily).toHaveLength(2)
     expect(r!.daily[0]).toEqual({
       date: "2026-06-01", wrapped_sats: 100_000, unwrapped_sats: 50_000, wrap_count: 2, unwrap_count: 1,
+      miner_sats: 0, swept_sats: 0,
     })
     expect(r!.totals.fee_revenue_sats).toBe(1_050)
   })
@@ -92,6 +93,7 @@ describe("getFrbtcVolumeRange (result decoding)", () => {
     const r = await getFrbtcVolumeRange("2026-06-03", "2026-06-03")
     expect(r!.daily[0]).toEqual({
       date: "2026-06-03", wrapped_sats: 0, unwrapped_sats: 0, wrap_count: 0, unwrap_count: 0,
+      miner_sats: 0, swept_sats: 0,
     })
     expect(r!.totals.fee_revenue_sats).toBe(0)
   })

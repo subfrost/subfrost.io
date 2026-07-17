@@ -33,8 +33,11 @@ describe("summaryMetrics", () => {
 describe("totalsByPayee", () => {
   it("rolls up invoice count, paid USD, and linked DIESEL per payee", () => {
     const rows = totalsByPayee(payees, invoices, payments)
-    expect(rows.find((r) => r.payeeId === "pe1")).toEqual({ payeeId: "pe1", payeeName: "Ada", invoiceCount: 2, totalUsd: 1000, totalDiesel: 2 })
-    expect(rows.find((r) => r.payeeId === "pe2")).toEqual({ payeeId: "pe2", payeeName: "Acme, Inc", invoiceCount: 1, totalUsd: 2000, totalDiesel: 4 })
+    // totalUsd counts only PAID *USD-denominated* invoices (amountDiesel == null);
+    // i1 (pe1) and i3 (pe2) are DIESEL-denominated, so their USD face value is
+    // "Paid (DIESEL)" not "Paid (USD)" → totalUsd 0. i2 (pe1) is OPEN.
+    expect(rows.find((r) => r.payeeId === "pe1")).toEqual({ payeeId: "pe1", payeeName: "Ada", invoiceCount: 2, totalUsd: 0, totalDiesel: 2 })
+    expect(rows.find((r) => r.payeeId === "pe2")).toEqual({ payeeId: "pe2", payeeName: "Acme, Inc", invoiceCount: 1, totalUsd: 0, totalDiesel: 4 })
   })
 })
 
@@ -108,9 +111,10 @@ describe("assemblePayeeProfile", () => {
 
   it("keeps only payments tied to the payee's invoices and totals them", () => {
     // pe1 owns i1 (PAID, $1000, paid 2 DIESEL via p1) and i2 (OPEN, $500). p2/p3 belong elsewhere/unlinked.
+    // i1 is DIESEL-denominated so its USD is excluded from totalUsd (see totalsByPayee).
     const prof = assemblePayeeProfile(payees[0], user, null, invoices.filter((i) => i.payeeId === "pe1"), payments)
     expect(prof.payments.map((p) => p.id)).toEqual(["p1"])
-    expect(prof.totals).toEqual({ payeeId: "pe1", payeeName: "Ada", invoiceCount: 2, totalUsd: 1000, totalDiesel: 2 })
+    expect(prof.totals).toEqual({ payeeId: "pe1", payeeName: "Ada", invoiceCount: 2, totalUsd: 0, totalDiesel: 2 })
     expect(prof.user).toBe(user)
     expect(prof.kyc).toBeNull()
   })
