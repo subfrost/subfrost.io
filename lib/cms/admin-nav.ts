@@ -96,7 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Customers", href: "/admin/billing/customers", icon: Users, privilege: "billing.read" },
       { label: "Applications", href: "/admin/billing/applications", icon: ClipboardList, privilege: "billing.read" },
       { label: "Webhook events", href: "/admin/billing/events", icon: Webhook, privilege: "billing.read" },
-      { label: "Pay usage", href: "/admin/pay-usage", icon: BarChart3, privilege: "pay.view" },
+      { label: "Pay usage", href: "/admin/billing/pay-usage", icon: BarChart3, privilege: "pay.view" },
     ],
   },
   {

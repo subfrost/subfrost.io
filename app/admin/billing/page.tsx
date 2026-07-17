@@ -6,7 +6,9 @@ import { BillingBanner } from "@/components/cms/billing/BillingBanner"
 
 export const dynamic = "force-dynamic"
 
-const SURFACES: { key: string; label: string; href: string; desc: string; ready: boolean }[] = [
+// `privilege` (optional) gates a surface card on top of billing.read — e.g.
+// Pay usage requires pay.view, so it only tiles for users who can open it.
+const SURFACES: { key: string; label: string; href: string; desc: string; ready: boolean; privilege?: string }[] = [
   { key: "subscriptions", label: "Subscriptions", href: "/admin/billing/subscriptions", desc: "Tiers & subscribers", ready: true },
   { key: "promo", label: "Promo codes", href: "/admin/billing/promo", desc: "Coupons & promotion codes", ready: true },
   { key: "treasury", label: "Treasury", href: "/admin/billing/treasury", desc: "Balances, transactions, ACH", ready: true },
@@ -14,6 +16,7 @@ const SURFACES: { key: string; label: string; href: string; desc: string; ready:
   { key: "offramp", label: "Offramp", href: "/admin/billing/offramp", desc: "Crypto→fiat settlements", ready: true },
   { key: "customers", label: "Customers", href: "/admin/billing/customers", desc: "Subscriptions, invoices, charges", ready: true },
   { key: "applications", label: "Applications", href: "/admin/billing/applications", desc: "Stripe product onboarding", ready: true },
+  { key: "pay-usage", label: "Pay usage", href: "/admin/billing/pay-usage", desc: "SUBFROST Pay usage events", ready: true, privilege: "pay.view" },
 ]
 
 export default async function BillingPage() {
@@ -23,12 +26,16 @@ export default async function BillingPage() {
 
   const live = isLive()
 
+  // Hide surface cards the user can't open (e.g. Pay usage → pay.view),
+  // so a tile never leads to a redirect.
+  const surfaces = SURFACES.filter((s) => !s.privilege || me.privileges.includes(s.privilege))
+
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Billing</h1>
       <BillingBanner live={live} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {SURFACES.map((s) =>
+        {surfaces.map((s) =>
           s.ready ? (
             <Link
               key={s.key}

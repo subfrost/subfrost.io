@@ -2,7 +2,7 @@
  * POST /api/v1/pay/usage — SUBFROST Pay usage-event ingest.
  *
  * The mobile-api backend ("subvh") mirrors every Pay audit event here so
- * operators can track Pay usage from /admin/pay-usage. Server-to-server
+ * operators can track Pay usage from /admin/billing/pay-usage. Server-to-server
  * auth: shared `x-api-key` (PAY_API_KEY), the same convention the FUEL +
  * referral endpoints use (lib/api/service-key.ts). The backend's audit
  * ULID is the row id, so redelivery upserts idempotently. Payload is
