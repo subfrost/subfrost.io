@@ -93,6 +93,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "billing.read", label: "Billing — view", description: "View Stripe subscriptions, promo codes, issuing, ramps, customers, and webhook events.", category: "billing", implies: [] },
   { code: "billing.edit", label: "Billing — edit", description: "Manage subscriptions, promo codes, money movement, and card controls.", category: "billing", implies: ["billing.read"] },
   { code: "billing.treasury_view", label: "Treasury — view", description: "View treasury balances, transactions, and the ACH transfer queue. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "billing", implies: [] },
+  { code: "pay.view", label: "SUBFROST Pay usage — view", description: "View the SUBFROST Pay usage event stream mirrored from the mobile-api backend (onboarding, cards, buys, offramp — non-PII).", category: "billing", implies: [] },
 
   // --- Financials (409A) ---
   { code: "financials.view", label: "Financials — view", description: "View the treasury holdings and the DIESEL accounting ledger for the 409A. Restricted: granted explicitly per-user, not by the ADMIN role.", category: "financials", implies: [] },

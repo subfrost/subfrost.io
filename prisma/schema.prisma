@@ -888,6 +888,29 @@ model StripeWebhookEvent {
   @@index([status])
 }
 
+// SUBFROST Pay usage events, mirrored from the mobile-api backend
+// ("subvh") over a shared-secret POST (PAY_API_KEY). One row per Pay
+// audit event; `id` is the backend's audit ULID = natural PK, so
+// redelivery upserts idempotently. Non-PII by construction: the backend
+// only forwards the audit action + actor + the audit's own details_json
+// (which is already scrubbed of card/KYC secrets). Powers the admin Pay
+// usage view (privilege `pay.view`).
+model PayUsageEvent {
+  id           String   @id // backend audit ULID = idempotency key
+  action       String // e.g. "pay.email_verify.started"
+  actorKind    String // "user" | "admin" | "system"
+  actorId      String? // present for user/admin actors
+  userId       String? // the Pay user the event concerns, when applicable
+  detailsJson  String? // backend audit details (non-PII); JSON string
+  timestampSec Int // backend event time (unix seconds)
+  receivedAt   DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([timestampSec])
+  @@index([receivedAt])
+}
+
 // ============================================
 // FINANCIALS — Accounting (SP-1: DIESEL ledger)
 // ============================================
