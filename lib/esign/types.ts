@@ -120,6 +120,15 @@ export type EnvelopeRecord = {
   lastResendAt?: string;
   signedDocumentPath?: string;  // GCS object name of the fully-signed PDF (post-completion)
   notes?: string;
+  // Optional DriveFile this envelope was launched from ("Request Signatures"
+  // from the Files view) and the LegalEntity it concerns.
+  sourceFileId?: string | null;
+  entityId?: string | null;
+  // Versioning: all versions of one agreement share `agreementKey`; `version`
+  // increments per reissue; `parentEnvelopeId` points at the prior version.
+  agreementKey?: string | null;
+  version?: number;
+  parentEnvelopeId?: string | null;
   // Optional link to the Payee this paperwork belongs to — surfaces the
   // envelope on that payee's profile ("legal paperwork they've signed").
   payeeId?: string | null;
@@ -147,6 +156,53 @@ export type EnvelopeRecord = {
   // to this envelope — keeps replays idempotent. We trim to a fixed
   // window (last 50) so the record can't grow unboundedly.
   appliedEventIds?: string[];
+};
+
+// ---------- Forensic signature events (client-safe view) ---------------
+
+export const SIGNATURE_EVENT_KINDS = ["VIEWED", "SIGNED", "DECLINED"] as const;
+export type SignatureEventKindT = (typeof SIGNATURE_EVENT_KINDS)[number];
+
+// Per-recipient forensic capture surfaced in the detail view + timeline.
+export type SignatureEventRecord = {
+  id: string;
+  envelopeId: string;
+  recipientEmail: string;
+  kind: SignatureEventKindT;
+  ip?: string | null;
+  userAgent?: string | null;
+  ja3?: string | null;
+  ja4?: string | null;
+  createdAt: string;
+};
+
+// A single row in the unified activity timeline (dashboard tab). Aggregates
+// envelope lifecycle stamps + forensic events + version/resend markers.
+export const TIMELINE_KINDS = [
+  "created",
+  "sent",
+  "viewed",
+  "signed",
+  "declined",
+  "version",
+  "resend",
+] as const;
+export type TimelineKind = (typeof TIMELINE_KINDS)[number];
+
+export type TimelineRow = {
+  envelopeId: string;
+  subject: string;
+  kind: TimelineKind;
+  // The operator (created/sent/version/resend) or recipient (viewed/…) name/email.
+  actor?: string;
+  recipient?: string;
+  timestamp: string;
+  version?: number;
+  // Only populated for forensic (signed/viewed/declined) rows captured via the
+  // wrapped /sign proxy link.
+  ja3?: string | null;
+  ja4?: string | null;
+  ip?: string | null;
 };
 
 // Max number of webhook event ids we remember per envelope. 50 is well

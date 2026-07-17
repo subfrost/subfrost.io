@@ -38,6 +38,9 @@
   "exclude": [
     "node_modules",
     "reference",
-    "media-server"
+    "media-server",
+    "cli",
+    "playwright.config.ts",
+    "tests/e2e"
   ]
 }

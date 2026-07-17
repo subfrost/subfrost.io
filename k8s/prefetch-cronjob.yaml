@@ -1,0 +1,78 @@
+# Landing-page cache warmer: fires GET /api/prefetch every 25 minutes so the
+# public metrics always come from a warm Redis cache. Replaces the Cloud
+# Scheduler job "subfrost-prefetch" that deploy.yml tried (and failed) to
+# create on every run — the deploy SA lacks serviceusage permission, so that
+# step died on `gcloud services enable cloudscheduler.googleapis.com` before
+# ever reaching `jobs create` (masked by continue-on-error). The live
+# subfrost-prefetch Cloud Scheduler job only existed because it was created by
+# hand on 2026-06-12; this CronJob makes the warmer GitOps-managed and lets us
+# safely delete that hand-made job (see PR notes).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prefetch-warm
+  namespace: subfrost
+spec:
+  schedule: "0,25,50 * * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  # Warms every 25 min → keep only the last success to avoid piling up ~57
+  # completed Job objects per day.
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # /api/prefetch always returns 200 (Promise.allSettled — partial errors
+      # surface as {ok:false,errors:[…]} in the body, never a non-2xx), so
+      # curl only fails on network/pod loss. One retry is plenty; the next
+      # 25-min tick re-warms anyway, so a missed run is cheap.
+      # Deadline covers both attempts: backoffLimit 1 → 2 × (--max-time 180) =
+      # 360s < activeDeadlineSeconds, so a retry is never cut off mid-flight.
+      backoffLimit: 1
+      activeDeadlineSeconds: 400
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            cloud.google.com/gke-spot: "true"
+          tolerations:
+            - key: cloud.google.com/gke-spot
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          containers:
+            - name: tick
+              image: curlimages/curl:8.11.1
+              command:
+                - sh
+                - -c
+                # In-cluster service DNS — no public round-trip, works even if
+                # the ingress is having a bad day. The CronJob only *sends* the
+                # Bearer header once PREFETCH_SECRET is synced into the k8s
+                # Secret; for the server to *enforce* it, PREFETCH_SECRET must
+                # ALSO be added to external-secrets.yaml AND wired into the app
+                # container env in deployment.yaml (route.ts reads process.env).
+                # Until both are done the endpoint stays open (local-dev
+                # convention). --fail-with-body (curl ≥7.76) prints the response
+                # body on a hard failure so it is visible in the pod log.
+                - |
+                  URL=http://subfrost-io.subfrost.svc.cluster.local/api/prefetch
+                  if [ -n "${PREFETCH_SECRET:-}" ]; then
+                    curl -sS --fail-with-body --max-time 180 -H "Authorization: Bearer $PREFETCH_SECRET" "$URL"
+                  else
+                    curl -sS --fail-with-body --max-time 180 "$URL"
+                  fi
+              env:
+                - name: PREFETCH_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: subfrost-io-secrets
+                      key: PREFETCH_SECRET
+                      optional: true
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 50m
+                  memory: 32Mi

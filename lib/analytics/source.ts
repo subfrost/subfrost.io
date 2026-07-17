@@ -44,3 +44,8 @@ export function emptyDashboard(range: DateRange): AnalyticsDashboard {
     configured: isAnalyticsConfigured(),
   }
 }
+
+/** ES analytics is reachable in-cluster in prod, or when TELEMETRY_ES_URL is set. */
+export function isEsConfigured(): boolean {
+  return process.env.NODE_ENV === "production" || Boolean(process.env.TELEMETRY_ES_URL)
+}

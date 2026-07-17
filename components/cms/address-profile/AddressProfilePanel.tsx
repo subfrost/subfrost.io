@@ -1,8 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useState, useTransition } from "react"
-import { Crown, Copy, X, Flame, Pencil } from "lucide-react"
-import { AddressAvatar } from "@/components/cms/AddressAvatar"
+import { Crown, Copy, Check, X, Flame, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { SkeletonStats, SkeletonText } from "@/components/cms/Skeleton"
@@ -66,13 +65,35 @@ export function AddressProfileProvider({ children }: { children: React.ReactNode
 }
 
 function ProfileHeader({ address, data }: { address: string; data: AddressProfileData | null }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = useCallback(async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(address)
+      } else {
+        const ta = document.createElement("textarea")
+        ta.value = address
+        ta.style.position = "fixed"
+        ta.style.opacity = "0"
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand("copy")
+        document.body.removeChild(ta)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }, [address])
+
   return (
     <div className="flex items-start gap-3">
-      <AddressAvatar address={address} size={56} />
       <div className="min-w-0 flex-1">
-        <button onClick={() => navigator.clipboard?.writeText(address)}
+        <button onClick={copy} title="Copy address"
           className="flex items-center gap-1.5 font-mono text-sm text-zinc-200 hover:text-white">
-          {trunc(address)} <Copy size={12} className="opacity-50" />
+          {trunc(address)} {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="opacity-50" />}
         </button>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {data?.isLeader && <Badge className="bg-amber-900/50 text-amber-300"><Crown size={10} /> Leader</Badge>}
@@ -173,11 +194,10 @@ function Badge({ children, className }: { children: React.ReactNode; className?:
 
 /** Avatar + truncated address that opens the profile drawer on click. Reused by
  *  every view that lists addresses. */
-export function AddressChip({ address, size = 24, showLeader }: { address: string; size?: number; showLeader?: boolean }) {
+export function AddressChip({ address, showLeader }: { address: string; size?: number; showLeader?: boolean }) {
   const { open } = useAddressProfile()
   return (
     <button onClick={() => open(address)} className="inline-flex items-center gap-2 text-left hover:opacity-80" title="View profile">
-      <AddressAvatar address={address} size={size} />
       <span className="inline-flex items-center gap-1 font-mono text-xs text-zinc-300">
         {showLeader && <Crown size={11} className="text-amber-400" />}
         {address.length > 18 ? `${address.slice(0, 8)}…${address.slice(-6)}` : address}

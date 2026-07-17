@@ -9,6 +9,8 @@ import { getFileUrlAction, updateFileAction } from "@/actions/cms/files"
 import type { FileView } from "@/lib/files/manager"
 import { humanSize, relTime, typeLabel } from "./util"
 import { FileEntityLinks } from "./FileEntityLinks"
+import { DocTypeBadge } from "./DocTypeBadge"
+import { DOC_TYPES, DOC_TYPE_GROUPS, DOC_STATUSES } from "@/lib/files/doc-types"
 
 // Details panel for a selected file: read-only metadata plus, when canEdit,
 // editable tags and a free-form notes field stored on metadata.notes. On large
@@ -35,17 +37,25 @@ export function DetailsPanel({
   const [tags, setTags] = useState<string[]>(file.tags)
   const [tagDraft, setTagDraft] = useState("")
   const [notes, setNotes] = useState<string>(typeof file.metadata?.notes === "string" ? (file.metadata.notes as string) : "")
+  const [docType, setDocType] = useState<string>(file.docType ?? "")
+  const [docStatus, setDocStatus] = useState<string>(file.docStatus ?? "")
   const [saving, setSaving] = useState(false)
+
+  const classification = (file.metadata?.classification ?? null) as { summary?: string } | null
 
   useEffect(() => {
     setTags(file.tags)
     setNotes(typeof file.metadata?.notes === "string" ? (file.metadata.notes as string) : "")
+    setDocType(file.docType ?? "")
+    setDocStatus(file.docStatus ?? "")
     setTagDraft("")
   }, [file])
 
   const dirty =
     JSON.stringify(tags) !== JSON.stringify(file.tags) ||
-    notes !== (typeof file.metadata?.notes === "string" ? file.metadata.notes : "")
+    notes !== (typeof file.metadata?.notes === "string" ? file.metadata.notes : "") ||
+    docType !== (file.docType ?? "") ||
+    docStatus !== (file.docStatus ?? "")
 
   const addTag = () => {
     const t = tagDraft.trim()
@@ -56,7 +66,7 @@ export function DetailsPanel({
   const save = async () => {
     setSaving(true)
     const metadata = { ...file.metadata, notes }
-    const r = await updateFileAction(file.id, { tags, metadata })
+    const r = await updateFileAction(file.id, { tags, metadata, docType: docType || null, docStatus: docStatus || null })
     setSaving(false)
     if (r.ok) onSaved(r.file)
     else onError(r.error)
@@ -95,6 +105,50 @@ export function DetailsPanel({
         <div className="flex justify-between gap-3"><dt className="text-zinc-500">Created</dt><dd className="text-zinc-300" title={new Date(file.createdAt).toLocaleString()}>{relTime(file.createdAt)}</dd></div>
         <div className="flex justify-between gap-3"><dt className="text-zinc-500">Modified</dt><dd className="text-zinc-300" title={new Date(file.updatedAt).toLocaleString()}>{relTime(file.updatedAt)}</dd></div>
       </dl>
+
+      {/* Document classification: primary type + execution status + auto summary */}
+      <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+        <Label className="text-xs text-zinc-400">Classification</Label>
+        {classification?.summary && (
+          <p className="text-xs leading-relaxed text-zinc-300">{classification.summary}</p>
+        )}
+        {canEdit ? (
+          <div className="grid grid-cols-1 gap-2">
+            <label className="block">
+              <span className="mb-1 block text-[11px] text-zinc-500">Type</span>
+              <select
+                value={docType}
+                onChange={(e) => setDocType(e.target.value)}
+                className="h-9 w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-100"
+              >
+                <option value="">— Unclassified —</option>
+                {DOC_TYPE_GROUPS.map((g) => (
+                  <optgroup key={g} label={g}>
+                    {DOC_TYPES.filter((d) => d.group === g).map((d) => (
+                      <option key={d.slug} value={d.slug}>{d.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] text-zinc-500">Status</span>
+              <select
+                value={docStatus}
+                onChange={(e) => setDocStatus(e.target.value)}
+                className="h-9 w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-100"
+              >
+                <option value="">— None —</option>
+                {DOC_STATUSES.map((s) => (
+                  <option key={s.slug} value={s.slug}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <DocTypeBadge docType={file.docType} docStatus={file.docStatus} />
+        )}
+      </div>
 
       <FileEntityLinks
         fileId={file.id}

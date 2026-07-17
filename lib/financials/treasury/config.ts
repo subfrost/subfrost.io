@@ -5,5 +5,11 @@ export const TREASURY_WALLETS: { address: string; label?: string }[] = [
   { address: "0x35E18d19c8B63B168B6049ed0a97073A847CE9e4" },
 ]
 
-/** GoldRush chain name for Binance Smart Chain mainnet. */
-export const BSC_CHAIN = "bsc-mainnet"
+/** BSC (BNB Smart Chain) mainnet JSON-RPC endpoint. We hit this via tlsfetch
+ *  a plain server-side `fetch` (see `source/bsc-rpc.ts`, which also falls back
+ *  across several open dataseeds) with `eth_getBalance` / `eth_call` — no
+ *  third-party balances API key. Override with `BSC_RPC_URL`; the default is an
+ *  open BNB Chain dataseed (also used by the Venus dapp) — unlike NodeReal it is
+ *  not behind Cloudflare, so it works reliably from datacenter egress. */
+export const BSC_RPC_URL =
+  process.env.BSC_RPC_URL || "https://bsc-dataseed1.bnbchain.org"

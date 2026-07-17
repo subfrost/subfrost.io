@@ -5,7 +5,7 @@ import { ALL_PRIVILEGES } from "@/lib/cms/privileges"
 describe("visibleNav", () => {
   it("shows Overview + Articles (both ungated) when there are no privileges", () => {
     const groups = visibleNav([])
-    expect(groups.map((g) => g.key)).toEqual(["overview", "articles"])
+    expect(groups.map((g) => g.key)).toEqual(["overview", "articles", "ops"])
     expect(groups.find((g) => g.key === "articles")!.items.map((i) => i.href)).toEqual([
       "/admin/articles", "/admin/articles/new",
     ])
@@ -14,30 +14,33 @@ describe("visibleNav", () => {
 
   it("shows Overview + Articles + Compliance for an AML_VIEW-only user", () => {
     const groups = visibleNav(["aml.read"])
-    expect(groups.map((g) => g.key)).toEqual(["overview", "articles", "compliance"])
+    expect(groups.map((g) => g.key)).toEqual(["overview", "articles", "compliance", "ops"])
     const compliance = groups.find((g) => g.key === "compliance")!
+    // E-Sign (documents.read) and Reviewer links (compliance.reviews) are gated
+    // by other privileges, so an aml.read-only user sees only these five.
     expect(compliance.items.map((i) => i.href)).toEqual([
-      "/admin/kyc", "/admin/fincen", "/admin/mtl",
+      "/admin/compliance", "/admin/compliance/obligations", "/admin/kyc", "/admin/fincen", "/admin/mtl",
     ])
   })
 
-  it("shows all 11 groups for ADMIN (all privileges)", () => {
+  it("shows all 14 groups for ADMIN (all privileges)", () => {
     const groups = visibleNav([...ALL_PRIVILEGES])
     expect(groups.map((g) => g.key)).toEqual([
-      "overview", "articles", "board", "documents", "community", "marketing", "compliance", "billing", "financials", "legal", "settings",
+      "overview", "articles", "board", "documents", "community", "marketing", "ecosystem", "compliance", "billing", "financials", "entities", "legal", "ops", "settings",
     ])
     expect(groups.find((g) => g.key === "board")!.items.map((i) => i.href)).toEqual([
       "/admin/board", "/admin/board/intake", "/admin/board/initiatives", "/admin/board/products",
     ])
     expect(groups.find((g) => g.key === "documents")!.items.map((i) => i.href)).toEqual([
-      "/admin/files", "/admin/oyl",
+      "/admin/files", "/admin/documents",
     ])
     expect(groups.find((g) => g.key === "billing")!.items).toHaveLength(11)
     expect(groups.find((g) => g.key === "financials")!.items.map((i) => i.href)).toEqual([
-      "/admin/financials/treasury", "/admin/financials/accounting",
+      "/admin/financials/revenue", "/admin/financials/treasury", "/admin/financials/accounting",
       "/admin/financials/cap-table", "/admin/financials/safes", "/admin/financials/balance-sheet",
       "/admin/financials/reconciliation",
     ])
+    expect(groups.find((g) => g.key === "entities")!.items.map((i) => i.href)).toEqual(["/admin/entities"])
     expect(groups.find((g) => g.key === "legal")!.items.map((i) => i.href)).toEqual(["/admin/legal"])
   })
 

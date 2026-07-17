@@ -4,16 +4,19 @@ import Link from "next/link"
 import { useState, useTransition, type ReactNode } from "react"
 import {
   accountingOverviewAction, createInvoiceAction, createPayeeAction,
-  exportLedgerCsvAction, linkPaymentAction, recordPaymentAction, updateInvoiceStatusAction,
-  type AccountingOverviewResult,
+  exportLedgerCsvAction, linkPaymentAction, recordPaymentAction, recordUsdPaymentAction,
+  updateInvoiceStatusAction, type AccountingOverviewResult,
 } from "@/actions/cms/accounting"
 import {
   totalsByPayee, totalsByPeriod, periodReportCsv, type InvoiceRow, type InvoiceStatus,
   type PayeeRow, type PayeeType, type PaymentRow, type PeriodGranularity,
 } from "@/lib/financials/accounting/shapes"
 import { PeriodReportChart } from "@/components/cms/financials/PeriodReportChart"
+import { explorerTxUrl } from "@/lib/explorers"
+import { useDieselUsd, sumSettlingUsd } from "@/components/cms/financials/use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
+const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
 const short = (s: string, n = 8) => (s.length > n * 2 ? `${s.slice(0, n)}…${s.slice(-4)}` : s)
 
@@ -29,19 +32,37 @@ type View = "invoices" | "payees" | "payments" | "reports"
 export function AccountingManager({ initial }: { initial: AccountingOverviewResult }) {
   const [result, setResult] = useState<AccountingOverviewResult>(initial)
   const [view, setView] = useState<View>("invoices")
-  const [open, setOpen] = useState<null | "payee" | "invoice" | "payment">(null)
+  const [open, setOpen] = useState<null | "payee" | "invoice" | "payment" | "usd-payment">(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const { values: usdValues } = useDieselUsd(result.ok ? result.overview.payments : [])
 
   if (!result.ok) {
     return <p className="text-sm text-zinc-400">You do not have access to financials.</p>
   }
 
-  const { payees, invoices, payments, metrics } = result.overview
+  const { payees, invoices, payments, usdPayments, metrics } = result.overview
   const payeeById = new Map(payees.map((p) => [p.id, p]))
+  const invoiceById = new Map(invoices.map((i) => [i.id, i]))
   const unlinked = payments.filter((p) => p.invoiceId === null)
   const openInvoices = invoices.filter((i) => i.status === "OPEN")
   const payeeTotals = totalsByPayee(payees, invoices, payments)
+
+  // Split USD by how each invoice settled (mirrors the payee profile). USD-denominated
+  // PAID invoices contribute to "Paid (USD)"; DIESEL-denominated invoices instead surface
+  // two numbers under "Paid (DIESEL)": the invoiced USD face value and the market value
+  // (spot USD of the DIESEL that settled them).
+  let paidUsdOnly = 0
+  let invoicedUsd = 0
+  let marketUsd = 0
+  for (const i of invoices) {
+    if (i.amountDiesel != null) {
+      invoicedUsd += i.amountUsd
+      marketUsd += sumSettlingUsd(payments.filter((p) => p.invoiceId === i.id), usdValues) ?? 0
+    } else if (i.status === "PAID") {
+      paidUsdOnly += i.amountUsd
+    }
+  }
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null)
@@ -72,8 +93,13 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Total paid (USD)" value={usd(metrics.totalPaidUsd)} />
-        <Metric label="Total paid (DIESEL)" value={dsl(metrics.totalPaidDiesel)} />
+        <Metric label="Paid (USD)" value={usd(paidUsdOnly)} />
+        <Metric label="Paid (DIESEL)" value={dsl(metrics.totalPaidDiesel)}>
+          <div className="mt-1.5 space-y-0.5 text-xs">
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Invoiced $:</span><span className="text-zinc-300">{usd(invoicedUsd)}</span></div>
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{`~${usd(marketUsd)}`}</span></div>
+          </div>
+        </Metric>
         <Metric label="Open invoices" value={String(metrics.openInvoices)} />
         <Metric label="Unlinked payments" value={String(metrics.unlinkedPayments)} accent={metrics.unlinkedPayments > 0} />
       </div>
@@ -112,7 +138,8 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         <div className="ml-auto flex flex-wrap gap-2">
           <Toolbtn onClick={() => setOpen("payee")}>New payee</Toolbtn>
           <Toolbtn onClick={() => setOpen("invoice")}>New invoice</Toolbtn>
-          <Toolbtn onClick={() => setOpen("payment")}>Record payment</Toolbtn>
+          <Toolbtn onClick={() => setOpen("payment")}>Record DIESEL pmt</Toolbtn>
+          <Toolbtn onClick={() => setOpen("usd-payment")}>Record USD pmt</Toolbtn>
           <Toolbtn onClick={exportCsv}>Export CSV</Toolbtn>
         </div>
       </div>
@@ -124,17 +151,20 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         <InvoiceForm payees={payees} disabled={pending} onError={setError} onCancel={() => setOpen(null)} onSubmit={(input) => run(() => createInvoiceAction(input))} />
       ) : null}
       {open === "payment" ? (
-        <PaymentForm disabled={pending} onCancel={() => setOpen(null)} onSubmit={(input) => run(() => recordPaymentAction(input))} />
+        <PaymentForm openInvoices={openInvoices} disabled={pending} onCancel={() => setOpen(null)} onSubmit={(input) => run(() => recordPaymentAction(input))} />
+      ) : null}
+      {open === "usd-payment" ? (
+        <UsdPaymentForm openInvoices={openInvoices} disabled={pending} onCancel={() => setOpen(null)} onSubmit={(input) => run(() => recordUsdPaymentAction(input))} />
       ) : null}
 
       {view === "invoices" ? (
         invoices.length === 0 ? (
           <Empty>No invoices yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
-                <th className="py-1.5">Ref</th><th>Payee</th><th className="text-right">USD</th>
+                <th className="py-1.5">Date</th><th>Ref</th><th>Payee</th><th className="text-right">Value</th><th className="text-right">Market Value</th>
                 <th>Status</th><th>Settled by</th><th>PDF</th><th></th>
               </tr>
             </thead>
@@ -142,19 +172,22 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
               {invoices.map((i) => {
                 const pe = payeeById.get(i.payeeId)
                 const settling = payments.filter((p) => p.invoiceId === i.id)
+                const valuedUsd = i.amountDiesel != null ? sumSettlingUsd(settling, usdValues) : null
                 return (
                   <tr key={i.id} className="border-t border-zinc-900">
-                    <td className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td className="text-zinc-200">{i.payeeName}{pe?.kycIntakeId ? <KycBadge /> : null}</td>
-                    <td className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
-                    <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
-                    <td className="font-mono text-xs text-zinc-400">
+                    <td data-label="Date" className="py-2 text-zinc-400">{i.issuedAt.slice(0, 10)}</td>
+                    <td data-label="Ref" className="font-mono text-zinc-300">{i.ref}</td>
+                    <td data-label="Payee" className="text-zinc-200"><Link href={`/admin/financials/payees/${i.payeeId}`} className="text-sky-300 hover:underline">{i.payeeName}</Link>{pe?.kycIntakeId ? <KycBadge /> : null}</td>
+                    <td data-label="Value" className="whitespace-nowrap text-right text-zinc-200">{i.amountDiesel != null ? dsl(i.amountDiesel) : usd(i.amountUsd)}</td>
+                    <td data-label="Market Value" className="text-right text-zinc-400">{i.amountDiesel != null ? (valuedUsd == null ? <span className="text-zinc-600">—</span> : approxUsd(valuedUsd)) : usd(i.amountUsd)}</td>
+                    <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
+                    <td data-label="Settled by" className="font-mono text-xs text-zinc-400">
                       {settling.length === 0 ? "—" : settling.map((p) => (
-                        <a key={p.id} href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
+                        <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>
                       ))}
                     </td>
-                    <td>{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
-                    <td className="whitespace-nowrap text-right">
+                    <td data-label="PDF">{i.docHref ? <Link href={i.docHref} className="text-sky-400 underline">PDF</Link> : i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                    <td data-fullwidth className="whitespace-nowrap text-right">
                       {i.status !== "PAID" ? (
                         <button disabled={pending} onClick={() => run(() => updateInvoiceStatusAction(i.id, "PAID"))} className="mr-2 text-xs text-emerald-400 hover:underline disabled:opacity-40">Mark paid</button>
                       ) : null}
@@ -174,7 +207,7 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
         payees.length === 0 ? (
           <Empty>No payees yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead>
               <tr className="text-left text-xs text-zinc-500">
                 <th className="py-1.5">Name</th><th>Type</th><th className="text-right">Invoices</th>
@@ -186,14 +219,14 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
                 const pe = payeeById.get(t.payeeId)
                 return (
                   <tr key={t.payeeId} className="border-t border-zinc-900">
-                    <td className="py-2 text-zinc-200">
+                    <td data-label="Name" className="py-2 text-zinc-200">
                       <Link href={`/admin/financials/payees/${t.payeeId}`} className="text-sky-300 hover:underline">{t.payeeName}</Link>
                       {pe?.kycIntakeId ? <KycBadge /> : null}
                     </td>
-                    <td className="text-zinc-400">{pe?.type}</td>
-                    <td className="text-right text-zinc-300">{t.invoiceCount}</td>
-                    <td className="text-right text-zinc-200">{usd(t.totalUsd)}</td>
-                    <td className="text-right text-zinc-200">{dsl(t.totalDiesel)}</td>
+                    <td data-label="Type" className="text-zinc-400">{pe?.type}</td>
+                    <td data-label="Invoices" className="text-right text-zinc-300">{t.invoiceCount}</td>
+                    <td data-label="Paid (USD)" className="text-right text-zinc-200">{usd(t.totalUsd)}</td>
+                    <td data-label="Paid (DIESEL)" className="text-right text-zinc-200">{dsl(t.totalDiesel)}</td>
                   </tr>
                 )
               })}
@@ -203,31 +236,66 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
       ) : null}
 
       {view === "payments" ? (
-        payments.length === 0 ? (
+        payments.length === 0 && usdPayments.length === 0 ? (
           <Empty>No payments yet.</Empty>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-zinc-500">
-                <th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Recipient</th>
-                <th>Paid</th><th>Invoice</th><th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-t border-zinc-900">
-                  <td className="py-2 font-mono text-xs text-zinc-300">
-                    <a href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a>
-                  </td>
-                  <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td className="font-mono text-xs text-zinc-400">{short(p.recipientAddress)}</td>
-                  <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td className="text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
-                  <td className="text-zinc-500">{p.source}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-6">
+            {payments.length > 0 ? (
+              <div>
+                <div className="mb-1.5 text-xs font-semibold text-zinc-400">DIESEL payments</div>
+                <table className="w-full text-sm rtable">
+                  <thead>
+                    <tr className="text-left text-xs text-zinc-500">
+                      <th className="py-1.5">Invoice</th><th>Txid</th><th>Recipient</th><th>Date</th>
+                      <th className="text-right">DIESEL Paid</th><th className="text-right">USD Paid</th><th className="text-right">Market Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((p) => {
+                      const priced = usdValues[p.id]
+                      const settledInvoice = p.invoiceId != null ? invoiceById.get(p.invoiceId) : undefined
+                      const usdPaid = settledInvoice && settledInvoice.amountDiesel == null ? settledInvoice.amountUsd : null
+                      return (
+                        <tr key={p.id} className="border-t border-zinc-900">
+                          <td data-label="Invoice" className="py-2 text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
+                          <td data-label="Txid" className="font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
+                          <td data-label="Recipient" className="font-mono text-xs text-zinc-400"><a href={`https://espo.sh/address/${p.recipientAddress}`} target="_blank" rel="noreferrer" className="underline">{`${p.recipientAddress.slice(0, 5)}...${p.recipientAddress.slice(-4)}`}</a></td>
+                          <td data-label="Date" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                          <td data-label="DIESEL Paid" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                          <td data-label="USD Paid" className="text-right text-zinc-200">{usdPaid == null ? <span className="text-zinc-600">—</span> : usd(usdPaid)}</td>
+                          <td data-label="Market Price" className="text-right text-zinc-200">{priced ? approxUsd(priced.paymentUsd) : <span className="text-zinc-600">—</span>}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+            {usdPayments.length > 0 ? (
+              <div>
+                <div className="mb-1.5 text-xs font-semibold text-zinc-400">USD payments</div>
+                <table className="w-full text-sm rtable">
+                  <thead>
+                    <tr className="text-left text-xs text-zinc-500">
+                      <th className="py-1.5">Invoice</th><th>Txid</th><th>Recipient</th><th>Date</th>
+                      <th className="text-right">USD Paid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usdPayments.map((p) => (
+                      <tr key={p.id} className="border-t border-zinc-900">
+                        <td data-label="Invoice" className="py-2 text-zinc-300">{p.invoiceRef ?? <span className="text-yellow-400">unlinked</span>}</td>
+                        <td data-label="Txid" className="font-mono text-xs text-zinc-300">{p.txid ? <a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a> : <span className="text-zinc-600">—</span>}</td>
+                        <td data-label="Recipient" className="font-mono text-xs text-zinc-400">{p.recipientAddress ? `${p.recipientAddress.slice(0, 5)}...${p.recipientAddress.slice(-4)}` : <span className="text-zinc-600">—</span>}</td>
+                        <td data-label="Date" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                        <td data-label="USD Paid" className="text-right text-zinc-200">{usd(p.amountUsd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
         )
       ) : null}
 
@@ -236,11 +304,12 @@ export function AccountingManager({ initial }: { initial: AccountingOverviewResu
   )
 }
 
-function Metric({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Metric({ label, value, accent, children }: { label: string; value: string; accent?: boolean; children?: ReactNode }) {
   return (
     <div className={`rounded-lg border p-3 ${accent ? "border-yellow-800/60 bg-yellow-900/10" : "border-zinc-800"}`}>
       <div className="text-xs text-zinc-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+      {children}
     </div>
   )
 }
@@ -344,7 +413,7 @@ function ReportsView({ payees, invoices, payments }: {
       {rows.length === 0 ? (
         <Empty>No invoices to report.</Empty>
       ) : (
-        <table className="w-full text-sm">
+        <table className="w-full text-sm rtable">
           <thead>
             <tr className="text-left text-xs text-zinc-500">
               <th className="py-1.5">Period</th><th className="text-right">Invoices</th>
@@ -355,11 +424,11 @@ function ReportsView({ payees, invoices, payments }: {
           <tbody>
             {rows.map((r) => (
               <tr key={r.period} className="border-t border-zinc-900">
-                <td className="py-2 font-mono text-zinc-300">{r.period}</td>
-                <td className="text-right text-zinc-300">{r.invoiceCount}</td>
-                <td className="text-right text-zinc-200">{usd(r.issuedUsd)}</td>
-                <td className="text-right text-zinc-200">{usd(r.paidUsd)}</td>
-                <td className="text-right text-zinc-200">{dsl(r.dieselPaid)}</td>
+                <td data-label="Period" className="py-2 font-mono text-zinc-300">{r.period}</td>
+                <td data-label="Invoices" className="text-right text-zinc-300">{r.invoiceCount}</td>
+                <td data-label="Issued (USD)" className="text-right text-zinc-200">{usd(r.issuedUsd)}</td>
+                <td data-label="Paid (USD)" className="text-right text-zinc-200">{usd(r.paidUsd)}</td>
+                <td data-label="DIESEL Paid" className="text-right text-zinc-200">{dsl(r.dieselPaid)}</td>
               </tr>
             ))}
           </tbody>
@@ -446,15 +515,31 @@ function InvoiceForm({ payees, onSubmit, onCancel, onError, disabled }: {
   )
 }
 
-function PaymentForm({ onSubmit, onCancel, disabled }: {
-  onSubmit: (input: { txid: string; vout?: number | null; amountDiesel: number; recipientAddress: string; paidAt: string }) => void
-  onCancel: () => void; disabled: boolean
+function InvoiceSelect({ openInvoices, value, onChange }: {
+  openInvoices: InvoiceRow[]; value: string; onChange: (id: string) => void
+}) {
+  return (
+    <Field label="Associate with Invoice (Optional)">
+      <select className={INPUT} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">— None —</option>
+        {openInvoices.map((i) => (
+          <option key={i.id} value={i.id}>{i.ref} — {i.payeeName} ({usd(i.amountUsd)})</option>
+        ))}
+      </select>
+    </Field>
+  )
+}
+
+function PaymentForm({ onSubmit, onCancel, disabled, openInvoices }: {
+  onSubmit: (input: { txid: string; vout?: number | null; amountDiesel: number; recipientAddress: string; paidAt: string; invoiceId?: string | null }) => void
+  onCancel: () => void; disabled: boolean; openInvoices: InvoiceRow[]
 }) {
   const [txid, setTxid] = useState("")
   const [vout, setVout] = useState("")
   const [amountDiesel, setAmountDiesel] = useState("")
   const [recipientAddress, setRecipientAddress] = useState("")
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
+  const [invoiceId, setInvoiceId] = useState("")
   const valid = txid.trim() && Number(amountDiesel) > 0 && recipientAddress.trim()
   return (
     <FormShell title="Record DIESEL payment" onCancel={onCancel}>
@@ -464,8 +549,35 @@ function PaymentForm({ onSubmit, onCancel, disabled }: {
         <Field label="Amount DIESEL"><input className={INPUT} type="number" value={amountDiesel} onChange={(e) => setAmountDiesel(e.target.value)} /></Field>
         <Field label="Recipient address"><input className={INPUT} value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} /></Field>
         <Field label="Paid at"><input className={INPUT} type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></Field>
+        <InvoiceSelect openInvoices={openInvoices} value={invoiceId} onChange={setInvoiceId} />
       </div>
-      <button disabled={disabled || !valid} onClick={() => onSubmit({ txid, vout: vout ? Number(vout) : null, amountDiesel: Number(amountDiesel), recipientAddress, paidAt })} className="rounded-md bg-sky-700 px-3 py-1.5 text-sm text-white disabled:opacity-40">Record payment</button>
+      <button disabled={disabled || !valid} onClick={() => onSubmit({ txid, vout: vout ? Number(vout) : null, amountDiesel: Number(amountDiesel), recipientAddress, paidAt, invoiceId: invoiceId || null })} className="rounded-md bg-sky-700 px-3 py-1.5 text-sm text-white disabled:opacity-40">Record payment</button>
+    </FormShell>
+  )
+}
+
+function UsdPaymentForm({ onSubmit, onCancel, disabled, openInvoices }: {
+  onSubmit: (input: { txid?: string | null; vout?: number | null; amountUsd: number; recipientAddress?: string | null; paidAt: string; invoiceId?: string | null }) => void
+  onCancel: () => void; disabled: boolean; openInvoices: InvoiceRow[]
+}) {
+  const [txid, setTxid] = useState("")
+  const [vout, setVout] = useState("")
+  const [amountUsd, setAmountUsd] = useState("")
+  const [recipientAddress, setRecipientAddress] = useState("")
+  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
+  const [invoiceId, setInvoiceId] = useState("")
+  const valid = Number(amountUsd) > 0
+  return (
+    <FormShell title="Record USD payment" onCancel={onCancel}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Txid (optional)"><input className={INPUT} value={txid} onChange={(e) => setTxid(e.target.value)} /></Field>
+        <Field label="Vout (optional)"><input className={INPUT} type="number" value={vout} onChange={(e) => setVout(e.target.value)} /></Field>
+        <Field label="Amount USD"><input className={INPUT} type="number" value={amountUsd} onChange={(e) => setAmountUsd(e.target.value)} /></Field>
+        <Field label="Recipient address (optional)"><input className={INPUT} value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} /></Field>
+        <Field label="Paid at"><input className={INPUT} type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></Field>
+        <InvoiceSelect openInvoices={openInvoices} value={invoiceId} onChange={setInvoiceId} />
+      </div>
+      <button disabled={disabled || !valid} onClick={() => onSubmit({ txid: txid || null, vout: vout ? Number(vout) : null, amountUsd: Number(amountUsd), recipientAddress: recipientAddress || null, paidAt, invoiceId: invoiceId || null })} className="rounded-md bg-sky-700 px-3 py-1.5 text-sm text-white disabled:opacity-40">Record payment</button>
     </FormShell>
   )
 }

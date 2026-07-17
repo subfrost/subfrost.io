@@ -19,6 +19,7 @@ Deploys the single Next.js image (public site + `/admin` CMS + `/api`, plus the
 | `ingress.yaml` | GCE Ingress + Google-managed TLS for both hosts |
 | `pdb.yaml` | Keep ≥1 pod during disruptions/preemptions |
 | `kustomization.yaml` | Ties it together + rewrites the image |
+| `DEPLOY.md` | Production deploy runbook for image tag bumps + Flux |
 
 ## Placeholders to fill
 

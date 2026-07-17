@@ -9,6 +9,8 @@ import {
 } from "@/actions/cms/legal"
 import { listEntityFilesAction, getFileUrlAction, unlinkEntityFileAction } from "@/actions/cms/files"
 import type { EntityFileView } from "@/lib/files/manager"
+import { DocTypeBadge } from "@/components/cms/files/DocTypeBadge"
+import { explorerTxUrl } from "@/lib/explorers"
 import {
   LEGAL_ENTITY_CATEGORY_LABELS, LEGAL_AGREEMENT_TYPES, LEGAL_AGREEMENT_TYPE_LABELS,
   SWAP_STATUS_LABELS, DESERTION_STATUS_LABELS, dieselFromSafe, swapEligible,
@@ -191,8 +193,9 @@ function EntityDocuments({ entityId, canEdit, onError }: {
                 <FileText size={15} className="shrink-0 text-zinc-500" />
                 <div className="min-w-0">
                   <div className="truncate text-sm text-zinc-200">{d.file.name}</div>
-                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
                     <span className="rounded bg-zinc-800 px-1 py-0.5 text-zinc-300">{DOC_ROLE_LABEL[d.role] ?? d.role}</span>
+                    {(d.file.docType || d.file.docStatus) && <DocTypeBadge docType={d.file.docType} docStatus={d.file.docStatus} />}
                     <span>{d.file.scope}</span>
                     {d.annotation && <span className="truncate italic">{d.annotation}</span>}
                   </div>
@@ -308,7 +311,7 @@ function ObligationCard({ entity, canEdit, onSave, disabled, viewerHasFinancials
         {o?.onchainTxid ? (
           <div className="mt-3 text-xs text-zinc-400">
             On-chain:{" "}
-            <a href={`https://etherscan.io/tx/${o.onchainTxid}`} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(o.onchainTxid)}</a>
+            <a href={explorerTxUrl("ethereum", o.onchainTxid)} target="_blank" rel="noreferrer" className="font-mono text-sky-400 underline">{short(o.onchainTxid)}</a>
             {o.fundedAt ? ` · ${o.fundedAt.slice(0, 10)}` : ""}{viewerHasFinancials && o.onchainAddress ? ` · ${short(o.onchainAddress)}` : ""}
           </div>
         ) : <div className="mt-3 text-xs text-zinc-600">No on-chain settlement recorded.</div>}

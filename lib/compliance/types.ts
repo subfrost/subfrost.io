@@ -8,7 +8,7 @@ export const REVIEW_COOKIE = "__sub_review"
 export type ReviewScope = "compliance-full" | "fincen-only" | "kyc-only"
 export const REVIEW_SCOPES: ReviewScope[] = ["compliance-full", "fincen-only", "kyc-only"]
 export const SCOPE_LABELS: Record<ReviewScope, string> = {
-  "compliance-full": "Full compliance (FinCEN + KYC + MTL + documents)",
+  "compliance-full": "Full compliance (program, obligations, FinCEN, KYC, MTL, documents)",
   "fincen-only": "FinCEN filings only",
   "kyc-only": "KYC queue only",
 }
@@ -42,11 +42,13 @@ export interface ReviewSessionContext {
 }
 
 export interface ScopeSurface {
-  key: "fincen" | "kyc" | "mtl" | "documents"
+  key: "program" | "obligations" | "fincen" | "kyc" | "mtl" | "documents"
   label: string
 }
 
 const ALL_SURFACES: ScopeSurface[] = [
+  { key: "program", label: "AML/BSA program status" },
+  { key: "obligations", label: "Obligation calendar" },
   { key: "fincen", label: "FinCEN filings" },
   { key: "kyc", label: "KYC queue" },
   { key: "mtl", label: "MTL licensing" },

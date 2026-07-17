@@ -22,7 +22,7 @@ export function relTime(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "other"
+export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "docx" | "other"
 
 export function previewKind(mime: string, name: string): PreviewKind {
   const m = (mime || "").toLowerCase()
@@ -31,6 +31,7 @@ export function previewKind(mime: string, name: string): PreviewKind {
   if (m.startsWith("video/")) return "video"
   if (m.startsWith("audio/")) return "audio"
   if (m === "application/pdf" || ext === "pdf") return "pdf"
+  if (m.includes("wordprocessingml") || m === "application/msword" || ext === "docx" || ext === "doc") return "docx"
   if (
     m.startsWith("text/") ||
     m === "application/json" ||
@@ -53,6 +54,19 @@ export function typeLabel(mime: string, name: string): string {
     return sub.toUpperCase()
   }
   return "FILE"
+}
+
+/**
+ * Turn a Postgres ts_headline snippet into safe highlight HTML. The DB wraps hits
+ * in %%HL%%…%%EH%% sentinels; document text can contain arbitrary markup, so we
+ * HTML-escape everything first, then convert only the sentinels to <mark>. Never
+ * emits attacker-controlled tags.
+ */
+export function highlightSnippet(s: string): string {
+  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return esc
+    .split("%%HL%%").join('<mark class="rounded bg-amber-400/25 px-0.5 text-amber-200">')
+    .split("%%EH%%").join("</mark>")
 }
 
 /** Minimal, dependency-free markdown → HTML for the preview pane. Escapes first. */

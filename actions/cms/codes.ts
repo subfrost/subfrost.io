@@ -14,18 +14,25 @@ import {
   bulkCreateCodes,
   updateCode,
   deleteCode,
+  addAddressToCode,
+  removeAddressFromCode,
   getCodeTree,
   getAnnotatedCodeTree,
   getCodeRedeemers,
   listRedemptions,
+  listFlatRedemptions,
   exportRedemptionsCsv,
   type CreateCodeInput,
   type BulkCreateInput,
   type UpdateCodeInput,
+  type AddAddressInput,
+  type RemoveAddressInput,
   type ListCodesQuery,
   type ListCodesResult,
   type ListRedemptionsQuery,
   type ListRedemptionsResult,
+  type FlatRedemptionsQuery,
+  type FlatRedemptionsResult,
   type CodeTreeNode,
   type AnnotatedCodeNode,
   type CodeRedeemer,
@@ -98,6 +105,14 @@ export async function listRedemptionsAction(
   return { ok: true, ...(await listRedemptions(query)) }
 }
 
+export async function listFlatRedemptionsAction(
+  query: FlatRedemptionsQuery,
+): Promise<({ ok: true } & FlatRedemptionsResult) | { ok: false; error: string }> {
+  const a = await actor("referral.read")
+  if (!a.ok) return a
+  return { ok: true, ...(await listFlatRedemptions(query)) }
+}
+
 export async function exportRedemptionsCsvAction(): Promise<
   { ok: true; csv: string; filename: string } | { ok: false; error: string }
 > {
@@ -168,6 +183,45 @@ export async function updateCodeAction(
     })
     revalidatePath("/admin/codes")
   })
+}
+
+export async function addAddressToCodeAction(input: AddAddressInput): Promise<CodeActionResult> {
+  const a = await actor("referral.edit")
+  if (!a.ok) return a
+  return run(async () => {
+    const { code } = await addAddressToCode(input)
+    await audit("update_code", {
+      actorId: a.me.id,
+      target: code,
+      details: { addAddress: input.taprootAddress } as Prisma.InputJsonValue,
+      ip: await ip(),
+    })
+    revalidatePath("/admin/codes")
+  })
+}
+
+export async function removeAddressFromCodeAction(
+  input: RemoveAddressInput,
+): Promise<{ ok: true; addressDeleted: boolean } | { ok: false; error: string }> {
+  const a = await actor("referral.edit")
+  if (!a.ok) return a
+  try {
+    const { code, addressDeleted } = await removeAddressFromCode(input)
+    await audit("update_code", {
+      actorId: a.me.id,
+      target: code,
+      details: {
+        removeAddress: input.taprootAddress,
+        addressDeleted,
+      } as Prisma.InputJsonValue,
+      ip: await ip(),
+    })
+    revalidatePath("/admin/codes")
+    return { ok: true, addressDeleted }
+  } catch (e) {
+    if (e instanceof CodeError) return { ok: false, error: e.message }
+    throw e
+  }
 }
 
 /** Convenience for the inline activate/deactivate toggle. */

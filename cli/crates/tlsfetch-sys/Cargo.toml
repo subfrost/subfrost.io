@@ -1,0 +1,26 @@
+[package]
+name = "tlsfetch-sys"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native std::net::TcpStream backend for tlsfetch."
+
+[dependencies]
+# Enable HTTP/2 + HTTP/3 by default on the native side. Pulls in
+# tokio + h2 + quinn.
+tlsfetch-common = { path = "../tlsfetch-common", features = ["http2", "http3"] }
+thiserror = { workspace = true }
+log = { workspace = true }
+# Sync WebSocket client for the WS-tunnel adapters (`WsTcpFactory`
+# / `WsUdpFactory`). Behind the `ws-tunnel` feature so the default
+# native build doesn't pull it in.
+tungstenite = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+
+[features]
+default = []
+ws-tunnel = ["dep:tungstenite", "dep:url"]
+
+[dev-dependencies]
+http = { workspace = true }
+tokio = { workspace = true }

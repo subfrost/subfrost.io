@@ -13,10 +13,11 @@ import {
 import {
   communityOverviewAction,
   communityDetailAction,
+  unattributedFuelAction,
   type CommunityDetail,
 } from "@/actions/cms/communities"
 import type { FuelRow } from "@/lib/fuel/admin"
-import type { CommunityOverview, CommunitySummary } from "@/lib/community/aggregate"
+import type { CommunityOverview, CommunitySummary, UnattributedAllocation } from "@/lib/community/aggregate"
 import { SkeletonTable, SkeletonStats, SkeletonList, SkeletonText } from "@/components/cms/Skeleton"
 
 const inputCls = "bg-zinc-900 text-zinc-100 border-zinc-700"
@@ -25,18 +26,19 @@ const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 
 export function FuelManager({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="space-y-8">
-      <FuelDistribution />
-      <AllocationsEditor canEdit={canEdit} />
+      <FuelDistribution manageSlot={<AllocationsEditor canEdit={canEdit} />} />
     </div>
   )
 }
 
 // --- Macro stats + community FUEL distribution tree ------------------------
 
-function FuelDistribution() {
+function FuelDistribution({ manageSlot }: { manageSlot?: React.ReactNode }) {
   const [ov, setOv] = useState<CommunityOverview | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, CommunityDetail>>({})
+  const [unattOpen, setUnattOpen] = useState(false)
+  const [unatt, setUnatt] = useState<UnattributedAllocation[] | null>(null)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
@@ -57,6 +59,7 @@ function FuelDistribution() {
   if (!ov || !stats) return (
     <div className="space-y-5">
       <SkeletonStats count={6} className="sm:grid-cols-3 lg:grid-cols-6" />
+      {manageSlot}
       <SkeletonList rows={8} height="h-8" />
     </div>
   )
@@ -73,6 +76,15 @@ function FuelDistribution() {
     })
   }
 
+  function toggleUnatt() {
+    if (unattOpen) { setUnattOpen(false); return }
+    setUnattOpen(true)
+    if (!unatt) startTransition(async () => {
+      const r = await unattributedFuelAction()
+      if (r.ok) setUnatt(r.rows)
+    })
+  }
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -84,11 +96,13 @@ function FuelDistribution() {
         <Stat label="Top-10 share" value={`${stats.top10Share}%`} />
       </div>
 
+      {manageSlot}
+
       {/* concentration bar: top communities as a share of gross */}
       <div>
         <div className="mb-1.5 text-xs uppercase tracking-wide text-zinc-500">Distribution by community (share of gross)</div>
         <div className="flex h-3 overflow-hidden rounded-full bg-zinc-800">
-          {ov.communities.slice(0, 12).map((c, i) => (
+          {ov.communities.map((c, i) => (
             <div key={c.rootId} title={`${c.rootCode}: ${fmt(c.totalFuel)} (${((c.totalFuel / gross) * 100).toFixed(1)}%)`}
               style={{ width: `${(c.totalFuel / gross) * 100}%`, background: `hsl(${(i * 31) % 360} 60% 55%)` }} />
           ))}
@@ -97,13 +111,13 @@ function FuelDistribution() {
 
       {/* community FUEL tree */}
       <div className="space-y-1.5">
-        {ov.communities.map((c) => (
+        {ov.communities.map((c, i) => (
           <div key={c.rootId} className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40">
             <button onClick={() => toggle(c)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-900/60">
               <ChevronRight size={14} className={`shrink-0 text-zinc-500 transition-transform ${expanded === c.rootId ? "rotate-90" : ""}`} />
               <span className="w-32 shrink-0 truncate font-semibold text-white">{c.rootCode}</span>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                <div className="h-full bg-sky-500/70" style={{ width: `${(c.totalFuel / maxCommunity) * 100}%` }} />
+                <div className="h-full" style={{ width: `${(c.totalFuel / maxCommunity) * 100}%`, background: `hsl(${(i * 31) % 360} 60% 55%)` }} />
               </div>
               <span className="w-28 shrink-0 text-right text-sm text-sky-300">{fmt(c.totalFuel)}</span>
               <span className="hidden w-24 shrink-0 text-right text-xs text-zinc-500 sm:block">{((c.totalFuel / gross) * 100).toFixed(1)}% · {c.memberCount}</span>
@@ -117,7 +131,49 @@ function FuelDistribution() {
             )}
           </div>
         ))}
+
+        {/* Unattributed: FUEL on addresses that never redeemed a code. Pinned last. */}
+        {stats.unattributedFuel > 0 && (
+          <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40">
+            <button onClick={toggleUnatt} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-900/60">
+              <ChevronRight size={14} className={`shrink-0 text-zinc-500 transition-transform ${unattOpen ? "rotate-90" : ""}`} />
+              <span className="w-32 shrink-0 truncate font-semibold text-zinc-400">Unattributed</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                <div className="h-full" style={{ width: `${Math.min(100, (stats.unattributedFuel / maxCommunity) * 100)}%`, background: "#71717a" }} />
+              </div>
+              <span className="w-28 shrink-0 text-right text-sm text-sky-300">{fmt(stats.unattributedFuel)}</span>
+              <span className="hidden w-24 shrink-0 text-right text-xs text-zinc-500 sm:block">{((stats.unattributedFuel / gross) * 100).toFixed(1)}% · {ov.unattributedCount}</span>
+            </button>
+            {unattOpen && (
+              <div className="border-t border-zinc-800 px-3 py-2">
+                {!unatt ? <SkeletonText lines={5} /> : <UnattributedBars rows={unatt} total={stats.unattributedFuel} />}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+function UnattributedBars({ rows, total }: { rows: UnattributedAllocation[]; total: number }) {
+  const [limit, setLimit] = useState(50)
+  const max = Math.max(1, ...rows.map((r) => r.fuel))
+  return (
+    <div className="space-y-1">
+      {rows.slice(0, limit).map((r) => (
+        <div key={r.address} className="flex items-center gap-2 text-xs">
+          <span className="w-56 shrink-0"><AddressChip address={r.address} /></span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-full bg-zinc-500/70" style={{ width: `${(r.fuel / max) * 100}%` }} />
+          </div>
+          <span className="w-20 shrink-0 text-right text-sky-300">{fmt(r.fuel)}</span>
+          <span className="hidden w-16 shrink-0 text-right text-zinc-500 sm:block">{total > 0 ? ((r.fuel / total) * 100).toFixed(1) : "0"}%</span>
+        </div>
+      ))}
+      {rows.length > limit && (
+        <button onClick={() => setLimit((l) => l + 50)} className="mt-1 text-xs text-sky-400 hover:text-sky-300">Show more ({limit} of {rows.length})</button>
+      )}
     </div>
   )
 }
@@ -130,6 +186,11 @@ function MemberBars({ detail, communityTotal }: { detail: CommunityDetail; commu
       {detail.members.slice(0, limit).map((m) => (
         <div key={m.address} className="flex items-center gap-2 text-xs">
           <span className="w-56 shrink-0"><AddressChip address={m.address} showLeader={m.isLeader} /></span>
+          <span className="flex shrink-0 flex-wrap gap-1">
+            {m.codesClaimed.map((code) => (
+              <span key={code} className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] leading-none text-zinc-300" title={`Redeemed code ${code}`}>{code}</span>
+            ))}
+          </span>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
             <div className="h-full bg-orange-400/70" style={{ width: `${(m.fuel / max) * 100}%` }} />
           </div>

@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
-import { ChevronRight, Plus, Layers, Flame, Check, Power, Trash2, Download } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { ChevronRight, ChevronUp, ChevronDown, Plus, Layers, Flame, Check, Power, Trash2, Download, Pencil, X, UserPlus, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,22 +13,35 @@ import {
   createCodeAction,
   bulkCreateCodesAction,
   toggleCodeAction,
+  updateCodeAction,
   deleteCodeAction,
+  addAddressToCodeAction,
+  removeAddressFromCodeAction,
   exportRedemptionsCsvAction,
+  listFlatRedemptionsAction,
 } from "@/actions/cms/codes"
-import type { AnnotatedCodeNode, CodeRedeemer } from "@/lib/referral/admin"
+import type { AnnotatedCodeNode, CodeRedeemer, FlatRedemption, FlatRedemptionSort } from "@/lib/referral/admin"
+
+const PAGE_SIZE = 100
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })
 
-// Keep a node if it (or any descendant) matches the search + redeemed filter.
-function filterTree(nodes: AnnotatedCodeNode[], q: string, onlyRedeemed: boolean): AnnotatedCodeNode[] {
+/** A mainnet Taproot address: `bc1p` prefix (case-insensitive) and 62 chars. */
+const isTaprootAddress = (address: string) => address.length === 62 && /^bc1p/i.test(address)
+
+// Keep a node if it (or any descendant) matches the query. `q` matches against
+// the code, its owner address, and its redeemer addresses, so searching an
+// address surfaces both the codes it owns and the codes it claimed.
+function filterTree(nodes: AnnotatedCodeNode[], q: string): AnnotatedCodeNode[] {
   const out: AnnotatedCodeNode[] = []
   for (const n of nodes) {
-    const kids = filterTree(n.children, q, onlyRedeemed)
-    const selfMatch =
-      (!q || n.code.toLowerCase().includes(q) || (n.ownerTaprootAddress ?? "").toLowerCase().includes(q)) &&
-      (!onlyRedeemed || n.redemptionCount > 0)
-    if (selfMatch || kids.length) out.push({ ...n, children: kids })
+    const kids = filterTree(n.children, q)
+    const match =
+      !q ||
+      n.code.toLowerCase().includes(q) ||
+      (n.ownerTaprootAddress ?? "").toLowerCase().includes(q) ||
+      n.redeemerAddresses.some((a) => a.toLowerCase().includes(q))
+    if (match || kids.length) out.push({ ...n, children: kids })
   }
   return out
 }
@@ -37,8 +50,8 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   const [tree, setTree] = useState<AnnotatedCodeNode[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [onlyRedeemed, setOnlyRedeemed] = useState(false)
-  const [form, setForm] = useState<{ type: "child" | "bulk"; parentId: string | null } | null>(null)
+  const [redemptionView, setRedemptionView] = useState(false)
+  const [form, setForm] = useState<{ type: "child" | "bulk" | "address"; parentId: string | null } | null>(null)
   const [, startTransition] = useTransition()
 
   async function reload() {
@@ -49,21 +62,21 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   useEffect(() => { reload() }, [])
 
   const q = search.trim().toLowerCase()
-  const filtered = useMemo(() => (tree ? filterTree(tree, q, onlyRedeemed) : []), [tree, q, onlyRedeemed])
+  const filtered = useMemo(() => (tree ? filterTree(tree, q) : []), [tree, q])
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         {canEdit && (
           <>
-            <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New root code</Button>
-            <Button size="sm" variant="outline" onClick={() => setForm({ type: "bulk", parentId: null })}><Layers size={14} /> Bulk generate</Button>
+            <Button size="sm" onClick={() => setForm({ type: "child", parentId: null })}><Plus size={14} /> New Parent Code</Button>
           </>
         )}
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or owner…" className="h-9 max-w-xs bg-zinc-900 text-zinc-100 border-zinc-700" />
-        <label className="flex items-center gap-1.5 text-xs text-zinc-400">
-          <input type="checkbox" checked={onlyRedeemed} onChange={(e) => setOnlyRedeemed(e.target.checked)} /> Only redeemed
-        </label>
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code, owner, or redemption address…" className="h-9 w-full max-w-md bg-zinc-900 text-zinc-100 border-zinc-700" />
+        <Button size="sm" variant={redemptionView ? "default" : "ghost"} aria-pressed={redemptionView}
+          onClick={() => setRedemptionView((v) => !v)}>
+          <List size={14} /> Redemption View
+        </Button>
         <Button size="sm" variant="ghost" className="ml-auto"
           onClick={() => startTransition(async () => { const r = await exportRedemptionsCsvAction(); if (r.ok) downloadCsv(r.csv, r.filename) })}>
           <Download size={14} /> Export redemptions
@@ -74,7 +87,9 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
         <NodeForm type={form.type} parentId={null} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
       )}
 
-      {loading ? (
+      {redemptionView ? (
+        <RedemptionView search={q} />
+      ) : loading ? (
         <SkeletonList rows={10} height="h-8" />
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 px-4 py-8 text-center text-zinc-600">No codes match.</div>
@@ -89,15 +104,138 @@ export function CodesManager({ canEdit }: { canEdit: boolean }) {
   )
 }
 
+/** Flat, newest-first list of every redemption. Loads 100 rows at a time,
+ *  fetching the next page when the sentinel at the bottom of the scroll
+ *  container comes into view. `search` (already lowercased/trimmed) filters
+ *  server-side on address, code, and parent code. */
+function RedemptionView({ search }: { search: string }) {
+  const [rows, setRows] = useState<FlatRedemption[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [sort, setSort] = useState<FlatRedemptionSort>("redeemedAt")
+  const [dir, setDir] = useState<"asc" | "desc">("desc")
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  // Guards against a stale in-flight page landing after the search changed.
+  const reqRef = useRef(0)
+
+  const load = useCallback(async (offset: number) => {
+    const req = ++reqRef.current
+    setLoading(true)
+    const res = await listFlatRedemptionsAction({ search, offset, limit: PAGE_SIZE, sort, dir })
+    if (req !== reqRef.current) return // superseded by a newer query
+    if (res.ok) {
+      setRows((prev) => (offset === 0 ? res.redemptions : [...prev, ...res.redemptions]))
+      setTotal(res.total)
+    }
+    setLoading(false)
+  }, [search, sort, dir])
+
+  // Reset to the first page whenever the query changes. Sorting is server-side so
+  // it orders every redemption, not just the pages already scrolled into view.
+  useEffect(() => {
+    setRows([])
+    setTotal(0)
+    scrollRef.current?.scrollTo({ top: 0 })
+    load(0)
+  }, [load])
+
+  // Clicking the active column flips direction; a new column starts descending.
+  const toggleSort = (key: FlatRedemptionSort) => {
+    if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"))
+    else { setSort(key); setDir("desc") }
+  }
+
+  const hasMore = rows.length < total
+  useEffect(() => {
+    if (!hasMore || loading) return
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) load(rows.length) },
+      { root: scrollRef.current, rootMargin: "200px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loading, rows.length, load])
+
+  const cols = "grid-cols-[minmax(0,3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]"
+
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+      <div className={`grid ${cols} gap-2 border-b border-zinc-800 px-3 py-2 text-[10px] uppercase tracking-wide text-zinc-500`}>
+        <span>Address</span><span>Child Code</span><span>Parent Code</span>
+        <SortHeader label="FUEL Allocation" active={sort === "fuel"} dir={dir} onClick={() => toggleSort("fuel")} />
+        <SortHeader label="Date & Time" active={sort === "redeemedAt"} dir={dir} onClick={() => toggleSort("redeemedAt")} />
+      </div>
+      <div ref={scrollRef} className="max-h-[70vh] overflow-y-auto">
+        {rows.map((r) => (
+          <div key={r.id} className={`grid ${cols} items-center gap-2 border-b border-zinc-800/40 px-3 py-1.5 text-xs hover:bg-zinc-900/40`}>
+            <span className="min-w-0"><AddressChip address={r.address} /></span>
+            <span className="truncate font-mono text-zinc-200">{r.childCode ?? ""}</span>
+            <span className="truncate font-mono text-zinc-500">{r.parentCode}</span>
+            <span>
+              {r.fuel != null
+                ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)}</span>
+                : <span className="rounded bg-zinc-800 px-1 text-[10px] text-zinc-500">no FUEL</span>}
+            </span>
+            <span className="text-zinc-500">{formatDateTime(r.redeemedAt)}</span>
+          </div>
+        ))}
+        {loading && <div className="px-3 py-2"><SkeletonText lines={rows.length ? 2 : 8} /></div>}
+        {!loading && rows.length === 0 && (
+          <div className="px-4 py-8 text-center text-zinc-600">No redemptions match.</div>
+        )}
+        <div ref={sentinelRef} />
+      </div>
+      {rows.length > 0 && (
+        <div className="border-t border-zinc-800 px-3 py-1.5 text-[10px] text-zinc-600">
+          Showing {rows.length} of {total}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SortHeader({ label, active, dir, onClick }: {
+  label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void
+}) {
+  const Arrow = dir === "asc" ? ChevronUp : ChevronDown
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      className={`flex items-center gap-0.5 text-left text-[10px] uppercase tracking-wide hover:text-zinc-300 ${active ? "text-zinc-300" : "text-zinc-500"}`}
+    >
+      {label}
+      <Arrow size={11} className={active ? "opacity-100" : "opacity-0"} />
+    </button>
+  )
+}
+
+/** Redemption timestamps are stored in UTC; render them there so two admins in
+ *  different timezones read the same value. */
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
+    year: "numeric", month: "short", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short",
+  })
+}
+
 function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
   node: AnnotatedCodeNode; depth: number; canEdit: boolean
-  form: { type: "child" | "bulk"; parentId: string | null } | null
-  setForm: (f: { type: "child" | "bulk"; parentId: string | null } | null) => void
+  form: { type: "child" | "bulk" | "address"; parentId: string | null } | null
+  setForm: (f: { type: "child" | "bulk" | "address"; parentId: string | null } | null) => void
   reload: () => void; isCommunity?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [redeemers, setRedeemers] = useState<CodeRedeemer[] | null>(null)
   const [limit, setLimit] = useState(50)
+  const [editingAddr, setEditingAddr] = useState(false)
+  const [addrDraft, setAddrDraft] = useState("")
+  const [addrError, setAddrError] = useState<string | null>(null)
+  const [savingAddr, startAddrTransition] = useTransition()
   const [, startTransition] = useTransition()
   const hasChildren = node.children.length > 0
   const expandable = hasChildren || node.redemptionCount > 0
@@ -110,6 +248,38 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
     }
   }
 
+  function startEditAddr() {
+    setAddrDraft(node.ownerTaprootAddress ?? "")
+    setAddrError(null)
+    setEditingAddr(true)
+  }
+
+  function removeRedeemer(r: CodeRedeemer) {
+    const warning =
+      r.fuel != null
+        ? `Remove ${r.address} from ${node.code}?\n\nThe address will no longer be a redeemer of this code. Because it has FUEL allocated, it stays in the system and will appear under "Unattributed" in /admin/fuel.`
+        : `Remove ${r.address} from ${node.code}?\n\nThe address will no longer be a redeemer of this code. It has no FUEL allocated, so it will be deleted from the system entirely.`
+    if (!confirm(warning)) return
+    startTransition(async () => {
+      const res = await removeAddressFromCodeAction({ codeId: node.id, taprootAddress: r.address })
+      if (res.ok) {
+        setRedeemers((prev) => (prev ? prev.filter((x) => x.address !== r.address) : prev))
+        reload()
+      }
+    })
+  }
+
+  function saveAddr() {
+    const address = addrDraft.trim()
+    if (!isTaprootAddress(address)) { setAddrError("Incorrect Taproot format"); return }
+    setAddrError(null)
+    startAddrTransition(async () => {
+      const r = await updateCodeAction(node.id, { ownerTaprootAddress: address })
+      if (r.ok) { setEditingAddr(false); reload() }
+      else setAddrError(r.error)
+    })
+  }
+
   return (
     <div className={depth > 0 ? "border-t border-zinc-800/50" : ""}>
       <div className="flex w-max min-w-full items-center gap-2 px-3 py-2 hover:bg-zinc-900/40" style={{ paddingLeft: 12 + depth * 18 }}>
@@ -117,24 +287,45 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
           <ChevronRight size={15} className={`transition-transform ${open ? "rotate-90" : ""}`} />
         </button>
         <span className={`font-mono ${isCommunity ? "font-semibold text-white" : "text-zinc-200"}`}>{node.code}</span>
-        {isCommunity && <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">community</span>}
         <span title={node.isActive ? "active" : "inactive"} className={`h-1.5 w-1.5 rounded-full ${node.isActive ? "bg-emerald-400" : "bg-zinc-600"}`} />
         {node.redemptionCount > 0
           ? <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] text-emerald-300">{node.redemptionCount} claimed</span>
           : <span className="rounded bg-amber-900/30 px-1.5 py-0.5 text-[10px] text-amber-300/90">unclaimed</span>}
+        <span title="Total FUEL across the owner, all sub-code owners, and every redeemer in this subtree" className="inline-flex items-center gap-1 rounded bg-violet-900/40 px-1.5 py-0.5 text-[10px] text-violet-200">
+          <Flame size={9} className="text-orange-400/80" />{fmt(node.totalFuel)} total
+        </span>
 
-        {node.ownerTaprootAddress && (
+        {editingAddr ? (
+          <span className="relative ml-1 flex items-center gap-1">
+            {addrError && (
+              <span className="absolute -top-5 left-0 whitespace-nowrap rounded bg-red-950 px-1.5 py-0.5 text-[10px] font-medium text-red-300 ring-1 ring-red-800">
+                {addrError}
+              </span>
+            )}
+            <Input
+              autoFocus
+              value={addrDraft}
+              onChange={(e) => setAddrDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") saveAddr(); if (e.key === "Escape") setEditingAddr(false) }}
+              placeholder="bc1p…"
+              className="h-7 w-[560px] max-w-[60vw] bg-zinc-950 font-mono text-xs text-zinc-100 border-zinc-700"
+            />
+            <IconBtn title="Save address" onClick={saveAddr}>{savingAddr ? <span className="text-[10px]">…</span> : <Check size={13} />}</IconBtn>
+            <IconBtn title="Cancel" onClick={() => setEditingAddr(false)}><X size={13} /></IconBtn>
+          </span>
+        ) : node.ownerTaprootAddress ? (
           <span className="ml-1 flex items-center gap-1">
             <AddressChip address={node.ownerTaprootAddress} />
             {node.ownerRedeemed && <Check size={12} className="text-emerald-400" aria-label="owner redeemed own code" />}
             {node.ownerFuel != null && <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(node.ownerFuel)}</span>}
           </span>
-        )}
+        ) : null}
 
         {canEdit && (
           <span className="ml-auto flex items-center gap-1">
+            {!editingAddr && <IconBtn title="Edit owner address" onClick={startEditAddr}><Pencil size={13} /></IconBtn>}
             <IconBtn title="Add child code" onClick={() => setForm({ type: "child", parentId: node.id })}><Plus size={13} /></IconBtn>
-            <IconBtn title="Bulk generate under" onClick={() => setForm({ type: "bulk", parentId: node.id })}><Layers size={13} /></IconBtn>
+            <IconBtn title="Add address to this code" onClick={() => setForm({ type: "address", parentId: node.id })}><UserPlus size={13} /></IconBtn>
             <IconBtn title={node.isActive ? "Deactivate" : "Activate"} onClick={() => startTransition(async () => { await toggleCodeAction(node.id, !node.isActive); reload() })}><Power size={13} /></IconBtn>
             <IconBtn title="Delete" danger onClick={() => { if (confirm(`Delete ${node.code}? Redemptions cascade.`)) startTransition(async () => { await deleteCodeAction(node.id); reload() }) }}><Trash2 size={13} /></IconBtn>
           </span>
@@ -143,7 +334,7 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
 
       {form?.parentId === node.id && (
         <div style={{ paddingLeft: 12 + (depth + 1) * 18 }} className="pr-3 pb-2">
-          <NodeForm type={form.type} parentId={node.id} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
+          <NodeForm type={form.type} parentId={node.id} code={node.code} onDone={() => { setForm(null); reload() }} onCancel={() => setForm(null)} />
         </div>
       )}
 
@@ -159,12 +350,17 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
                 <>
                   <div className="space-y-1">
                     {redeemers.slice(0, limit).map((r) => (
-                      <div key={r.address} className="flex items-center gap-2 text-xs">
+                      <div key={r.address} className="group flex items-center gap-2 text-xs">
                         <AddressChip address={r.address} />
                         {r.fuel != null
                           ? <span className="inline-flex items-center gap-0.5 rounded bg-sky-900/40 px-1 text-[10px] text-sky-300"><Flame size={9} className="text-orange-400/80" />{fmt(r.fuel)} FUEL</span>
                           : <span className="rounded bg-zinc-800 px-1 text-[10px] text-zinc-500">no FUEL</span>}
                         <span className="text-zinc-600">{r.redeemedAt.slice(0, 10)}</span>
+                        {canEdit && (
+                          <span className="opacity-0 transition-opacity group-hover:opacity-100">
+                            <IconBtn title="Remove address from this code" danger onClick={() => removeRedeemer(r)}><Trash2 size={12} /></IconBtn>
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -181,8 +377,9 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
   )
 }
 
-function NodeForm({ type, parentId, onDone, onCancel }: {
-  type: "child" | "bulk"; parentId: string | null; onDone: () => void; onCancel: () => void
+function NodeForm({ type, parentId, code: nodeCode, onDone, onCancel }: {
+  type: "child" | "bulk" | "address"; parentId: string | null; code?: string
+  onDone: () => void; onCancel: () => void
 }) {
   const [code, setCode] = useState("")
   const [description, setDescription] = useState("")
@@ -195,6 +392,15 @@ function NodeForm({ type, parentId, onDone, onCancel }: {
 
   function submit() {
     setError(null)
+    if (type === "address") {
+      const address = owner.trim()
+      if (!isTaprootAddress(address)) { setError("Incorrect Taproot format"); return }
+      startTransition(async () => {
+        const r = await addAddressToCodeAction({ codeId: parentId!, taprootAddress: address })
+        if (r.ok) onDone(); else setError(r.error)
+      })
+      return
+    }
     startTransition(async () => {
       if (type === "child") {
         const r = await createCodeAction({ code, description, ownerTaprootAddress: owner || null, parentCodeId: parentId })
@@ -209,13 +415,20 @@ function NodeForm({ type, parentId, onDone, onCancel }: {
   return (
     <div className="mt-1 rounded-lg border border-sky-900/50 bg-sky-950/20 p-3">
       <div className="mb-2 text-xs font-medium text-sky-300">
-        {type === "child" ? "New code" : "Bulk generate codes"}{parentId ? " under this node" : " (root)"}
+        {type === "address"
+          ? "Add address to this code"
+          : `${type === "child" ? "New code" : "Bulk generate codes"}${parentId ? " under this node" : " (root)"}`}
       </div>
       {type === "child" ? (
         <div className="grid gap-2 sm:grid-cols-3">
           <div><Label className="text-[11px] text-zinc-400">Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="HONGJIAN18" className={cls} /></div>
           <div><Label className="text-[11px] text-zinc-400">Owner address (optional)</Label><Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="bc1p…" className={cls} /></div>
           <div><Label className="text-[11px] text-zinc-400">Description (optional)</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} /></div>
+        </div>
+      ) : type === "address" ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div><Label className="text-[11px] text-zinc-400">Code</Label><Input value={nodeCode ?? ""} disabled className={`${cls} font-mono disabled:opacity-70`} /></div>
+          <div><Label className="text-[11px] text-zinc-400">Address</Label><Input autoFocus value={owner} onChange={(e) => setOwner(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit() }} placeholder="bc1p…" className={`${cls} font-mono`} /></div>
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-3">
@@ -225,7 +438,7 @@ function NodeForm({ type, parentId, onDone, onCancel }: {
         </div>
       )}
       <div className="mt-2 flex items-center gap-2">
-        <Button size="sm" disabled={pending} onClick={submit}>{type === "child" ? "Create" : "Generate"}</Button>
+        <Button size="sm" disabled={pending} onClick={submit}>{type === "child" ? "Create" : type === "address" ? "Save" : "Generate"}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
         {error && <span className="text-xs text-red-400">{error}</span>}
       </div>

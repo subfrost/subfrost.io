@@ -28,10 +28,6 @@ function truncAddr(a: string): string {
 function fmtFuel(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
-function noteMismatch(community: string, note: string | null): boolean {
-  if (!note) return false
-  return note.toLowerCase().replace(/\d+$/, "") !== community.toLowerCase().replace(/\d+$/, "")
-}
 function Copyable({ value }: { value: string }) {
   return (
     <button title="Copy" onClick={() => navigator.clipboard?.writeText(value)}
@@ -133,7 +129,7 @@ export function CommunitiesManager({
                 {loadingId === c.rootId && !details[c.rootId]
                   ? <SkeletonText lines={6} className="py-2" />
                   : details[c.rootId]
-                    ? <CommunityBody detail={details[c.rootId]} community={c.rootCode} canSeeFuel={canSeeFuel} />
+                    ? <CommunityBody detail={details[c.rootId]} canSeeFuel={canSeeFuel} />
                     : null}
               </div>
             )}
@@ -147,7 +143,7 @@ export function CommunitiesManager({
   )
 }
 
-function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDetail; community: string; canSeeFuel: boolean }) {
+function CommunityBody({ detail, canSeeFuel }: { detail: CommunityDetail; canSeeFuel: boolean }) {
   const [tab, setTab] = useState<"members" | "codes">("members")
   const [limit, setLimit] = useState(MEMBERS_PAGE)
 
@@ -162,7 +158,7 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
         <>
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr><th className="py-1.5">Address</th>{canSeeFuel && <th className="py-1.5 text-right">FUEL</th>}<th className="py-1.5">Codes claimed</th><th className="py-1.5">Note</th></tr>
+              <tr><th className="py-1.5">Address</th>{canSeeFuel && <th className="py-1.5 text-right">FUEL Allocated</th>}<th className="py-1.5">Code Claimed</th></tr>
             </thead>
             <tbody>
               {detail.members.slice(0, limit).map((m: CommunityMember) => (
@@ -172,11 +168,6 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
                   </td>
                   {canSeeFuel && <td className="py-1.5 text-right font-medium text-sky-300">{fmtFuel(m.fuel)}</td>}
                   <td className="py-1.5 font-mono text-xs text-zinc-400">{m.codesClaimed.join(", ")}</td>
-                  <td className="py-1.5 text-xs">
-                    {m.note
-                      ? <span className={noteMismatch(community, m.note) ? "text-amber-400" : "text-zinc-500"}>{m.note}{noteMismatch(community, m.note) && " ⚠"}</span>
-                      : <span className="text-zinc-700">—</span>}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -190,7 +181,7 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
       ) : (
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-            <tr><th className="py-1.5">Code</th><th className="py-1.5">Owner</th><th className="py-1.5 text-right">Claims</th><th className="py-1.5">Status</th></tr>
+            <tr><th className="py-1.5">Code</th><th className="py-1.5">Owner</th><th className="py-1.5 text-right">Claims</th><th className="py-1.5">Status</th>{canSeeFuel && <th className="py-1.5 text-right">FUEL Allocated</th>}</tr>
           </thead>
           <tbody>
             {detail.codes.map((code: CommunityCode) => (
@@ -203,6 +194,7 @@ function CommunityBody({ detail, community, canSeeFuel }: { detail: CommunityDet
                     ? <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] text-emerald-300">claimed</span>
                     : <span className="rounded bg-amber-900/40 px-1.5 py-0.5 text-[10px] text-amber-300">unclaimed</span>}
                 </td>
+                {canSeeFuel && <td className="py-1.5 text-right font-medium text-sky-300">{fmtFuel(code.fuelAllocated)}</td>}
               </tr>
             ))}
           </tbody>

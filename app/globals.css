@@ -130,6 +130,20 @@ div[data-netlify-deploy-id] {
       background: #000000 !important;
     }
   }
+
+  html[data-ed-page-theme="dark"],
+  body[data-ed-page-theme="dark"],
+  html:has(#ed-root[data-ed-theme="dark"]),
+  body:has(#ed-root[data-ed-theme="dark"]) {
+    background: #000000 !important;
+  }
+
+  html[data-ed-page-theme="light"],
+  body[data-ed-page-theme="light"],
+  html:has(#ed-root[data-ed-theme="light"]),
+  body:has(#ed-root[data-ed-theme="light"]) {
+    background: #ffffff !important;
+  }
 }
 
 /* Dark scrollbars for internal containers (not the main page scrollbar) */
@@ -188,6 +202,311 @@ div[data-netlify-deploy-id] {
   animation: pulsate 1.5s infinite;
 }
 
+@keyframes heroTickerItemReveal {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroTickerContentCycle {
+  0%,
+  74% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  81% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes homepageStatNativeCycle {
+  0%,
+  42% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  48%,
+  92% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  93% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes homepageStatUsdCycle {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  48%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  93%,
+  100% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes homepageImageReveal {
+  from {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes homepageCascadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes siteSearchResultIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.homepage-cascade-item,
+.homepage-cascade-section {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: homepageCascadeIn 0.68s cubic-bezier(0.17, 0.17, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.homepage-cascade-0 {
+  animation-delay: 0.04s;
+}
+
+.homepage-cascade-1 {
+  animation-delay: 0.1s;
+}
+
+.homepage-cascade-2 {
+  animation-delay: 0.18s;
+}
+
+.homepage-cascade-3 {
+  animation-delay: 0.28s;
+}
+
+.homepage-cascade-4 {
+  animation-delay: 0.38s;
+}
+
+.homepage-cascade-5 {
+  animation-delay: 0.5s;
+}
+
+.homepage-cascade-section {
+  animation-delay: 0.58s;
+}
+
+.homepage-cascade-section:nth-of-type(3) {
+  animation-delay: 0.66s;
+}
+
+.homepage-cascade-section:nth-of-type(4) {
+  animation-delay: 0.74s;
+}
+
+.homepage-cascade-section:nth-of-type(5) {
+  animation-delay: 0.82s;
+}
+
+.hero-market-ticker-item {
+  transition:
+    color var(--ed-fast) var(--ed-ease),
+    background-color var(--ed-fast) var(--ed-ease),
+    opacity var(--ed-fast) var(--ed-ease),
+    transform var(--ed-fast) var(--ed-ease);
+}
+
+.hero-market-ticker-content {
+  opacity: 0;
+  transform: translateY(7px);
+  animation:
+    heroTickerItemReveal 0.44s cubic-bezier(0.17, 0.17, 0.3, 1) forwards,
+    heroTickerContentCycle 10.5s cubic-bezier(0.17, 0.17, 0.3, 1) infinite;
+  animation-delay:
+    calc(0.14s + (var(--ticker-index, 0) * 0.06s)),
+    calc(5.2s + (var(--ticker-index, 0) * 0.14s));
+  will-change: opacity, transform;
+}
+
+.homepage-protocol-stat {
+  transition:
+    border-color var(--ed-fast) var(--ed-ease),
+    color var(--ed-fast) var(--ed-ease),
+    opacity var(--ed-fast) var(--ed-ease),
+    transform var(--ed-fast) var(--ed-ease);
+}
+
+.homepage-protocol-stat-content {
+  opacity: 1;
+  transform: none;
+}
+
+.homepage-protocol-stat-value {
+  display: inline-grid;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.homepage-protocol-stat-native,
+.homepage-protocol-stat-usd {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.homepage-protocol-stat-usd {
+  opacity: 0;
+}
+
+.homepage-protocol-stat-value-cycle .homepage-protocol-stat-native,
+.homepage-protocol-stat-value-cycle .homepage-protocol-stat-usd {
+  will-change: opacity, transform;
+}
+
+.homepage-protocol-stat-value-cycle .homepage-protocol-stat-native {
+  animation: homepageStatNativeCycle 15.75s cubic-bezier(0.17, 0.17, 0.3, 1) infinite;
+  animation-delay: calc(8.325s + (var(--stat-index, 0) * 0.14s));
+}
+
+.homepage-protocol-stat-value-cycle .homepage-protocol-stat-usd {
+  animation: homepageStatUsdCycle 15.75s cubic-bezier(0.17, 0.17, 0.3, 1) infinite;
+  animation-delay: calc(8.325s + (var(--stat-index, 0) * 0.14s));
+}
+
+.homepage-brand-banner {
+  background: color-mix(in srgb, var(--ed-surface) 84%, var(--ed-canvas));
+  contain: layout paint;
+}
+
+.homepage-brand-banner-image {
+  opacity: 0;
+  transform: scale(1.012);
+  animation: homepageImageReveal 0.62s cubic-bezier(0.17, 0.17, 0.3, 1) 0.1s forwards;
+  will-change: opacity, transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-market-ticker-item:hover {
+    transform: translateY(-1px);
+  }
+
+  .homepage-protocol-stat:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.hero-market-ticker-item:active {
+  opacity: 0.62;
+  transform: translateY(0);
+}
+
+.homepage-protocol-stat:active {
+  opacity: 0.62;
+  transform: translateY(0);
+}
+
+.site-search-result {
+  opacity: 0;
+  transform: translateY(9px);
+  animation: siteSearchResultIn 0.52s cubic-bezier(0.17, 0.17, 0.3, 1) forwards;
+  animation-delay: calc(0.16s + (var(--search-result-index, 0) * 0.045s));
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homepage-cascade-item,
+  .homepage-cascade-section,
+  .hero-market-ticker-item,
+  .hero-market-ticker-content,
+  .homepage-protocol-stat,
+  .homepage-protocol-stat-content,
+  .homepage-protocol-stat-value-cycle .homepage-protocol-stat-native,
+  .homepage-protocol-stat-value-cycle .homepage-protocol-stat-usd,
+  .homepage-brand-banner-image,
+  .site-search-result {
+    opacity: 1;
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .homepage-protocol-stat-value-cycle .homepage-protocol-stat-usd {
+    display: none;
+  }
+}
+
+.scroll-reveal-statement {
+  color: var(--ed-ink);
+}
+
+.scroll-reveal-word {
+  --word-opacity: 0;
+  display: inline-grid;
+  margin-right: 0.2em;
+  position: relative;
+}
+
+.scroll-reveal-word-shadow,
+.scroll-reveal-word-active {
+  grid-area: 1 / 1;
+}
+
+.scroll-reveal-word-shadow {
+  color: var(--ed-muted);
+  opacity: 0.42;
+}
+
+.scroll-reveal-word-active {
+  color: var(--ed-ink);
+  opacity: var(--word-opacity);
+  transition: opacity 220ms var(--ed-ease);
+}
+
 .glowing-text-cyan {
   text-shadow:
     0 0 5px rgba(0, 255, 255, 0.7),
@@ -244,6 +563,10 @@ div[data-netlify-deploy-id] {
   --ed-button-muted: color-mix(in srgb, var(--ed-ink) 42%, transparent);
   --ed-action-bg: var(--ed-carbon);
   --ed-action-fg: var(--ed-frost);
+  --ed-ease: cubic-bezier(0, 0, 0, 1);
+  --ed-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ed-fast: 180ms;
+  --ed-medium: 360ms;
 }
 [data-ed-theme="dark"] {
   --ed-canvas: #000000;
@@ -274,6 +597,83 @@ div[data-netlify-deploy-id] {
   font-family: var(--ed-sans);
 }
 
+#ed-root {
+  transition:
+    opacity var(--ed-fast) var(--ed-ease),
+    filter var(--ed-fast) var(--ed-ease),
+    transform var(--ed-fast) var(--ed-ease);
+}
+
+#ed-root.ed-page-entering {
+  animation: edPageEnter var(--ed-medium) var(--ed-ease-out) both;
+}
+
+#ed-root.ed-page-exiting {
+  opacity: 0.02;
+  filter: blur(1px);
+  transform: translateY(-2px);
+  pointer-events: none;
+}
+
+@keyframes edPageEnter {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+[data-ed-theme] a,
+[data-ed-theme] button,
+[data-ed-theme] summary {
+  transition:
+    color var(--ed-fast) var(--ed-ease),
+    background-color var(--ed-fast) var(--ed-ease),
+    border-color var(--ed-fast) var(--ed-ease),
+    opacity var(--ed-fast) var(--ed-ease),
+    transform var(--ed-fast) var(--ed-ease),
+    filter var(--ed-fast) var(--ed-ease);
+}
+
+[data-ed-theme] .ed-admin-scroll {
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+[data-ed-theme] .ed-admin-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+[data-ed-theme] textarea {
+  scrollbar-width: none;
+}
+
+[data-ed-theme] textarea::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+[data-ed-theme] .ed-admin-reveal {
+  animation: edAdminReveal 500ms var(--ed-ease-out) both;
+}
+
+@keyframes edAdminReveal {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 [data-ed-theme] .ed-logo-dark {
   display: none;
 }
@@ -291,6 +691,113 @@ div[data-netlify-deploy-id] {
 [data-ed-theme] [data-topic-filter]:focus-visible {
   outline: none;
   box-shadow: none;
+}
+
+.ghost-post-editor {
+  color: var(--ed-ink);
+  font-family: var(--ed-sans);
+  font-size: 20px;
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+.ghost-post-editor:focus {
+  outline: none;
+}
+
+.ghost-post-editor > *:first-child {
+  margin-top: 0;
+}
+
+.ghost-post-editor p,
+.ghost-post-editor blockquote,
+.ghost-post-editor ul,
+.ghost-post-editor ol,
+.ghost-post-editor pre,
+.ghost-post-editor figure {
+  margin: 0 0 1.15em;
+}
+
+.ghost-post-editor h1,
+.ghost-post-editor h2,
+.ghost-post-editor h3 {
+  margin: 1.45em 0 0.45em;
+  color: var(--ed-ink);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+.ghost-post-editor h1 {
+  font-size: clamp(34px, 5vw, 52px);
+}
+
+.ghost-post-editor h2 {
+  font-size: clamp(29px, 4vw, 42px);
+}
+
+.ghost-post-editor h3 {
+  font-size: clamp(24px, 3vw, 31px);
+}
+
+.ghost-post-editor blockquote {
+  border-left: 1px solid var(--ed-hair);
+  color: var(--ed-body);
+  padding-left: 1.1em;
+}
+
+.ghost-post-editor ul,
+.ghost-post-editor ol {
+  padding-left: 1.35em;
+}
+
+.ghost-post-editor li + li {
+  margin-top: 0.3em;
+}
+
+.ghost-post-editor a {
+  color: var(--ed-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.ghost-post-editor code {
+  border-radius: 4px;
+  background: var(--ed-surface);
+  padding: 0.08em 0.26em;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.ghost-post-editor pre {
+  overflow-x: auto;
+  border-radius: 6px;
+  background: var(--ed-surface);
+  padding: 1em;
+}
+
+.ghost-post-editor pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.ghost-post-editor figure {
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--ed-surface);
+}
+
+.ghost-post-editor figure img {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
+}
+
+.ghost-post-editor figcaption {
+  padding: 0.65em 0.85em;
+  color: var(--ed-muted);
+  font-size: 13px;
 }
 
 [data-ed-theme] .ed-subscribe-input::placeholder {
@@ -364,13 +871,63 @@ div[data-netlify-deploy-id] {
 .ed-article-prose ol {
   padding-left: 1.4em;
 }
+/* Tailwind's preflight strips list markers (list-style: none); restore them here. */
+.ed-article-prose ul {
+  list-style-type: disc;
+}
+.ed-article-prose ol {
+  list-style-type: decimal;
+}
 .ed-article-prose li + li {
   margin-top: 8px;
 }
 .ed-article-prose img {
   border-radius: 4px;
+  width: 100%;
+}
+.ed-figure {
+  margin: 28px 0;
+  text-align: center;
+}
+.ed-figure svg {
   max-width: 100%;
   height: auto;
+  display: inline-block;
+  /* Inlined chart SVGs carry a standalone fallback (.figchart: own ink/canvas + a
+     prefers-color-scheme media query) so they stay readable as <img> in the admin preview.
+     This higher-specificity rule takes back control when the site inlines them, so the
+     manual [data-ed-theme] toggle keeps driving the ink. */
+  color: var(--ed-ink);
+  background: transparent;
+}
+/* Enlarged article figure: the ZoomableFigure overlay is portaled to <body>,
+   outside .ed-article-prose, so it needs its own sizing. The dark backdrop wants
+   light ink, so pin --ed-ink for any inlined SVG rendered inside it. Screenshots
+   never scale past their natural size (they would blur); vector figures fill the
+   overlay so small labels become legible (the reason for the zoom). */
+.ed-zoom-content {
+  --ed-ink: #eceae4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ed-zoom-content img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 92vw;
+  max-height: 86vh;
+  border-radius: 6px;
+}
+.ed-zoom-content .ed-figure {
+  margin: 0;
+  width: min(92vw, 1200px);
+}
+.ed-zoom-content .ed-figure svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 86vh;
 }
 .ed-article-prose hr {
   border: 0;
@@ -389,6 +946,7 @@ div[data-netlify-deploy-id] {
   color: #e6ecf7;
   border-radius: 6px;
   padding: 18px 20px;
+  max-width: 100%;
   overflow-x: auto;
   font-size: 14.5px;
   line-height: 1.6;
@@ -399,30 +957,31 @@ div[data-netlify-deploy-id] {
   padding: 0;
   font-size: inherit;
 }
-
-.ed-sources {
-  margin: 56px auto 0;
-  max-width: 680px;
-  padding-top: 22px;
-  border-top: 1px solid var(--ed-hair);
-}
-.ed-sources .ed-sources-label {
-  font-family: var(--ed-sans);
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ed-muted);
-  margin-bottom: 8px;
-}
-.ed-sources .ed-article-prose,
-.ed-sources .ed-article-prose p {
+/* GFM tables — Tailwind preflight zeroes cell padding/borders, so restore them
+   (without these, columns collapse into each other: "Bonding allocation15%").
+   display:block + overflow-x lets a wide table scroll instead of breaking the layout. */
+.ed-article-prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
   font-size: 15px;
-  line-height: 1.6;
-  color: var(--ed-muted);
+  line-height: 1.5;
 }
-.ed-sources .ed-article-prose a {
-  color: var(--ed-accent);
+.ed-article-prose th,
+.ed-article-prose td {
+  padding: 0.45em 0.9em;
+  border-bottom: 1px solid var(--ed-hair);
+  text-align: left;
+  vertical-align: top;
+}
+.ed-article-prose th {
+  color: var(--ed-ink);
+  font-weight: 600;
+}
+.ed-article-prose thead th {
+  border-bottom-width: 2px;
 }
 
 .ed-static-prose {
@@ -522,6 +1081,12 @@ div[data-netlify-deploy-id] {
   will-change: transform, filter;
 }
 
+.ed-card-surface {
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--ed-surface) 58%, transparent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .ed-card:hover {
     transform: translateY(-1px);
@@ -530,9 +1095,26 @@ div[data-netlify-deploy-id] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #ed-root,
+  #ed-root.ed-page-entering,
+  #ed-root.ed-page-exiting,
+  [data-ed-theme] a,
+  [data-ed-theme] button,
+  [data-ed-theme] summary,
+  [data-ed-theme] .ed-admin-reveal,
+  .hero-market-ticker-item,
+  .homepage-protocol-stat,
   .ed-card {
+    animation: none;
     transition: none;
+    filter: none;
+    transform: none;
     will-change: auto;
+  }
+
+  #ed-root.ed-page-exiting {
+    opacity: 1;
+    pointer-events: none;
   }
 
   .ed-card:hover {
@@ -545,20 +1127,25 @@ div[data-netlify-deploy-id] {
   position: relative;
   overflow: hidden;
   border-radius: 6px;
-  background:
-    radial-gradient(circle at 32% 42%, color-mix(in srgb, var(--ed-ice) 20%, transparent), transparent 42%),
-    var(--ed-cover);
-  box-shadow: 0 24px 62px -42px rgba(10, 22, 40, 0.82);
+  background: transparent;
+  clip-path: inset(0 round 6px);
+  transform: translateZ(0);
 }
 .ed-cover-frame img {
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transform: scale(1.04);
   transform-origin: center;
 }
 .ed-cover-frame img.ed-cms-cover {
   object-fit: contain;
-  transform: scale(1.08);
+  transform: none;
   background: var(--ed-cover);
+}
+.ed-cover-frame .ed-cover img {
+  transform: none;
 }
 .ed-card > .ed-cover-frame {
   border-radius: 6px;
@@ -585,4 +1172,93 @@ div[data-netlify-deploy-id] {
   transform-origin: 0 50%;
   transform: scaleX(0);
   transition: transform 0.08s linear;
+}
+
+/* Ecosystem hero mosaic — a constellation of project logomarks that fades into the
+   background at its edges, with a staggered fade-in on load (see HeroMosaic.tsx). */
+.ec-hero-mosaic {
+  -webkit-mask-image: radial-gradient(ellipse 78% 92% at 62% 42%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 78% 92% at 62% 42%, #000 52%, transparent 100%);
+}
+.ec-hero-tile {
+  /* fill: both applies the from-state (opacity 0) during the delay and holds the end
+     state after; the tile's default opacity is 1, so it stays visible even if the
+     animation never runs (progressive enhancement). */
+  animation: ec-hero-tile-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ec-hero-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ec-hero-tile {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ===========================================================================
+ * Ecosystem directory grid cards — logo-forward with a hover-revealed
+ * description. On hover-capable devices (mouse) the description reserves its
+ * space (min-height) and fades in on card hover/focus with no reflow; on touch
+ * there is no hover, so it is removed entirely (display:none) — the card stays
+ * compact with no empty gap, and the whole card taps through to the profile
+ * where the full description lives.
+ * ======================================================================== */
+.ec-card-desc {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ec-card-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.75em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .ec-card:hover .ec-card-desc,
+  .ec-card:focus-within .ec-card-desc {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ec-card-desc {
+    transition: none;
+  }
+}
+
+/* ===========================================================================
+ * Responsive admin tables — add `rtable` to a <table> and `data-label` to each
+ * <td>; below 640px the table collapses to stacked label:value cards so the
+ * columns stop clipping on phones. Desktop is unaffected.
+ * ======================================================================== */
+@media (max-width: 639px) {
+  table.rtable { min-width: 0 !important; }
+  table.rtable thead { display: none; }
+  table.rtable tbody, table.rtable tr, table.rtable td { display: block; width: 100%; }
+  table.rtable tr { border: 1px solid rgb(39 39 42); border-radius: 10px; margin: 0 0 10px; padding: 4px 2px; }
+  table.rtable tr:last-child { margin-bottom: 0; }
+  table.rtable td {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 14px;
+    flex-wrap: wrap; text-align: right; padding: 6px 12px; border: 0 !important;
+  }
+  /* wide values (e.g. a list of txids) wrap onto their own full-width line
+     under the label instead of clipping past the card edge */
+  table.rtable td > * { min-width: 0; max-width: 100%; text-align: left; }
+  table.rtable td::before {
+    content: attr(data-label); color: rgb(113 122 130); font-size: 11px; font-weight: 500;
+    text-align: left; flex: 0 0 auto; letter-spacing: .01em; padding-top: 1px;
+  }
+  /* label-less / full-width cells (empty states, action rows) */
+  table.rtable td[data-label=""]::before { content: none; }
+  table.rtable td[data-fullwidth]::before { content: none; }
+  table.rtable td[data-fullwidth] { justify-content: flex-start; text-align: left; }
 }

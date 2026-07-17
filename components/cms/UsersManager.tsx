@@ -92,7 +92,7 @@ export function UsersManager({
       {error && <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">{error}</div>}
 
       <div className="overflow-x-auto rounded-xl border border-zinc-800">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[640px] text-sm rtable">
           <thead className="bg-zinc-900/60 text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Articles</th><th className="px-4 py-3">Status</th><th className="px-4 py-3"></th></tr>
           </thead>
@@ -103,7 +103,7 @@ export function UsersManager({
               return (
                 <Fragment key={u.id}>
                   <tr className="border-t border-zinc-800">
-                    <td className="px-4 py-3">
+                    <td data-label="User" className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {u.avatarUrl
                           // eslint-disable-next-line @next/next/no-img-element
@@ -119,15 +119,15 @@ export function UsersManager({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Role" className="px-4 py-3">
                       <span className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">{u.role}</span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">{u.articleCount}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Articles" className="px-4 py-3 text-zinc-400">{u.articleCount}</td>
+                    <td data-label="Status" className="px-4 py-3">
                       <div className={u.active ? "text-emerald-300" : "text-zinc-500"}>{u.active ? "Active" : "Disabled"}</div>
                       <div className="text-xs text-zinc-500">seen {relTime(u.lastSeenAt)}</div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td data-fullwidth className="px-4 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button size="sm" variant="outline" disabled={!manageable || !canEdit || pending} onClick={() => { setError(null); setEditFor(u) }}>
                           <Pencil size={13} /> Edit

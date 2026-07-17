@@ -1,0 +1,64 @@
+# Forked from quinn-rs/quinn @ quinn-0.11.7 tag (quinn subcrate,
+# v0.11.7). Byte-identical vendor with workspace = true
+# substituted to explicit values. proto + udp deps drop their
+# path = "../..." entries in favor of workspace [patch.crates-io]
+# (resolves to quinn-proto-tlsfetch + quinn-udp-tlsfetch).
+
+[package]
+name = "quinn"
+version = "0.11.7"
+edition = "2021"
+rust-version = "1.71"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/quinn-rs/quinn"
+description = "Versatile QUIC transport protocol implementation (tlsfetch fork)"
+keywords = ["quic"]
+categories = ["network-programming", "asynchronous"]
+
+[features]
+default = ["log", "platform-verifier", "runtime-tokio", "rustls-ring"]
+aws-lc-rs = ["proto/aws-lc-rs"]
+aws-lc-rs-fips = ["proto/aws-lc-rs-fips"]
+lock_tracking = []
+platform-verifier = ["proto/platform-verifier"]
+rustls = ["rustls-ring"]
+rustls-aws-lc-rs = ["dep:rustls", "aws-lc-rs", "proto/rustls-aws-lc-rs", "proto/aws-lc-rs"]
+rustls-aws-lc-rs-fips = ["dep:rustls", "aws-lc-rs-fips", "proto/rustls-aws-lc-rs-fips", "proto/aws-lc-rs-fips"]
+rustls-ring = ["dep:rustls", "ring", "proto/rustls-ring", "proto/ring"]
+ring = ["proto/ring"]
+runtime-tokio = ["tokio/time", "tokio/rt", "tokio/net"]
+runtime-async-std = ["async-io", "async-std"]
+runtime-smol = ["async-io", "smol"]
+log = ["tracing/log", "proto/log", "udp/log"]
+rustls-log = ["rustls?/logging"]
+
+[dependencies]
+async-io = { version = "2", optional = true }
+async-std = { version = "1.11", optional = true }
+bytes = "1"
+futures-io = { version = "0.3.19", optional = true }
+rustc-hash = "2"
+pin-project-lite = "0.2"
+# proto + udp resolve through [patch.crates-io] to the
+# crates/quinn-proto-tlsfetch and crates/quinn-udp-tlsfetch
+# siblings — no `path = ...` needed.
+proto = { package = "quinn-proto", version = "0.11.10", default-features = false }
+rustls = { version = "0.23.5", default-features = false, features = ["std"], optional = true }
+smol = { version = "2", optional = true }
+thiserror = "2.0.3"
+tracing = { version = "0.1.10", default-features = false, features = ["std"] }
+tokio = { version = "1.28.1", features = ["sync"] }
+udp = { package = "quinn-udp", version = "0.5", default-features = false, features = ["tracing"] }
+
+[target.'cfg(not(all(target_family = "wasm", target_os = "unknown")))'.dependencies]
+socket2 = "0.5"
+
+[target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
+web-time = "1"
+
+[build-dependencies]
+cfg_aliases = "0.2"
+
+# Dev-deps from upstream dropped — upstream's tests/, examples/,
+# benches/ not vendored. Correctness rides on downstream
+# consumers (h3-quinn, tlsd-h3-proxy) + the iter-113 H3 e2e test.

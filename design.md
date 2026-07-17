@@ -1,8 +1,8 @@
-# Subfrost Design Language
+# subfrost Design Language
 
 This is the operating design contract for `subfrost.io`. Treat the article redesign as the seed of the full site redesign: every future marketing, docs-adjacent, legal, support, and product-entry page should move toward this language unless a product surface has a stronger functional constraint.
 
-The standard is quiet, technical, premium, and fast. Subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
+The standard is quiet, technical, premium, and fast. subfrost should feel like Bitcoin-native infrastructure with the discipline of a world-class editorial product: high clarity, low ornamentation, deliberate spacing, excellent assets, and no decorative UI noise.
 
 Every design decision must pass this test:
 
@@ -42,11 +42,26 @@ The CMS owns editorial data:
 - Do not hard-code production editorial copy in React components.
 - Local fallback articles are allowed only for deploy previews and design review without production Postgres access.
 
+## SEO And LLM Discoverability
+
+Public pages are product surfaces and machine-readable assets. When adding or materially changing a public route, update the full discovery contract in the same PR:
+
+- Page-level metadata: title, description, canonical URL, language alternates, Open Graph, Twitter card, and focused keywords.
+- Structured data: use JSON-LD that matches the page type. Homepage should expose `Organization`, `WebSite`, `WebPage`, product `ItemList`, app surface, and FAQ. Articles index should expose `CollectionPage` and article `ItemList`. Article pages should expose `Article`. Author pages should expose `ProfilePage` and `Person`. Developer/docs pages should expose their reference lists.
+- Sitemap: include every crawlable public route and localized variant that should rank.
+- `llms.txt`: include high-value human routes plus machine-readable APIs that LLM crawlers should prefer for fresh stats, articles, authors, and volume data.
+- Copy: metadata must match the current product pitch. Do not leave old bridge/EVM copy in root metadata, unfurls, or LLM descriptions.
+- Localization: Chinese pages should have Chinese titles/descriptions and correct `zh-CN` language signals.
+- API data: expose raw values in machine-readable endpoints; UI formatting belongs in the page.
+
+If a page is important enough to put in the header or homepage, it is important enough to be in metadata, structured data, sitemap, and `llms.txt`.
+
 Key implementation files:
 
 - Article index: `app/articles/page.tsx`
 - Article reader: `app/articles/[slug]/page.tsx`
 - Brand kit page: `app/brand/page.tsx`
+- Developer gateway: `app/developer/page.tsx`
 - Legal/support pages: `app/privacy/page.tsx`, `app/terms/page.tsx`, `app/support/page.tsx`
 - Article components: `components/articles/*`
 - Editorial CSS/tokens: `app/globals.css`
@@ -58,12 +73,12 @@ Key implementation files:
 
 ## Design Thesis
 
-Subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
+subfrost should not look like a generic crypto landing page. Avoid gradients, glass panels, cartoon DeFi metaphors, dark-blue SaaS clutter, oversized hero copy, token badges, and decorative cards.
 
 The visual language is:
 
 - OpenAI-style editorial structure.
-- Subfrost brand assets and cold Bitcoin-native imagery.
+- subfrost brand assets and cold Bitcoin-native imagery.
 - Spacious, asymmetric layouts with a strong left edge.
 - Real content, not marketing filler.
 - Minimal controls that feel engineered, not styled.
@@ -79,6 +94,9 @@ Use the official marks. Do not redraw, filter, distort, recolor, letter-space, o
 
 Logo rules:
 
+- Preferred public wordmark casing is lowercase `subfrost`. This is the default for headers, footers, brand kit surfaces, social previews, and future marketing pages.
+- `SUBFROST` is allowed only where an existing official asset is all-caps, where legacy product/legal copy already uses all-caps, or where a constrained system field requires it.
+- Never use title-case `Subfrost` as a visual brand lockup. In prose, prefer lowercase `subfrost` for brand-led marketing copy and reserve `SUBFROST` for product/legal references already written that way.
 - Primary header mark is the official logotype.
 - On light/editorial surfaces, use the blue-snowflake logotype when available: `logotype_dark.svg` in the runtime brand folder.
 - On black/dark surfaces, use `logotype_light.svg`: the wordmark turns light, but the snowflake remains Glacial blue.
@@ -95,15 +113,13 @@ Favicon:
 
 OG/unfurl:
 
-- White background.
-- Official logomark plus lowercase `subfrost`.
-- Use the same Geist/OpenAI-style typography used on the blog page.
-- Add the tagline below the logo lockup: `Bitcoin's next-gen defi experience`.
+- Use `/brand/subfrost/Graphics/jpeg/unfurl.jpg` as the shared site-wide social preview image.
+- The image must use the exact same frost banner image used on the homepage, full-bleed with no white frame. Keep the native banner composition so the snowflake mark and lowercase `subfrost` wordmark remain visible in messaging app previews.
 - Do not include topic lists, divider lines, or decorative text blocks in the OG image.
 
 ## Brand Kit Page
 
-The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably Subfrost.
+The `/brand` page is the public expression of the brand system. It should feel like the OpenAI brand page in discipline and information architecture, while remaining unmistakably subfrost.
 
 Purpose:
 
@@ -154,6 +170,51 @@ Do not:
 - Put cards inside cards.
 - Add all-caps section labels.
 - Make the page depend on CMS data.
+
+## Developer Gateway
+
+The `/developer` page is the git-managed front door for technical users. It is not the full docs system. Deep protocol references, API specifications, and long-form setup guides link out to the live Subfrost systems during the operational transition.
+
+Purpose:
+
+- Give engineers and partners one polished starting point from the marketing site.
+- Route users quickly to the live docs, API docs, API login, app, protocol updates, and support.
+- Carry the same OpenAI-inspired editorial design language into developer surfaces.
+- Avoid duplicating source-of-truth protocol documentation in the marketing repo.
+
+Design rules:
+
+- Use the same `EditorialShell`, Geist typography, and image-card system as `/articles` and `/brand`.
+- Keep the page text-first and quiet. No heavy sidebars, boxes, product-marketing cards, or crypto jargon blocks.
+- Use image-led cards only for primary references. Secondary surfaces should be plain text links with small sideways arrows.
+- Every deep technical link must point to the canonical docs URL until docs ownership moves into this repo.
+- If the docs repo becomes available, redesign docs to match this page rather than inventing a separate docs aesthetic.
+
+## Admin Portal
+
+The `/admin` CMS is an operational product surface. It should use the same subfrost editorial tokens, typography, logo handling, and motion restraint as the public site, but its information density should be higher and its hierarchy should prioritize repeated work over marketing presentation.
+
+Direction:
+
+- Use the shared `--ed-*` editorial tokens instead of one-off dark navy/zinc palettes.
+- Keep the shell quiet: official wordmark, thin hairlines, text-first nav, no heavy filled sidebar panels.
+- Use icons only as small scanning aids in navigation and operational controls.
+- Keep active state subtle: ink text plus a small hairline or restrained indicator, not blue pills or glowing backgrounds.
+- Dashboard stats should follow the homepage data language: top hairline, muted label, mono value, optional quiet status text.
+- Tables should be plain operational rows with subtle dividers. Avoid rounded boxed table containers unless the table is inside a modal or repeated card list.
+- Loading states use skeletons, not `Loading...` text, and should inherit editorial tokens.
+- Dark mode should be true black/editorial dark, not navy. Logo assets must swap through the official light/dark logotypes.
+- The article CMS should use Ghost's publishing workflow as the product reference: top publishing chrome, writing canvas first, feature image as a first-class asset, and a right settings rail for URL, language, tags, cover image, feature status, publishing, and destructive actions.
+- Admin publishing UI always uses `Articles`, matching the public site. Do not introduce `blog` or `posts` labels in visible CMS copy.
+- Article rows should be content previews, not spreadsheet rows: title, excerpt, tags, language, status, author, updated time, and a subtle arrow affordance.
+- Feature image inputs must support direct upload through `/api/admin/upload` with `kind=cover`, plus manual URL editing for API/backfill workflows.
+
+Do not:
+
+- Build nested cards inside the admin shell.
+- Use all-caps table headers or labels for ordinary UI.
+- Reintroduce saturated blue dashboard buttons unless they represent a primary action and no quieter affordance works.
+- Make CMS pages feel like a separate product from the public site.
 
 ## Color System
 
@@ -291,18 +352,20 @@ Rules:
 
 Navigation:
 
-- Desktop nav items: Markets, Swap, Vaults, Blog.
+- Desktop nav items use compact top-level groups: Trade, Developer, Downloads, Articles, Search.
 - Chinese mode localizes menu items.
 - Active item uses `--ed-ink`.
 - Inactive items use `--ed-muted`.
-- Hover states should match OpenAI: no pills, no background, no animation; use pointer cursor and steady text color behavior.
+- Hover states should match OpenAI: no pills, no background, no chevrons, no button chrome; use pointer cursor and steady text color behavior.
+- Trade, Developer, and Downloads open their full-width editorial panels on hover and keyboard focus. The panel stays open while the cursor or focus remains inside the header/menu region, then exits with the shared editorial easing.
 - Focus states must be accessible but should not show browser-orange default outlines.
 
 Mobile menu:
 
 - Match OpenAI mobile menu structure.
 - Full-screen menu.
-- Large stacked nav links.
+- Large stacked top-level nav links first; do not dump nested Trade, Developer, or Downloads links into the root drawer.
+- Trade, Developer, and Downloads drill into their own simple link views, with a small `Home` return action and the same editorial easing.
 - Search and panel/menu icons remain top-right.
 - Dark mode menu is true black.
 - Launch App appears as a large text action with external arrow inside the menu.
@@ -408,6 +471,75 @@ Performance:
 
 Cards should barely feel like cards.
 
+Sitewide motion:
+
+- Editorial pages must enter and exit smoothly. Same-tab links should never hard-flash from one document to another when the current site can control the transition.
+- Use one shared easing system for editorial motion:
+  - Fast interaction: `180ms cubic-bezier(0,0,0,1)`.
+  - Page/content entrance: `360ms cubic-bezier(0.16,1,0.3,1)`.
+- Page exits should be nearly invisible: slight opacity fade, at most `1px` blur, at most `2px` vertical movement.
+- Page entrances should feel like the surface becoming ready, not like an animation demo.
+- Ticker and external product links should use the same smooth exit treatment before navigation. This reduces the white/black flash when leaving the marketing site for the app.
+- Internal links should keep client-side navigation where possible; do not force full reloads just to get an animation.
+- External app destinations should also maintain matching body/html background colors. The marketing site can smooth the exit, but it cannot fully control the destination app's first paint.
+- All motion must respect `prefers-reduced-motion`.
+
+Scroll-reveal statements:
+
+- Large hero statements may use a muted word layer plus an active word layer that reveals as the user scrolls.
+- The effect should feel like reading progress, not a gimmick. No bouncing, rotation, blur trails, or per-letter animation.
+- Use `--ed-muted` for unrevealed text and `--ed-ink` for revealed text.
+- The statement must remain readable without JavaScript and must expose a single non-duplicated accessible label for screen readers.
+- Keep the copy product-specific. Do not use generic API or infrastructure claims borrowed from another site.
+
+Navigation:
+
+- Product execution links such as Markets, Swap, and Vaults should live under one `Trade` menu in the editorial header.
+- Trade should also expose `Volume` when available. Keep navigation as routing first: a compact endpoint-backed preview may live inside the Volume item, but do not add a detached right-side analytics panel or modal-style chart controls to the header. Surface compact 24H volume near the homepage protocol stats, and keep dense chart controls in the destination surface.
+- Until the volume experience is rebuilt in the editorial system, `/volume` may route to the existing protocol volume chart component. The header and homepage stats should link there rather than to a missing external app route.
+- Developer links should live under one `Developer` menu in the editorial header. Label the primary entry `Gateway`, then include docs, API docs, technical overview, and high-value integration references without crowding the top nav.
+- Trade, Developer, and Downloads must share one standardized mega-menu pattern: full-width editorial panel, muted eyebrow, large primary links, optional right-side resource list, small arrow icons inside live menu items only, no top-nav chevrons, no floating card dropdowns, no nested cards, and the same open/close easing.
+- Keep the top-level header minimal: brand, Trade, Developer, Downloads, Articles, search, language, primary app CTA.
+- Downloads currently exposes the Chrome extension as the live download. iOS and Android may be shown as coming soon, but they must remain inert until real destination URLs exist.
+- Mobile menu root uses OpenAI-style top-level navigation only. Trade, Developer, and Downloads drill into section-specific views; keep primary links large and resource links smaller.
+
+Protocol analytics:
+
+- Homepage analytics should show a compact live summary first, then defer dense charting to an explicit action.
+- The homepage should consume `/api/stats` as the contract for raw market and protocol stats. Format numbers in the UI; do not ask the API for `$`, commas, or unit-suffixed strings.
+- `/api/stats` may expose the production nested shape `{ metrics, marquee }` and should also expose normalized flat fields for page clients: `totalBtcLocked`, `currentFrbtcSupply`, `lifetimeTxValueBtc`, `lifetimeTxValueUsd`, `btcUsd`, `btcHeight`, `msHeight`, `dieselUsd`, `fireUsd`, `btcDieselPrice`, `btcFirePrice`, and `updatedAt`.
+- The three protocol cards derive from the same underlying values as the legacy homepage: total BTC locked equals Alkanes locked plus BRC2.0 locked; current frBTC supply equals Alkanes circulating plus BRC2.0 circulating; lifetime tx value equals total unwraps plus current circulating supply, with USD conversion coming from BTC/USD.
+- The market ticker should show BTC height, MS height, BTC/USD, BTC/DIESEL, and BTC/FIRE. BTC/DIESEL and BTC/FIRE should come from the normalized `/api/stats` contract, derived once from `btcUsd / tokenUsd`; UI derivation is only a legacy fallback.
+- The market ticker should not use an infinite side-scroll marquee. Use one readable strip with staggered fade/slide item reveals and periodic in-place refresh animation, OpenAI-style easing, no text truncation, and reduced-motion support.
+- Keep the protocol stat cards near the ticker and animate the data values, not the layout frame. The bottom stat row should not reuse the ticker row's item load/cycle animation; keep only the native/USD value flip so the cards stay calm. Lines, spacing, and cards stay fixed to avoid layout shift/text clipping. Support reduced motion.
+- Protocol stat cards may alternate native BTC/frBTC units with USD value on the same refresh cadence. Render both values in one fixed grid cell and animate only opacity/vertical offset so the card width never jumps.
+- Protocol stat USD values must be derived from the normalized BTC/USD market price used by the ticker and rendered with two decimals. If an upstream BTC/USD value arrives as a shorthand thousands value such as `61.101`, normalize it before conversion so `101 BTC` displays near `$6,100,000.00`, not `$6,100.00`.
+- Large homepage imagery should reserve its aspect ratio and reveal with a simple opacity/scale transition. Avoid lazy pop-in when the asset is visible in the first viewport after the data band.
+- Homepage refresh should cascade top to bottom: eyebrow, title, statement, CTA, data band, hero image, then lower sections. Use one subtle opacity/translate reveal, no blur, bounce, rotation, or competing entrance effects.
+- Homepage cascade must reserve final layout space from first paint so the page does not jump while it becomes visible. Respect `prefers-reduced-motion` by rendering content immediately.
+- The hero scroll statement should let the first product promise read clearly, then begin the faded scroll boundary on `liquidity` so `liquidity into AMM pools and vaults on Bitcoin` has room to animate. Keep the effect text-only: no blur, scale, or layout movement.
+- Volume surfaces should preserve source filters for Both, Alkanes, and BRC20, and both volume and cumulative modes.
+- Do not drop wrap/unwrap context when moving analytics into editorial surfaces; those flows are product evidence, not decorative metrics.
+
+Docs:
+
+- Do not replace `docs.subfrost.io` or `api.subfrost.io` inside the marketing site until the docs migration is explicitly scoped.
+- Current technical destinations are external handoffs: `Docs` -> `https://docs.subfrost.io/`, `API docs` -> `https://api.subfrost.io/docs`, and `API login` -> `https://api.subfrost.io/auth/login`.
+- The marketing site may keep `/developer` as a designed gateway, but `/docs` and deep docs routes should redirect to the live source-of-truth systems during this transition.
+
+Team and proof:
+
+- Team sections should read as proof, not vanity. Lead with why the roster matters: protocol authorship, execution history, distribution, and credible advisors.
+- Use editorial rows or compact repeated cards with real images, name, role, and one concrete credibility point.
+- On wide screens, split `Core team` and `Advisors` into two balanced columns so the proof section does not create dead whitespace.
+- Avoid large dark profile-card grids on the editorial homepage; they dilute the articles-page aesthetic.
+
+Author profiles:
+
+- Article cards and article detail pages should expose the author profile link visibly, not only through SEO metadata.
+- Avoid nested anchors: the cover/title can link to the article, and the byline links separately to the author profile.
+- Author profile pages should use the same editorial spacing, typography, and quiet row cards as `/articles`.
+
 Default:
 
 - Transparent container.
@@ -482,12 +614,13 @@ Topic sections:
 - Right column contains article/doc cards.
 - Developer cards should visually match article cards, including image treatment.
 - Developer cards can link to existing docs pages until docs are redesigned.
-- Remove standalone `Posts By Topic` label.
+- When the docs repo becomes available, redesign docs around the same editorial system: OpenAI-like spacing, Geist typography, image-led hero moments only when useful, text-first navigation, no heavy sidebars, no boxed marketing cards, and direct Developer/API/Protocol pathways.
+- Remove standalone `Articles By Topic` label.
 
 Load more:
 
-- Only show when there are actually more posts to load.
-- It belongs under the relevant post grid, not as a floating page artifact.
+- Only show when there are actually more articles to load.
+- It belongs under the relevant article grid, not as a floating page artifact.
 
 ## Article Reader
 
@@ -498,10 +631,11 @@ Header:
 - No cover image.
 - No author card.
 - No `All Articles` clutter unless a back link is explicitly needed for navigation.
-- Center metadata above the title.
+- Left-align metadata, title, excerpt, and byline to the article body column.
 - Metadata: date, category, optionally author only when needed.
-- Large centered title.
-- Concise centered excerpt below title.
+- When an author is shown, use a compact Medium-style inline avatar/name/date/read-time row, left-aligned to the article body column; do not add a Follow button to the reader header unless explicitly requested.
+- Large left-aligned title.
+- Concise left-aligned excerpt below title.
 
 Body:
 
@@ -511,6 +645,7 @@ Body:
 - No drop cap.
 - Markdown remains CMS-owned.
 - Body copy is never rewritten for design.
+- Body starts close to the byline, around 48-64px depending on breakpoint, so the article begins in the first viewport on mobile.
 
 Below article:
 
@@ -519,7 +654,7 @@ Below article:
 
 ## Footer
 
-Footer follows OpenAI utility structure, adapted to Subfrost.
+Footer follows OpenAI utility structure, adapted to subfrost.
 
 Desktop:
 
@@ -529,6 +664,7 @@ Desktop:
 - Links are text-first, no boxes.
 - Footer links are plain text, even when external.
 - Social icons use ink color in light mode and high-contrast white/off-white in dark mode.
+- Footer social row includes X, Discord, and GitHub in that order. Keep icons the same optical size and do not add labels, circles, borders, or hover color shifts.
 - Legal links should appear once. Do not duplicate Terms/Privacy in both columns and the copyright row.
 
 Mobile:
@@ -549,29 +685,35 @@ Subscribe in footer:
 
 ## Search Experience
 
-Search should feel like a high-end modal page, not a hash jump.
+Search should feel like a high-end command surface, not a hash jump.
 
 Behavior:
 
 - Click search icon.
-- Header icon becomes close/X.
+- Header icon remains the search icon; do not swap it into an X.
 - Full viewport search layer opens under the header.
 - Input animates in smoothly.
 - Closing reverses smoothly.
-- Escape and X should close without layout flash when supported.
+- Escape, repeat-clicking the search icon, or clicking outside the search panel should close without layout flash when supported.
+- Search must not push a hash or route just to open.
+- Search should cover first-party public content: product pages, docs, articles, authors, support, brand, legal, and protocol pages.
+- Results should be returned from one API boundary so the provider can later be swapped for hosted search without redesigning the UI.
+- Empty search may show high-value suggestions; typed search should update quickly with bounded results.
 
 Visual:
 
 - White or black canvas matching theme.
-- Centered/narrow input row.
+- Centered input row with stable reserved width.
 - Large quiet placeholder.
 - One subtle underline or border is acceptable if needed.
-- Submit button is muted until text is entered, then `--ed-action-bg`.
+- Submit button is muted until the user types into the input, matching the form-control standard used across the app.
+- If typed input has no navigable result yet, the button may remain disabled but should visually follow the typed/active input state.
+- Results use editorial rows: muted section label, title, short description, small arrow. No result cards.
 
 Copy:
 
-- English: `Search articles`
-- Chinese: `搜索文章`
+- English: `Search subfrost`
+- Chinese: `搜索 subfrost`
 
 ## Internationalization
 
@@ -579,6 +721,10 @@ Language state uses `?lang=zh`.
 
 Requirements:
 
+- Default URL is English.
+- Chinese URL uses `?lang=zh`.
+- First-time `/articles`, article reader, and author visits may default to Chinese when the visitor resolves from CN/HK infrastructure or the browser/system `Accept-Language` preference is Chinese.
+- Automatic language detection must never override an explicit `?lang=` or a saved `subfrost_locale` user preference.
 - Nav items translate.
 - Topic filters translate.
 - Footer columns translate.
@@ -586,11 +732,12 @@ Requirements:
 - Search copy translates.
 - Article links preserve language when moving from index to reader.
 - Toggling language must not scroll the user to the top.
+- Manual toggles must save the preference for future visits.
 - Footer language pill reflects active locale:
   - English / United States
   - 中文 / 中国
 
-Do not localize the Subfrost brand name.
+Do not localize the subfrost brand name.
 
 ## Theme Behavior
 
@@ -635,13 +782,14 @@ Required:
 
 Metadata tone:
 
-- Use lowercase `subfrost` only in visual logo/unfurl lockups where requested.
-- Page titles may use normal brand casing.
+- Prefer lowercase `subfrost` in visible marketing metadata and visual unfurl lockups.
+- Use `SUBFROST` only where an existing product/legal page already uses that casing or when a platform field benefits from legacy all-caps recognition.
+- Do not use title-case `Subfrost` as the displayed brand name.
 - Keep descriptions search-friendly but not keyword-stuffed.
 
 Article index keywords should cover:
 
-- Subfrost
+- subfrost
 - Bitcoin DeFi
 - Bitcoin-native yield
 - frBTC
@@ -654,7 +802,7 @@ Article index keywords should cover:
 Minimum bar:
 
 - Keyboard-accessible nav, filters, search, language, theme, and subscribe.
-- Visible focus states that use Subfrost tokens, not browser-default orange.
+- Visible focus states that use subfrost tokens, not browser-default orange.
 - Adequate contrast in dark mode and light mode.
 - No text hidden by mobile browser chrome.
 - Tap targets large enough on mobile.
@@ -734,6 +882,17 @@ For any material website/app visual update, also do the manual `/impeccable` pas
 - Text overflow.
 - SEO metadata.
 - Public preview link if the page is being shared with a client.
+
+## CMS Admin Lists
+
+Admin article rows should feel like the public editorial system translated into an operational view.
+
+- The whole row opens the article editor.
+- Use one visible straight right arrow at the far right, matching the public articles arrow direction.
+- Do not place a second arrow beside the article title.
+- Group `Language`, `Author`, and `Updated` in one compact metadata column.
+- Use `Language`, not `Langs`.
+- Give the metadata column balanced horizontal breathing room so it does not feel attached to either the title or the row arrow.
 
 ## Handoff Checklist
 

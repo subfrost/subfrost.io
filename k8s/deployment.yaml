@@ -28,10 +28,19 @@ spec:
         app: subfrost-io
     spec:
       serviceAccountName: subfrost-io
-      # Schedule onto the cheap spot node pool. Spot nodes carry this taint; the
-      # toleration + nodeSelector pin the workload there.
-      nodeSelector:
-        cloud.google.com/gke-spot: "true"
+      # Prefer the cheap spot pool, but fall back to on-demand capacity when spot
+      # is unavailable — a hard nodeSelector caused a full outage on 2026-07-09
+      # when GCE ran out of spot in us-central1-a. Soft preference keeps the cost
+      # win while the ondemand-pool guarantees the site stays up.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: cloud.google.com/gke-spot
+                    operator: In
+                    values: ["true"]
       tolerations:
         - key: cloud.google.com/gke-spot
           operator: Equal
@@ -163,6 +172,26 @@ spec:
                   name: subfrost-io-secrets
                   key: PAY_API_KEY
                   optional: true
+            - name: REFERRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: REFERRAL_API_KEY
+                  optional: true
+            # IPROYAL residential HTTP proxy for the treasury BSC-RPC path. When
+            # set, lib/financials/treasury/source/bsc-rpc.ts tunnels the tlsfetch
+            # TCP leg through it (HTTP CONNECT) so NodeReal sees a clean IP
+            # instead of the Cloudflare-blocked datacenter NAT (which hangs).
+            # NOTE: sourced from the PLAIN, committed Secret k8s/iproyal-proxy-
+            # secret.yaml (NOT the ESO-managed subfrost-io-secrets) — pending
+            # migration to external-secrets.yaml + gcloud Secret Manager.
+            # optional:true — absent => bsc-rpc.ts dials direct (dev/local).
+            - name: IPROYAL_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: iproyal-proxy
+                  key: IPROYAL_PROXY
+                  optional: true
             # GoldRush (Covalent) key for Financials > Treasury BSC balances.
             # optional:true — absent => the page shows "not configured".
             - name: GOLDRUSH_API_KEY
@@ -220,10 +249,41 @@ spec:
                   name: anthropic-api-key
                   key: ANTHROPIC_API_KEY
                   optional: true
+            # Team pager (ntfy in-cluster; console at /admin/pager). The publish
+            # token lives in a STANDALONE Secret `ntfy-publish-token` (created
+            # out-of-band after minting it on the ntfy server — see
+            # k8s/ntfy/README.md), same pattern as anthropic-api-key.
+            # optional:true — absent => /admin/pager shows "not configured".
+            - name: NTFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_TOKEN
+                  optional: true
+            # Admin-role ntfy token: powers roster management (create/remove
+            # teammates + mint device tokens) from /admin/pager. Same standalone
+            # secret; absent => the console is send-only.
+            - name: NTFY_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ntfy-publish-token
+                  key: NTFY_ADMIN_TOKEN
+                  optional: true
             - name: CMS_BASE_URL
               value: "https://subfrost.io"
             - name: EMAIL_FROM
               value: "SUBFROST <noreply@mail.subfrost.io>"
+            # Optional: JSON-RPC endpoint of the dedicated frBTC volume metashrew
+            # indexer (its own rockshrew-mono instance). When set AND reachable,
+            # Financials > Revenue reads the BTC wrap/unwrap fee series on-chain
+            # via metashrew_view (frbtc_volume_range / frbtc_volume_tip); when
+            # unset it falls back to the WrapTransaction/UnwrapTransaction tables.
+            # The indexer runs in the subvh cluster (revolut), so this is the
+            # public free-tier route (no API key) through its tlsd ingress. The
+            # client strips /frbtc to read frBTC /totalsupply for the reserve
+            # collateralization reconciliation.
+            - name: FRBTC_INDEXER_RPC_URL
+              value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

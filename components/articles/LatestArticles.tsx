@@ -1,78 +1,166 @@
-"use client"
-
-import useSWR from "swr"
-import { BlogCardCover } from "./BlogCardCover"
-import { formatAuthorNames } from "@/lib/cms/author-format"
+import { ArrowRight } from "lucide-react"
+import { CoverArt } from "./CoverArt"
+import { externalAnchorProps } from "@/lib/link-behavior"
 
 // Homepage widget: top published articles from the same-origin API. Renders
 // nothing if empty, so the homepage degrades gracefully.
 
-interface Preview {
+export interface HomepageArticlePreview {
   slug: string
   title: string
   excerpt: string
   coverImage: string | null
   publishedAt: string | null
   readingMinutes: number
-  author: { name: string; avatarUrl: string | null }
-  coAuthors?: { name: string; avatarUrl: string | null }[]
+  author: { id: string; name: string; avatarUrl: string | null }
+  coAuthors?: { id: string; name: string; avatarUrl: string | null }[]
   tags: { slug: string; name: string }[]
 }
 
-const fetcher = (url: string) =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(String(r.status))
-    return r.json()
-  })
+type Locale = "en" | "zh"
 
-export default function LatestArticles() {
-  const { data } = useSWR<{ articles: Preview[] }>("/api/articles?limit=3", fetcher, {
-    revalidateOnFocus: false,
-  })
-  const articles = data?.articles ?? []
-  if (articles.length === 0) return null
+type DisplayCard = {
+  id: string
+  title: string
+  excerpt: string
+  href: string
+  coverImage: string | null
+  coverVariant: number | string
+  tags: { slug: string; name: string }[]
+  meta: string
+  author?: { id: string; name: string; avatarUrl: string | null }
+  coAuthors?: { id: string; name: string; avatarUrl: string | null }[]
+  readingMinutes?: number
+}
+
+const copy = {
+  en: {
+    title: "Articles",
+    description: "Research, releases, and field notes from subfrost articles.",
+    readAll: "All articles",
+    minute: "min",
+  },
+  zh: {
+    title: "文章",
+    description: "来自 subfrost 的研究、发布与协议笔记。",
+    readAll: "查看全部文章",
+    minute: "分钟",
+  },
+} satisfies Record<Locale, { title: string; description: string; readAll: string; minute: string }>
+
+export default function LatestArticles({
+  locale = "en",
+  articles = [],
+}: {
+  locale?: Locale
+  articles?: HomepageArticlePreview[]
+}) {
+  const t = copy[locale]
+  const withLocale = (href: string) => {
+    if (href.startsWith("http")) return href
+    return locale === "zh" ? `${href}?lang=zh` : href
+  }
+  const articleCards: DisplayCard[] = articles.slice(0, 3).map((article, index) => ({
+    id: article.slug,
+    title: article.title,
+    excerpt: article.excerpt,
+    href: withLocale(`/articles/${article.slug}`),
+    coverImage: article.coverImage,
+    coverVariant: index,
+    tags: article.tags,
+    meta: `${article.readingMinutes} ${t.minute}`,
+    author: article.author,
+    coAuthors: article.coAuthors,
+    readingMinutes: article.readingMinutes,
+  }))
+  const cards: DisplayCard[] = articleCards
+
+  if (cards.length === 0) return null
 
   return (
-    <div id="articles" className="pt-10">
-      <div className="text-center mb-8">
-        <h3 className="text-3xl md:text-4xl font-semibold text-white snow-title-no-filter mb-4">
-          From the Subfrost blog
+    <div id="articles" className="w-full">
+      <div className="mb-9 max-w-[620px]">
+        <h3 className="font-display text-[34px] font-normal leading-[1.08] sm:text-[42px]" style={{ color: "var(--ed-ink)" }}>
+          {t.title}
         </h3>
-        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          Research, releases, and field notes from the team.
+        <p className="mt-4 text-[17px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
+          {t.description}
         </p>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {articles.map((a) => (
-          <a key={a.slug} href={`/articles/${a.slug}`}
-            className="flex flex-col overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm">
-            <BlogCardCover coverImage={a.coverImage} />
-            <div className="flex flex-1 flex-col gap-2 p-5">
-              <div className="flex flex-wrap gap-1.5">
-                {a.tags.slice(0, 2).map((t) => (
-                  <span key={t.slug} className="rounded-full bg-white/10 px-2 py-0.5 text-[0.7rem] text-gray-300">{t.name}</span>
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-3">
+        {cards.map((card) => (
+          <article key={card.id} className="ed-card">
+            {/* 24:11 matches the CMS cover banners (and /articles) — a 16:9 frame letterboxed
+                them with the --ed-cover background showing above/below the art. */}
+            <a href={card.href} {...externalAnchorProps(card.href)} className="ed-cover-frame aspect-[24/11]">
+              {card.coverImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={card.coverImage}
+                  alt=""
+                  width={960}
+                  height={440}
+                  loading="lazy"
+                  decoding="async"
+                  className="ed-cms-cover"
+                />
+              ) : (
+                <CoverArt className="h-full w-full" variant={card.coverVariant} />
+              )}
+            </a>
+            <div className="flex flex-1 flex-col gap-2 pt-4">
+              <div className="flex flex-wrap gap-x-2 gap-y-1">
+                {card.tags.slice(0, 2).map((tag) => (
+                  <span key={tag.slug} className="text-[0.72rem] font-medium" style={{ color: "var(--ed-muted)" }}>{tag.name}</span>
                 ))}
               </div>
-              <h4 className="text-lg font-semibold leading-snug text-white">{a.title}</h4>
-              <p className="line-clamp-2 flex-1 text-sm text-gray-400">{a.excerpt}</p>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                {a.author.avatarUrl && (
+              <h4 className="font-display text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
+                <a href={card.href} {...externalAnchorProps(card.href)}>
+                  {card.title}
+                </a>
+              </h4>
+              <p className="line-clamp-2 flex-1 text-[14px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>{card.excerpt}</p>
+              <div className="flex items-center gap-2 text-xs" style={{ color: "var(--ed-muted)" }}>
+                {card.author?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.author.avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
-                )}
-                <span>{formatAuthorNames([a.author.name, ...(a.coAuthors ?? []).map((c) => c.name)], "en")}</span><span>·</span><span>{a.readingMinutes} min</span>
+                  <img
+                    src={card.author.avatarUrl}
+                    alt=""
+                    width={20}
+                    height={20}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-5 w-5 rounded-full object-cover"
+                  />
+                ) : null}
+                {card.author ? (
+                  <>
+                    <a href={withLocale(`/authors/${card.author.id}`)} style={{ color: "var(--ed-ink)" }}>
+                      {formatAuthorNames(card.author, card.coAuthors ?? [])}
+                    </a>
+                    <span>·</span>
+                  </>
+                ) : null}
+                <span>{card.meta}</span>
               </div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
 
-      <div className="text-center mt-8">
-        <a href="/articles" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm text-white transition-colors hover:bg-white/15">
-          Read all articles
+      <div className="mt-8">
+        <a href={withLocale("/articles")} className="group font-display inline-flex items-center gap-1.5 text-[15px] font-normal" style={{ color: "var(--ed-ink)" }}>
+          {t.readAll}
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.7} />
         </a>
       </div>
     </div>
   )
+}
+
+function formatAuthorNames(author: { name: string }, coAuthors: { name: string }[]) {
+  const names = [author.name, ...coAuthors.map((coAuthor) => coAuthor.name)]
+  if (names.length <= 2) return names.join(" and ")
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`
 }

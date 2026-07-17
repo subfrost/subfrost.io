@@ -36,6 +36,8 @@ export type CategoryKey =
   | "files"
   | "marketing"
   | "tasks"
+  | "ecosystem"
+  | "system"
 
 export interface CategoryDef {
   key: CategoryKey
@@ -53,6 +55,8 @@ export const CATEGORIES: CategoryDef[] = [
   { key: "legal", label: "Legal" },
   { key: "files", label: "Documents" },
   { key: "marketing", label: "Marketing" },
+  { key: "ecosystem", label: "Ecosystem" },
+  { key: "system", label: "System" },
   { key: "apikeys", label: "API keys" },
   { key: "audit", label: "Audit" },
 ]
@@ -87,6 +91,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   { code: "aml.edit", label: "Compliance — edit", description: "Disposition KYC, draft/queue FinCEN filings, and manage MTL records.", category: "compliance", implies: ["aml.read"] },
   { code: "documents.read", label: "Documents — view", description: "View the e-sign document inbox: envelopes, recipients, and signing status.", category: "compliance", implies: [] },
   { code: "documents.write", label: "Documents — send", description: "Create and send envelopes for signature, void, resend, and link signed paperwork to payees.", category: "compliance", implies: ["documents.read"] },
+  { code: "documents.view_all", label: "Documents — view all", description: "See every e-sign envelope and the org-wide activity timeline, not just ones you created.", category: "compliance", implies: ["documents.read"] },
   { code: "compliance.reviews", label: "Reviewer links — manage", description: "Mint, list, and revoke delegated external-reviewer links to the compliance surfaces.", category: "compliance", implies: [] },
 
   // --- Billing ---
@@ -112,6 +117,14 @@ export const PRIVILEGES: PrivilegeDef[] = [
   // --- Marketing ---
   { code: "marketing.view", label: "Marketing — view", description: "View and capture protocol marketing snapshots.", category: "marketing", implies: [] },
 
+  // --- Ecosystem directory ---
+  { code: "ecosystem.view", label: "Ecosystem — view", description: "View the Alkanes ecosystem project directory admin.", category: "ecosystem", implies: [] },
+  { code: "ecosystem.edit", label: "Ecosystem — edit", description: "Create, edit, publish, and delete ecosystem projects; toggle the featured band.", category: "ecosystem", implies: ["ecosystem.view"] },
+
+  // --- System ---
+  { code: "system.view", label: "Site notice — view", description: "View the site notice / announcement control.", category: "system", implies: [] },
+  { code: "system.edit", label: "Site notice — edit", description: "Turn the site notice on/off and edit its title/message.", category: "system", implies: ["system.view"] },
+
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
 
@@ -133,6 +146,14 @@ export const RESTRICTED_PRIVILEGES: PrivilegeCode[] = [
   "legal.view",
   "legal.edit",
   "legal.superuser",
+  // Files + E-Sign hold the full legal/financial document corpus (SAFEs, cap
+  // table, tax forms, invoices). Restricted → NOT in the ADMIN bundle; granted
+  // explicitly per-user so document visibility is tightly controlled.
+  "files.read",
+  "files.edit",
+  "documents.read",
+  "documents.write",
+  "documents.view_all",
 ]
 
 export function isRestricted(code: PrivilegeCode): boolean {
@@ -238,8 +259,11 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/api-keys": { view: "apikeys.manage" },
   "/admin/audit": { view: "audit.view" },
   "/admin/marketing/snapshots": { view: "marketing.view" },
+  "/admin/marketing/cards": { view: "marketing.view" },
+  "/admin/ecosystem": { view: "ecosystem.view", edit: "ecosystem.edit" },
   "/admin/board": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/intake": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/products": { view: "tasks.view", edit: "tasks.edit" },
+  "/admin/notice": { view: "system.view", edit: "system.edit" },
 }

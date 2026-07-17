@@ -29,6 +29,11 @@ function fmtBtc(sats: number): string {
   return (sats / 1e8).toFixed(4)
 }
 
+function sentenceCase(value: string): string {
+  const lower = value.toLocaleLowerCase()
+  return lower.charAt(0).toLocaleUpperCase() + lower.slice(1)
+}
+
 interface CandleData {
   bucket: string
   wrap_sats: string
@@ -49,33 +54,49 @@ const statCardClass = cn(
 /*  Tab Button Group                                                   */
 /* ------------------------------------------------------------------ */
 
+type VolumePanelVariant = "modal" | "page"
+
 function ButtonGroup({
   options,
   value,
   onChange,
   small,
+  variant = "modal",
 }: {
   options: { value: string; label: string }[]
   value: string
   onChange: (v: string) => void
   small?: boolean
+  variant?: VolumePanelVariant
 }) {
+  const isPage = variant === "page"
+
   return (
-    <div className={cn("inline-flex items-center p-0.5 rounded-lg gap-2", small ? null : "p-1")}>
+    <div
+      className={cn(
+        "inline-flex items-center rounded-lg",
+        isPage ? "gap-4 p-0" : cn("gap-2 p-0.5", small ? null : "p-1")
+      )}
+    >
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "font-bold uppercase tracking-wide",
-            "shadow-[0_2px_12px_rgba(0,0,0,0.08)]",
             "transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:transition-none focus:outline-none",
-            small
-              ? "px-2.5 py-1 text-[10px] rounded"
-              : "px-5 py-2 text-sm rounded-md",
-            value === opt.value
-              ? "bg-[#284372] text-white shadow-lg"
-              : "bg-white text-[#284372] hover:bg-[#f0f7ff]"
+            isPage
+              ? cn("font-display font-medium tracking-normal", small ? "px-2.5 py-1 text-[12px]" : "px-0 py-2 text-[14px]")
+              : cn("font-bold uppercase tracking-wide", small ? "px-2.5 py-1 text-[10px] rounded" : "px-5 py-2 text-sm rounded-md"),
+            isPage
+              ? value === opt.value
+                ? "bg-transparent text-[var(--ed-ink)]"
+                : "bg-transparent text-[var(--ed-muted)] hover:text-[var(--ed-ink)]"
+              : cn(
+                "shadow-[0_2px_12px_rgba(0,0,0,0.08)]",
+                value === opt.value
+                  ? "bg-[#284372] text-white shadow-lg"
+                  : "bg-white text-[#284372] hover:bg-[#f0f7ff]"
+              )
           )}
         >
           {opt.label}
@@ -131,32 +152,109 @@ function StatsCards({
   period,
   source,
   onPeriodChange,
+  variant = "modal",
 }: {
   period: string
   source: string
   onPeriodChange: (v: string) => void
+  variant?: VolumePanelVariant
 }) {
   const { t } = useTranslation()
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 1_800_000,
   })
-  const wrapKey = period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
-  const unwrapKey = period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
+  const wrapKey =
+    period === "all" ? "wrap_volume_sats" : period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
+  const unwrapKey =
+    period === "all" ? "unwrap_volume_sats" : period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
+  const valueDecimals = period === "all" ? 2 : 4
 
   const loading = isLoading
 
-  const renderValue = (value: string | undefined, colorClass: string, decimals: number = 4) => (
+  const renderValue = (
+    value: string | undefined,
+    colorClass: string,
+    decimals: number = 4,
+    unitClassName = "text-xs"
+  ) => (
     <p className={cn("text-lg sm:text-xl font-semibold tabular-nums", colorClass)}>
       {loading ? (
         <span className="text-[#6b7280]/50">--</span>
       ) : (
         <>
           {satsToBtc(value || "0", decimals)}{" "}
-          <span className="text-xs text-[#6b7280]">BTC</span>
+          <span className={cn(unitClassName, "text-[#6b7280]")}>BTC</span>
         </>
       )}
     </p>
   )
+
+  if (variant === "page") {
+    const periodStats = [
+      {
+        label: t("volume.wraps"),
+        value: data?.[wrapKey],
+        decimals: valueDecimals,
+      },
+      {
+        label: t("volume.unwraps"),
+        value: data?.[unwrapKey],
+        decimals: valueDecimals,
+      },
+    ]
+
+    const periodButtonClass = (active: boolean) =>
+      cn(
+        "font-display text-[14px] font-medium leading-tight transition-colors duration-150 focus:outline-none",
+        active ? "text-[var(--ed-ink)]" : "text-[var(--ed-muted)] hover:text-[var(--ed-ink)]"
+      )
+
+    return (
+      <div>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => onPeriodChange("24h")}
+            className={periodButtonClass(period === "24h")}
+            aria-pressed={period === "24h"}
+          >
+            24H
+          </button>
+          <button
+            type="button"
+            onClick={() => onPeriodChange("7d")}
+            className={periodButtonClass(period === "7d")}
+            aria-pressed={period === "7d"}
+          >
+            7D
+          </button>
+          <button
+            type="button"
+            onClick={() => onPeriodChange("all")}
+            className={periodButtonClass(period === "all")}
+            aria-pressed={period === "all"}
+          >
+            All
+          </button>
+        </div>
+        <div className="mt-7 grid max-w-[720px] grid-cols-2 gap-8 sm:gap-12">
+          {periodStats.map((stat) => (
+            <div key={`period-${stat.label}`}>
+              <p className="font-display text-[15px] leading-tight sm:text-[16px]" style={{ color: "var(--ed-muted)" }}>
+                {stat.label}
+              </p>
+              {renderValue(
+                stat.value,
+                "mt-4 font-mono text-[34px] leading-none text-[var(--ed-ink)] sm:text-[44px]",
+                stat.decimals,
+                "text-sm sm:text-base"
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -165,7 +263,7 @@ function StatsCards({
         <div className="flex items-baseline justify-between gap-2">
           <div>
             <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix={t("volume.wraps")} />
-            {renderValue(data?.[wrapKey], "text-[#22c55e]")}
+            {renderValue(data?.[wrapKey], "text-[#22c55e]", valueDecimals)}
           </div>
           <div>
             <p className="text-[10px] sm:text-xs text-[#6b7280]">{t("volume.totalWraps")}</p>
@@ -178,7 +276,7 @@ function StatsCards({
         <div className="flex items-baseline justify-between gap-2">
           <div>
             <PeriodToggleLabel period={period} onChange={onPeriodChange} suffix={t("volume.unwraps")} />
-            {renderValue(data?.[unwrapKey], "text-[#ef4444]")}
+            {renderValue(data?.[unwrapKey], "text-[#ef4444]", valueDecimals)}
           </div>
           <div>
             <p className="text-[10px] sm:text-xs text-[#6b7280]">{t("volume.totalUnwraps")}</p>
@@ -198,6 +296,23 @@ const CHART_BG = "transparent"
 const GRID_COLOR = "rgba(40, 67, 114, 0.06)"
 const CHART_START = "2025-10-01" as Time
 const CHART_HEIGHT_MOBILE = 250
+const DEFAULT_VISIBLE_DAYS = 60
+
+function setDefaultTimeRange(chart: IChartApi | null, rows: CandleData[], variant: VolumePanelVariant) {
+  if (!chart) return
+  if (variant !== "page" || rows.length === 0) {
+    chart?.timeScale().fitContent()
+    return
+  }
+
+  const end = new Date(rows[rows.length - 1].bucket)
+  const start = new Date(end)
+  start.setUTCDate(start.getUTCDate() - DEFAULT_VISIBLE_DAYS)
+  chart.timeScale().setVisibleRange({
+    from: start.toISOString().slice(0, 10) as Time,
+    to: end.toISOString().slice(0, 10) as Time,
+  })
+}
 
 /* ------------------------------------------------------------------ */
 /*  Chart Skeleton Loader                                              */
@@ -267,7 +382,17 @@ function ChartSkeleton({ variant }: { variant: "bars" | "area" }) {
   )
 }
 
-function VolumeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+function VolumeChart({
+  period,
+  interval,
+  source,
+  variant = "modal",
+}: {
+  period: string
+  interval: string
+  source: string
+  variant?: VolumePanelVariant
+}) {
   const { t } = useTranslation()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -426,11 +551,17 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
 
     wrapRef.current.setData(wrapData)
     unwrapRef.current.setData(unwrapData)
-    chartRef.current?.timeScale().fitContent()
-  }, [candles])
+    setDefaultTimeRange(chartRef.current, filtered, variant)
+  }, [candles, variant])
 
   return (
-    <div className="sm:flex-1 sm:min-h-0 sm:flex sm:flex-col" style={{ position: "relative" }}>
+    <div
+      className={cn(
+        "sm:flex sm:flex-col",
+        variant === "page" ? "min-h-[300px] sm:min-h-[560px]" : "sm:flex-1 sm:min-h-0"
+      )}
+      style={{ position: "relative" }}
+    >
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -441,7 +572,7 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
           <span className="text-[#6b7280]">{t("volume.unwraps")}</span>
         </div>
       </div>
-      <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
+      <div ref={wrapperRef} className={cn("min-h-[250px]", variant === "page" ? "sm:flex-1" : "sm:flex-1 sm:min-h-0")} style={{ position: "relative" }}>
         <div ref={containerRef} />
         {isLoading && <ChartSkeleton variant="bars" />}
         <div
@@ -469,7 +600,17 @@ function VolumeChart({ period, interval, source }: { period: string; interval: s
 /*  Cumulative Area Chart                                              */
 /* ------------------------------------------------------------------ */
 
-function CumulativeChart({ period, interval, source }: { period: string; interval: string; source: string }) {
+function CumulativeChart({
+  period,
+  interval,
+  source,
+  variant = "modal",
+}: {
+  period: string
+  interval: string
+  source: string
+  variant?: VolumePanelVariant
+}) {
   const { t } = useTranslation()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -630,11 +771,17 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
 
     wrapRef.current.setData(wrapData)
     unwrapRef.current.setData(unwrapData)
-    chartRef.current?.timeScale().fitContent()
-  }, [candles])
+    setDefaultTimeRange(chartRef.current, filtered, variant)
+  }, [candles, variant])
 
   return (
-    <div className="sm:flex-1 sm:min-h-0 sm:flex sm:flex-col" style={{ position: "relative" }}>
+    <div
+      className={cn(
+        "sm:flex sm:flex-col",
+        variant === "page" ? "min-h-[300px] sm:min-h-[560px]" : "sm:flex-1 sm:min-h-0"
+      )}
+      style={{ position: "relative" }}
+    >
       <div className="flex items-center gap-4 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-[#22c55e]" />
@@ -645,7 +792,7 @@ function CumulativeChart({ period, interval, source }: { period: string; interva
           <span className="text-[#6b7280]">{t("volume.unwraps")}</span>
         </div>
       </div>
-      <div ref={wrapperRef} className="sm:flex-1 sm:min-h-0" style={{ position: "relative" }}>
+      <div ref={wrapperRef} className={cn("min-h-[250px]", variant === "page" ? "sm:flex-1" : "sm:flex-1 sm:min-h-0")} style={{ position: "relative" }}>
         <div ref={containerRef} />
         {isLoading && <ChartSkeleton variant="area" />}
         <div
@@ -678,11 +825,106 @@ interface VolumeModalProps {
   onClose: () => void
 }
 
-export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
+export function VolumeChartPanel({
+  variant = "modal",
+  onClose,
+}: {
+  variant?: "modal" | "page"
+  onClose?: () => void
+}) {
   const { t } = useTranslation()
   const [period, setPeriod] = useState("24h")
   const [chartType, setChartType] = useState("volume")
   const [source, setSource] = useState("both")
+  const isPage = variant === "page"
+
+  return (
+    <div
+      className={cn(
+        "relative flex w-full flex-col",
+        isPage
+          ? "overflow-visible bg-transparent"
+          : "max-h-[90vh] max-w-5xl overflow-hidden rounded-2xl bg-[#f0f7ff] shadow-xl shadow-[#284372]/10 sm:h-[90vh]",
+      )}
+    >
+      {/* Header */}
+      <div className={cn(
+        "flex-shrink-0",
+        isPage ? "sr-only" : "bg-white/50 px-6 py-5 shadow-[0_2px_8px_rgba(40,67,114,0.15)]"
+      )}>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-extrabold uppercase tracking-wider text-[#284372]">
+            {t("volume.title")}
+          </h2>
+          {onClose ? (
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-[#284372]/70 shadow-[0_2px_8px_rgba(40,67,114,0.15)] outline-none transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none"
+              aria-label={t("volume.close")}
+            >
+              <X size={18} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className={cn(
+        "flex-1",
+        isPage ? "overflow-visible" : "overflow-y-auto p-4 sm:flex sm:flex-col sm:overflow-hidden sm:p-6"
+      )}>
+
+        {/* Tab selectors */}
+        <div className={cn(
+          "flex flex-wrap items-center justify-between gap-4 sm:shrink-0",
+          isPage ? "mb-4" : "mb-6"
+        )}>
+          <ButtonGroup
+            options={[
+              { value: "both", label: sentenceCase(t("volume.both")) },
+              { value: "alkanes", label: sentenceCase(t("volume.alkanes")) },
+              { value: "brc20", label: "BRC20" },
+            ]}
+            value={source}
+            onChange={setSource}
+            variant={variant}
+          />
+        </div>
+
+        {/* Stats cards */}
+        <div className={cn("sm:shrink-0", isPage ? "mb-10" : "mb-6")}>
+          <StatsCards period={period} source={source} onPeriodChange={setPeriod} variant={variant} />
+        </div>
+
+        {/* Chart — key forces remount when interval changes */}
+        <div className={cn(
+          "relative sm:flex sm:flex-col",
+          isPage ? "pt-2" : "sm:min-h-0 sm:flex-1"
+        )}>
+          <div className="mb-3 flex justify-end sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0">
+            <ButtonGroup
+              small
+              options={[
+                { value: "volume", label: sentenceCase(t("volume.volume")) },
+                { value: "cumulative", label: sentenceCase(t("volume.cumulative")) },
+              ]}
+              value={chartType}
+              onChange={setChartType}
+              variant={variant}
+            />
+          </div>
+          {chartType === "volume" ? (
+            <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} variant={variant} />
+          ) : (
+            <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} variant={variant} />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -715,66 +957,10 @@ export default function VolumeModal({ isOpen, onClose }: VolumeModalProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={modalRef}
-          className="bg-[#f0f7ff] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden sm:h-[90vh] flex flex-col relative pointer-events-auto shadow-xl shadow-[#284372]/10"
+          className="w-full max-w-5xl pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 bg-white/50 shadow-[0_2px_8px_rgba(40,67,114,0.15)] px-6 py-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-extrabold tracking-wider uppercase text-[#284372]">
-                {t("volume.title")}
-              </h2>
-              <button
-                onClick={onClose}
-                className="flex items-center justify-center h-8 w-8 rounded-xl bg-white shadow-[0_2px_8px_rgba(40,67,114,0.15)] text-[#284372]/70 transition-all duration-[400ms] ease-[cubic-bezier(0,0,0,1)] hover:bg-[#f0f7ff] hover:text-[#284372] hover:shadow-[0_4px_12px_rgba(40,67,114,0.2)] hover:transition-none outline-none"
-                aria-label={t("volume.close")}
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto sm:overflow-hidden sm:flex sm:flex-col p-4 sm:p-6">
-
-          {/* Tab selectors */}
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-6 sm:shrink-0">
-            <ButtonGroup
-              options={[
-                { value: "both", label: t("volume.both") },
-                { value: "alkanes", label: t("volume.alkanes") },
-                { value: "brc20", label: t("volume.brc20") },
-              ]}
-              value={source}
-              onChange={setSource}
-            />
-          </div>
-
-          {/* Stats cards */}
-          <div className="mb-6 sm:shrink-0">
-            <StatsCards period={period} source={source} onPeriodChange={setPeriod} />
-          </div>
-
-          {/* Chart — key forces remount when interval changes */}
-          <div className="relative sm:flex-1 sm:min-h-0 sm:flex sm:flex-col">
-            <div className="absolute top-0 right-0 z-10">
-              <ButtonGroup
-                small
-                options={[
-                  { value: "volume", label: t("volume.volume") },
-                  { value: "cumulative", label: t("volume.cumulative") },
-                ]}
-                value={chartType}
-                onChange={setChartType}
-              />
-            </div>
-            {chartType === "volume" ? (
-              <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-            ) : (
-              <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} />
-            )}
-          </div>
-          </div>
+          <VolumeChartPanel onClose={onClose} />
         </div>
       </div>
     </>

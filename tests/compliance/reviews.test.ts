@@ -27,8 +27,10 @@ beforeEach(() => {
 })
 
 describe("scope policy", () => {
-  it("compliance-full exposes all four surfaces", () => {
-    expect(scopeSurfaces("compliance-full").map((s) => s.key)).toEqual(["fincen", "kyc", "mtl", "documents"])
+  it("compliance-full exposes every surface", () => {
+    expect(scopeSurfaces("compliance-full").map((s) => s.key)).toEqual([
+      "program", "obligations", "fincen", "kyc", "mtl", "documents",
+    ])
   })
   it("fincen-only and kyc-only are narrow", () => {
     expect(scopeSurfaces("fincen-only").map((s) => s.key)).toEqual(["fincen"])

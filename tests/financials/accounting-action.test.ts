@@ -9,10 +9,12 @@ vi.mock("@/lib/financials/accounting/store", () => ({
   listPayees: vi.fn(),
   listInvoices: vi.fn(),
   listPayments: vi.fn(),
+  listUsdPayments: vi.fn(),
   createPayee: vi.fn(),
   createInvoice: vi.fn(),
   updateInvoiceStatus: vi.fn(),
   recordPayment: vi.fn(),
+  recordUsdPayment: vi.fn(),
   linkPayment: vi.fn(),
   loadPayeeProfile: vi.fn(),
   updatePayee: vi.fn(),
@@ -80,11 +82,12 @@ describe("accountingOverviewAction", () => {
   it("returns rows + computed metrics", async () => {
     vi.mocked(store.listPayees).mockResolvedValue([])
     vi.mocked(store.listInvoices).mockResolvedValue([
-      { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-01T00:00:00.000Z" },
+      { id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "w", amountUsd: 100, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "PAID", pdfUrl: null, docHref: null, createdAt: "2026-02-01T00:00:00.000Z" },
     ])
     vi.mocked(store.listPayments).mockResolvedValue([
       { id: "p1", txid: "t", vout: null, amountDiesel: 3, recipientAddress: "bc1", paidAt: "2026-02-02T00:00:00.000Z", blockHeight: null, invoiceId: null, invoiceRef: null, source: "MANUAL", createdAt: "2026-02-02T00:00:00.000Z" },
     ])
+    vi.mocked(store.listUsdPayments).mockResolvedValue([])
     const r = await accountingOverviewAction()
     expect(r.ok).toBe(true)
     if (r.ok) {
@@ -110,7 +113,7 @@ describe("createInvoiceAction", () => {
     expect(r).toEqual({ ok: false, error: "Invoice ref already exists: INV-1" })
   })
   it("creates, audits, and revalidates on the happy path", async () => {
-    vi.mocked(store.createInvoice).mockResolvedValue({ id: "i2", ref: "INV-2", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 50, amountDiesel: null, issuedAt: "2026-02-02T00:00:00.000Z", status: "OPEN", pdfUrl: null, createdAt: "2026-02-02T00:00:00.000Z" })
+    vi.mocked(store.createInvoice).mockResolvedValue({ id: "i2", ref: "INV-2", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 50, amountDiesel: null, issuedAt: "2026-02-02T00:00:00.000Z", status: "OPEN", pdfUrl: null, docHref: null, createdAt: "2026-02-02T00:00:00.000Z" })
     const r = await createInvoiceAction({ ref: "INV-2", payeeId: "pe1", description: "x", amountUsd: 50, issuedAt: "2026-02-02" })
     expect(r).toEqual({ ok: true, value: expect.objectContaining({ ref: "INV-2" }) })
     expect(audit).toHaveBeenCalledWith("accounting_invoice_create", expect.objectContaining({ target: "INV-2" }))
@@ -119,7 +122,7 @@ describe("createInvoiceAction", () => {
 
 describe("updateInvoiceStatusAction", () => {
   it("updates, audits, and revalidates", async () => {
-    vi.mocked(store.updateInvoiceStatus).mockResolvedValue({ id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 1, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "PAID", pdfUrl: null, createdAt: "2026-02-01T00:00:00.000Z" })
+    vi.mocked(store.updateInvoiceStatus).mockResolvedValue({ id: "i1", ref: "INV-1", payeeId: "pe1", payeeName: "Ada", description: "x", amountUsd: 1, amountDiesel: null, issuedAt: "2026-02-01T00:00:00.000Z", status: "PAID", pdfUrl: null, docHref: null, createdAt: "2026-02-01T00:00:00.000Z" })
     const r = await updateInvoiceStatusAction("i1", "PAID")
     expect(r.ok).toBe(true)
     expect(audit).toHaveBeenCalledWith("accounting_invoice_status", expect.objectContaining({ actorId: "u1", target: "INV-1 -> PAID" }))

@@ -1,0 +1,19 @@
+{
+  "name": "hyflaria-web-sys",
+  "type": "module",
+  "description": "wasm-bindgen wrappers around the Hyflaria codec + state machine. JS-facing `WasmHyflariaCodec` for caller-driven framing, plus a higher-level connection helper that bridges two `WasmPumpedDuplex` halves (outer WSS bytes, inner plaintext) with Hyflaria framing in between.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "hyflaria_web_sys_bg.wasm",
+    "hyflaria_web_sys.js",
+    "hyflaria_web_sys_bg.js",
+    "hyflaria_web_sys.d.ts"
+  ],
+  "main": "hyflaria_web_sys.js",
+  "types": "hyflaria_web_sys.d.ts",
+  "sideEffects": [
+    "./hyflaria_web_sys.js",
+    "./snippets/*"
+  ]
+}

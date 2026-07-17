@@ -296,6 +296,8 @@ model User {
   folders            Folder[]             @relation("FolderCreator")
   driveFiles         DriveFile[]          @relation("FileCreator")
   marketingSnapshots MarketingSnapshot[]  @relation("SnapshotCreator")
+  marketingPushes    MarketingPush[]      @relation("PushCreator")
+  recurringPushes    RecurringPush[]      @relation("RecurringPushCreator")
   tasksOwned         Task[]               @relation("TaskOwner")
   taskComments       TaskComment[]        @relation("TaskCommentAuthor")
 
@@ -385,7 +387,10 @@ model Article {
   tags               Tag[]                @relation("ArticleTags")
   translations       ArticleTranslation[]
   revisions          Revision[]
+  versions           ArticleVersion[]
+  comments           ArticleComment[]
   marketingSnapshots MarketingSnapshot[]
+  marketingPushes    MarketingPush[]
 
   publishedAt DateTime?
   notifiedAt  DateTime?
@@ -434,6 +439,62 @@ model Revision {
   createdAt DateTime @default(now())
 
   @@index([articleId, createdAt])
+}
+
+// WS5 — lifecycle-aware version snapshot of an article translation. Unlike the
+// append-only Revision, versions carry a monotonic number (per article+locale)
+// and a lifecycle stage, and are the anchor target for review comments.
+model ArticleVersion {
+  id        String              @id @default(cuid())
+  article   Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  locale    Locale
+  number    Int // monotonic per (articleId, locale)
+  stage     ArticleVersionStage @default(DRAFT)
+  title     String
+  body      String // Markdown snapshot
+  // loose ref to the editing User (no FK, matching Revision-free models here)
+  editorId  String?
+  createdAt DateTime            @default(now())
+  comments  ArticleComment[]
+
+  @@unique([articleId, locale, number])
+  @@index([articleId, locale])
+}
+
+enum ArticleVersionStage {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+// WS5 — inline reviewer annotation anchored to a text range in a version, via a
+// W3C-TextQuoteSelector-style `anchor` (exact quote + prefix/suffix + block idx)
+// so it re-locates after edits. `status` ORPHANED when it can no longer anchor.
+model ArticleComment {
+  id        String               @id @default(cuid())
+  article   Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  version   ArticleVersion?      @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  versionId String?
+  locale    Locale
+  // loose ref to the commenting User; color is derived from this id client-side
+  authorId  String
+  anchor    Json // { quote, prefix, suffix, blockIndex, start, end }
+  body      String
+  status    ArticleCommentStatus @default(OPEN)
+  parentId  String? // thread parent (self-ref by id)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([articleId, versionId])
+  @@index([parentId])
+}
+
+enum ArticleCommentStatus {
+  OPEN
+  RESOLVED
+  ORPHANED
 }
 
 // Email subscribers for news/article updates.
@@ -485,6 +546,37 @@ model MarketingSnapshot {
   @@index([createdAt])
 }
 
+// Daily OP_RETURN decoder stats — synced from the public CSV dashboard.
+// One row per calendar date (ISO date string as PK).
+model OpReturnDaily {
+  date            String   @id
+  fromHeight      Int
+  toHeight        Int
+  blocksScanned   Int
+  totalTx         Int
+  txWithOpReturn  Int
+  txAlkanes       Int
+  opReturnBytes   Int
+  runestoneBytes  Int
+  alkanesBytes    Int
+  dieselMints     Int
+  // fee*Sats are Float (not Int): a single high-fee block can exceed Int4's ~2.1B range; integer sats stay exact within Float's 2^53.
+  feeTotalSats    Float
+  feeAlkanesSats  Float
+  feeOpReturnSats Float
+  btcUsd          Float
+  // Added with the 19-column CSV (2026-07). Nullable: empty CSV cell (e.g. today's partial row) → null, never 0.
+  weightTotal     Float?
+  weightAlkanes   Float?
+  ugMints         Int?
+  dieselUg        Int?
+  // Added with the 21-column CSV (2026-07). Runestone tx counts, already extrapolated to a full
+  // 144-block day (Alkanes protostones vs pure Runes). Nullable: empty CSV cell → null, never 0.
+  txAlkRunestone  Int?
+  txPureRunes     Int?
+  updatedAt       DateTime @updatedAt
+}
+
 // Bearer keys for the admin upload API (POST /api/admin/articles).
 model ApiKey {
   id         String    @id @default(cuid())
@@ -514,6 +606,9 @@ model ApiKey {
 model Folder {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a parent. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   parentId    String?
   parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    Folder[] @relation("FolderTree")
@@ -528,6 +623,10 @@ model Folder {
 
   // unique name within a parent (root = parentId null)
   @@unique([parentId, name])
+  // slug uniqueness is enforced in app code (uniqueFolderSlug); a plain index
+  // keeps the automated `prisma db push` (k8s migrate initContainer, no
+  // --accept-data-loss) purely additive rather than adding a unique constraint.
+  @@index([parentId, slug])
   @@index([parentId])
   @@index([scope])
 }
@@ -535,6 +634,9 @@ model Folder {
 model DriveFile {
   id          String   @id @default(cuid())
   name        String
+  // URL slug, unique within a folder. Nullable so existing rows survive
+  // `db push`; backfilled from name via scripts/backfill-file-slugs.ts.
+  slug        String?
   folderId    String?
   folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   // Which drive this file lives in (denormalized from its folder so root-level
@@ -546,16 +648,31 @@ model DriveFile {
   size        BigInt
   metadata    Json     @default("{}")
   tags        String[] @default([])
+  // Primary document-type classification (controlled slug, see lib/files/doc-types.ts)
+  // and execution status (executed/unsigned/draft/…). Nullable so `db push` stays
+  // additive; populated by the classifier + editable in the file details panel.
+  docType     String?
+  docStatus   String?
+  // Extracted, searchable plain text of the document body (capped), so search can
+  // match *inside* documents (Google-Drive style), not just the filename. Backfilled
+  // by scripts/backfill-content-text.mjs; refreshed on re-upload.
+  contentText String?
   // graph links to the entities/people this file concerns (signatories, etc.)
   entityLinks EntityFileLink[]
+  // e-sign envelopes launched from this file (WS3 "Request Signatures").
+  envelopes   Envelope[] @relation("EnvelopeSource")
   createdById String?
   createdBy   User?    @relation("FileCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([folderId, name])
+  // slug uniqueness enforced in app code (uniqueFileSlug); plain index so the
+  // automated db push stays additive (see Folder.slug note).
+  @@index([folderId, slug])
   @@index([folderId])
   @@index([scope])
+  @@index([docType])
 }
 
 // How an entity/person relates to a document. SIGNATORY = signed it,
@@ -774,6 +891,104 @@ model MtlEntry {
 }
 
 // ============================================
+// COMPLIANCE — company obligation calendar + program register (F2-E)
+// ============================================
+//
+// The obligation calendar is the company-wide compliance/tax/corporate ledger:
+// one row per recurring or one-time thing the company must do (franchise tax,
+// Form 1120, 1099s, MSB renewal, BOI, 409A, AML training + independent review,
+// license filings). Broader than the AML surfaces (KYC/FinCEN/MTL) — it answers
+// "what does the company owe, to whom, and by when." Dates are ISO date strings
+// (date-only, no TZ) to match MtlEntry.nextFilingDue.
+
+enum ComplianceCategory {
+  TAX
+  CORPORATE
+  AML_BSA
+  LICENSING
+  SECURITIES
+  EMPLOYMENT
+  DATA_PRIVACY
+}
+
+enum ComplianceCadence {
+  ONE_TIME
+  ANNUAL
+  BIENNIAL
+  QUARTERLY
+  MONTHLY
+  AS_NEEDED
+}
+
+enum ComplianceStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  FILED
+  COMPLETE
+  BLOCKED
+  NOT_APPLICABLE
+}
+
+model ComplianceObligation {
+  id              String             @id @default(cuid())
+  key             String             @unique // stable slug for idempotent seeding
+  title           String
+  category        ComplianceCategory
+  authority       String? // who it's owed to: IRS, Delaware, FinCEN, …
+  description     String? // what it is / why it matters, plain English
+  cadence         ComplianceCadence  @default(ANNUAL)
+  dueDate         String? // ISO date (YYYY-MM-DD); null for AS_NEEDED
+  status          ComplianceStatus   @default(NOT_STARTED)
+  owner           String? // responsible person
+  lastCompletedAt String? // ISO date of the last completion, for recurring items
+  docUrl          String? // link to the receipt / filing evidence
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([category])
+  @@index([status])
+}
+
+// The BSA program register: the five things a registered MSB must maintain.
+// Seeded once from lib/compliance/program.ts, then editable in the UI so the
+// director can flip a pillar from Gap → In place without a code change.
+enum ProgramPillarStatus {
+  OK
+  PARTIAL
+  GAP
+}
+
+model ComplianceProgramItem {
+  key       String              @id // stable slug
+  title     String
+  status    ProgramPillarStatus @default(GAP)
+  detail    String
+  action    String? // the next step to close a gap
+  sortOrder Int                 @default(0)
+  updatedBy String? // operator email of the last edit
+  updatedAt DateTime            @updatedAt
+  createdAt DateTime            @default(now())
+}
+
+// The compliance program's identity/registration facts — the header line on the
+// dashboard. A singleton (id always "default"). DB-backed + UI-editable so the
+// confidential values (legal name, BSA ID, tracking, compliance officer) live in
+// the database, never in this public repo. Empty defaults render as an em dash.
+model ComplianceRegister {
+  id            String   @id @default("default")
+  entityName    String   @default("")
+  msbRegistered Boolean  @default(true)
+  bsaId         String   @default("")
+  msbTracking   String   @default("")
+  ccoName       String   @default("")
+  ccoDesignated String   @default("") // ISO date (YYYY-MM-DD)
+  updatedBy     String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+// ============================================
 // BILLING — Stripe console (F2-D)
 // ============================================
 
@@ -961,6 +1176,7 @@ model Invoice {
   pdfUrl       String? // GCS object (CMS_BUCKET)
   createdAt    DateTime        @default(now())
   payments     DieselPayment[]
+  usdPayments  UsdPayment[]
 
   @@index([payeeId])
   @@index([status])
@@ -981,6 +1197,36 @@ model DieselPayment {
 
   @@unique([txid, vout]) // idempotent vs SP-2 ingestion
   @@index([invoiceId])
+}
+
+// Payments settled in USD (bank/wire), recorded manually. Distinct from
+// DieselPayment: no on-chain settlement is required, so txid and recipient
+// address are optional, and the amount is denominated in USD instead of DIESEL.
+model UsdPayment {
+  id               String        @id @default(cuid())
+  txid             String? // optional external reference (wire ref / tx id)
+  vout             Int?
+  amountUsd        Float
+  recipientAddress String? // optional
+  paidAt           DateTime
+  blockHeight      Int?
+  invoiceId        String?
+  invoice          Invoice?      @relation(fields: [invoiceId], references: [id])
+  source           PaymentSource @default(MANUAL)
+  createdAt        DateTime      @default(now())
+
+  @@index([invoiceId])
+}
+
+// Read-through cache for the DIESEL→USD valuation (lib/financials/diesel-valuation.ts).
+// Keyed by block height: pool reserves + BTC spot are fixed once a block is
+// mined, so a block's DIESEL price never changes and can be memoised forever.
+model DieselPriceCache {
+  blockHeight Int      @id
+  dieselUsd   Float // USD per 1 DIESEL at this block
+  btcUsd      Float // BTC/USD spot at the block's time
+  ratio       Float // BTC per DIESEL (frBTC_reserve / DIESEL_reserve)
+  computedAt  DateTime @default(now())
 }
 
 // ============================================
@@ -1018,6 +1264,19 @@ model Envelope {
   // "legal paperwork they've signed" section of the payee profile.
   payeeId              String?
   payee                Payee?    @relation(fields: [payeeId], references: [id], onDelete: SetNull)
+  // Optional source file this envelope was launched from ("Request Signatures"
+  // from the Files view), and the registry entity it concerns.
+  sourceFileId         String?
+  sourceFile           DriveFile?   @relation("EnvelopeSource", fields: [sourceFileId], references: [id], onDelete: SetNull)
+  entityId             String?
+  entity               LegalEntity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  // Versioning: all versions of one agreement share `agreementKey`; `version`
+  // increments; `parentEnvelopeId` points at the immediately-prior version.
+  agreementKey         String?
+  version              Int       @default(1)
+  parentEnvelopeId     String?
+  // Forensic capture of view/sign events (JA3/JA4/IP/headers).
+  signatureEvents      SignatureEvent[]
   createdBy            String // operator email
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -1026,6 +1285,35 @@ model Envelope {
   @@index([payeeId])
   @@index([externalDocumentId])
   @@index([createdAt])
+  @@index([agreementKey])
+  @@index([entityId])
+  @@index([sourceFileId])
+}
+
+// Per-recipient forensic record of a view/sign/decline, captured either at the
+// signing-proxy redirect (/sign/[token], which sees the tlsd-injected TLS
+// fingerprint headers) or from a Documenso webhook (no fingerprint there).
+model SignatureEvent {
+  id             String   @id @default(cuid())
+  envelope       Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId     String
+  recipientEmail String
+  kind           SignatureEventKind
+  ip             String?
+  userAgent      String?
+  ja3            String?
+  ja4            String?
+  headers        Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@index([envelopeId])
+  @@index([recipientEmail])
+}
+
+enum SignatureEventKind {
+  VIEWED
+  SIGNED
+  DECLINED
 }
 
 // ============================================
@@ -1145,6 +1433,11 @@ model ShareHolding {
   shareClass    ShareClass  @relation(fields: [shareClassId], references: [id])
   shares        Int
   issuedAt      DateTime
+  // Whether these shares are actually issued (true) or an intended/unissued
+  // allocation (false) — e.g. the founder split that FUEL derives from but that
+  // is not yet reflected in the as-issued cap table. As-issued views filter to
+  // issued=true; FUEL-split derivation counts all holdings.
+  issued        Boolean     @default(true)
   certificateNo String?
   notes         String?
   createdAt     DateTime    @default(now())
@@ -1306,6 +1599,11 @@ model LegalEntity {
   payeeId       String? // accounting Payee
   shareholderId String? // cap-table Shareholder
   notes         String?
+  // Free-form tags for the entity dossier (distinct from article Tag).
+  tags          String[]            @default([])
+  // Taproot / EVM addresses associated with this entity — used to join FUEL
+  // allocations and on-chain payments into the dossier.
+  addresses     String[]            @default([])
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
@@ -1313,6 +1611,7 @@ model LegalEntity {
   deserter   Deserter?
   obligation OylObligation?
   fileLinks  EntityFileLink[]
+  envelopes  Envelope[]
 
   @@index([category])
   @@index([scope])
@@ -1536,4 +1835,188 @@ model TaskComment {
   createdAt DateTime @default(now())
 
   @@index([taskId])
+}
+
+enum PushChannel {
+  ARTICLE
+  X
+  EMAIL
+  STAT_CARD
+  OTHER
+}
+
+enum PushStatus {
+  IDEA
+  SCHEDULED
+  PUBLISHED
+  CANCELED
+}
+
+enum PushFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model MarketingPush {
+  id             String         @id @default(cuid())
+  title          String
+  channel        PushChannel
+  status         PushStatus     @default(IDEA)
+  scheduledFor   DateTime?
+  publishedAt    DateTime?
+  articleId      String?
+  article        Article?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  refUrl         String?
+  notes          String?
+  metrics        Json?
+  screenshotUrl  String?
+  recurrenceId   String?
+  recurrence     RecurringPush? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  recurrenceDate DateTime?
+  createdById    String?
+  createdBy      User?          @relation("PushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([recurrenceId, recurrenceDate])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([status])
+  @@index([articleId])
+}
+
+model RecurringPush {
+  id           String          @id @default(cuid())
+  title        String
+  channel      PushChannel     @default(ARTICLE)
+  frequency    PushFrequency   @default(WEEKLY)
+  dayOfWeek    Int
+  dayOfMonth   Int?
+  active       Boolean         @default(true)
+  defaultNotes String?
+  startDate    DateTime
+  endDate      DateTime?
+  instances    MarketingPush[]
+  createdById  String?
+  createdBy    User?           @relation("RecurringPushCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+// ============================================
+// TEAM PAGER (ntfy at page.subfrost.io)
+// ============================================
+
+// One row per page sent from /admin/pager (or a future bridge). Urgent pages
+// fan out to each member's personal topic with a per-member ACK action; the
+// repeat endpoint re-sends until acked or capped.
+model PagerPage {
+  id        String        @id @default(cuid())
+  message   String
+  urgent    Boolean       @default(true)
+  sentBy    String // CMS user email/name, for attribution
+  createdAt DateTime      @default(now())
+  targets   PagerTarget[]
+
+  @@index([createdAt])
+}
+
+// One row per (page, member): carries the unguessable ACK token embedded in
+// the notification's ACK button, and the ack/repeat state.
+model PagerTarget {
+  id          String    @id @default(cuid())
+  page        PagerPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId      String
+  memberId    String // ntfy username (page-<memberId>)
+  ackToken    String    @unique @default(cuid())
+  ackedAt     DateTime?
+  repeatCount Int       @default(0)
+  lastSentAt  DateTime  @default(now())
+
+  @@index([pageId])
+  @@index([memberId, ackedAt])
+}
+
+// Pager member metadata overlaying the ntfy account: display nickname (shown
+// on chips/history/team) and the CMS email linkage that lets a member edit
+// their own nickname from /admin/pager.
+model PagerMember {
+  memberId  String   @id // ntfy username
+  nickname  String?
+  cmsEmail  String?  @unique
+  updatedAt DateTime @updatedAt
+}
+
+// ── Alkanes ecosystem directory (public /ecosystem + /admin/ecosystem) ──
+
+model EcosystemProject {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  logoUrl       String?
+  bannerUrl     String?
+  category      String
+  status        String   @default("Live")
+  kind          String   @default("App")
+  alkaneId      String?
+  url           String
+  xUrl          String?
+  docsUrl       String?
+  descriptionEn String   @default("")
+  descriptionZh String   @default("")
+  featured      Boolean  @default(false)
+  inMosaic      Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  published     Boolean  @default(false)
+  profileEn     String   @default("")
+  profileZh     String   @default("")
+  contracts     EcosystemProjectContract[]
+  statSnapshots EcosystemStatSnapshot[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([published, featured, sortOrder])
+}
+
+model EcosystemProjectContract {
+  id        String           @id @default(cuid())
+  projectId String
+  project   EcosystemProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String
+  alkaneId  String
+  noteEn    String           @default("")
+  noteZh    String           @default("")
+  sortOrder Int              @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model EcosystemStatSnapshot {
+  id        String           @id @default(cuid())
+  projectId String
+  project   EcosystemProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  takenAt   DateTime         @default(now())
+  stats     Json
+
+  @@index([projectId, takenAt])
+}
+
+model EcosystemSettings {
+  id                  Int     @id @default(1)
+  featuredBandEnabled Boolean @default(true)
+}
+
+// One global, admin-controlled site notice (banner + modal). Singleton row id=1.
+model SystemNotice {
+  id         Int      @id @default(1)
+  enabled    Boolean  @default(false)
+  showBanner Boolean  @default(true)
+  showModal  Boolean  @default(true)
+  titleEn    String?
+  messageEn  String?
+  titleZh    String?
+  messageZh  String?
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?
 }

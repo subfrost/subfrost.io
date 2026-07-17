@@ -1,0 +1,44 @@
+[package]
+name = "frbtc-volume-indexer"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+repository = "https://github.com/subfrostdev/subfrost.io"
+description = "Lightweight metashrew WASM indexer that tracks frBTC wrap/unwrap BTC volume per UTC day (by signer-reserve accounting) so protocol fee revenue (0.3% of wrap+unwrap volume) can be computed."
+resolver = "2"
+
+# Standalone crate (NOT part of a workspace). It uses signer-reserve accounting
+# over raw Bitcoin UTXOs, so it needs only `bitcoin` for consensus decoding and
+# the metashrew host ABI — no alkanes-rs path dependency. Build with:
+#   rustup target add wasm32-unknown-unknown
+#   cargo build --release --target wasm32-unknown-unknown -p frbtc-volume-indexer
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# metashrew guest host ABI: input()/get()/set()/flush()/export_bytes()/_start.
+# Same git source spec (url + branch) that alkanes-rs / protorune-support use, so
+# cargo unifies to a single metashrew-support in the graph. Cargo.lock pins the
+# exact commit (currently eca790ca, matching alkanes-rs). We speak the same
+# KeyValueFlush protobuf + ArrayBuffer framing the rockshrew-mono host expects.
+metashrew-core = { git = "https://github.com/kungfuflex/metashrew", branch = "develop" }
+
+# Consensus-accurate runestone -> protostone decoding, reused rather than
+# reimplemented (path deps into the sibling alkanes-rs checkout at ~/alkanes-rs).
+ordinals = { path = "../../../alkanes-rs/crates/ordinals" }
+protorune-support = { path = "../../../alkanes-rs/crates/protorune-support" }
+
+# Must match the version ordinals/protorune-support resolve (alkanes workspace)
+# so bitcoin::{Block,Transaction,...} are the same type across crates.
+bitcoin = { version = "0.32.4", features = ["rand"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

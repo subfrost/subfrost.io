@@ -65,6 +65,14 @@ export async function deleteObject(key: string): Promise<void> {
   await gcsBucket().file(key).delete({ ignoreNotFound: true })
 }
 
+/** Download an object's raw bytes from the docs bucket. Used server-side (e.g.
+ *  the markdown→PDF route) to read a file's contents without minting a signed
+ *  URL and round-tripping through the browser. Throws if the object is missing. */
+export async function downloadObject(key: string): Promise<Buffer> {
+  const [buf] = await gcsBucket().file(key).download()
+  return buf
+}
+
 /** Object byte size from GCS metadata, or null if missing. */
 export async function objectSize(key: string): Promise<number | null> {
   try {

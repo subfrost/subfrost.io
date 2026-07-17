@@ -28,26 +28,26 @@ export function ChangePasswordForm() {
     })
   }
 
-  const cls = "bg-zinc-950 text-zinc-100 border-zinc-700"
+  const cls = "border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] text-[color:var(--ed-ink)]"
   return (
-    <form onSubmit={submit} className="max-w-md space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-      <div className="text-sm font-medium text-zinc-200">Change password</div>
+    <form onSubmit={submit} className="space-y-4 border-t border-[color:var(--ed-hair)] pt-5">
+      <div className="text-sm font-medium text-[color:var(--ed-ink)]">Change password</div>
       <div className="space-y-1.5">
-        <Label className="text-zinc-300">Current password</Label>
+        <Label className="text-[color:var(--ed-body)]">Current password</Label>
         <Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required className={cls} />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-zinc-300">New password</Label>
+        <Label className="text-[color:var(--ed-body)]">New password</Label>
         <Input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required minLength={8} className={cls} />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-zinc-300">Confirm new password</Label>
+        <Label className="text-[color:var(--ed-body)]">Confirm new password</Label>
         <Input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8} className={cls} />
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>Update password</Button>
-        {msg && <span className="text-sm text-emerald-400">{msg}</span>}
-        {error && <span className="text-sm text-red-400">{error}</span>}
+        {msg && <span className="text-sm text-[#1ea463]">{msg}</span>}
+        {error && <span className="text-sm text-[#b8321a]">{error}</span>}
       </div>
     </form>
   )

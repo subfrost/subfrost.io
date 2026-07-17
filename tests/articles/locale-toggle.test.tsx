@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, fireEvent } from "@testing-library/react"
+import { act, render, fireEvent } from "@testing-library/react"
 import { LOCALE_COOKIE } from "@/lib/i18n/cookie"
 
 const push = vi.fn()
@@ -16,6 +16,7 @@ describe("LocaleToggle", () => {
   beforeEach(() => {
     push.mockClear()
     search = ""
+    vi.useRealTimers()
   })
 
   it("renders the 文 glyph", () => {
@@ -24,16 +25,20 @@ describe("LocaleToggle", () => {
   })
 
   it("toggles en→zh by pushing ?lang=zh", () => {
+    vi.useFakeTimers()
     search = ""
     const { getByRole } = render(<LocaleToggle />)
     fireEvent.click(getByRole("button"))
+    act(() => vi.advanceTimersByTime(200))
     expect(push).toHaveBeenCalledWith("/articles/foo?lang=zh", { scroll: false })
   })
 
   it("toggles zh→en by pushing ?lang=en", () => {
+    vi.useFakeTimers()
     search = "lang=zh"
     const { getByRole } = render(<LocaleToggle />)
     fireEvent.click(getByRole("button"))
+    act(() => vi.advanceTimersByTime(200))
     expect(push).toHaveBeenCalledWith("/articles/foo?lang=en", { scroll: false })
   })
 

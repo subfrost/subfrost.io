@@ -17,7 +17,7 @@ interface Asset {
   icon: string
   hoverIcon?: string
   icons?: { icon: string; hoverIcon?: string }[]
-  color: string
+  textColor: string
   badgeKey?: string
 }
 
@@ -29,7 +29,7 @@ const assets: Asset[] = [
     descKey: "assets.frbtc.description",
     icon: "/btc_empty.svg",
     hoverIcon: "/btc_snowflake.svg",
-    color: "from-amber-500 to-orange-600",
+    textColor: "text-[#e8f0ff]",
     badgeKey: "assets.live"
   },
   {
@@ -39,7 +39,7 @@ const assets: Asset[] = [
     descKey: "assets.frusd.description",
     icon: "/usdt_empty.svg",
     hoverIcon: "/usdt_snowflake.svg",
-    color: "from-green-500 to-green-700"
+    textColor: "text-[#e8f0ff]"
   },
   {
     symbolKey: "assets.others.symbol",
@@ -51,7 +51,7 @@ const assets: Asset[] = [
       { icon: "/eth_empty.svg", hoverIcon: "/eth_snowflake.svg" },
       { icon: "/zec_empty.svg", hoverIcon: "/zec_snowflake.svg" }
     ],
-    color: "from-purple-500 to-yellow-500"
+    textColor: "text-[#e8f0ff]"
   }
 ]
 
@@ -116,10 +116,7 @@ export default function AssetsOverview() {
 
             {/* Symbol */}
             <h4 className="text-2xl font-bold text-center mb-2">
-              <span className={cn(
-                "bg-gradient-to-r bg-clip-text text-transparent",
-                asset.color
-              )}>{t(asset.symbolKey)}</span>
+              <span className={asset.textColor}>{t(asset.symbolKey)}</span>
             </h4>
 
             {/* Name */}

@@ -83,7 +83,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
             <div>
               <h3 className="font-bold text-sm underline mb-2">Why We Exist</h3>
               <p className="mb-2">
-                SUBFROST exists to bridge the gap between Bitcoin's store of value properties and the innovative DeFi
+                SUBFROST exists to bridge the gap between Bitcoin&apos;s store of value properties and the innovative DeFi
                 capabilities available on other blockchains.
               </p>
               <p className="mb-4">
@@ -121,7 +121,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
                 <div>
                   <p className="font-bold">3. Yield Generation for BTC</p>
                   <p>
-                    Bitcoin itself doesn't generate yield. Through SUBFROST's staking mechanisms, users can earn yield
+                    Bitcoin itself doesn&apos;t generate yield. Through SUBFROST&apos;s staking mechanisms, users can earn yield
                     while maintaining full exposure to BTC.
                   </p>
                 </div>
@@ -159,7 +159,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
 
             <div>
               <h3 className="font-bold text-sm underline mb-2">Yield in Bitcoin</h3>
-              <p className="mb-4">For users, we're essentially a "Bitcoin High-Yield Savings Account":</p>
+              <p className="mb-4">For users, we&apos;re essentially a &quot;Bitcoin High-Yield Savings Account&quot;:</p>
               <ol className="list-decimal pl-5 space-y-2 mb-4">
                 <li>
                   Users stake their BTC with us in the simplest way possible (1 transaction). The user receives dxBTC,
@@ -236,20 +236,20 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
               </p>
               <p className="mb-4">
                 <b>Tokenomics</b>: The exact amount of circulating frBTC will always be the exact amount of BTC in
-                SUBFROST's reserve.
+                SUBFROST&apos;s reserve.
               </p>
             </div>
 
             <div>
               <h3 className="font-bold text-sm underline mb-2">dxBTC (not yet released)</h3>
               <p className="mb-4">
-                dxBTC is a yield-earning BTC token representing staked BTC in SUBFROST's yield vault. Users maintain
+                dxBTC is a yield-earning BTC token representing staked BTC in SUBFROST&apos;s yield vault. Users maintain
                 full exposure to BTC while earning an APY in BTC.
               </p>
               <p className="mb-4">Users can easily unstake this back to BTC directly, in a single transaction.</p>
               <p className="mb-4">
                 <b>Tokenomics</b>: The exact amount of circulating dxBTC will always be the exact amount of BTC deployed
-                to SUBFROST's yield vault.
+                to SUBFROST&apos;s yield vault.
               </p>
             </div>
 
@@ -305,7 +305,7 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
               <h3 className="font-bold text-sm underline mb-2">Trustless Wrapping & Unwrapping</h3>
               <p className="mb-4">
                 The wrap from BTC to frBTC is atomic, while the unwrap from frBTC to BTC is the most secure and fault
-                tolerant cryptographic mechanism ever developed (called SUBRAIL) but is subject to Bitcoin's block
+                tolerant cryptographic mechanism ever developed (called SUBRAIL) but is subject to Bitcoin&apos;s block
                 speed.
               </p>
             </div>
@@ -323,14 +323,14 @@ const WhatIsSubfrostModal: React.FC<WhatIsSubfrostModalProps> = ({ isOpen, onClo
             </div>
 
             <div>
-              <h3 className="font-bold text-sm underline mb-2">Violator's BTC is at Stake</h3>
+              <h3 className="font-bold text-sm underline mb-2">Violator&apos;s BTC is at Stake</h3>
               <p className="mb-4">
                 These stakers are highly incentivized to uphold the tightest security standards, and highly
                 disincentivized to operate with anything less than honest behavior, as they are actually staking
                 frBTC/FROST LP.
               </p>
               <p className="mb-4">
-                This means violations result in the slashing of signer's BTC directly, along with their FROST tokens.
+                This means violations result in the slashing of signer&apos;s BTC directly, along with their FROST tokens.
                 Violations will range in slashing of 5-100% of the dishonest signers stake.
               </p>
             </div>

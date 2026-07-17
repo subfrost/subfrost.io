@@ -3,6 +3,9 @@
 // function here is unit-testable without Prisma. Powers /admin/legal, the
 // "Deserter SAFEs" subtab of /admin/financials/safes, and the entity profile.
 
+import type { ExplorerChain } from "@/lib/explorers"
+import type { PayeeProfile } from "@/lib/financials/accounting/shapes"
+
 export type LegalEntityKind = "PERSON" | "ORG"
 export type LegalEntityCategory =
   | "FUNDED_INVESTOR"
@@ -146,6 +149,8 @@ export interface LegalEntityRow {
   payeeId: string | null
   shareholderId: string | null
   notes: string | null
+  tags: string[]
+  addresses: string[]
   createdAt: string
   // resolved link names (read-side joins), null when unlinked
   userName: string | null
@@ -160,6 +165,103 @@ export interface LegalEntityRow {
 export interface LegalEntityProfile {
   entity: LegalEntityRow
   agreements: LegalAgreementRow[]
+}
+
+// ---------- unified entity dossier -----------------------------------
+//
+// Everything about one counterparty in one place: identity + tags, signed docs
+// (e-sign envelopes grouped into per-agreement version chains + linked signed
+// files), invoices/payments (via the linked Payee), FUEL, and on-chain txids —
+// all with explorer deep-links. Assembled by loadEntityDossier(); DB-free below.
+
+/** One e-sign envelope version in an agreement's version chain. */
+export interface DossierEnvelope {
+  id: string
+  subject: string
+  kind: string
+  status: string
+  version: number
+  agreementKey: string | null
+  createdAt: string // ISO
+  completedAt: string | null // ISO
+  href: string // /admin/documents/[id]
+}
+
+/** A "template" = all versions of one agreement (shared agreementKey), newest first. */
+export interface DossierDocGroup {
+  key: string // agreementKey, else the single envelope id
+  label: string // human template label (subject / kind)
+  versions: DossierEnvelope[]
+}
+
+/** A file linked to the entity (any EntityFileLink role), with a deep-link path
+ *  into the file navigator. */
+export interface DossierFile {
+  linkId: string
+  fileId: string
+  name: string
+  role: string
+  scope: string
+  annotation: string | null
+  filePath: string
+}
+
+/** An on-chain settlement touching this entity, with explorer links. */
+export interface DossierOnchainTx {
+  source: "DIESEL_PAYMENT" | "OYL_OBLIGATION"
+  chain: ExplorerChain
+  txid: string
+  address: string | null
+  amount: number | null
+  unit: string | null // "DIESEL" | "USD"
+  date: string | null // ISO
+  txUrl: string
+  addrUrl: string | null
+}
+
+/** A FUEL allocation matched to one of the entity's addresses. */
+export interface DossierFuel {
+  address: string
+  amount: number
+  note: string | null
+  addrUrl: string
+}
+
+export interface EntityDossier {
+  entity: LegalEntityRow
+  tags: string[]
+  addresses: string[]
+  agreements: LegalAgreementRow[]
+  payee: PayeeProfile | null // linked payee's full profile (invoices + payments)
+  docGroups: DossierDocGroup[] // envelopes grouped into version chains
+  signedFiles: DossierFile[]
+  onchain: DossierOnchainTx[]
+  fuel: DossierFuel[]
+  fuelTotal: number
+  // Cap-table-descended (modeled, 2:1) FUEL for founders / SAFE investors /
+  // team — distinct from the address-matched community `fuel` above. Null when
+  // the entity isn't in the cap-table pool.
+  capTableFuel: { amount: number; source: string } | null
+}
+
+/** Pure grouping of envelopes into per-agreement version chains (newest first).
+ *  Keyed by agreementKey; envelopes without one form singleton groups. */
+export function groupEnvelopeVersions(envelopes: DossierEnvelope[]): DossierDocGroup[] {
+  const byKey = new Map<string, DossierEnvelope[]>()
+  for (const e of envelopes) {
+    const key = e.agreementKey ?? e.id
+    const arr = byKey.get(key) ?? []
+    arr.push(e)
+    byKey.set(key, arr)
+  }
+  const groups: DossierDocGroup[] = []
+  for (const [key, list] of byKey) {
+    list.sort((a, b) => b.version - a.version || (a.createdAt < b.createdAt ? 1 : -1))
+    groups.push({ key, label: list[0].subject || list[0].kind, versions: list })
+  }
+  // newest agreement (by its latest version's createdAt) first
+  groups.sort((a, b) => (a.versions[0].createdAt < b.versions[0].createdAt ? 1 : -1))
+  return groups
 }
 
 // ---------- summaries ------------------------------------------------

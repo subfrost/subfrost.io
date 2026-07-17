@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/marketing/alkane-details", () => ({ getAlkaneDetails: vi.fn() }))
-vi.mock("@/lib/stats", () => ({ getStats: vi.fn() }))
+vi.mock("@/lib/stats", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stats")>()
+  return { ...actual, getStats: vi.fn() }
+})
 
 import { captureSnapshot } from "@/lib/marketing/snapshot"
 import { getAlkaneDetails } from "@/lib/marketing/alkane-details"
-import { getStats } from "@/lib/stats"
+import { getStats, normalizeHomeStats } from "@/lib/stats"
 import type { SnapshotTokenBlock } from "@/lib/marketing/types"
 
 const block = (id: string, over: Partial<SnapshotTokenBlock> = {}): SnapshotTokenBlock => ({
@@ -16,10 +19,10 @@ const block = (id: string, over: Partial<SnapshotTokenBlock> = {}): SnapshotToke
 beforeEach(() => vi.clearAllMocks())
 
 it("assembles protocol (from getStats) + 3 token blocks + ratios", async () => {
-  vi.mocked(getStats).mockResolvedValue({
+  vi.mocked(getStats).mockResolvedValue(normalizeHomeStats({
     metrics: { alkanesBtcLocked: 99.6, brc20BtcLocked: 1, alkanesBtcLockedAddress: null, brc20BtcLockedAddress: null, alkanesCirculating: null, brc20Circulating: null, alkanesTotalUnwraps: null, brc20TotalUnwraps: null, btcPrice: 62000 },
     marquee: { btcUsd: 62000, btcHeight: 955109, metashrewHeight: 955108, dieselUsd: 70, fireUsd: 55, btcDieselRatio: 885, btcFireRatio: 1127 },
-  })
+  }))
   vi.mocked(getAlkaneDetails)
     .mockImplementation(async (id: string) => block(id, { holders: id === "2:0" ? 7891 : 955 }))
 
@@ -45,10 +48,10 @@ it("degrades to a null protocol (partial) when getStats rejects, never throws", 
 })
 
 it("totalBtcLocked is null and partial true when a token block is all-null", async () => {
-  vi.mocked(getStats).mockResolvedValue({
+  vi.mocked(getStats).mockResolvedValue(normalizeHomeStats({
     metrics: { alkanesBtcLocked: null, brc20BtcLocked: 1, alkanesBtcLockedAddress: null, brc20BtcLockedAddress: null, alkanesCirculating: null, brc20Circulating: null, alkanesTotalUnwraps: null, brc20TotalUnwraps: null, btcPrice: null },
     marquee: { btcUsd: null, btcHeight: null, metashrewHeight: null, dieselUsd: null, fireUsd: null, btcDieselRatio: null, btcFireRatio: null },
-  })
+  }))
   vi.mocked(getAlkaneDetails).mockImplementation(async (id: string) =>
     id === "2:0" ? block(id, { holders: null, priceUsd: null, name: null }) : block(id))
 

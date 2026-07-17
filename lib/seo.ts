@@ -1,5 +1,9 @@
 export const siteUrl = "https://subfrost.io"
 export const siteName = "SUBFROST"
+export const sharedUnfurlImagePath = "/brand/subfrost/Graphics/jpeg/unfurl.jpg"
+export const sharedUnfurlImageUrl = absoluteUrl(sharedUnfurlImagePath)
+export const sharedUnfurlImageWidth = 1794
+export const sharedUnfurlImageHeight = 598
 
 export function absoluteUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) return path
@@ -28,7 +32,10 @@ export function authorUrl(id: string, locale: "en" | "zh" = "en") {
 
 export function isDeployPreviewHost(host: string | null) {
   const normalized = host?.toLowerCase() ?? ""
-  return Boolean(normalized.includes("deploy-preview-") && normalized.endsWith(".netlify.app"))
+  return Boolean(
+    (normalized.includes("deploy-preview-") && normalized.endsWith(".netlify.app")) ||
+      normalized.endsWith(".vercel.app"),
+  )
 }
 
 export function isLocalPreviewHost(host: string | null) {

@@ -1,0 +1,13 @@
+{
+  "name": "tlsfetch-h2-web-sys",
+  "description": "wasm-bindgen wrapper around tlsfetch-h2-common — exposes the HTTP/2 + gRPC client as a JS-callable class. JS-side drives the PumpedDuplex via push_inbound / take_outbound on top of a WasmTlsConnection (tlsfetch-web-sys) wrapped by a browser-native WebSocket or WebTransport adapter.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "tlsfetch_h2_web_sys_bg.wasm",
+    "tlsfetch_h2_web_sys.js",
+    "tlsfetch_h2_web_sys.d.ts"
+  ],
+  "main": "tlsfetch_h2_web_sys.js",
+  "types": "tlsfetch_h2_web_sys.d.ts"
+}

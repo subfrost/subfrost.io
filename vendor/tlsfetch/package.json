@@ -1,0 +1,64 @@
+{
+  "name": "tlsfetch",
+  "version": "0.1.0",
+  "description": "Pure-Rust TLS+HTTP client compiled to wasm. Curl-compatible CLI. BYO net module so it works in Node, browsers (via @subzero/ts-sdk frtun), Bun, Deno, anywhere.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "tlsfetch": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./h2": {
+      "types": "./dist/h2/index.d.ts",
+      "node": "./dist/h2/index.js",
+      "default": "./dist/h2/index.js"
+    },
+    "./h2/wasm-node": {
+      "types": "./pkg-h2-node/tlsfetch_h2_web_sys.d.ts",
+      "default": "./pkg-h2-node/tlsfetch_h2_web_sys.js"
+    },
+    "./h2/wasm-bundler": {
+      "types": "./pkg-h2-bundler/tlsfetch_h2_web_sys.d.ts",
+      "default": "./pkg-h2-bundler/tlsfetch_h2_web_sys.js"
+    },
+    "./hyflaria/wasm-node": {
+      "types": "./pkg-hyflaria-node/hyflaria_web_sys.d.ts",
+      "default": "./pkg-hyflaria-node/hyflaria_web_sys.js"
+    },
+    "./hyflaria/wasm-bundler": {
+      "types": "./pkg-hyflaria-bundler/hyflaria_web_sys.d.ts",
+      "default": "./pkg-hyflaria-bundler/hyflaria_web_sys.js"
+    }
+  },
+  "files": [
+    "dist",
+    "pkg",
+    "pkg-h2-node",
+    "pkg-h2-bundler",
+    "pkg-hyflaria-node",
+    "pkg-hyflaria-bundler"
+  ],
+  "scripts": {
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "build:ts": "tsc -p tsconfig.json",
+    "build": "npm run build:wasm && npm run build:ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "ws": "^8.20.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

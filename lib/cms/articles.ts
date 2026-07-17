@@ -164,13 +164,15 @@ const previewFallbackArticles = [
   },
 ]
 
-function usePreviewFallback(force = false) {
+function shouldUsePreviewFallback(force = false) {
   return (
     force ||
     process.env.CONTEXT === "deploy-preview" ||
     process.env.NETLIFY === "true" ||
+    process.env.VERCEL_ENV === "preview" ||
     process.env.DEPLOY_PRIME_URL?.includes("deploy-preview-") === true ||
     process.env.DEPLOY_URL?.includes("deploy-preview-") === true ||
+    process.env.VERCEL_URL?.endsWith(".vercel.app") === true ||
     process.env.URL?.includes("deploy-preview-") === true ||
     process.env.NEXT_PUBLIC_ENABLE_ARTICLE_PREVIEW_FALLBACK === "true"
   )
@@ -254,6 +256,23 @@ async function remotePreviewPreviews(opts: {
   }
 }
 
+async function remotePreviewArticle(slug: string, locale: CmsLocale): Promise<ArticleFull | null> {
+  const apiUrl = process.env.ARTICLE_PREVIEW_API_URL
+  if (!apiUrl) return null
+
+  try {
+    const url = new URL(`${apiUrl.replace(/\/$/, "")}/${encodeURIComponent(slug)}`)
+    url.searchParams.set("locale", locale)
+
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { article?: ArticleFull }
+    return data.article ?? null
+  } catch {
+    return null
+  }
+}
+
 function toPreview(a: ArticleRow, want: CmsLocale): ArticlePreview | null {
   const t = chooseTranslation(a.translations, a.primaryLocale, want)
   if (!t) return null
@@ -290,7 +309,7 @@ export async function getPublishedPreviews(opts: {
   previewFallback?: boolean
 } = {}): Promise<ArticlePreview[]> {
   const { limit = 20, tag, featured, locale = "en", previewFallback = false } = opts
-  if (usePreviewFallback(previewFallback)) return (await remotePreviewPreviews(opts)) ?? previewPreviews(opts)
+  if (shouldUsePreviewFallback(previewFallback)) return (await remotePreviewPreviews(opts)) ?? previewPreviews(opts)
 
   try {
     const rows = (await prisma.article.findMany({
@@ -303,10 +322,10 @@ export async function getPublishedPreviews(opts: {
       take: Math.min(Math.max(limit, 1), 50),
       select: baseSelect,
     })) as ArticleRow[]
-    if (rows.length === 0 && usePreviewFallback(previewFallback)) return previewPreviews(opts)
+    if (rows.length === 0 && shouldUsePreviewFallback(previewFallback)) return previewPreviews(opts)
     return rows.map((r) => toPreview(r, locale)).filter((x): x is ArticlePreview => x !== null)
   } catch {
-    if (usePreviewFallback(previewFallback)) return previewPreviews(opts)
+    if (shouldUsePreviewFallback(previewFallback)) return previewPreviews(opts)
     throw new Error("Unable to load published articles")
   }
 }
@@ -317,10 +336,10 @@ export async function getPublishedSlugs(): Promise<string[]> {
       where: { status: "PUBLISHED" },
       select: { slug: true },
     })
-    if (rows.length === 0 && usePreviewFallback()) return previewFallbackArticles.map((article) => article.slug)
+    if (rows.length === 0 && shouldUsePreviewFallback()) return previewFallbackArticles.map((article) => article.slug)
     return rows.map((r) => r.slug)
   } catch {
-    if (usePreviewFallback()) return previewFallbackArticles.map((article) => article.slug)
+    if (shouldUsePreviewFallback()) return previewFallbackArticles.map((article) => article.slug)
     throw new Error("Unable to load published article slugs")
   }
 }
@@ -345,7 +364,7 @@ export async function getPublishedArticleSeoEntries(limit = 500): Promise<Publis
         translations: { select: { locale: true } },
       },
     })
-    if (rows.length === 0 && usePreviewFallback()) {
+    if (rows.length === 0 && shouldUsePreviewFallback()) {
       return previewFallbackArticles.map((article) => ({
         slug: article.slug,
         publishedAt: article.publishedAt,
@@ -360,7 +379,7 @@ export async function getPublishedArticleSeoEntries(limit = 500): Promise<Publis
       availableLocales: row.translations.map((x) => x.locale as CmsLocale),
     }))
   } catch {
-    if (usePreviewFallback()) {
+    if (shouldUsePreviewFallback()) {
       return previewFallbackArticles.map((article) => ({
         slug: article.slug,
         publishedAt: article.publishedAt,
@@ -396,7 +415,7 @@ export async function getPublishedAuthorSeoEntries(limit = 500): Promise<Publish
         },
       },
     })
-    if (rows.length === 0 && usePreviewFallback()) {
+    if (rows.length === 0 && shouldUsePreviewFallback()) {
       return [{ id: previewFallbackAuthor.id, updatedAt: "2026-06-22T12:00:00.000Z", hasChineseArticles: true }]
     }
     return rows.map((row) => ({
@@ -405,7 +424,7 @@ export async function getPublishedAuthorSeoEntries(limit = 500): Promise<Publish
       hasChineseArticles: row.articles.some((article) => article.translations.some((t) => t.locale === "zh")),
     }))
   } catch {
-    if (usePreviewFallback()) {
+    if (shouldUsePreviewFallback()) {
       return [{ id: previewFallbackAuthor.id, updatedAt: "2026-06-22T12:00:00.000Z", hasChineseArticles: true }]
     }
     throw new Error("Unable to load author SEO entries")
@@ -418,20 +437,20 @@ export async function getPublishedArticle(
   opts: { previewFallback?: boolean } = {},
 ): Promise<ArticleFull | null> {
   const previewFallback = opts.previewFallback ?? false
-  if (usePreviewFallback(previewFallback)) return previewArticle(slug, locale)
+  if (shouldUsePreviewFallback(previewFallback)) return (await remotePreviewArticle(slug, locale)) ?? previewArticle(slug, locale)
 
   try {
     const a = (await prisma.article.findFirst({
       where: { slug, status: "PUBLISHED" },
       select: baseSelect,
     })) as ArticleRow | null
-    if (!a) return usePreviewFallback(previewFallback) ? previewArticle(slug, locale) : null
+    if (!a) return shouldUsePreviewFallback(previewFallback) ? previewArticle(slug, locale) : null
     const t = chooseTranslation(a.translations, a.primaryLocale, locale)
     const preview = toPreview(a, locale)
     if (!t || !preview) return null
     return { ...preview, body: t.body, sources: t.sources ?? "" }
   } catch {
-    if (usePreviewFallback(previewFallback)) return previewArticle(slug, locale)
+    if (shouldUsePreviewFallback(previewFallback)) return previewArticle(slug, locale)
     throw new Error("Unable to load published article")
   }
 }
@@ -440,7 +459,7 @@ export async function getPublishedArticle(
 // for unknown/inactive authors so the route can 404.
 export async function getAuthorProfile(id: string, opts: { previewFallback?: boolean } = {}): Promise<AuthorPage | null> {
   const previewFallback = opts.previewFallback ?? false
-  if (usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+  if (shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
     return { ...previewFallbackAuthor, articleCount: previewFallbackArticles.length, joinedYear: 2026 }
   }
 
@@ -459,7 +478,7 @@ export async function getAuthorProfile(id: string, opts: { previewFallback?: boo
       },
     })
     if (!u) {
-      if (usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+      if (shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
         return { ...previewFallbackAuthor, articleCount: previewFallbackArticles.length, joinedYear: 2026 }
       }
       return null
@@ -474,7 +493,7 @@ export async function getAuthorProfile(id: string, opts: { previewFallback?: boo
       joinedYear: u.createdAt.getFullYear(),
     }
   } catch {
-    if (usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+    if (shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
       return { ...previewFallbackAuthor, articleCount: previewFallbackArticles.length, joinedYear: 2026 }
     }
     throw new Error("Unable to load author profile")
@@ -501,7 +520,7 @@ export async function getAuthorArticles(
   opts: { previewFallback?: boolean } = {},
 ): Promise<ArticlePreview[]> {
   const previewFallback = opts.previewFallback ?? false
-  if (usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+  if (shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
     return previewPreviews({ limit: previewFallbackArticles.length, locale })
   }
 
@@ -512,12 +531,12 @@ export async function getAuthorArticles(
       take: 50,
       select: baseSelect,
     })) as ArticleRow[]
-    if (rows.length === 0 && usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+    if (rows.length === 0 && shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
       return previewPreviews({ limit: 50, locale })
     }
     return rows.map((r) => toPreview(r, locale)).filter((x): x is ArticlePreview => x !== null)
   } catch {
-    if (usePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
+    if (shouldUsePreviewFallback(previewFallback) && id === previewFallbackAuthor.id) {
       return previewPreviews({ limit: 50, locale })
     }
     throw new Error("Unable to load author articles")

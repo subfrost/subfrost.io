@@ -1,0 +1,39 @@
+# Forked from quinn-rs/quinn @ quinn-0.11.7 tag (quinn-udp
+# subcrate, v0.5.10). Byte-identical vendor with workspace = true
+# substituted to explicit values. Package name stays `quinn-udp`
+# for [patch.crates-io].
+
+[package]
+name = "quinn-udp"
+version = "0.5.10"
+edition = "2021"
+rust-version = "1.71"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/quinn-rs/quinn"
+description = "UDP sockets with ECN information for the QUIC transport protocol (tlsfetch fork)"
+keywords = ["quic"]
+categories = ["network-programming", "asynchronous"]
+
+[features]
+default = ["tracing", "log"]
+log = ["tracing/log"]
+direct-log = ["dep:log"]
+fast-apple-datapath = []
+
+[dependencies]
+libc = "0.2.158"
+log = { version = "0.4", optional = true }
+tracing = { version = "0.1.10", default-features = false, features = ["std"], optional = true }
+
+[target.'cfg(not(all(target_family = "wasm", target_os = "unknown")))'.dependencies]
+socket2 = "0.5"
+
+[target.'cfg(windows)'.dependencies]
+once_cell = "1.19"
+windows-sys = { version = ">=0.52, <=0.59", features = ["Win32_Foundation", "Win32_System_IO", "Win32_Networking_WinSock"] }
+
+[build-dependencies]
+cfg_aliases = "0.2"
+
+[lib]
+bench = false

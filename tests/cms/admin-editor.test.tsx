@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import { AdminEditor, type EditorInitial } from "@/components/cms/AdminEditor"
-import { saveArticle } from "@/actions/cms/articles"
+import { saveArticle, translateArticleAction } from "@/actions/cms/articles"
 
 vi.mock("@/actions/cms/articles", () => ({
   saveArticle: vi.fn(),
@@ -23,11 +23,11 @@ const initial: EditorInitial = {
   zh: { title: "", excerpt: "", body: "", sources: "" },
 }
 
-describe("AdminEditor -- sources field", () => {
-  it("shows a Sources field bound to the active locale", () => {
-    const { getByText, getByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
-    expect(getByText(/Sources/i)).toBeTruthy()
-    expect(getByDisplayValue("BBSW #29")).toBeTruthy()
+describe("AdminEditor -- source controls", () => {
+  it("keeps the removed Sources field out of the editor surface", () => {
+    const { queryByText, queryByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
+    expect(queryByText(/Sources/i)).toBeNull()
+    expect(queryByDisplayValue("BBSW #29")).toBeNull()
   })
 
   it("shows a Ghost-style feature image action and plain primary language controls", () => {
@@ -36,6 +36,18 @@ describe("AdminEditor -- sources field", () => {
     expect(getByText("Add feature image")).toBeTruthy()
     expect(getByText("Primary language")).toBeTruthy()
     expect(queryByRole("combobox", { name: /Primary language/i })).toBeNull()
+  })
+})
+
+describe("AdminEditor -- review entry point", () => {
+  it("links a saved article to its annotated full-page preview", () => {
+    const { getByRole } = render(<AdminEditor initial={initial} canPublish />)
+    expect(getByRole("link", { name: /Review/ })).toHaveAttribute("href", "/admin/articles/a1/preview")
+  })
+
+  it("hides the Review link while the article is unsaved (no id yet)", () => {
+    const { queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
+    expect(queryByRole("link", { name: /Review/ })).toBeNull()
   })
 })
 
@@ -65,5 +77,87 @@ describe("AdminEditor -- co-authors", () => {
     )
     expect(getByRole("button", { name: "Brooks" }).getAttribute("aria-pressed")).toBe("true")
     expect(getByRole("button", { name: "Gabe" }).getAttribute("aria-pressed")).toBe("false")
+  })
+})
+
+describe("AdminEditor -- upload errors", () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it("surfaces a cover upload failure next to the feature-image control, not only in the footer", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("Upload endpoint unreachable"))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { container, getByText, getByRole } = render(
+      <AdminEditor initial={{ ...initial, id: undefined, coverImage: "" }} canPublish />,
+    )
+
+    // Selecting a file drives the hidden cover input -> uploadCover -> failing fetch.
+    const coverInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["x"], "cover.png", { type: "image/png" })
+    fireEvent.change(coverInput, { target: { files: [file] } })
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/admin/upload", expect.anything()),
+    )
+
+    // The error must render as an alert sitting with the cover control (top of the
+    // page), not off-screen in the article footer.
+    const alert = await waitFor(() => getByRole("alert"))
+    expect(alert).toHaveTextContent("Upload endpoint unreachable")
+    expect(getByText("Add feature image").closest("div")).toContainElement(alert)
+  })
+
+  it("shows a clean cover-upload error (not a raw JSON-parse error) when the server answers non-JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("<html>Internal Server Error</html>", {
+        status: 500,
+        headers: { "content-type": "text/html" },
+      }),
+    ))
+
+    const { container, getByRole } = render(
+      <AdminEditor initial={{ ...initial, id: undefined, coverImage: "" }} canPublish />,
+    )
+    const coverInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["x"], "cover.png", { type: "image/png" })
+    fireEvent.change(coverInput, { target: { files: [file] } })
+
+    const alert = await waitFor(() => getByRole("alert"))
+    expect(alert.textContent).toMatch(/upload failed/i)
+    expect(alert.textContent).not.toMatch(/token|JSON/i)
+  })
+})
+
+describe("AdminEditor -- AI translation", () => {
+  it("saves, translates the active locale into the other, and fills its tab", async () => {
+    vi.mocked(saveArticle).mockResolvedValue({ ok: true, slug: "s", id: "a1", authorId: "u1" } as never)
+    vi.mocked(translateArticleAction).mockResolvedValue({
+      ok: true,
+      translation: { title: "标题", excerpt: "摘要", body: "正文", sources: "来源" },
+    } as never)
+
+    const { getByRole, findByDisplayValue } = render(<AdminEditor initial={initial} canPublish />)
+
+    fireEvent.click(getByRole("button", { name: /Translate to 中文/i }))
+
+    await waitFor(() => expect(translateArticleAction).toHaveBeenCalledWith("a1", "en", "zh"))
+    // the zh tab is now active and shows the translated title
+    expect(await findByDisplayValue("标题")).toBeTruthy()
+  })
+
+  it("does not offer translation when the active locale has no content", () => {
+    const empty: EditorInitial = { ...initial, en: { title: "", excerpt: "", body: "", sources: "" } }
+    const { queryByRole } = render(<AdminEditor initial={empty} canPublish />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
+  })
+
+  it("does not offer translation on an unsaved (idless) article", () => {
+    const { queryByRole } = render(<AdminEditor initial={{ ...initial, id: undefined }} canPublish />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
+  })
+
+  it("hides the translate button when the translation service is disabled", () => {
+    const { queryByRole } = render(<AdminEditor initial={initial} canPublish translationEnabled={false} />)
+    expect(queryByRole("button", { name: /Translate to/i })).toBeNull()
   })
 })

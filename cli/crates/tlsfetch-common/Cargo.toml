@@ -1,0 +1,131 @@
+[package]
+name = "tlsfetch-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure-Rust TLS client over an abstract Socket trait. The core of tlsfetch."
+
+[dependencies]
+rustls = { workspace = true }
+rustls-pki-types = { workspace = true }
+webpki-roots = { workspace = true }
+# Pure-Rust CryptoProvider for wasm32 + tests. On native targets we
+# also use it because ring-on-wasm requires special cfg flags and we'd
+# rather have one provider for both targets.
+rustls-rustcrypto = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+log = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+http = { workspace = true }
+httparse = { workspace = true }
+
+# JA3 / JA4 fingerprint hashing. JA3 = MD5 of the JA3 string;
+# JA4 = truncated SHA-256 of the sorted cipher / extension lists.
+md-5 = { workspace = true }
+sha2 = { workspace = true }
+
+# CLI surface — the curl-compatible flag parser + run loop is shared
+# between the native bin (tlsfetch-cli) and the wasm bin export from
+# the @tlsfetch/ts-sdk. Gate behind the `cli` feature so callers that
+# only want the library don't pay for clap.
+clap = { workspace = true, optional = true }
+flate2 = { workspace = true, optional = true }
+percent-encoding = { workspace = true, optional = true }
+# base64 is non-optional because the `proxy` module uses it
+# unconditionally for `Proxy-Authorization: Basic ...`. Tiny crate,
+# pulls nothing native.
+base64 = { workspace = true }
+anyhow = { workspace = true, optional = true }
+
+# Pure-Rust ML-KEM 768 for the X25519MLKEM768 hybrid kex (draft
+# `draft-ietf-tls-ecdhe-mlkem`). `rustls-rustcrypto` (the pure-Rust
+# CryptoProvider) doesn't ship a PQ kx group, and the upstream
+# `rustls`-internal X25519MLKEM768 is gated on the `aws_lc_rs`
+# provider. Sucuri-class WAFs and modern Cloudflare configs reject
+# any Chrome-shaped ClientHello whose `supported_groups` doesn't
+# advertise `4588` (X25519MLKEM768), so we register our own hybrid
+# `SupportedKxGroup` composed from `rustls-rustcrypto`'s X25519
+# plus this ML-KEM 768. Adds ~70 KiB compiled. Pure Rust,
+# no_std-compatible, FIPS 203-conformant.
+ml-kem = { version = "0.3", default-features = false, features = ["alloc", "getrandom"] }
+# X25519 classical kex for the X25519MLKEM768 hybrid. Already a
+# transitive of rustls-rustcrypto; explicit here so we can call
+# `EphemeralSecret::random_from_rng`.
+x25519-dalek = { version = "2", default-features = false, features = ["alloc", "static_secrets"] }
+rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
+
+# NTLMv2 client (Type1/Type2/Type3 message encoding + crypto). Pure
+# Rust, ~CC0. Used by the optional `ntlm` feature.
+ntlmclient = { workspace = true, optional = true }
+
+# HTTP/2 (optional, behind the `http2` feature). `http` and `bytes`
+# are non-optional above (used by HTTP/1 too).
+h2 = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+http-body-util = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+
+# HTTP/3 (optional, behind the `http3` feature). quinn brings its
+# own tokio UDP transport, h3 is the codec, h3-quinn is the bridge.
+quinn = { workspace = true, optional = true }
+h3 = { workspace = true, optional = true }
+h3-quinn = { workspace = true, optional = true }
+
+# Lazy shared-timer timeout primitive. Used by the HTTP/2 and
+# HTTP/3 paths in place of `tokio::time::timeout` so high-RPS
+# clients pay ~4 ns per timeout instead of ~107 ns. Tied to the
+# same feature gate as the protocol that uses it.
+tlsfetch-timeout = { path = "../tlsfetch-timeout", optional = true }
+
+[features]
+default = ["cli", "ntlm"]
+cli = [
+    "dep:clap",
+    "dep:flate2",
+    "dep:percent-encoding",
+    "dep:anyhow",
+]
+# NTLMv2 auth (--ntlm, --proxy-ntlm). Adds the `ntlmclient` dep.
+# Default-on for the CLI build because it's tiny and people who hit
+# corp Windows servers expect it to be there.
+ntlm = ["dep:ntlmclient"]
+# Kerberos / Negotiate / SPNEGO auth (--negotiate). Off by default
+# because it requires a system libgssapi/MIT krb5 install, which
+# breaks the otherwise pure-Rust dependency tree. Enable explicitly
+# on machines where you have those libraries: `cargo build
+# --features kerberos`. The default build still accepts the
+# `--negotiate` flag and returns a clear error pointing here.
+kerberos = []
+# HTTP/2 via the h2 crate. Pulls in tokio + tokio-rustls. Enabled
+# automatically by tlsfetch-sys (native). Wasm side will gain its own
+# h2-on-wasm-bindgen-futures path in a follow-up.
+http2 = ["dep:h2", "dep:tokio", "dep:tokio-rustls", "dep:http-body-util", "dep:futures-util", "dep:tlsfetch-timeout"]
+# HTTP/3 via quinn + h3. Requires tokio (shared with http2) for the
+# QUIC event loop. Enabled automatically by tlsfetch-sys.
+http3 = ["dep:quinn", "dep:h3", "dep:h3-quinn", "dep:tokio", "dep:futures-util", "dep:tlsfetch-timeout"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+env_logger = { workspace = true }
+# h2 regression tests: spin up a self-signed TLS listener that runs
+# `h2::server::handshake` and serve fixture responses against the
+# real `HttpClient::send` HTTP/2 path. rcgen produces the cert + key,
+# tokio-rustls terminates TLS on the server side, h2 drives the
+# server handshake. All gated to dev so the runtime crate itself
+# stays lean.
+rcgen = "0.14"
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "time"] }
+tokio-rustls = { workspace = true }
+h2 = { workspace = true }
+http = { workspace = true }
+bytes = { workspace = true }
+# `rustls-rustcrypto` is the pure-Rust crypto provider the runtime
+# uses (matching what `http2::send_request` configures); we install
+# it globally for tokio-rustls's `TlsAcceptor` so the test server
+# uses the same crypto as the client under test.
+rustls-rustcrypto = { workspace = true }

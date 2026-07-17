@@ -17,6 +17,8 @@ const nextConfig = {
     unoptimized: true,
   },
 
+  devIndicators: false,
+
   // Turbopack configuration (Next.js 16+)
   // Pin root so Next doesn't infer from parent lockfiles and accidentally
   // resolve dependencies from outside this repo.
@@ -26,7 +28,7 @@ const nextConfig = {
 
   // Mark packages with native/WASM dependencies as external
   // This prevents the bundler from transforming __dirname and breaking WASM loading
-  serverExternalPackages: ['@alkanes/ts-sdk'],
+  serverExternalPackages: ['@alkanes/ts-sdk', 'sharp', '@react-pdf/renderer', 'tlsfetch'],
 
   // Environment variables exposed to the browser
   env: {
@@ -52,6 +54,20 @@ const nextConfig = {
         source: '/download',
         destination:
           'https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen',
+        permanent: false,
+      },
+      // The public metrics page moved from /data to /metrics (flex request).
+      // Keep old shared links and cached X OG cards (/data/card/:metric) working.
+      // Temporary (307) so it isn't browser-cached forever; make permanent once
+      // the rename has settled. Query strings (?lang=zh) are preserved by Next.
+      {
+        source: '/data',
+        destination: '/metrics',
+        permanent: false,
+      },
+      {
+        source: '/data/:path*',
+        destination: '/metrics/:path*',
         permanent: false,
       },
     ];

@@ -18,12 +18,12 @@ describe('middleware locale detection', () => {
     expect(res.cookies.get('subfrost_locale')?.value).toBe('zh')
   })
 
-  it('sets subfrost_locale=en for an en visitor with no cookie', async () => {
+  it('does not set a locale cookie for an en visitor with no cookie', async () => {
     const req = new NextRequest('http://localhost/', {
       headers: { 'accept-language': 'en-US,en;q=0.9' },
     })
     const res = await middleware(req)
-    expect(res.cookies.get('subfrost_locale')?.value).toBe('en')
+    expect(res.cookies.get('subfrost_locale')).toBeUndefined()
   })
 
   it('does not override an existing cookie', async () => {
@@ -33,5 +33,29 @@ describe('middleware locale detection', () => {
     req.cookies.set('subfrost_locale', 'en')
     const res = await middleware(req)
     expect(res.cookies.get('subfrost_locale')).toBeUndefined()
+  })
+
+  it('redirects an /articles/<slug> deep link to the saved zh cookie locale', async () => {
+    const req = new NextRequest('http://localhost/articles/some-post', {
+      headers: { 'accept-language': 'en-US,en;q=0.9' },
+    })
+    req.cookies.set('subfrost_locale', 'zh')
+    const res = await middleware(req)
+    expect(res.status).toBe(307)
+    const location = new URL(res.headers.get('location') || '', 'http://localhost')
+    expect(location.pathname).toBe('/articles/some-post')
+    expect(location.searchParams.get('lang')).toBe('zh')
+  })
+
+  it('redirects an /ecosystem/<slug> deep link to the saved zh cookie locale', async () => {
+    const req = new NextRequest('http://localhost/ecosystem/arbuzino', {
+      headers: { 'accept-language': 'en-US,en;q=0.9' },
+    })
+    req.cookies.set('subfrost_locale', 'zh')
+    const res = await middleware(req)
+    expect(res.status).toBe(307)
+    const location = new URL(res.headers.get('location') || '', 'http://localhost')
+    expect(location.pathname).toBe('/ecosystem/arbuzino')
+    expect(location.searchParams.get('lang')).toBe('zh')
   })
 })

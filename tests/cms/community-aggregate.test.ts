@@ -40,10 +40,28 @@ describe("aggregateCommunities", () => {
   })
 
   it("sums member FUEL and orders members by FUEL desc, flagging the leader", () => {
-    expect(kunteng.totalFuel).toBe(160) // 100 + 50 + 10
-    expect(kunteng.members.map((m) => m.address)).toEqual(["addrAlice", "addrBob", "addrLeader"])
+    expect(kunteng.totalFuel).toBe(160) // 100 + 50 + 10; sub-owners hold no FUEL
+    // Redeemers (with FUEL) first, then the zero-FUEL sub-code owners by address.
+    expect(kunteng.members.map((m) => m.address)).toEqual([
+      "addrAlice",
+      "addrBob",
+      "addrLeader",
+      "addrSub1",
+      "addrSub2",
+    ])
     expect(kunteng.members.find((m) => m.isLeader)?.address).toBe("addrLeader")
     expect(kunteng.members[0].note).toBe("kunteng")
+  })
+
+  it("includes code owners as members even when they never redeemed a code", () => {
+    // addrSub1/addrSub2 own child codes but appear in no redemption row.
+    const sub1 = kunteng.members.find((m) => m.address === "addrSub1")
+    expect(sub1).toBeDefined()
+    expect(sub1?.codesClaimed).toEqual([])
+    expect(sub1?.fuel).toBe(0)
+    // The SOLO community's owner shows up despite zero redemptions.
+    const solo = agg.communities.find((c) => c.rootCode === "SOLO")!
+    expect(solo.members.map((m) => m.address)).toEqual(["addrSolo"])
   })
 
   it("orders communities by total FUEL desc", () => {

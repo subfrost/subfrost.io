@@ -333,5 +333,7 @@ export async function updateProfile(
   })
   revalidatePath("/admin/users")
   revalidatePath("/admin/profile")
+  revalidatePath("/articles")
+  revalidatePath(`/authors/${userId}`)
   return { ok: true }
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import FrostBackdrop from "@/components/FrostBackdrop"
@@ -26,6 +27,7 @@ import { Github } from "lucide-react"
 import LanguageToggle from "@/components/LanguageToggle"
 import StableText from "@/components/StableText"
 import { useTranslation } from "@/hooks/useTranslation"
+import { externalLinks } from "@/lib/external-links"
 import type { HomeStats } from "@/lib/stats"
 
 type SocialLink = { type: "x" | "linkedin" | "github"; url: string }
@@ -100,7 +102,7 @@ export default function HomeClient({ initialStats }: { initialStats: HomeStats }
         {/* Top Left Buttons */}
         <div className="absolute top-4 left-4 z-20 flex flex-row items-center gap-2">
           <a
-            href="https://api.subfrost.io"
+            href={externalLinks.apiLogin}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("api_login_click", { event_category: "navigation", event_label: "hero_header" })}
@@ -109,7 +111,7 @@ export default function HomeClient({ initialStats }: { initialStats: HomeStats }
             <StableText textKey="hero.apiLogin" />
           </a>
           <a
-            href="https://api.subfrost.io/docs"
+            href={externalLinks.apiDocs}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("api_docs_click", { event_category: "navigation", event_label: "hero_header" })}
@@ -118,7 +120,7 @@ export default function HomeClient({ initialStats }: { initialStats: HomeStats }
             <StableText textKey="hero.apiDocs" />
           </a>
           <a
-            href="https://docs.subfrost.io/"
+            href={externalLinks.docs}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent("official_docs_click", { event_category: "navigation", event_label: "hero_header" })}
@@ -131,13 +133,13 @@ export default function HomeClient({ initialStats }: { initialStats: HomeStats }
               <StableText textKey="hero.officialDocs" />
             </span>
           </a>
-          <a
+          <Link
             href="/articles"
             onClick={() => trackEvent("blog_click", { event_category: "navigation", event_label: "hero_header" })}
             className="flex justify-center px-5 py-2 rounded-md border border-white/70 text-white hover:bg-white/10 transition-colors font-bold text-sm"
           >
             <StableText textKey="hero.blog" />
-          </a>
+          </Link>
         </div>
 
         {/* Top Right Button */}

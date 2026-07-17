@@ -1,0 +1,19 @@
+[
+  {
+    "slug": "arbuzino",
+    "profileMd": "profiles/arbuzino.en.md",
+    "contracts": [
+      { "label": "ARBUZ token", "alkaneId": "2:25349", "noteEn": "Free-mint alkane token, 100 ARBUZ per mint (pool-gated via Acai)", "noteZh": "" },
+      { "label": "Magic Arbuz Card factory", "alkaneId": "2:69849", "noteEn": "Generative tarot-card NFTs, minted by burning 100 ARBUZ", "noteZh": "" },
+      { "label": "Inugami bounty", "alkaneId": "2:69834", "noteEn": "DIESEL bounty locked against a miner coinbase phrase", "noteZh": "" },
+      { "label": "Fireball game (Arbuzino lottery)", "alkaneId": "4:257", "noteEn": "The lottery singleton — tickets, draws, claims, prize pools", "noteZh": "" },
+      { "label": "Fireball position NFT template", "alkaneId": "4:256", "noteEn": "Ticket NFT template; each ticket is a clone minted at 2:N", "noteZh": "" },
+      { "label": "Fireball fee vault", "alkaneId": "4:777", "noteEn": "Share vault; the lottery's 14% fee is swept here as staker yield", "noteZh": "" }
+    ]
+  },
+  {
+    "slug": "wunsch-vault",
+    "descriptionEn": "Share vault for the Arbuzino Fireball lottery — the game's immutable 14% fee is swept here permissionlessly as staker yield.",
+    "descriptionZh": "Arbuzino Fireball 彩票的份额金库——游戏不可变的 14% 手续费以无许可方式汇入此处，作为质押者收益。"
+  }
+]

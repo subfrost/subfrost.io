@@ -13,6 +13,9 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # Copy package files and prisma schema (needed for postinstall)
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
+# Vendored local `file:` deps must be present before pnpm install resolves them
+# (tlsfetch = the wasm TLS client the treasury provider dials NodeReal through).
+COPY vendor ./vendor/
 
 # Configure pnpm to NOT use symlinks (critical for Docker builds)
 RUN echo "node-linker=hoisted" > .npmrc && \
@@ -73,9 +76,33 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/tiny-secp256k1 ./node_modules/tiny-secp256k1
 # Copy entire @alkanes/ts-sdk package (marked as serverExternalPackages in next.config)
 COPY --from=builder /app/node_modules/@alkanes ./node_modules/@alkanes
+# tlsfetch (serverExternalPackages): pure-Rust TLS client compiled to wasm — the
+# treasury provider dials NodeReal (BSC) with a browser fingerprint through it.
+# standalone tracing drops the .wasm, so copy the whole vendored package.
+COPY --from=builder /app/node_modules/tlsfetch ./node_modules/tlsfetch
+# sharp loads libvips (a native .so) via dlopen at runtime, which Next.js
+# standalone tracing can't follow — it copies sharp's JS but drops the .so, so
+# require('sharp') dies with ERR_DLOPEN_FAILED and every CMS image upload fails.
+# Re-copy the full package incl. its nested @img native libs (same reason as above).
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img ./node_modules/@img
+
+# Fail the build loudly if sharp can't load libvips in the musl runtime, so a
+# missing native lib can never silently ship and break uploads again.
+RUN node -e "const s=require('sharp'); console.log('sharp', s.versions.sharp, 'libvips', s.versions.vips)"
+
+# Same guard for jsdom (SVG sanitization in the upload route): it must load on
+# THIS Node version. jsdom >=27 pulls html-encoding-sniffer@6, whose require()
+# of the ESM-only @exodus/bytes needs require(esm) (Node >=20.19/22.12) and
+# died here with ERR_REQUIRE_ESM on Node 20.13 — killing the upload route
+# chunk at module load for every file type.
+RUN node -e "const { JSDOM } = require('jsdom'); new JSDOM(''); console.log('jsdom OK on', process.version)"
 
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
+
+# Copy CronJob scripts (run with the app image, e.g. opreturn sync)
+COPY scripts ./scripts
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app

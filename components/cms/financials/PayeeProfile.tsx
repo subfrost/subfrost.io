@@ -5,8 +5,11 @@ import Link from "next/link"
 import { ArrowLeft, Pencil, Link2, Unlink, FileText, ShieldCheck } from "lucide-react"
 import { payeeProfileAction, updatePayeeAction, type LinkableUser, type LinkableKycIntake } from "@/actions/cms/accounting"
 import type { InvoiceStatus, PayeeProfile as PayeeProfileData, PayeeType } from "@/lib/financials/accounting/shapes"
+import { explorerTxUrl } from "@/lib/explorers"
+import { useDieselUsd, sumSettlingUsd } from "@/components/cms/financials/use-diesel-usd"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
+const approxUsd = (n: number) => `~${n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`
 const dsl = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 8 })} DIESEL`
 const short = (s: string, n = 8) => (s.length > n * 2 ? `${s.slice(0, n)}…${s.slice(-4)}` : s)
 
@@ -25,6 +28,25 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const { payee, user, kyc, invoices, payments, envelopes, totals } = profile
+  const { values: usdValues } = useDieselUsd(payments)
+
+  // Split USD by how the invoice settled. USD-denominated invoices (amountDiesel
+  // == null) contribute to the headline "Paid (USD)"; DIESEL-denominated invoices
+  // instead surface two numbers under "Paid (DIESEL)": the manually-invoiced USD
+  // face value, and the market value (spot USD of the DIESEL that settled them,
+  // i.e. the sum of the invoices table's USD column).
+  const invoiceById = new Map(invoices.map((i) => [i.id, i]))
+  let paidUsdOnly = 0
+  let invoicedUsd = 0
+  let marketUsd = 0
+  for (const i of invoices) {
+    if (i.amountDiesel != null) {
+      invoicedUsd += i.amountUsd
+      marketUsd += sumSettlingUsd(payments.filter((p) => p.invoiceId === i.id), usdValues) ?? 0
+    } else if (i.status === "PAID") {
+      paidUsdOnly += i.amountUsd
+    }
+  }
 
   function run(patch: Patch, after?: () => void) {
     setError(null)
@@ -67,29 +89,40 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
         onLink={(kycIntakeId) => run({ kycIntakeId })} onUnlink={() => run({ kycIntakeId: null })} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Metric label="Paid (USD)" value={usd(paidUsdOnly)} />
+        <Metric label="Paid (DIESEL)" value={dsl(totals.totalDiesel)}>
+          <div className="mt-1.5 space-y-0.5 text-xs">
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Invoiced $:</span><span className="text-zinc-300">{usd(invoicedUsd)}</span></div>
+            <div className="flex items-baseline justify-between gap-2"><span className="text-zinc-500">Market $:</span><span className="text-zinc-300">{`~${usd(marketUsd)}`}</span></div>
+          </div>
+        </Metric>
         <Metric label="Invoices" value={String(totals.invoiceCount)} />
-        <Metric label="Paid (USD)" value={usd(totals.totalUsd)} />
-        <Metric label="Paid (DIESEL)" value={dsl(totals.totalDiesel)} />
         <Metric label="Open invoices" value={String(invoices.filter((i) => i.status === "OPEN").length)} />
       </div>
 
       <AgreementCard url={payee.agreementUrl} disabled={pending}
         onUploaded={(agreementUrl) => run({ agreementUrl })} onClear={() => run({ agreementUrl: null })} onError={setError} />
 
-      <Section title={`Invoices (${invoices.length})`}>
-        {invoices.length === 0 ? <Empty>No invoices for this payee.</Empty> : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Ref</th><th className="text-right">USD</th><th>Status</th><th>Settled by</th><th>PDF</th></tr></thead>
+      <Section title={`Payments (${payments.length})`}>
+        {payments.length === 0 ? <Empty>No DIESEL payments tied to this payee.</Empty> : (
+          <table className="w-full text-sm rtable">
+            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Invoice</th><th>Txid</th><th>Date</th><th className="text-right">DIESEL Paid</th><th className="text-right">USD Paid</th><th className="text-right">Market Price</th></tr></thead>
             <tbody>
-              {invoices.map((i) => {
-                const settling = payments.filter((p) => p.invoiceId === i.id)
+              {payments.map((p) => {
+                const priced = usdValues[p.id]
+                // "USD Paid" only applies to payments settled in USD. A payment is
+                // USD-denominated when the invoice it settled is (amountDiesel == null);
+                // DIESEL settlements show "—" (their USD is under Market Price instead).
+                const settledInvoice = p.invoiceId != null ? invoiceById.get(p.invoiceId) : undefined
+                const usdPaid = settledInvoice && settledInvoice.amountDiesel == null ? settledInvoice.amountUsd : null
                 return (
-                  <tr key={i.id} className="border-t border-zinc-900">
-                    <td className="py-2 font-mono text-zinc-300">{i.ref}</td>
-                    <td className="text-right text-zinc-200">{usd(i.amountUsd)}</td>
-                    <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
-                    <td className="font-mono text-xs text-zinc-400">{settling.length === 0 ? "—" : settling.map((p) => <a key={p.id} href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>)}</td>
-                    <td>{i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                  <tr key={p.id} className="border-t border-zinc-900">
+                    <td data-label="Invoice" className="py-2 text-zinc-300">{p.invoiceRef ?? "—"}</td>
+                    <td data-label="Txid" className="font-mono text-xs text-zinc-300"><a href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
+                    <td data-label="Date" className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
+                    <td data-label="DIESEL Paid" className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
+                    <td data-label="USD Paid" className="text-right text-zinc-200">{usdPaid == null ? <span className="text-zinc-600">—</span> : usd(usdPaid)}</td>
+                    <td data-label="Market Price" className="text-right text-zinc-200">{priced ? approxUsd(priced.paymentUsd) : <span className="text-zinc-600">—</span>}</td>
                   </tr>
                 )
               })}
@@ -98,19 +131,24 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
         )}
       </Section>
 
-      <Section title={`Payments (${payments.length})`}>
-        {payments.length === 0 ? <Empty>No DIESEL payments tied to this payee.</Empty> : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Txid</th><th className="text-right">DIESEL</th><th>Paid</th><th>Invoice</th></tr></thead>
+      <Section title={`Invoices (${invoices.length})`}>
+        {invoices.length === 0 ? <Empty>No invoices for this payee.</Empty> : (
+          <table className="w-full text-sm rtable">
+            <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Ref</th><th className="text-right">USD</th><th>Status</th><th>Settled by</th><th>PDF</th></tr></thead>
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-t border-zinc-900">
-                  <td className="py-2 font-mono text-xs text-zinc-300"><a href={`https://mempool.space/tx/${p.txid}`} target="_blank" rel="noreferrer" className="underline">{short(p.txid)}</a></td>
-                  <td className="text-right text-zinc-200">{p.amountDiesel.toLocaleString("en-US", { maximumFractionDigits: 8 })}</td>
-                  <td className="text-zinc-400">{p.paidAt.slice(0, 10)}</td>
-                  <td className="text-zinc-300">{p.invoiceRef ?? "—"}</td>
-                </tr>
-              ))}
+              {invoices.map((i) => {
+                const settling = payments.filter((p) => p.invoiceId === i.id)
+                const valuedUsd = i.amountDiesel != null ? sumSettlingUsd(settling, usdValues) : null
+                return (
+                  <tr key={i.id} className="border-t border-zinc-900">
+                    <td data-label="Ref" className="py-2 font-mono text-zinc-300">{i.ref}</td>
+                    <td data-label="USD" className="text-right text-zinc-200">{i.amountDiesel != null ? (valuedUsd == null ? <span className="text-zinc-600">—</span> : approxUsd(valuedUsd)) : usd(i.amountUsd)}</td>
+                    <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_STYLE[i.status]}`}>{i.status}</span></td>
+                    <td data-label="Settled by" className="font-mono text-xs text-zinc-400">{settling.length === 0 ? "—" : settling.map((p) => <a key={p.id} href={explorerTxUrl("bitcoin", p.txid)} target="_blank" rel="noreferrer" className="mr-1 underline">{short(p.txid)}</a>)}</td>
+                    <td data-label="PDF">{i.docHref ? <Link href={i.docHref} className="text-sky-400 underline">PDF</Link> : i.pdfUrl ? <a href={i.pdfUrl} target="_blank" rel="noreferrer" className="text-sky-400 underline">PDF</a> : "—"}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
@@ -123,15 +161,15 @@ export function PayeeProfile({ profile: initial, linkableUsers, linkableKycIntak
             <Link href="/admin/documents" className="text-sky-400 underline">Send one →</Link>
           </Empty>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
             <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1.5">Document</th><th>Kind</th><th>Status</th><th>Created</th></tr></thead>
             <tbody>
               {envelopes.map((e) => (
                 <tr key={e.id} className="border-t border-zinc-900">
-                  <td className="py-2 text-zinc-200"><Link href={`/admin/documents/${e.id}`} className="text-sky-400 hover:underline">{e.subject}</Link></td>
-                  <td className="text-xs text-zinc-400">{e.kind}</td>
-                  <td><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${e.status === "completed" ? "bg-emerald-900/40 text-emerald-300" : e.status === "declined" || e.status === "voided" || e.status === "expired" ? "bg-red-900/40 text-red-300" : "bg-sky-900/40 text-sky-300"}`}>{e.status}</span></td>
-                  <td className="text-zinc-400">{e.createdAt.slice(0, 10)}</td>
+                  <td data-label="Document" className="py-2 text-zinc-200"><Link href={`/admin/documents/${e.id}`} className="text-sky-400 hover:underline">{e.subject}</Link></td>
+                  <td data-label="Kind" className="text-xs text-zinc-400">{e.kind}</td>
+                  <td data-label="Status"><span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${e.status === "completed" ? "bg-emerald-900/40 text-emerald-300" : e.status === "declined" || e.status === "voided" || e.status === "expired" ? "bg-red-900/40 text-red-300" : "bg-sky-900/40 text-sky-300"}`}>{e.status}</span></td>
+                  <td data-label="Created" className="text-zinc-400">{e.createdAt.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
@@ -261,11 +299,12 @@ function AgreementCard({ url, onUploaded, onClear, onError, disabled }: {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
     <div className="rounded-lg border border-zinc-800 p-3">
       <div className="text-xs text-zinc-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+      {children}
     </div>
   )
 }

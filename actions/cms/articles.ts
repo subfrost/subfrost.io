@@ -12,7 +12,7 @@ export async function saveArticle(input: ArticleInput): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return { ok: false, error: "Not authenticated" }
   const res = await upsertArticle({ id: user.id, privileges: user.privileges }, input)
-  if (res.ok) revalidateArticle(res.slug)
+  if (res.ok) revalidateArticle(res.slug, res.authorId)
   return res
 }
 
@@ -25,14 +25,15 @@ export async function deleteArticle(id: string): Promise<ActionResult> {
     return { ok: false, error: "Not allowed" }
   }
   await prisma.article.delete({ where: { id } })
-  revalidateArticle(existing.slug)
-  return { ok: true, slug: existing.slug, id }
+  revalidateArticle(existing.slug, existing.authorId)
+  return { ok: true, slug: existing.slug, id, authorId: existing.authorId }
 }
 
-function revalidateArticle(slug: string) {
+function revalidateArticle(slug: string, authorId: string) {
   revalidatePath("/")
   revalidatePath("/articles")
   revalidatePath(`/articles/${slug}`)
+  revalidatePath(`/authors/${authorId}`)
 }
 
 // One-button publish from the preview: flip the article to PUBLISHED keeping its
@@ -63,7 +64,7 @@ export async function publishArticleAction(id: string): Promise<ActionResult> {
       },
     },
   )
-  if (res.ok) revalidateArticle(res.slug)
+  if (res.ok) revalidateArticle(res.slug, res.authorId)
   return res
 }
 

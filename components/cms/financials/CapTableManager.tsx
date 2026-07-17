@@ -4,15 +4,18 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { SkeletonTable } from "@/components/cms/Skeleton"
 import {
-  equityOverviewAction, seedCommonStockAction,
+  equityOverviewAction, seedCommonStockAction, fuelAllocatedTotalAction,
   createShareClassAction, deleteShareClassAction,
   createShareholderAction, deleteShareholderAction,
   createHoldingAction, deleteHoldingAction,
 } from "@/actions/cms/equity"
 import {
   summarizeCapTable,
-  type ShareClassRow, type ShareholderRow, type ShareHoldingRow, type ShareClassType, type HolderType,
+  type ShareClassRow, type ShareholderRow, type ShareHoldingRow, type InstrumentRow, type ShareClassType, type HolderType,
 } from "@/lib/financials/equity/shapes"
+import { CapTableCharts } from "@/components/cms/financials/CapTableCharts"
+import { FuelSupplyMap } from "@/components/cms/financials/FuelSupplyMap"
+import { foundersFromHoldings, teamGrantsFromInstruments } from "@/lib/fuel/supply"
 
 const INPUT = "w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100"
 const num = (n: number) => n.toLocaleString("en-US")
@@ -21,6 +24,8 @@ export function CapTableManager() {
   const [classes, setClasses] = useState<ShareClassRow[]>([])
   const [shareholders, setShareholders] = useState<ShareholderRow[]>([])
   const [holdings, setHoldings] = useState<ShareHoldingRow[]>([])
+  const [instruments, setInstruments] = useState<InstrumentRow[]>([])
+  const [fuelAllocated, setFuelAllocated] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -32,7 +37,10 @@ export function CapTableManager() {
       setClasses(res.overview.classes)
       setShareholders(res.overview.shareholders)
       setHoldings(res.overview.holdings)
+      setInstruments(res.overview.instruments)
       setError(null)
+      const fuel = await fuelAllocatedTotalAction()
+      if (fuel.ok) setFuelAllocated(fuel.total)
     } else setError(res.error)
     setLoading(false)
   }, [])
@@ -40,6 +48,10 @@ export function CapTableManager() {
   useEffect(() => { fetchData() }, [fetchData])
 
   const cap = useMemo(() => summarizeCapTable(classes, holdings), [classes, holdings])
+  // FUEL founders split + team grants derived from the DB (all holdings incl.
+  // intended/unissued → 70/25/5 founder ratios; token instruments → grants).
+  const founders = useMemo(() => foundersFromHoldings(holdings), [holdings])
+  const teamGrants = useMemo(() => teamGrantsFromInstruments(instruments), [instruments])
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     startTransition(async () => {
       const r = await fn()
@@ -58,6 +70,20 @@ export function CapTableManager() {
         <Metric label="Authorized shares" value={num(cap.authorizedShares)} />
         <Metric label="Shareholders" value={num(cap.byHolder.length)} />
       </div>
+
+      {/* Fully-diluted ownership (issued holder + SAFE conversion overhang) */}
+      {instruments.length > 0 && (
+        <Section title="Fully-diluted ownership">
+          <CapTableCharts instruments={instruments} founderName={cap.byHolder[0]?.name ?? "Founder"} />
+        </Section>
+      )}
+
+      {/* FUEL supply map (cap-table-descended pool + surplus) */}
+      {instruments.length > 0 && (
+        <Section title="FUEL supply map">
+          <FuelSupplyMap instruments={instruments} founders={founders} teamGrants={teamGrants} communityAllocated={fuelAllocated} />
+        </Section>
+      )}
 
       {/* Ownership */}
       <Section title="Ownership (issued basis)">

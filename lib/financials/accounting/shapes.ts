@@ -28,6 +28,11 @@ export interface InvoiceRow {
   issuedAt: string // ISO
   status: InvoiceStatus
   pdfUrl: string | null
+  // Deep-link into the Files file-viewer for the DriveFile whose gcsObject ===
+  // pdfUrl (resolved server-side). Null when no matching DriveFile exists — then
+  // callers fall back to the raw pdfUrl. Lets the PDF link open the in-app viewer
+  // (with metadata + entity tags) instead of 404ing on the raw GCS object path.
+  docHref: string | null
   createdAt: string // ISO
 }
 
@@ -37,6 +42,20 @@ export interface PaymentRow {
   vout: number | null
   amountDiesel: number
   recipientAddress: string
+  paidAt: string // ISO
+  blockHeight: number | null
+  invoiceId: string | null
+  invoiceRef: string | null // resolved from the linked invoice, when any
+  source: PaymentSource
+  createdAt: string // ISO
+}
+
+export interface UsdPaymentRow {
+  id: string
+  txid: string | null // optional external reference (wire ref / tx id)
+  vout: number | null
+  amountUsd: number
+  recipientAddress: string | null // optional
   paidAt: string // ISO
   blockHeight: number | null
   invoiceId: string | null
@@ -68,7 +87,7 @@ export interface PayeeTotals {
   payeeId: string
   payeeName: string
   invoiceCount: number
-  totalUsd: number // sum amountUsd of this payee's PAID invoices
+  totalUsd: number // sum amountUsd of this payee's PAID *USD-denominated* invoices (DIESEL-settled invoices count as $0 USD paid)
   totalDiesel: number // sum amountDiesel of payments linked to this payee's invoices
 }
 
@@ -87,7 +106,12 @@ export function totalsByPayee(
   }
   return payees.map((pe) => {
     const own = invoices.filter((i) => i.payeeId === pe.id)
-    const totalUsd = round2(own.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amountUsd, 0))
+    // Only USD-denominated invoices (amountDiesel == null) that are PAID count as
+    // actual USD paid. DIESEL-denominated invoices settle in DIESEL, so their USD
+    // face value belongs to "Paid (DIESEL)", not "Paid (USD)" — mirrors the page metric.
+    const totalUsd = round2(
+      own.filter((i) => i.status === "PAID" && i.amountDiesel == null).reduce((s, i) => s + i.amountUsd, 0),
+    )
     const totalDiesel = round2(dieselByPayee.get(pe.id) ?? 0)
     return { payeeId: pe.id, payeeName: pe.name, invoiceCount: own.length, totalUsd, totalDiesel }
   })

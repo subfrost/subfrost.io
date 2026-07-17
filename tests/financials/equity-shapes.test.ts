@@ -12,7 +12,7 @@ function cls(over: Partial<ShareClassRow> = {}): ShareClassRow {
   return { id: "c1", name: "Common Stock", type: "COMMON", authorizedShares: 10_000_000, parValue: 0.0001, notes: null, createdAt: "2026-01-01T00:00:00Z", ...over }
 }
 function holding(over: Partial<ShareHoldingRow> = {}): ShareHoldingRow {
-  return { id: "h1", shareholderId: "s1", shareholderName: "Founder", shareClassId: "c1", shareClassName: "Common Stock", shares: 10_000_000, issuedAt: "2026-01-01T00:00:00Z", certificateNo: null, notes: null, ...over }
+  return { id: "h1", shareholderId: "s1", shareholderName: "Founder", shareClassId: "c1", shareClassName: "Common Stock", shares: 10_000_000, issuedAt: "2026-01-01T00:00:00Z", issued: true, certificateNo: null, notes: null, ...over }
 }
 function safe(over: Partial<InstrumentRow> = {}): InstrumentRow {
   return {
@@ -50,6 +50,19 @@ describe("summarizeCapTable", () => {
     const cap = summarizeCapTable([cls()], [])
     expect(cap.issuedShares).toBe(0)
     expect(cap.byHolder).toHaveLength(0)
+  })
+
+  it("excludes intended (issued=false) holdings from the as-issued basis", () => {
+    const cap = summarizeCapTable([cls()], [
+      holding({ id: "h1", shareholderId: "s1", shareholderName: "Raymond", shares: 7_000_000, issued: true }),
+      holding({ id: "h2", shareholderId: "s2", shareholderName: "Gabriel", shares: 2_500_000, issued: false }),
+      holding({ id: "h3", shareholderId: "s3", shareholderName: "Sean", shares: 500_000, issued: false }),
+    ])
+    expect(cap.issuedShares).toBe(7_000_000)
+    expect(cap.byHolder).toHaveLength(1)
+    expect(cap.byHolder[0].name).toBe("Raymond")
+    expect(cap.byHolder[0].ownershipPct).toBe(100)
+    expect(cap.byClass[0].issuedShares).toBe(7_000_000)
   })
 })
 

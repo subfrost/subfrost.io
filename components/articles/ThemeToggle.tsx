@@ -19,6 +19,9 @@ function storedTheme(): EditorialTheme | null {
 }
 
 function applyTheme(theme: EditorialTheme) {
+  document.documentElement.dataset.edPageTheme = theme
+  document.documentElement.style.colorScheme = theme
+  document.body.dataset.edPageTheme = theme
   const root = document.getElementById("ed-root")
   if (root) root.dataset.edTheme = theme
 }

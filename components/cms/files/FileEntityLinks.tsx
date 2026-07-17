@@ -157,7 +157,6 @@ export function FileEntityLinks({
           <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-2">
             <div className="flex items-center gap-2">
               <Search size={13} className="shrink-0 text-zinc-500" />
-              {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
               <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search entities…" className="h-8 bg-zinc-950 text-xs text-zinc-100 border-zinc-700" />
               <button aria-label="Cancel" className="text-zinc-500 hover:text-zinc-300" onClick={() => { setAdding(false); setQuery("") }}><X size={14} /></button>
             </div>

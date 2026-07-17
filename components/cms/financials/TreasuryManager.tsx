@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { treasuryOverviewAction, type TreasuryResult } from "@/actions/cms/financials"
+import { AddressCell } from "./AddressCell"
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" })
 const amt = (n: number) =>
@@ -18,7 +19,7 @@ export function TreasuryManager({ initial }: { initial: TreasuryResult }) {
   if (!result.ok) {
     const msg =
       result.error === "not_configured"
-        ? "Treasury data source is not configured (GOLDRUSH_API_KEY missing)."
+        ? "Treasury data source is not configured (BSC_RPC_URL missing)."
         : result.error === "upstream"
           ? "Treasury data is temporarily unavailable. Try again shortly."
           : "You do not have access to financials."
@@ -51,20 +52,25 @@ export function TreasuryManager({ initial }: { initial: TreasuryResult }) {
 
       {snapshot.wallets.map((w) => (
         <div key={w.address} className="rounded-lg border border-zinc-800 p-4">
-          <div className="mb-3 flex items-baseline justify-between">
-            <div className="font-mono text-xs text-zinc-400">{w.label ?? w.address}</div>
-            <div className="text-lg font-semibold text-white">{usd(w.totalUsd)}</div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <AddressCell address={w.address} label={w.label} className="min-w-0" />
+            <div className="shrink-0 text-lg font-semibold text-white">{usd(w.totalUsd)}</div>
           </div>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtable">
+            <thead>
+              <tr className="text-left text-xs text-zinc-500">
+                <th className="py-1.5">Token</th><th className="text-right">Amount</th><th className="text-right">USD</th>
+              </tr>
+            </thead>
             <tbody>
               {w.tokens.map((t) => (
                 <tr key={t.contract} className="border-t border-zinc-900">
-                  <td className="py-1.5 text-zinc-200">
+                  <td data-label="Token" className="py-1.5 text-zinc-200">
                     {t.symbol}
                     {t.isNative ? <span className="ml-1 text-[10px] text-zinc-500">native</span> : null}
                   </td>
-                  <td className="py-1.5 text-right text-zinc-400">{amt(t.amount)}</td>
-                  <td className="py-1.5 text-right text-zinc-200">
+                  <td data-label="Amount" className="py-1.5 text-right text-zinc-400">{amt(t.amount)}</td>
+                  <td data-label="USD" className="py-1.5 text-right text-zinc-200">
                     {t.usd === null ? "—" : usd(t.usd)}
                   </td>
                 </tr>

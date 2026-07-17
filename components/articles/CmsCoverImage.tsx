@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { CoverArt } from "./CoverArt"
+import { pictureSources } from "@/lib/cms/image-srcset"
 
 export function CmsCoverImage({
   src,
@@ -20,10 +21,11 @@ export function CmsCoverImage({
     return <CoverArt className={className} variant={fallbackVariant} priority={priority} />
   }
 
-  return (
+  const p = pictureSources(src)
+  const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={p ? p.fallback : src}
       alt=""
       loading={priority ? "eager" : "lazy"}
       decoding="async"
@@ -31,5 +33,13 @@ export function CmsCoverImage({
       onError={() => setFailed(true)}
       className={`${className} ed-cms-cover`}
     />
+  )
+  if (!p) return img
+  return (
+    <picture>
+      <source srcSet={p.avif} type="image/avif" />
+      <source srcSet={p.webp} type="image/webp" />
+      {img}
+    </picture>
   )
 }

@@ -48,7 +48,7 @@ export function BalanceSheetManager() {
 
       {!view.treasuryAvailable && (
         <div className="rounded-lg border border-amber-800/40 bg-amber-950/30 p-3 text-xs text-amber-200">
-          Treasury holdings aren&apos;t cached yet — open the Treasury page once (or set GOLDRUSH_API_KEY) so the
+          Treasury holdings aren&apos;t cached yet — open the Treasury page once (or set BSC_RPC_URL) so the
           treasury asset line populates. You can still add it as a manual line in the meantime.
         </div>
       )}
@@ -66,6 +66,22 @@ export function BalanceSheetManager() {
           value={view.balanced ? "✓" : usd(view.difference)}
           tone={view.balanced ? "ok" : "warn"}
         />
+      </div>
+
+      {/* 409A basis: assets − liabilities − SAFE senior preference. Should stay
+          positive; the low 409A comes from the waterfall, not negative book equity. */}
+      <div className="rounded-xl border border-emerald-800/50 bg-emerald-950/30 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold text-emerald-200">Attributable to common (409A basis)</div>
+            <div className="mt-0.5 text-xs text-emerald-300/70">
+              assets − liabilities − SAFE senior preference ({usd(view.safePreferenceUsd)})
+            </div>
+          </div>
+          <div className={`text-2xl font-semibold tabular-nums ${view.attributableToCommonUsd >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+            {usd(view.attributableToCommonUsd)}
+          </div>
+        </div>
       </div>
 
       {SECTIONS.map((s) => {
@@ -103,6 +119,31 @@ export function BalanceSheetManager() {
           </div>
         )
       })}
+
+      {view.memo.length > 0 && (
+        <div className="rounded-xl border border-dashed border-amber-800/50 bg-amber-950/20 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-amber-200">Memo — notional (not included in totals)</h2>
+            <span className="rounded bg-amber-900/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300/80">off balance sheet</span>
+          </div>
+          <p className="mb-2 text-xs text-amber-300/70">
+            Reference figures only — excluded from every total and from the assets = liabilities + equity check.
+          </p>
+          <table className="w-full text-sm">
+            <tbody>
+              {view.memo.map((l) => (
+                <tr key={l.id} className="border-t border-amber-900/40">
+                  <td className="py-2 text-amber-100">
+                    {l.label}
+                    {l.note && <span className="ml-2 text-xs text-amber-500/70">{l.note}</span>}
+                  </td>
+                  <td className="text-right tabular-nums text-amber-200">{usd(l.amountUsd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

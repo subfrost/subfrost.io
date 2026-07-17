@@ -10,6 +10,7 @@ import {
   createDocumentAction,
   sendDocumentAction,
   createFromTemplateAction,
+  documentsTimelineAction,
 } from "@/actions/cms/documents"
 import type { DocumentsOverview } from "@/actions/cms/documents"
 import {
@@ -20,6 +21,7 @@ import {
   type RecipientInput,
   type RecipientRole,
   type TemplateRecord,
+  type TimelineRow,
 } from "@/lib/esign/types"
 import {
   ENVELOPE_STATUS_LABELS,
@@ -62,6 +64,7 @@ export function DocumentsManager({
   const [search, setSearch] = useState("")
   const [bucket, setBucket] = useState<FilterBucket>("all")
   const [mode, setMode] = useState<null | "new" | "template">(null)
+  const [tab, setTab] = useState<"envelopes" | "timeline">("envelopes")
   const [pending, startTransition] = useTransition()
 
   const fetchData = useCallback(async () => {
@@ -87,6 +90,27 @@ export function DocumentsManager({
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-1 border-b border-zinc-800">
+        {(["envelopes", "timeline"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              tab === t
+                ? "border-sky-500 text-white"
+                : "border-transparent text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {t === "envelopes" ? "Envelopes" : "Timeline"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "timeline" ? (
+        <TimelinePanel />
+      ) : (
+      <>
       <div className="flex flex-wrap items-center gap-3">
         <Input
           value={search}
@@ -180,7 +204,82 @@ export function DocumentsManager({
         </ul>
       )}
       {pending && <div className="text-xs text-zinc-500">working…</div>}
+      </>
+      )}
     </div>
+  )
+}
+
+// ---------- Timeline tab -------------------------------------------------
+
+const TIMELINE_TONE: Record<TimelineRow["kind"], string> = {
+  created: "bg-zinc-800 text-zinc-300",
+  sent: "bg-blue-950/50 text-blue-300",
+  viewed: "bg-sky-950/50 text-sky-300",
+  signed: "bg-emerald-950/50 text-emerald-300",
+  declined: "bg-red-950/50 text-red-300",
+  version: "bg-violet-950/50 text-violet-300",
+  resend: "bg-amber-950/50 text-amber-300",
+}
+
+function TimelinePanel() {
+  const [rows, setRows] = useState<TimelineRow[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    documentsTimelineAction().then((res) => {
+      if (!active) return
+      if (res.ok) setRows(res.rows)
+      else setError("You do not have access to the activity timeline.")
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  if (error) return <div className="rounded-lg bg-red-950/40 p-3 text-sm text-red-300">{error}</div>
+  if (!rows) return <SkeletonTable />
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-zinc-500">
+        No activity yet.
+      </div>
+    )
+  }
+
+  return (
+    <ul className="space-y-2">
+      {rows.map((r, i) => (
+        <li
+          key={`${r.envelopeId}-${r.kind}-${r.timestamp}-${i}`}
+          className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3"
+        >
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${TIMELINE_TONE[r.kind]}`}>
+                {r.kind}
+                {r.kind === "version" && typeof r.version === "number" ? ` v${r.version}` : ""}
+              </span>
+              <Link href={`/admin/documents/${r.envelopeId}`} className="truncate text-sm text-zinc-200 hover:underline">
+                {r.subject}
+              </Link>
+              <span className="text-xs text-zinc-500">
+                {r.recipient ?? r.actor ?? ""}
+              </span>
+            </div>
+            <span className="text-xs text-zinc-600">{new Date(r.timestamp).toLocaleString()}</span>
+          </div>
+          {(r.ja4 || r.ja3 || r.ip) && (
+            <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-zinc-600">
+              {r.ip && <span>IP {r.ip}</span>}
+              {r.ja4 && <span>JA4 <span className="font-mono">{r.ja4}</span></span>}
+              {r.ja3 && <span>JA3 <span className="font-mono">{r.ja3}</span></span>}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -9,9 +9,10 @@ import * as files from "@/lib/files/manager"
 type Ok<T> = { ok: true } & T
 type Result<T = unknown> = Ok<T> | { ok: false; error: string }
 
-// Each drive has its own admin route; revalidate the one a mutation touched.
-function driveRevalidate(scope: LegalScope = "SUBFROST") {
-  revalidatePath(scope === "OYL" ? "/admin/oyl" : "/admin/files")
+// Both drives now live under one /admin/files tree; revalidate it after any
+// mutation. (The `scope` arg is kept for call-site compatibility.)
+function driveRevalidate(_scope: LegalScope = "SUBFROST") {
+  revalidatePath("/admin/files")
 }
 
 async function gate(write: boolean): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
@@ -31,6 +32,15 @@ export async function listFolderAction(folderId: string | null, scope: LegalScop
   if (!g.ok) return g
   try {
     return { ok: true, data: await files.listFolder(folderId, scope) }
+  } catch (e) { return fail(e) }
+}
+
+// Google-Drive-style search across filename + document content + summary + tags.
+export async function searchFilesAction(query: string, scope?: LegalScope): Promise<Result<{ hits: files.FileSearchHit[] }>> {
+  const g = await gate(false)
+  if (!g.ok) return g
+  try {
+    return { ok: true, hits: await files.searchFiles(query, { scope }) }
   } catch (e) { return fail(e) }
 }
 
@@ -74,7 +84,7 @@ export async function getFileUrlAction(fileId: string, asDownload = false): Prom
 
 export async function updateFileAction(
   fileId: string,
-  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[] },
+  patch: { name?: string; folderId?: string | null; metadata?: Record<string, unknown>; tags?: string[]; docType?: string | null; docStatus?: string | null },
 ): Promise<Result<{ file: files.FileView }>> {
   const g = await gate(true)
   if (!g.ok) return g

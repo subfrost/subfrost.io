@@ -2,6 +2,9 @@ import Link from "next/link"
 import { Markdown } from "@/lib/cms/markdown"
 import type { AuthorProfile, CmsLocale } from "@/lib/cms/articles"
 import { AuthorByline, Avatar } from "@/components/articles/AuthorByline"
+import { buildInlineSvgMap } from "@/lib/cms/inline-svg"
+import { ShareMenu } from "@/components/share/ShareMenu"
+import { X_HANDLE } from "@/lib/share"
 
 export interface ArticleViewData {
   title: string
@@ -30,14 +33,15 @@ export function categoryLabel(tag: { slug: string; name: string }, locale: CmsLo
  *  author byline) and Markdown content, closing with the author bio card.
  *  Rendered identically by the public page and the admin preview so the preview
  *  matches published output. The author UI only renders when `author` is given. */
-export function ArticleView({ article, locale }: { article: ArticleViewData; locale: CmsLocale }) {
+export async function ArticleView({ article, locale, shareUrl }: { article: ArticleViewData; locale: CmsLocale; shareUrl?: string }) {
+  const inlinedSvgs = await buildInlineSvgMap(article.body)
   const fallback = locale === "zh" ? "文章" : "Article"
   const primaryTag = article.tags.map((t) => categoryLabel(t, locale)).find((t): t is string => Boolean(t)) ?? fallback
   const author = article.author
   return (
     <article className="mx-auto px-6 pb-20 pt-24 sm:px-8 lg:pt-28">
-      <header className="mx-auto max-w-[920px] text-center">
-        <div className="font-display mb-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
+      <header className="mx-auto max-w-[680px] text-left">
+        <div className="font-display mb-5 flex flex-wrap gap-x-4 gap-y-2 text-[14px] font-medium" style={{ color: "var(--ed-muted)" }}>
           {/* Date lives in the byline when an author is shown, so avoid repeating it here. */}
           {!author && article.publishedAt ? (
             <span>{new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(article.publishedAt))}</span>
@@ -46,27 +50,33 @@ export function ArticleView({ article, locale }: { article: ArticleViewData; loc
         </div>
 
         <h1
-          className="font-display mx-auto max-w-[920px] text-balance text-[38px] font-medium leading-[1.02] sm:text-[56px] lg:text-[64px]"
+          className="font-display max-w-[680px] text-balance text-[38px] font-medium leading-[1.02] sm:text-[56px] lg:text-[64px]"
           style={{ color: "var(--ed-ink)" }}
         >
           {article.title}
         </h1>
 
         {article.excerpt ? (
-          <p className="font-display mx-auto mt-7 max-w-[620px] text-[17px] leading-[1.55]" style={{ color: "var(--ed-ink)" }}>
+          <p className="font-display mt-6 max-w-[680px] text-[17px] leading-[1.55]" style={{ color: "var(--ed-ink)" }}>
             {article.excerpt}
           </p>
         ) : null}
 
         {author ? (
-          <div className="mt-8 flex justify-center">
-            <AuthorByline author={author} coAuthors={article.coAuthors ?? []} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={44} locale={locale} />
+          <div className="mt-7 flex justify-start">
+            <AuthorByline author={author} coAuthors={article.coAuthors ?? []} publishedAt={article.publishedAt} readingMinutes={article.readingMinutes ?? 0} size={32} variant="reader" locale={locale} />
+          </div>
+        ) : null}
+
+        {shareUrl ? (
+          <div className="mt-7 flex justify-start">
+            <ShareMenu url={shareUrl} text={`${article.title} @${X_HANDLE}`} locale={locale} />
           </div>
         ) : null}
       </header>
 
-      <div className="mx-auto mt-24 max-w-[680px]">
-        <Markdown variant="article">{article.body}</Markdown>
+      <div className="mx-auto mt-12 max-w-[680px] sm:mt-14 lg:mt-16">
+        <Markdown variant="article" inlinedSvgs={inlinedSvgs}>{article.body}</Markdown>
       </div>
 
       {(article.sources ?? "").trim() ? (
