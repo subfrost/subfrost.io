@@ -11,7 +11,7 @@ vi.mock("@/lib/stats", () => stats)
 
 import { getPublicData, isPublicMetricKey, formatMetricValue, CARD_METRICS } from "@/lib/marketing/public-data"
 
-function row(dayOffset: number, over: Partial<{ holders: number; priceUsd: number; btcLocked: number }> = {}) {
+function row(dayOffset: number, over: Partial<{ holders: number; priceUsd: number; btcLocked: number; dieselNull: boolean }> = {}) {
   const d = new Date(Date.UTC(2026, 5, 1 + dayOffset)) // 2026-06-01 + offset
   return {
     id: `s${dayOffset}`,
@@ -21,7 +21,11 @@ function row(dayOffset: number, over: Partial<{ holders: number; priceUsd: numbe
     payload: {
       protocol: { totalBtcLocked: over.btcLocked ?? 90 + dayOffset, btcUsd: 60000 },
       tokens: {
-        diesel: { holders: over.holders ?? 7000 + dayOffset, priceUsd: over.priceUsd ?? 50, marketcapUsd: 33000000 },
+        // dieselNull models a blipped capture: getAlkaneDetails returns a full nullBlock when the
+        // external details endpoint fails, so holders/priceUsd/marketcap all land null for that day.
+        diesel: over.dieselNull
+          ? { holders: null, priceUsd: null, marketcapUsd: null }
+          : { holders: over.holders ?? 7000 + dayOffset, priceUsd: over.priceUsd ?? 50, marketcapUsd: 33000000 },
         fire: { priceUsd: 40 },
         frbtc: { supply: "9334766521" },
       },
@@ -53,6 +57,20 @@ describe("getPublicData", () => {
     const p = await getPublicData()
     // holders: latest 7009 vs baseline 7002 (7 days earlier) => +0.1%
     expect(p.deltas7d["diesel-holders"]).toBeCloseTo(((7009 - 7002) / 7002) * 100, 5)
+  })
+
+  it("holders/marketcap survive a blank latest snapshot (last known value, never blanks to —)", async () => {
+    // 9 good days, then today's capture blips: the diesel block is entirely null. holders/marketcap
+    // have no live-stats source, so reading only the newest point would blank the card — regression
+    // seen live on subfrost.io/metrics 2026-07-17 (holders/market cap showed "—" though price didn't,
+    // because price has a live fallback and these two don't).
+    const rows = [...Array.from({ length: 9 }, (_, i) => row(i)), row(9, { dieselNull: true })]
+    snapshotStore.listDailySnapshots.mockResolvedValue(rows)
+    const p = await getPublicData()
+    expect(p.now["diesel-holders"]).toBe(7008) // day 8 — the last snapshot that actually captured it
+    expect(p.now["diesel-marketcap"]).toBe(33000000) // ditto, not null
+    // the 7d delta anchors on that last-known point, not the blank newest one
+    expect(p.deltas7d["diesel-holders"]).toBeCloseTo(((7008 - 7001) / 7001) * 100, 5)
   })
 
   it("single point: series ok, deltas null", async () => {

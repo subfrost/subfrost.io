@@ -45,14 +45,31 @@ export function formatMetricValue(key: PublicMetricKey, value: number | null): s
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// The latest snapshot can arrive with a token block that is entirely null: the external details
+// endpoint (oyl.alkanode.com, see alkane-details.ts) blips ~1 day in 18, and getAlkaneDetails then
+// records a full nullBlock. holders/marketcap have no live-stats source (unlike price/locked/supply),
+// so they depend solely on the series — and reading only the newest point would blank the card on a
+// single failed capture even though every prior day is intact. Anchor on the last point that
+// actually carries the field instead: the card shows the last KNOWN value, not "—".
+function lastWithField(series: SeriesPoint[], field: keyof SeriesPoint): SeriesPoint | null {
+  for (let i = series.length - 1; i >= 0; i--) {
+    const v = series[i][field]
+    if (typeof v === "number" && Number.isFinite(v)) return series[i]
+  }
+  return null
+}
+
 function delta7d(series: SeriesPoint[], field: keyof SeriesPoint): number | null {
   if (series.length < 2) return null
-  const latest = series[series.length - 1]
+  const latest = lastWithField(series, field)
+  if (!latest) return null
   const latestT = Date.parse(latest.date)
   let baseline: SeriesPoint | null = null
   for (const p of series) {
-    if (latestT - Date.parse(p.date) >= 7 * DAY_MS) baseline = p
-    else break
+    const t = Date.parse(p.date)
+    if (t > latestT) break // never look past the anchor (a blip could sit after it)
+    const v = p[field]
+    if (latestT - t >= 7 * DAY_MS && typeof v === "number" && Number.isFinite(v)) baseline = p
   }
   if (!baseline) return null
   const a = baseline[field], b = latest[field]
@@ -77,7 +94,6 @@ export async function getPublicData(): Promise<PublicDataPayload> {
     console.error("[public-data] snapshot series unavailable", e)
   }
 
-  const last = series.length ? series[series.length - 1] : null
   let live: { totalBtcLocked?: number | null; currentFrbtcSupply?: number | null; dieselUsd?: number | null; fireUsd?: number | null } = {}
   try {
     live = normalizeHomeStats(await getStats())
@@ -87,7 +103,7 @@ export async function getPublicData(): Promise<PublicDataPayload> {
 
   const pick = (liveVal: number | null | undefined, seriesField: keyof SeriesPoint): number | null => {
     if (typeof liveVal === "number" && Number.isFinite(liveVal)) return liveVal
-    const v = last?.[seriesField]
+    const v = lastWithField(series, seriesField)?.[seriesField]
     return typeof v === "number" && Number.isFinite(v) ? v : null
   }
 
