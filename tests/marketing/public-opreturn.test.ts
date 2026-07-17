@@ -175,12 +175,25 @@ describe("getPublicOpReturnData", () => {
 
   it("extrapolates minerRevenueUsd per the day-extrapolation formula", async () => {
     // real span = toHeight-fromHeight+1 = 101 (default fixture); blocksScanned 72 -> factor 101/72;
-    // feeTotalSats 160_000_000 -> 1.6 BTC; btcUsd 60000; the 3.125*144 subsidy term is a fixed
-    // per-block-reward-times-nominal-day constant, unaffected by dayFactor (see dayFactor's comment).
+    // feeTotalSats 160_000_000 -> 1.6 BTC; btcUsd 60000. The subsidy is 3.125 BTC per BLOCK times
+    // the blocks the day actually had (the same span, 101) — NOT a nominal 144, which would credit
+    // coinbase that was never mined and, being ~100x the fees, would drive the whole chart.
     store.listClosedOpReturnDays.mockResolvedValue([row("2026-06-01", { blocksScanned: 72 })])
     const p = await getPublicOpReturnData()
-    const expected = (1.6 * (101 / 72) + 3.125 * 144) * 60000
+    const expected = (1.6 * (101 / 72) + 3.125 * 101) * 60000
     expect(p.minerRevenueUsd[0].value).toBeCloseTo(expected, 6)
+  })
+
+  it("scales the subsidy by the day's real block count, not a nominal 144", async () => {
+    // A short day: 121 real blocks, fully censused (span === blocksScanned -> fee factor 1). The
+    // subsidy must be 3.125*121, not 3.125*144 — the nominal form invents 23 BTC (~19%) of coinbase.
+    // Zero fees isolate the subsidy term, so this fails loudly if 144 is ever hardcoded back in.
+    store.listClosedOpReturnDays.mockResolvedValue([
+      row("2026-07-16", { fromHeight: 958221, toHeight: 958341, blocksScanned: 121, feeTotalSats: 0, btcUsd: 1 }),
+    ])
+    const p = await getPublicOpReturnData()
+    expect(p.minerRevenueUsd[0].value).toBeCloseTo(3.125 * 121, 10)
+    expect(p.minerRevenueUsd[0].value).not.toBeCloseTo(3.125 * 144, 10)
   })
 
   it("minerRevenueUsd is null when blocksScanned is 0", async () => {

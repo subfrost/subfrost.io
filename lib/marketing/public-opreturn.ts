@@ -10,9 +10,10 @@ import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 // Fee series are extrapolated to full days via dayFactor(r) = the day's real block
 // span / r.blocksScanned (null when blocksScanned === 0) — see dayFactor's own
 // comment for why this isn't a nominal 144. Miner revenue USD/day adds the
-// 3.125 BTC/block subsidy over 144 blocks before converting to USD (that part of
-// the formula is a per-block constant, not a day-length assumption, so it's
-// unaffected by dayFactor). See plan Global Constraints.
+// 3.125 BTC/block subsidy over the day's REAL block count (the same span), so both
+// halves of that sum describe the same day: 3.125 is the per-block constant, but the
+// count it multiplies is a day-length claim and must not be hardcoded to 144.
+// See plan Global Constraints.
 
 export interface OpReturnPoint { date: string; value: number | null }
 
@@ -112,7 +113,10 @@ const ratioNullable = (num: number | null | undefined, den: number | null | unde
  * summed into it. Null when the row scanned 0 blocks.
  */
 const dayFactor = (r: OpReturnRow): number | null =>
-  r.blocksScanned === 0 ? null : (r.toHeight - r.fromHeight + 1) / r.blocksScanned
+  r.blocksScanned === 0 ? null : blockSpan(r) / r.blocksScanned
+
+/** Blocks the row's window actually covers — the day's real length, which is never exactly 144. */
+const blockSpan = (r: OpReturnRow): number => r.toHeight - r.fromHeight + 1
 
 /**
  * Minimum Alkanes tx in a day for the per-tx fee average to be meaningful. The first days after
@@ -200,7 +204,13 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   const minerRevenueUsd: OpReturnPoint[] = rows.map((r) => {
     const factor = dayFactor(r)
     if (factor === null) return { date: r.date, value: null }
-    const btcPerDay = (r.feeTotalSats / 1e8) * factor + 3.125 * 144
+    // The subsidy is 3.125 BTC per BLOCK, so it has to scale with the blocks the day actually had.
+    // Pairing it with a nominal 144 while the fees above are the day's real total would credit the
+    // miners with coinbase that was never mined: 2026-07-16 had 121 blocks, so a 144-block subsidy
+    // invents 23 BTC (~19%) — and since the subsidy dwarfs the fees by ~100x here, that error would
+    // drive the whole chart. (Before dayFactor used the real span, both halves were normalized to a
+    // fictional 144-block day, which was at least self-consistent.)
+    const btcPerDay = (r.feeTotalSats / 1e8) * factor + 3.125 * blockSpan(r)
     return { date: r.date, value: btcPerDay * r.btcUsd }
   })
 
