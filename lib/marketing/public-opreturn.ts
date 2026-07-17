@@ -1,14 +1,19 @@
 import { computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
-import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
+import { listClosedOpReturnDays } from "@/lib/marketing/opreturn-store"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 
 // Public OP_RETURN chart series for /data. Chart-level aggregates only —
 // source is the sampled scanner CSV ingested into OpReturnDaily (see the
-// methodology note rendered next to these charts).
+// methodology note rendered next to these charts). Reads listClosedOpReturnDays
+// (never listOpReturnDaily) so today's still-partial row never reaches a chart.
 //
-// Fee series are extrapolated to full days: factor(r) = 144 / r.blocksScanned
-// (null when blocksScanned === 0). Miner revenue USD/day adds the 3.125 BTC/block
-// subsidy over 144 blocks before converting to USD. See plan Global Constraints.
+// Fee series are extrapolated to full days via dayFactor(r) = the day's real block
+// span / r.blocksScanned (null when blocksScanned === 0) — see dayFactor's own
+// comment for why this isn't a nominal 144. Miner revenue USD/day adds the
+// 3.125 BTC/block subsidy over the day's REAL block count (the same span), so both
+// halves of that sum describe the same day: 3.125 is the per-block constant, but the
+// count it multiplies is a day-length claim and must not be hardcoded to 144.
+// See plan Global Constraints.
 
 export interface OpReturnPoint { date: string; value: number | null }
 
@@ -94,8 +99,24 @@ const ratio = (num: number, den: number): number | null => (den === 0 ? null : n
 const ratioNullable = (num: number | null | undefined, den: number | null | undefined): number | null =>
   num == null || den == null ? null : ratio(num, den)
 
-/** Extrapolation factor to a full 144-block day; null when the row scanned 0 blocks. */
-const dayFactor = (r: OpReturnRow): number | null => (r.blocksScanned === 0 ? null : 144 / r.blocksScanned)
+/**
+ * Extrapolation factor to a full day, using the day's REAL block span (toHeight - fromHeight + 1)
+ * over the number of blocks actually sampled — not a nominal 144. Every row synced since the
+ * scanner moved to a dense census has span === blocksScanned (every block in the window was
+ * scanned, none skipped), so the factor comes out to ~1 and the chart plots the day's true count.
+ * The old constant-144 formula instead invented ~19% of activity on a short day (2026-07-16, 121
+ * real blocks) and shrank a long one ~6% (2026-07-14, 154 blocks) — every recent day is dense-
+ * censused, so real days are never exactly 144 blocks. Legacy rows (pre-dense-census, sampled
+ * 1-in-6 over a real 144-block window: span 144, blocksScanned ~24) still come out to ~6 under this
+ * formula, their real sampling rate — so this is a strict generalization, not a behavior change for
+ * legacy data. Also fixes dieselCumulative, which compounds dayFactor errors across every day
+ * summed into it. Null when the row scanned 0 blocks.
+ */
+const dayFactor = (r: OpReturnRow): number | null =>
+  r.blocksScanned === 0 ? null : blockSpan(r) / r.blocksScanned
+
+/** Blocks the row's window actually covers — the day's real length, which is never exactly 144. */
+const blockSpan = (r: OpReturnRow): number => r.toHeight - r.fromHeight + 1
 
 /**
  * Minimum Alkanes tx in a day for the per-tx fee average to be meaningful. The first days after
@@ -134,7 +155,7 @@ function ratioOfSumsNullable(
 export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   let rows: OpReturnRow[] = []
   try {
-    rows = await listOpReturnDaily()
+    rows = await listClosedOpReturnDays()
   } catch (e) {
     console.error("[public-opreturn] series unavailable", e)
     return EMPTY
@@ -183,7 +204,13 @@ export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   const minerRevenueUsd: OpReturnPoint[] = rows.map((r) => {
     const factor = dayFactor(r)
     if (factor === null) return { date: r.date, value: null }
-    const btcPerDay = (r.feeTotalSats / 1e8) * factor + 3.125 * 144
+    // The subsidy is 3.125 BTC per BLOCK, so it has to scale with the blocks the day actually had.
+    // Pairing it with a nominal 144 while the fees above are the day's real total would credit the
+    // miners with coinbase that was never mined: 2026-07-16 had 121 blocks, so a 144-block subsidy
+    // invents 23 BTC (~19%) — and since the subsidy dwarfs the fees by ~100x here, that error would
+    // drive the whole chart. (Before dayFactor used the real span, both halves were normalized to a
+    // fictional 144-block day, which was at least self-consistent.)
+    const btcPerDay = (r.feeTotalSats / 1e8) * factor + 3.125 * blockSpan(r)
     return { date: r.date, value: btcPerDay * r.btcUsd }
   })
 

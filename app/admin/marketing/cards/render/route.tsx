@@ -1,10 +1,14 @@
 import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
 import { currentUser } from "@/lib/cms/authz"
-import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
+import { listClosedOpReturnDays } from "@/lib/marketing/opreturn-store"
 import { computeMetric, computeBytesComposition, formatMetricValue } from "@/lib/marketing/opreturn-metrics"
 import { METRIC_LABELS, WINDOW_LABELS, type MetricKey, type WindowKey } from "@/lib/marketing/opreturn-types"
 import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
+
+// Stat-card studio for cards that get published onto the public /metrics page — reads
+// listClosedOpReturnDays (never listOpReturnDaily) so a card minted here can't show today's
+// still-partial row while the live page already hides it.
 
 export const runtime = "nodejs"
 const SIZE = { width: 1200, height: 675 }
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
   const window = (sp.get("window") ?? "avg7") as WindowKey
   const dark = sp.get("theme") !== "light"
 
-  const rows = await listOpReturnDaily()
+  const rows = await listClosedOpReturnDays()
   const { logo, font } = await assets()
   const bg = dark ? "#0b1220" : "#ffffff"
   const ink = dark ? "#ffffff" : "#071224"

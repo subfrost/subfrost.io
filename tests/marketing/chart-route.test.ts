@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 
-const store = vi.hoisted(() => ({ listOpReturnDaily: vi.fn() }))
+const store = vi.hoisted(() => ({ listClosedOpReturnDays: vi.fn() }))
 vi.mock("@/lib/marketing/opreturn-store", () => store)
 
 import { NextRequest } from "next/server"
@@ -54,8 +54,8 @@ async function expectPng(res: Response) {
 }
 
 /**
- * A fully-populated PublicOpReturnPayload fixture, built directly (not via `listOpReturnDaily` +
- * `getPublicOpReturnData`) so `resolveRows` can be unit-tested in isolation against known values.
+ * A fully-populated PublicOpReturnPayload fixture, built directly (not via `listClosedOpReturnDays`
+ * + `getPublicOpReturnData`) so `resolveRows` can be unit-tested in isolation against known values.
  * Every field that shares a shape with another field (e.g. all seven `OpReturnPoint[]` fields —
  * `dieselTxShare`/`minerRevenueUsd`/`alkanesFeeShare`/`weightShare`/`ugDieselShare`/
  * `dieselMintsPerDay`/`dieselCumulative` — or the four `{date,alkanes,pureRunes}[]` fields —
@@ -158,62 +158,62 @@ const FIXTURE_PAYLOAD: PublicOpReturnPayload = {
 
 describe("GET /metrics/chart/opreturn", () => {
   it("renders a line chart (diesel-mints-per-day, log scale) as a cacheable PNG", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=diesel-mints-per-day&window=full"))
     expect(res.headers.get("cache-control")).toBe(EXPECTED_CACHE)
     await expectPng(res)
   })
 
   it("400s for an unknown chart id", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=__nope__"))
     expect(res.status).toBe(400)
   })
 
   it("renders a stacked chart (byte-composition)", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=byte-composition&window=full"))
     await expectPng(res)
   })
 
   it("renders a donut chart (bytes-donut)", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=bytes-donut&window=full"))
     await expectPng(res)
   })
 
   it("renders the last-day donut (last-day-composition) with the synthetic alkanes = diesel + alkanesOther slice", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=last-day-composition&window=full"))
     await expectPng(res)
   })
 
   it("400s for an unknown window", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=diesel-mints-per-day&window=avg9999"))
     expect(res.status).toBe(400)
   })
 
   it("400s for an unknown theme", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=diesel-mints-per-day&theme=neon"))
     expect(res.status).toBe(400)
   })
 
   it("never 500s on an empty store — renders the frame with an empty plot", async () => {
-    store.listOpReturnDaily.mockResolvedValue([])
+    store.listClosedOpReturnDays.mockResolvedValue([])
     const res = await GET(req("id=diesel-mints-per-day&window=full"))
     await expectPng(res)
   })
 
   it("never 500s when the store throws — renders the frame with an empty plot", async () => {
-    store.listOpReturnDaily.mockRejectedValue(new Error("db down"))
+    store.listClosedOpReturnDays.mockRejectedValue(new Error("db down"))
     const res = await GET(req("id=diesel-mints-per-day&window=full"))
     await expectPng(res)
   })
 
   it("renders every chart id in CHART_SPECS without throwing (full sweep of all draw paths)", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const { CHART_SPECS } = await import("@/lib/marketing/chart-specs")
     for (const id of Object.keys(CHART_SPECS)) {
       const res = await GET(req(`id=${id}&window=full`))
@@ -224,7 +224,7 @@ describe("GET /metrics/chart/opreturn", () => {
   })
 
   it("supports the light theme", async () => {
-    store.listOpReturnDaily.mockResolvedValue(FIXTURE)
+    store.listClosedOpReturnDays.mockResolvedValue(FIXTURE)
     const res = await GET(req("id=diesel-mints-per-day&window=full&theme=light"))
     await expectPng(res)
   })
