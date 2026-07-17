@@ -1,14 +1,18 @@
 import { computeBytesComposition } from "@/lib/marketing/opreturn-metrics"
-import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
+import { listClosedOpReturnDays } from "@/lib/marketing/opreturn-store"
 import type { OpReturnRow } from "@/lib/marketing/opreturn-types"
 
 // Public OP_RETURN chart series for /data. Chart-level aggregates only —
 // source is the sampled scanner CSV ingested into OpReturnDaily (see the
-// methodology note rendered next to these charts).
+// methodology note rendered next to these charts). Reads listClosedOpReturnDays
+// (never listOpReturnDaily) so today's still-partial row never reaches a chart.
 //
-// Fee series are extrapolated to full days: factor(r) = 144 / r.blocksScanned
-// (null when blocksScanned === 0). Miner revenue USD/day adds the 3.125 BTC/block
-// subsidy over 144 blocks before converting to USD. See plan Global Constraints.
+// Fee series are extrapolated to full days via dayFactor(r) = the day's real block
+// span / r.blocksScanned (null when blocksScanned === 0) — see dayFactor's own
+// comment for why this isn't a nominal 144. Miner revenue USD/day adds the
+// 3.125 BTC/block subsidy over 144 blocks before converting to USD (that part of
+// the formula is a per-block constant, not a day-length assumption, so it's
+// unaffected by dayFactor). See plan Global Constraints.
 
 export interface OpReturnPoint { date: string; value: number | null }
 
@@ -94,8 +98,21 @@ const ratio = (num: number, den: number): number | null => (den === 0 ? null : n
 const ratioNullable = (num: number | null | undefined, den: number | null | undefined): number | null =>
   num == null || den == null ? null : ratio(num, den)
 
-/** Extrapolation factor to a full 144-block day; null when the row scanned 0 blocks. */
-const dayFactor = (r: OpReturnRow): number | null => (r.blocksScanned === 0 ? null : 144 / r.blocksScanned)
+/**
+ * Extrapolation factor to a full day, using the day's REAL block span (toHeight - fromHeight + 1)
+ * over the number of blocks actually sampled — not a nominal 144. Every row synced since the
+ * scanner moved to a dense census has span === blocksScanned (every block in the window was
+ * scanned, none skipped), so the factor comes out to ~1 and the chart plots the day's true count.
+ * The old constant-144 formula instead invented ~19% of activity on a short day (2026-07-16, 121
+ * real blocks) and shrank a long one ~6% (2026-07-14, 154 blocks) — every recent day is dense-
+ * censused, so real days are never exactly 144 blocks. Legacy rows (pre-dense-census, sampled
+ * 1-in-6 over a real 144-block window: span 144, blocksScanned ~24) still come out to ~6 under this
+ * formula, their real sampling rate — so this is a strict generalization, not a behavior change for
+ * legacy data. Also fixes dieselCumulative, which compounds dayFactor errors across every day
+ * summed into it. Null when the row scanned 0 blocks.
+ */
+const dayFactor = (r: OpReturnRow): number | null =>
+  r.blocksScanned === 0 ? null : (r.toHeight - r.fromHeight + 1) / r.blocksScanned
 
 /**
  * Minimum Alkanes tx in a day for the per-tx fee average to be meaningful. The first days after
@@ -134,7 +151,7 @@ function ratioOfSumsNullable(
 export async function getPublicOpReturnData(): Promise<PublicOpReturnPayload> {
   let rows: OpReturnRow[] = []
   try {
-    rows = await listOpReturnDaily()
+    rows = await listClosedOpReturnDays()
   } catch (e) {
     console.error("[public-opreturn] series unavailable", e)
     return EMPTY

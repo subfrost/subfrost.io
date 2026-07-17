@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
-import { listOpReturnDaily } from "@/lib/marketing/opreturn-store"
+import { listClosedOpReturnDays } from "@/lib/marketing/opreturn-store"
 import { computeMetric, computeBytesComposition, formatMetricValue } from "@/lib/marketing/opreturn-metrics"
 import { METRIC_LABELS, WINDOW_LABELS, type MetricKey } from "@/lib/marketing/opreturn-types"
 import { parseCardParams } from "@/lib/marketing/opreturn-card"
@@ -11,6 +11,11 @@ import { loadOgLogomark, loadOgFont } from "@/lib/og-assets"
 // parseCardParams) so the URL space is finite and fully CDN-cacheable, and no
 // free-text ever reaches the branded image. Analyst-subtle: the source + as-of
 // date are printed on the card so a screenshot always carries its citation.
+//
+// Reads listClosedOpReturnDays (never listOpReturnDaily), same as the main
+// /metrics payload builder, so this card's numbers and "as of" date can't
+// disagree with the page it's shared from — `asOf` below naturally becomes the
+// last CLOSED day once today's partial row is excluded.
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -53,7 +58,7 @@ export async function GET(req: NextRequest) {
   const { metric, template, window, theme } = params
   const dark = theme !== "light"
 
-  const rows = await listOpReturnDaily()
+  const rows = await listClosedOpReturnDays()
   const asOf = rows.length ? rows[rows.length - 1].date : null
   const [logo, font] = await Promise.all([loadOgLogomark(), loadOgFont()])
 
