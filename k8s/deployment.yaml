@@ -163,6 +163,15 @@ spec:
                   name: subfrost-io-secrets
                   key: FUEL_API_KEY
                   optional: true
+            # Shared key gating POST /api/v1/pay/usage — the mobile-api
+            # backend POSTs SUBFROST Pay usage events here. optional:true
+            # so an unsynced secret can't block startup; absent => 503.
+            - name: PAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subfrost-io-secrets
+                  key: PAY_API_KEY
+                  optional: true
             - name: REFERRAL_API_KEY
               valueFrom:
                 secretKeyRef:
