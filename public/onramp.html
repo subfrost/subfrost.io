@@ -18,6 +18,9 @@
     allowed onramp domain in Stripe (payment-method-domain
     pmd_1TuN7JQi88qpFRJ2wAcefrCf) so the widget's origin check passes.
   -->
+  <!-- StripeJS must load alongside the crypto-onramp script or
+       StripeOnramp() throws ("Please include StripeJS alongside…"). -->
+  <script src="https://js.stripe.com/v3/"></script>
   <script src="https://crypto-js.stripe.com/crypto-onramp-outer.js"></script>
   <style>
     :root { color-scheme: dark; }
