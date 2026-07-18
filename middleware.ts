@@ -108,6 +108,27 @@ function redirectToLocale(request: NextRequest, locale: "en" | "zh") {
 function withSecurityHeaders(response: NextResponse, pathname: string) {
   const isBroadcastPath = pathname.startsWith("/broadcast")
 
+  // /onramp.html hosts Stripe's embeddable Crypto Onramp inside the
+  // mobile apps' WebViews. The site-wide CSP below blocks
+  // crypto-js.stripe.com (the widget loader), which broke the in-app
+  // buy flow (widget errored -> cover closed instantly). This page gets
+  // a dedicated policy scoped to Stripe/Link origins instead.
+  if (pathname === "/onramp.html") {
+    response.headers.set(
+      "Content-Security-Policy",
+      "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://crypto-js.stripe.com https://js.stripe.com; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self' https://*.stripe.com; " +
+        "frame-src https://*.stripe.com https://*.link.com;",
+    )
+    response.headers.set("X-Content-Type-Options", "nosniff")
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+  }
+
   // Add security headers. img-src already allows https: (covers GCS avatars).
   response.headers.set(
     "Content-Security-Policy",
