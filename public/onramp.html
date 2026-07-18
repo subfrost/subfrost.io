@@ -24,7 +24,9 @@
   <script src="https://crypto-js.stripe.com/crypto-onramp-outer.js"></script>
   <style>
     :root { color-scheme: dark; }
-    html, body { margin: 0; padding: 0; background: #07080a; color: #f4f6f8;
+    /* Match the app's Glacial dark palette (Theme.swift): canvasDeep
+       #000000, textPrimary #F2F6FA. */
+    html, body { margin: 0; padding: 0; background: #000000; color: #f2f6fa;
       font-family: -apple-system, system-ui, "Segoe UI", sans-serif; }
     #onramp-element { min-height: 100vh; }
     #status { padding: 20px 16px; text-align: center; color: #8a9099; font-size: 14px; }
@@ -70,8 +72,18 @@
         var stripeOnramp = StripeOnramp(pkOverride || PUBLISHABLE_KEY);
         var session = stripeOnramp.createSession({
           clientSecret: clientSecret,
-          // Match the app's dark UI instead of the widget's white default.
-          appearance: { theme: "dark" },
+          // Mirror the app's Glacial dark theme (ios .../UI/Theme.swift):
+          // pure-black canvas, frost-white primary CTA (the app's buttons
+          // are frostBright #E9F0F7 with dark text), 12px radii.
+          appearance: {
+            theme: "dark",
+            variables: {
+              colorPrimary: "#E9F0F7",
+              colorBackground: "#000000",
+              borderRadius: "12px",
+              fontFamily: "-apple-system, system-ui, 'Segoe UI', sans-serif",
+            },
+          },
         });
         session
           .addEventListener("onramp_ui_loaded", function () {
