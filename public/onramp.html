@@ -68,7 +68,11 @@
       }
       try {
         var stripeOnramp = StripeOnramp(pkOverride || PUBLISHABLE_KEY);
-        var session = stripeOnramp.createSession({ clientSecret: clientSecret });
+        var session = stripeOnramp.createSession({
+          clientSecret: clientSecret,
+          // Match the app's dark UI instead of the widget's white default.
+          appearance: { theme: "dark" },
+        });
         session
           .addEventListener("onramp_ui_loaded", function () {
             statusEl.style.display = "none";
