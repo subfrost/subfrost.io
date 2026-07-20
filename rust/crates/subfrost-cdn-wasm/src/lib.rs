@@ -166,6 +166,7 @@ fn handle_alkanes(cfg: &Cfg, path: &str, request: &IncomingRequest, out: Respons
                     Serve::Bytes { data, mime } => emit_image(out, &data, &mime, 300),
                     Serve::Fallthrough => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
                 },
+                // Chain/GCS setup failed — degrade to legacy (curated file or 404).
                 Err(_) => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
             }
             return;

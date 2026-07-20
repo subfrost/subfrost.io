@@ -4,3 +4,16 @@ kind: Kustomization
 # namespace: subfrost). tlsd lives in its own `tlsd-ingress` namespace.
 resources:
   - tlsd.yaml
+
+# The subfrost_cdn wasip2 app module, delivered as a ConfigMap (binaryData)
+# and mounted at /var/lib/tlsd/modules. Kept in-repo (source: the
+# subfrost-cdn-wasm crate) so Flux owns it end-to-end. disableNameSuffixHash
+# keeps the name stable so the DaemonSet volume ref (tlsd-modules) resolves.
+configMapGenerator:
+  - name: tlsd-modules
+    namespace: tlsd-ingress
+    files:
+      - subfrost_cdn.wasm=modules/subfrost_cdn.wasm
+
+generatorOptions:
+  disableNameSuffixHash: true
