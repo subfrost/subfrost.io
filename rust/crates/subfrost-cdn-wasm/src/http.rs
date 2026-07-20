@@ -13,9 +13,15 @@
 
 use crate::wasi::http::outgoing_handler;
 use crate::wasi::http::types::{
-    Fields, IncomingBody, Method, OutgoingBody, OutgoingRequest, Scheme,
+    Fields, IncomingBody, Method, OutgoingBody, OutgoingRequest, RequestOptions, Scheme,
 };
 use crate::wasi::io::streams::StreamError;
+
+/// Outbound timeouts (nanoseconds) so a stuck upstream errors in seconds
+/// instead of riding to tlsd's 120s app deadline.
+const CONNECT_NS: u64 = 5_000_000_000;
+const FIRST_BYTE_NS: u64 = 15_000_000_000;
+const BETWEEN_BYTES_NS: u64 = 15_000_000_000;
 
 /// A buffered outbound response.
 pub struct Resp {
@@ -64,7 +70,11 @@ pub fn request(
     // Take the body resource before handing the request to the host.
     let out_body = req.body().map_err(|_| "take outgoing body")?;
 
-    let fut = outgoing_handler::handle(req, None).map_err(|e| format!("handle: {e:?}"))?;
+    let opts = RequestOptions::new();
+    let _ = opts.set_connect_timeout(Some(CONNECT_NS));
+    let _ = opts.set_first_byte_timeout(Some(FIRST_BYTE_NS));
+    let _ = opts.set_between_bytes_timeout(Some(BETWEEN_BYTES_NS));
+    let fut = outgoing_handler::handle(req, Some(opts)).map_err(|e| format!("handle: {e:?}"))?;
 
     // Write the request body (if any) and finish it.
     if let Some(bytes) = body {
@@ -89,9 +99,13 @@ pub fn request(
 
     let status = resp.status();
     let headers = resp.headers().entries();
+    let content_len = headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("content-length"))
+        .and_then(|(_, v)| std::str::from_utf8(v).ok())
+        .and_then(|s| s.trim().parse::<usize>().ok());
     let incoming = resp.consume().map_err(|_| "consume response body")?;
-    let body = read_body(&incoming)?;
-    // Drop the stream (held inside read_body) before finishing the body.
+    let body = read_body(&incoming, content_len)?;
     let _ = IncomingBody::finish(incoming);
 
     Ok(Resp {
@@ -101,21 +115,24 @@ pub fn request(
     })
 }
 
-/// Drain an incoming body to EOF. `blocking_read` returns `Err(Closed)` at end
-/// of stream; any other stream error is a real transport failure.
-fn read_body(incoming: &IncomingBody) -> Result<Vec<u8>, String> {
+/// Drain an incoming body. Terminates on `Err(Closed)` (EOF) OR once
+/// `content_len` bytes have been read — the latter guards against hosts that
+/// return `Ok(empty)` at end-of-body on a kept-alive connection instead of
+/// signalling `Closed`, which would otherwise spin to the app deadline. Blocks
+/// on the stream's pollable between reads so it never busy-spins.
+fn read_body(incoming: &IncomingBody, content_len: Option<usize>) -> Result<Vec<u8>, String> {
     let stream = incoming.stream().map_err(|_| "incoming body stream")?;
+    let pollable = stream.subscribe();
     let mut buf = Vec::new();
     loop {
-        match stream.blocking_read(65536) {
-            Ok(chunk) => {
-                if chunk.is_empty() {
-                    // No data yet — wait for readiness to avoid a busy spin.
-                    stream.subscribe().block();
-                } else {
-                    buf.extend_from_slice(&chunk);
-                }
+        if let Some(n) = content_len {
+            if buf.len() >= n {
+                break;
             }
+        }
+        pollable.block();
+        match stream.read(1_048_576) {
+            Ok(chunk) => buf.extend_from_slice(&chunk),
             Err(StreamError::Closed) => break,
             Err(StreamError::LastOperationFailed(e)) => {
                 return Err(format!("read body: {:?}", e.to_debug_string()));

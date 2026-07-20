@@ -10,6 +10,8 @@ data:
     forward_tls_fingerprint = true
     tls_fingerprint_header = "X-TLS-JA4"
     request_id_format = "ulid"
+    [server.app_modules]
+    "subfrost_cdn" = "/var/lib/tlsd/modules/subfrost_cdn.wasm"
     [[listener]]
     name = "https-main"
     bind = "0.0.0.0:8443"
@@ -28,9 +30,8 @@ data:
     upstream_scheme = "http"
     [[route]]
     host = "cdn.subfrost.io"
-    backends = ["34.118.232.76:80"]
-    algorithm = "round-robin"
-    upstream_scheme = "http"
+    app_id = "subfrost_cdn"
+    backends = ["127.0.0.1:1"]
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -61,13 +62,14 @@ spec:
       tolerations: [{ operator: Exists }]
       containers:
         - name: tlsd
-          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:ja4cc-58962f2-1742
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/tlsd:wasm-4322f85
           imagePullPolicy: IfNotPresent
           args: ["--config", "/etc/tlsd/tlsd.toml"]
           ports: [{ name: https, containerPort: 8443 }, { name: metrics, containerPort: 9100 }]
           env: [{ name: RUST_LOG, value: "info,tlsd=info,tlsd_proxy=info" }]
           volumeMounts:
             - { name: tlsd-config, mountPath: /etc/tlsd, readOnly: true }
+            - { name: tlsd-modules, mountPath: /var/lib/tlsd/modules, readOnly: true }
             - { name: tls, mountPath: /var/lib/tlsd/tls, readOnly: true }
           resources: { requests: { cpu: "10m", memory: "96Mi" }, limits: { cpu: "1", memory: "768Mi" } }
           livenessProbe:  { httpGet: { path: /healthz, port: metrics }, initialDelaySeconds: 5, periodSeconds: 30 }
@@ -81,6 +83,7 @@ spec:
       securityContext: { runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532 }
       volumes:
         - { name: tlsd-config, configMap: { name: tlsd-config, items: [{ key: tlsd.toml, path: tlsd.toml }] } }
+        - { name: tlsd-modules, configMap: { name: tlsd-modules } }
         - { name: nginx-redirect, configMap: { name: nginx-redirect } }
         - { name: tls, secret: { secretName: tlsd-tls } }
 ---
