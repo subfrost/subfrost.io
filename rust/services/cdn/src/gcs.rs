@@ -208,6 +208,101 @@ impl GcsClient {
         let resp = resp.error_for_status()?;
         Ok(Some(resp.bytes().await?))
     }
+
+    /// Fetch an object plus its GCS `generation` (from `x-goog-generation`),
+    /// for read-modify-write with `ifGenerationMatch` (the alkane manifest).
+    /// Returns None on 404.
+    pub async fn fetch_bytes_with_generation(
+        &self,
+        bucket: &str,
+        object: &str,
+    ) -> anyhow::Result<Option<(bytes::Bytes, i64)>> {
+        let token = self.access_token().await?;
+        let url = format!(
+            "{STORAGE_API}/{}/o/{}?alt=media",
+            urlencode(bucket),
+            urlencode(object),
+        );
+        let resp = self
+            .http
+            .get(&url)
+            .bearer_auth(&token)
+            .timeout(Duration::from_secs(30))
+            .send()
+            .await?;
+        if resp.status() == StatusCode::NOT_FOUND {
+            return Ok(None);
+        }
+        let resp = resp.error_for_status()?;
+        let generation = resp
+            .headers()
+            .get("x-goog-generation")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<i64>().ok())
+            .unwrap_or(0);
+        Ok(Some((resp.bytes().await?, generation)))
+    }
+
+    /// Does the object exist? A metadata GET (no media), cheap and cacheable
+    /// by the caller.
+    pub async fn object_exists(&self, bucket: &str, object: &str) -> anyhow::Result<bool> {
+        let token = self.access_token().await?;
+        let url = format!(
+            "{STORAGE_API}/{}/o/{}?fields=name",
+            urlencode(bucket),
+            urlencode(object),
+        );
+        let resp = self
+            .http
+            .get(&url)
+            .bearer_auth(&token)
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await?;
+        if resp.status() == StatusCode::NOT_FOUND {
+            return Ok(false);
+        }
+        resp.error_for_status()?;
+        Ok(true)
+    }
+
+    /// Upload (create or replace) an object via the simple-media JSON API.
+    /// `if_generation_match`: Some(0) = only-if-absent, Some(n) = only if the
+    /// current generation is n (atomic manifest RMW), None = unconditional.
+    /// Returns Ok(false) when the precondition failed (412) — caller refetches
+    /// and retries; every other non-2xx is an Err.
+    pub async fn upload_object(
+        &self,
+        bucket: &str,
+        object: &str,
+        body: Vec<u8>,
+        content_type: &str,
+        if_generation_match: Option<i64>,
+    ) -> anyhow::Result<bool> {
+        let token = self.access_token().await?;
+        let mut url = format!(
+            "https://storage.googleapis.com/upload/storage/v1/b/{}/o?uploadType=media&name={}",
+            urlencode(bucket),
+            urlencode(object),
+        );
+        if let Some(g) = if_generation_match {
+            url.push_str(&format!("&ifGenerationMatch={g}"));
+        }
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(&token)
+            .header(axum::http::header::CONTENT_TYPE, content_type)
+            .timeout(Duration::from_secs(30))
+            .body(body)
+            .send()
+            .await?;
+        if resp.status() == StatusCode::PRECONDITION_FAILED {
+            return Ok(false);
+        }
+        resp.error_for_status()?;
+        Ok(true)
+    }
 }
 
 /// Percent-encode an object path so slashes become `%2F` (the GCS JSON

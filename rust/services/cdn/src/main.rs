@@ -27,18 +27,25 @@ use axum::{
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
+mod alkanes;
 mod config;
 mod gcs;
+mod manifest;
 mod markdown;
+mod onchain;
 mod secure;
 
 use config::Config;
 use gcs::{plain, GcsClient};
+use onchain::{Onchain, Serve};
 
 #[derive(Clone)]
 struct AppState {
     cfg: Arc<Config>,
     gcs: GcsClient,
+    /// On-chain GetData pipeline. None when ALKANE_ONCHAIN_ENABLED=0 —
+    /// /alkanes/* then behaves exactly like the pre-pipeline server.
+    onchain: Option<Arc<Onchain>>,
 }
 
 #[tokio::main]
@@ -60,9 +67,27 @@ async fn main() -> anyhow::Result<()> {
         "subfrost-cdn starting"
     );
 
+    let gcs = GcsClient::new()?;
+    let onchain = if cfg.onchain_enabled {
+        let chain = alkanes::AlkaneChain::new(cfg.metashrew_url.clone())?;
+        let store = Arc::new(manifest::ManifestStore::new(
+            gcs.clone(),
+            cfg.assets_bucket.clone(),
+            cfg.manifest_object.clone(),
+        ));
+        Some(Arc::new(Onchain::new(
+            chain,
+            gcs.clone(),
+            store,
+            cfg.assets_bucket.clone(),
+        )))
+    } else {
+        None
+    };
     let state = AppState {
         cfg: Arc::new(cfg.clone()),
-        gcs: GcsClient::new()?,
+        gcs,
+        onchain,
     };
 
     // A single catch-all so we control prefix routing exactly like the Go
@@ -163,10 +188,23 @@ async fn route(
     let full = &path[1..]; // path always begins with '/' here
 
     if let Some(rest) = strip(path, "/alkanes/") {
-        // Ordiscan-compat rewrite (formerly done by the cdn.subfrost.io
-        // Cloudflare Worker): the wallet apps + browser extensions request
-        // /alkanes/<block>_<tx>; serve it from alkanes/mainnet/<block>-<tx>.png.
-        if let Some(obj) = alkanes_ordiscan_object(rest) {
+        // The <block>_<tx> icon form. Curated bucket art still wins; the
+        // on-chain GetData pipeline (capture + manifest + static/dynamic
+        // serving) covers alkanes without a curated asset. See onchain.rs.
+        if let Some((block, tx)) = parse_block_tx(rest) {
+            if let Some(oc) = &state.onchain {
+                match oc.serve(block, tx).await {
+                    Serve::Stored(obj) => {
+                        return Ok(proxy(state, &cfg.assets_bucket, &obj, headers, base_headers()).await);
+                    }
+                    Serve::Bytes { data, mime } => {
+                        return Ok(dynamic_image_response(&data, &mime));
+                    }
+                    Serve::Fallthrough => {}
+                }
+            }
+            // Legacy behavior: curated mainnet asset (or GCS 404).
+            let obj = format!("alkanes/mainnet/{block}-{tx}.png");
             return Ok(proxy(state, &cfg.assets_bucket, &obj, headers, base_headers()).await);
         }
         // generic /alkanes/* — object keeps the prefix (parity with Go).
@@ -361,23 +399,35 @@ fn strip<'a>(path: &'a str, prefix: &str) -> Option<&'a str> {
     path.strip_prefix(prefix).filter(|s| !s.is_empty())
 }
 
-/// Ordiscan-compat: given the remainder after `/alkanes/`, map the
-/// `<block>_<tx>` form (digits, exactly one underscore, no extension) to the
-/// canonical mainnet object key. Returns None for any other shape (e.g. the
-/// already-canonical `mainnet/0-0.png`), which falls through to a literal
-/// `alkanes/<rest>` lookup. Equivalent to the old Worker regex
-/// `^/alkanes/(\d+)_(\d+)$`.
-fn alkanes_ordiscan_object(rest: &str) -> Option<String> {
+/// Parse the `<block>_<tx>` icon form (digits, exactly one underscore, no
+/// extension — the old Worker regex `^/alkanes/(\d+)_(\d+)$`). Any other
+/// shape (e.g. the already-canonical `mainnet/0-0.png`) returns None and
+/// falls through to a literal `alkanes/<rest>` lookup.
+fn parse_block_tx(rest: &str) -> Option<(u128, u128)> {
     let (b, t) = rest.split_once('_')?;
-    if !b.is_empty()
-        && !t.is_empty()
-        && b.bytes().all(|c| c.is_ascii_digit())
-        && t.bytes().all(|c| c.is_ascii_digit())
-    {
-        Some(format!("alkanes/mainnet/{b}-{t}.png"))
-    } else {
-        None
+    if b.is_empty() || t.is_empty() {
+        return None;
     }
+    Some((b.parse().ok()?, t.parse().ok()?))
+}
+
+/// A dynamic simulate result served directly: short cache (the graphic can
+/// change once per block at most) + a no-script CSP so an on-chain SVG can't
+/// execute if opened as a document.
+fn dynamic_image_response(data: &[u8], mime: &str) -> Response {
+    let mut b = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, mime)
+        .header(header::CACHE_CONTROL, "public, max-age=60")
+        .header(HeaderName::from_static("x-content-type-options"), "nosniff")
+        .header(
+            HeaderName::from_static("content-security-policy"),
+            "default-src 'none'; style-src 'unsafe-inline'",
+        );
+    for (k, v) in cors() {
+        b = b.header(k, v);
+    }
+    b.body(Body::from(data.to_vec())).unwrap()
 }
 
 fn accepts_html(headers: &HeaderMap) -> bool {
@@ -406,24 +456,24 @@ fn query_flag(query: Option<&str>, key: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::alkanes_ordiscan_object;
+    use super::parse_block_tx;
 
     #[test]
-    fn ordiscan_rewrites_block_tx_to_mainnet_png() {
-        assert_eq!(alkanes_ordiscan_object("2_0").as_deref(), Some("alkanes/mainnet/2-0.png"));
-        assert_eq!(alkanes_ordiscan_object("32_0").as_deref(), Some("alkanes/mainnet/32-0.png"));
-        assert_eq!(alkanes_ordiscan_object("2_490").as_deref(), Some("alkanes/mainnet/2-490.png"));
+    fn parses_block_tx_icon_form() {
+        assert_eq!(parse_block_tx("2_0"), Some((2, 0)));
+        assert_eq!(parse_block_tx("32_0"), Some((32, 0)));
+        assert_eq!(parse_block_tx("2_490"), Some((2, 490)));
     }
 
     #[test]
-    fn ordiscan_ignores_non_block_tx_shapes() {
+    fn ignores_non_block_tx_shapes() {
         // already-canonical paths + anything non-numeric fall through (None)
-        assert_eq!(alkanes_ordiscan_object("mainnet/2-0.png"), None);
-        assert_eq!(alkanes_ordiscan_object("2-0"), None); // dash, not underscore
-        assert_eq!(alkanes_ordiscan_object("2_0_3"), None); // two underscores
-        assert_eq!(alkanes_ordiscan_object("2_"), None); // empty tx
-        assert_eq!(alkanes_ordiscan_object("_0"), None); // empty block
-        assert_eq!(alkanes_ordiscan_object("abc_0"), None); // non-numeric
-        assert_eq!(alkanes_ordiscan_object("2_0/foo"), None); // trailing path
+        assert_eq!(parse_block_tx("mainnet/2-0.png"), None);
+        assert_eq!(parse_block_tx("2-0"), None); // dash, not underscore
+        assert_eq!(parse_block_tx("2_0_3"), None); // two underscores
+        assert_eq!(parse_block_tx("2_"), None); // empty tx
+        assert_eq!(parse_block_tx("_0"), None); // empty block
+        assert_eq!(parse_block_tx("abc_0"), None); // non-numeric
+        assert_eq!(parse_block_tx("2_0/foo"), None); // trailing path
     }
 }

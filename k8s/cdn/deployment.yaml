@@ -53,6 +53,15 @@ spec:
               value: "alkane-assets-bucket"
             - name: CDN_BUCKET
               value: "subfrost-cdn-bucket"
+            # On-chain alkane graphics (GetData) pipeline — capture + manifest
+            # on the assets bucket, static/dynamic serving via the public
+            # metashrew LB (blockhash-cached upstream). Requires the GSA to
+            # hold storage.objectAdmin (not just Viewer) on
+            # alkane-assets-bucket — see serviceaccount.yaml.
+            - name: METASHREW_URL
+              value: "https://mainnet.subfrost.io/metashrew"
+            - name: ALKANE_ONCHAIN_ENABLED
+              value: "1"
             - name: RUST_LOG
               value: "subfrost_cdn=info,tower_http=info"
             # Shared HMAC key for /secure/* tokens. optional:true so an
