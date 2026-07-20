@@ -464,7 +464,14 @@ fn emit(out: ResponseOutparam, status: u16, headers: Fields, body: &[u8]) {
     let response = OutgoingResponse::new(headers);
     let _ = response.set_status_code(status);
 
+    // Take the body handle, then hand the response to the host BEFORE writing.
+    // SET-FIRST streaming: the host drains the outgoing body stream concurrently
+    // as we write it. Write-then-set deadlocks on any body larger than the
+    // outgoing buffer — the host only drains after set(), so the guest blocks on
+    // a full buffer and never reaches set(). (See tlsd-wasm-host large_body.rs.)
     let out_body: OutgoingBody = response.body().expect("take outgoing body");
+    ResponseOutparam::set(out, Ok(response));
+
     if !body.is_empty() {
         let stream = out_body.write().expect("body write stream");
         for chunk in body.chunks(4096) {
@@ -473,7 +480,6 @@ fn emit(out: ResponseOutparam, status: u16, headers: Fields, body: &[u8]) {
         drop(stream);
     }
     OutgoingBody::finish(out_body, None).expect("finish body");
-    ResponseOutparam::set(out, Ok(response));
 }
 
 export!(Component);

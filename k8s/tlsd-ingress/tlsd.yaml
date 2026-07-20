@@ -28,16 +28,12 @@ data:
     backends = ["34.118.232.215:80"]
     algorithm = "round-robin"
     upstream_scheme = "http"
-    # cdn.subfrost.io TEMPORARILY routes to the subfrost-cdn microservice while
-    # the wasip2 module path is blocked on a tlsfetch/tlsd wasip2-egress bug
-    # (the module hangs reading GCS object bodies through send_via_tlsfetch).
-    # The module is still built + mounted (app_modules below); flip this route
-    # back to `app_id = "subfrost_cdn"` once the egress is fixed.
+    # cdn.subfrost.io is served by the subfrost_cdn wasip2 app module (below).
+    # backends is a required-non-empty sentinel for app_id routes.
     [[route]]
     host = "cdn.subfrost.io"
-    backends = ["34.118.232.76:80"]
-    algorithm = "round-robin"
-    upstream_scheme = "http"
+    app_id = "subfrost_cdn"
+    backends = ["127.0.0.1:1"]
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -76,10 +72,8 @@ spec:
             - { name: RUST_LOG, value: "info,tlsd=info,tlsd_proxy=info" }
             # metashrew for the on-chain alkane pipeline (external ingress).
             - { name: METASHREW_URL, value: "https://mainnet.subfrost.io/v4/subfrost" }
-            # On-chain GetData resolve is OFF until the tlsfetch wasip2-egress
-            # hang against the Cloudflare-fronted metashrew ingress is fixed;
-            # /alkanes/* serves curated art (alkanes/mainnet/*) meanwhile.
-            - { name: ALKANE_ONCHAIN_ENABLED, value: "0" }
+            # On-chain GetData resolve: opportunistic capture + serve.
+            - { name: ALKANE_ONCHAIN_ENABLED, value: "1" }
           volumeMounts:
             - { name: tlsd-config, mountPath: /etc/tlsd, readOnly: true }
             - { name: tlsd-modules, mountPath: /var/lib/tlsd/modules, readOnly: true }
