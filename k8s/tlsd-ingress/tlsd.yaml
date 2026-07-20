@@ -66,7 +66,14 @@ spec:
           imagePullPolicy: IfNotPresent
           args: ["--config", "/etc/tlsd/tlsd.toml"]
           ports: [{ name: https, containerPort: 8443 }, { name: metrics, containerPort: 9100 }]
-          env: [{ name: RUST_LOG, value: "info,tlsd=info,tlsd_proxy=info" }]
+          env:
+            - { name: RUST_LOG, value: "info,tlsd=info,tlsd_proxy=info" }
+            # metashrew for the on-chain alkane pipeline (external ingress).
+            - { name: METASHREW_URL, value: "https://mainnet.subfrost.io/v4/subfrost" }
+            # On-chain GetData resolve is OFF until the tlsfetch wasip2-egress
+            # hang against the Cloudflare-fronted metashrew ingress is fixed;
+            # /alkanes/* serves curated art (alkanes/mainnet/*) meanwhile.
+            - { name: ALKANE_ONCHAIN_ENABLED, value: "0" }
           volumeMounts:
             - { name: tlsd-config, mountPath: /etc/tlsd, readOnly: true }
             - { name: tlsd-modules, mountPath: /var/lib/tlsd/modules, readOnly: true }
