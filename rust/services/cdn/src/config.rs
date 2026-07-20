@@ -12,6 +12,16 @@ pub struct Config {
     pub cdn_bucket: String,
     /// Shared secret for `/secure/*` HMAC tokens. Empty => /secure denies all.
     pub secure_hmac_key: Vec<u8>,
+    /// Public metashrew JSON-RPC (metashrew_view/metashrew_height) used for
+    /// on-chain alkane graphics (GetData). The mainnet.subfrost.io /metashrew
+    /// LB blockhash-caches views upstream, so calling it is already cheap.
+    pub metashrew_url: String,
+    /// Master switch for the on-chain GetData pipeline. Off => /alkanes/*
+    /// behaves exactly like the pre-pipeline server (curated bucket only).
+    pub onchain_enabled: bool,
+    /// Manifest object key on the assets bucket (source of truth for how each
+    /// alkane's graphic is served: static file vs dynamic simulate).
+    pub manifest_object: String,
 }
 
 impl Config {
@@ -32,11 +42,20 @@ impl Config {
             .unwrap_or_default()
             .into_bytes();
 
+        let metashrew_url = env_or("METASHREW_URL", "https://mainnet.subfrost.io/metashrew");
+        let onchain_enabled = std::env::var("ALKANE_ONCHAIN_ENABLED")
+            .map(|v| v != "0" && !v.eq_ignore_ascii_case("false"))
+            .unwrap_or(true);
+        let manifest_object = env_or("ALKANE_MANIFEST_OBJECT", "alkanes/manifest.json");
+
         Self {
             bind,
             assets_bucket,
             cdn_bucket,
             secure_hmac_key,
+            metashrew_url,
+            onchain_enabled,
+            manifest_object,
         }
     }
 }
