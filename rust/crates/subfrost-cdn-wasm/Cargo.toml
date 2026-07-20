@@ -36,6 +36,14 @@ hmac = { version = "0.12", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 # Hex/base64url decode of the token signature.
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
+# base64url decode of the /secure token payload+signature.
+base64 = "0.22"
+# JSON: metashrew RPC envelopes, the alkane manifest, GCS list responses.
+# wasm32-wasip2 is a full std target, so default features are fine.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Markdown -> HTML for /docs/*.md (pure Rust, builds for wasip2).
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
 
 [profile.release]
 # Small wasm output. opt-level "s" + lto keeps the component lean for

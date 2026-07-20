@@ -1,33 +1,28 @@
-//! subfrost-cdn-wasm — the wasip2 port of cdn.subfrost.io.
+//! subfrost-cdn-wasm — the wasip2 implementation of cdn.subfrost.io.
 //!
-//! A `wasi:http/incoming-handler` component that tlsd dispatches to
-//! (via `app_id = "subfrost_cdn"`). It replicates the Go CDN:
+//! A `wasi:http/incoming-handler` component that tlsd dispatches `cdn.subfrost.io`
+//! to (via `app_id = "subfrost_cdn"`). tlsd IS the serving stack — nothing sits
+//! behind it. Responsibilities:
 //!
-//!   * GCS object proxy (`/alkanes/*`, `/docs/*`, `/media/*`,
-//!     `/raw/*`, `/releases/*`) — fetch `gs://bucket/object` over
-//!     OUTBOUND HTTP (`wasi:http/outgoing-handler`) against the GCS
-//!     JSON/XML API, stream it back with CORS + cache + range headers.
-//!   * `/snapshots/*` — 302 redirect to storage.googleapis.com (multi-GB
-//!     tarballs; let GCS serve the Range directly).
-//!   * markdown render (`/docs/*.md` for browsers) — fetch + render.
-//!   * `/secure/*` — replaces the Go server's HTTP Basic Auth with a
-//!     short-lived HMAC-signed token minted by the subfrost.io app and
-//!     verified here with a shared secret.
-//!   * `/health`, `/`.
+//!   * `/alkanes/<block>_<tx>` — opportunistic on-chain GetData: serve curated
+//!     art, else the saved capture, else a live `simulate` (opcode 1000 or the
+//!     `__meta`-declared data opcode) against `$METASHREW_URL` (/v4/subfrost),
+//!     saving the image to the assets bucket on first resolve. See onchain.rs.
+//!   * GCS object proxy (`/alkanes/*`, `/docs/*`, `/media/*`, `/raw/*`,
+//!     `/releases/*`) — buffered GET with Workload-Identity token auth; objects
+//!     over the response cap are 302'd to GCS.
+//!   * subfrost-themed autoindex on directory (`.../`) paths (render.rs).
+//!   * `/docs/*.md` — markdown render for browsers.
+//!   * `/secure/*` — HMAC-token gate (key from env `SECURE_HMAC_KEY`).
+//!   * `/snapshots/*` — 302 to storage.googleapis.com. `/health`, `/`.
 //!
-//! Status: SCAFFOLD. Route dispatch + response plumbing are wired and
-//! compile to a real component; the GCS-fetch and HMAC-key plumbing are
-//! stubbed (see the `TODO(scaffold)` markers) pending the host wiring
-//! described in CDN_RUST_PORT_DESIGN.md.
+//! Config comes from the tlsd pod env via `wasi:cli/environment`
+//! (`inherit_env`): GCS_BUCKET, CDN_BUCKET, METASHREW_URL, ALKANE_MANIFEST_OBJECT,
+//! ALKANE_ONCHAIN_ENABLED, SECURE_HMAC_KEY.
 
 wit_bindgen::generate!({
     path: "wit",
     world: "wasi:http/proxy",
-    // Generate bindings for the proxy world's transitive interfaces.
-    // `outgoing-handler` is what lets this component make the OUTBOUND
-    // GCS request — the crux of the port. `generate_all` would also
-    // pull in unrelated wasi:cli interfaces the host linker for
-    // wasi:http/proxy does not provide, so we enumerate explicitly.
     with: {
         "wasi:http/types@0.2.1": generate,
         "wasi:http/incoming-handler@0.2.1": generate,
@@ -44,17 +39,57 @@ wit_bindgen::generate!({
     },
 });
 
-use exports::wasi::http::incoming_handler::Guest;
-use wasi::http::types::{
-    Fields, IncomingRequest, Method, OutgoingBody, OutgoingResponse, ResponseOutparam,
-};
+mod alkanes;
+mod gcs;
+mod http;
+mod manifest;
+mod onchain;
+mod render;
 
-/// Bucket the public asset routes (`/alkanes/*`) read from. Mirrors the
-/// Go server's `alkane-assets-bucket` default.
-const ASSETS_BUCKET: &str = "alkane-assets-bucket";
-/// Bucket the docs/media/raw/releases/snapshots/secure routes read from.
-/// Mirrors the Go server's `subfrost-cdn-bucket` default.
-const CDN_BUCKET: &str = "subfrost-cdn-bucket";
+use exports::wasi::http::incoming_handler::Guest;
+use wasi::http::types::{Fields, IncomingRequest, Method, OutgoingBody, OutgoingResponse, ResponseOutparam};
+
+use alkanes::AlkaneChain;
+use gcs::{Gcs, FORWARD_HEADERS};
+use onchain::{Onchain, Serve};
+
+/// Objects larger than this are 302-redirected instead of buffered — tlsd caps
+/// the component's response body at 64 MiB. Alkane images / docs / manifests
+/// are far smaller; this only affects large media/release binaries.
+const MAX_PROXY_BYTES: u64 = 48 * 1024 * 1024;
+
+// ---------------------------------------------------------------------
+// config (from pod env via wasi:cli/environment)
+// ---------------------------------------------------------------------
+
+struct Cfg {
+    assets_bucket: String,
+    cdn_bucket: String,
+    metashrew_url: String,
+    manifest_object: String,
+    onchain_enabled: bool,
+    secure_hmac_key: Vec<u8>,
+}
+
+fn env_or(key: &str, fallback: &str) -> String {
+    match std::env::var(key) {
+        Ok(v) if !v.is_empty() => v,
+        _ => fallback.to_string(),
+    }
+}
+
+fn load_cfg() -> Cfg {
+    Cfg {
+        assets_bucket: env_or("GCS_BUCKET", "alkane-assets-bucket"),
+        cdn_bucket: env_or("CDN_BUCKET", "subfrost-cdn-bucket"),
+        metashrew_url: env_or("METASHREW_URL", "https://mainnet.subfrost.io/v4/subfrost"),
+        manifest_object: env_or("ALKANE_MANIFEST_OBJECT", "alkanes/manifest.json"),
+        onchain_enabled: std::env::var("ALKANE_ONCHAIN_ENABLED")
+            .map(|v| v != "0" && !v.eq_ignore_ascii_case("false"))
+            .unwrap_or(true),
+        secure_hmac_key: std::env::var("SECURE_HMAC_KEY").unwrap_or_default().into_bytes(),
+    }
+}
 
 struct Component;
 
@@ -62,226 +97,311 @@ impl Guest for Component {
     fn handle(request: IncomingRequest, response_out: ResponseOutparam) {
         let method = request.method();
         let path_with_query = request.path_with_query().unwrap_or_else(|| "/".to_string());
-        let path = path_with_query
-            .split('?')
-            .next()
-            .unwrap_or("/")
-            .to_string();
+        let path = path_with_query.split('?').next().unwrap_or("/").to_string();
 
-        // CORS preflight short-circuit (Go corsMiddleware: OPTIONS → 204).
         if matches!(method, Method::Options) {
             respond(response_out, 204, cors_headers(), b"");
             return;
         }
-        // Only GET/HEAD are served (Go advertises "GET, HEAD, OPTIONS").
         if !matches!(method, Method::Get | Method::Head) {
             respond(response_out, 405, cors_headers(), b"method not allowed");
             return;
         }
 
-        route(&path, &request, response_out);
+        let cfg = load_cfg();
+        route(&cfg, &path, &request, response_out);
     }
 }
 
-/// Top-level route dispatch — the wasip2 equivalent of the Go
-/// `http.ServeMux` registrations in `main()`.
-fn route(path: &str, request: &IncomingRequest, out: ResponseOutparam) {
+fn route(cfg: &Cfg, path: &str, request: &IncomingRequest, out: ResponseOutparam) {
     match () {
-        _ if path == "/health" => handle_health(out),
-        _ if path == "/" => handle_root(out),
-
-        _ if path.starts_with("/alkanes/") => {
-            handle_gcs_proxy(ASSETS_BUCKET, trim_leading_slash(path), request, out)
+        _ if path == "/health" => {
+            let mut h = json_headers();
+            respond_h(out, 200, &mut h, br#"{"status":"ok"}"#);
         }
-        _ if path.starts_with("/docs/") => handle_docs(trim_leading_slash(path), request, out),
+        _ if path == "/" => {
+            let mut h = json_headers();
+            respond_h(out, 200, &mut h, br#"{"service":"subfrost-cdn","routes":["/alkanes/*","/docs/*","/media/*","/raw/*","/releases/*","/snapshots/*","/secure/*","/health"]}"#);
+        }
+
+        _ if path.starts_with("/alkanes/") => handle_alkanes(cfg, path, request, out),
+        _ if path.starts_with("/docs/") => handle_docs(cfg, trim_leading_slash(path), request, out),
         _ if path.starts_with("/media/") => {
-            handle_gcs_proxy(CDN_BUCKET, trim_leading_slash(path), request, out)
+            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out)
         }
         _ if path.starts_with("/releases/") => {
-            handle_gcs_proxy(CDN_BUCKET, trim_leading_slash(path), request, out)
+            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out)
         }
         _ if path.starts_with("/raw/") => {
-            // /raw/docs/foo.md -> docs/foo.md in CDN_BUCKET
-            handle_gcs_proxy(CDN_BUCKET, path.trim_start_matches("/raw/"), request, out)
+            // /raw/docs/foo.md -> docs/foo.md in CDN_BUCKET, always raw.
+            proxy(cfg, &cfg.cdn_bucket, path.trim_start_matches("/raw/"), request, out)
         }
         _ if path.starts_with("/snapshots/") => {
-            handle_snapshots(trim_leading_slash(path), out)
+            handle_snapshots(&cfg.cdn_bucket, trim_leading_slash(path), out)
         }
-        // /secure/* replaces /private/* + HTTP Basic Auth with an
-        // HMAC-token gate (see verify_secure_token + the design doc).
-        _ if path.starts_with("/secure/") => handle_secure(path, request, out),
+        _ if path.starts_with("/secure/") => handle_secure(cfg, path, request, out),
 
         _ => respond(out, 404, cors_headers(), b"not found"),
     }
 }
 
-/// `{"status":"ok"}` — health probe (Go handleHealth).
-fn handle_health(out: ResponseOutparam) {
-    let mut h = json_headers();
-    respond_h(out, 200, &mut h, br#"{"status":"ok"}"#);
+// ---------------------------------------------------------------------
+// /alkanes
+// ---------------------------------------------------------------------
+
+fn handle_alkanes(cfg: &Cfg, path: &str, request: &IncomingRequest, out: ResponseOutparam) {
+    let rest = &path["/alkanes/".len()..];
+
+    // Ordiscan-compat icon form: /alkanes/<block>_<tx> (digits, one underscore).
+    if let Some((block, tx)) = parse_block_tx(rest) {
+        let legacy = format!("alkanes/mainnet/{block}-{tx}.png");
+        if cfg.onchain_enabled {
+            match AlkaneChain::new(&cfg.metashrew_url).and_then(|chain| {
+                Gcs::new().map(|g| {
+                    Onchain::new(chain, g, cfg.assets_bucket.clone(), cfg.manifest_object.clone())
+                })
+            }) {
+                Ok(oc) => match oc.serve(block, tx) {
+                    Serve::Stored(obj) => proxy(cfg, &cfg.assets_bucket, &obj, request, out),
+                    Serve::Bytes { data, mime } => emit_image(out, &data, &mime, 300),
+                    Serve::Fallthrough => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
+                },
+                Err(_) => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
+            }
+            return;
+        }
+        proxy(cfg, &cfg.assets_bucket, &legacy, request, out);
+        return;
+    }
+
+    // Non-icon path: directory listing for `.../`, else a literal object.
+    proxy_or_index(cfg, &cfg.assets_bucket, rest, request, out);
 }
 
-/// Service banner (Go handleRoot).
-fn handle_root(out: ResponseOutparam) {
-    let mut h = json_headers();
-    respond_h(
-        out,
-        200,
-        &mut h,
-        br#"{"service":"subfrost-cdn","routes":["/alkanes/*","/docs/*","/media/*","/raw/*","/releases/*","/snapshots/*","/secure/*","/health"]}"#,
-    );
+/// Parse the `<block>_<tx>` icon form: digits, exactly one underscore, no
+/// extension. Equivalent to the Worker regex `^/alkanes/(\d+)_(\d+)$`.
+fn parse_block_tx(rest: &str) -> Option<(u128, u128)> {
+    let (b, t) = rest.split_once('_')?;
+    if b.is_empty()
+        || t.is_empty()
+        || !b.bytes().all(|c| c.is_ascii_digit())
+        || !t.bytes().all(|c| c.is_ascii_digit())
+    {
+        return None;
+    }
+    Some((b.parse().ok()?, t.parse().ok()?))
 }
 
-/// `/docs/*` — markdown render for browsers, raw stream otherwise
-/// (Go handleDocs). `?raw=1` forces raw.
-fn handle_docs(object: &str, request: &IncomingRequest, out: ResponseOutparam) {
+// ---------------------------------------------------------------------
+// /docs, /snapshots, /secure
+// ---------------------------------------------------------------------
+
+fn handle_docs(cfg: &Cfg, object: &str, request: &IncomingRequest, out: ResponseOutparam) {
+    if object.is_empty() || object.ends_with('/') {
+        autoindex(&cfg.cdn_bucket, object, out);
+        return;
+    }
     let pq = request.path_with_query().unwrap_or_default();
     let wants_raw = pq.contains("raw=1");
     let is_md = object.to_ascii_lowercase().ends_with(".md");
     let wants_html = request_accepts_html(request);
 
     if is_md && wants_html && !wants_raw {
-        // TODO(scaffold): fetch object from CDN_BUCKET, render markdown
-        // → styled HTML, return text/html. Needs the outbound GCS fetch
-        // + a markdown renderer (pulldown-cmark) wired in.
-        let mut h = html_headers();
-        respond_h(
-            out,
-            200,
-            &mut h,
-            b"<!-- TODO(scaffold): markdown render of docs object -->",
-        );
+        let gcs = match Gcs::new() {
+            Ok(g) => g,
+            Err(_) => return respond(out, 503, cors_headers(), b"auth unavailable"),
+        };
+        match gcs.fetch_bytes(&cfg.cdn_bucket, object) {
+            Ok(Some(bytes)) => {
+                let md = String::from_utf8_lossy(&bytes);
+                let raw_url = format!("/raw/{object}");
+                let html = render::markdown(&md, object, &raw_url, object);
+                let mut h = html_headers();
+                respond_h(out, 200, &mut h, html.as_bytes());
+            }
+            Ok(None) => respond(out, 404, cors_headers(), b"not found"),
+            Err(_) => respond(out, 502, cors_headers(), b"upstream error"),
+        }
         return;
     }
-    handle_gcs_proxy(CDN_BUCKET, object, request, out);
+    proxy(cfg, &cfg.cdn_bucket, object, request, out);
 }
 
-/// `/snapshots/*` — 302 redirect to storage.googleapis.com so GCS
-/// serves the (multi-GB, range-heavy) tarball directly (Go
-/// handleSnapshots).
-fn handle_snapshots(object: &str, out: ResponseOutparam) {
-    let target = format!("https://storage.googleapis.com/{CDN_BUCKET}/{object}");
-    let headers = Fields::new();
-    let _ = headers.append(&"location".into(), &target.into_bytes());
-    let _ = headers.append(&"cache-control".into(), &b"public, max-age=86400".to_vec());
-    apply_cors(&headers);
-    emit(out, 302, headers, b"");
+fn handle_snapshots(bucket: &str, object: &str, out: ResponseOutparam) {
+    let target = format!("https://storage.googleapis.com/{bucket}/{object}");
+    redirect(out, &target);
 }
 
-/// `/secure/*` — token-gated object proxy. Replaces the Go server's
-/// `/private/*` HTTP Basic Auth. The subfrost.io app mints a
-/// short-lived HMAC token over the object path; this verifies it with
-/// the shared secret before proxying from CDN_BUCKET.
-fn handle_secure(path: &str, request: &IncomingRequest, out: ResponseOutparam) {
-    // Object path = everything after "/secure/".
+fn handle_secure(cfg: &Cfg, path: &str, request: &IncomingRequest, out: ResponseOutparam) {
     let object = path.trim_start_matches("/secure/");
     let token = secure_token_from_request(request);
-
-    match verify_secure_token(object, token.as_deref()) {
-        Ok(()) => handle_gcs_proxy(CDN_BUCKET, object, request, out),
+    match verify_secure_token(object, token.as_deref(), &cfg.secure_hmac_key) {
+        Ok(()) => proxy(cfg, &cfg.cdn_bucket, object, request, out),
         Err(reason) => {
             let mut h = cors_headers();
-            // No WWW-Authenticate (we're token-based, not Basic) — just 401.
             respond_h(out, 401, &mut h, reason.as_bytes());
         }
     }
 }
 
-/// Core GCS object proxy: fetch `gs://bucket/object` over OUTBOUND HTTP
-/// and stream it back with the Go server's CORS / cache / range
-/// headers. The Go `streamGCSObject`.
-fn handle_gcs_proxy(
+// ---------------------------------------------------------------------
+// GCS proxy + autoindex
+// ---------------------------------------------------------------------
+
+/// If the path is a directory (`.../` or empty), list it; else proxy the object.
+fn proxy_or_index(
+    cfg: &Cfg,
     bucket: &str,
     object: &str,
-    _request: &IncomingRequest,
+    request: &IncomingRequest,
     out: ResponseOutparam,
 ) {
+    if object.is_empty() || object.ends_with('/') {
+        autoindex(bucket, object, out);
+    } else {
+        proxy(cfg, bucket, object, request, out);
+    }
+}
+
+/// Buffered GCS object proxy. Forwards Range / conditional headers, relays
+/// GCS's status + content headers, adds CORS + cache. Objects over
+/// `MAX_PROXY_BYTES` are 302'd to GCS rather than buffered.
+fn proxy(_cfg: &Cfg, bucket: &str, object: &str, request: &IncomingRequest, out: ResponseOutparam) {
     if object.is_empty() {
-        respond(out, 400, cors_headers(), b"missing object path");
-        return;
+        return respond(out, 400, cors_headers(), b"missing object path");
+    }
+    let gcs = match Gcs::new() {
+        Ok(g) => g,
+        Err(_) => return respond(out, 503, cors_headers(), b"auth unavailable"),
+    };
+
+    // Guard the buffered-response cap: large objects redirect to GCS.
+    if let Ok(Some(sz)) = gcs.object_size(bucket, object) {
+        if sz > MAX_PROXY_BYTES {
+            return redirect(out, &format!("https://storage.googleapis.com/{bucket}/{object}"));
+        }
     }
 
-    // TODO(scaffold): the real outbound fetch. Shape:
-    //   1. obtain a GCS access token (GKE metadata server access token
-    //      via wasi:http/outgoing-handler, OR a host-injected header —
-    //      see CDN_RUST_PORT_DESIGN.md "GCS auth from wasm").
-    //   2. build an OutgoingRequest GET to
-    //      https://storage.googleapis.com/storage/v1/b/{bucket}/o/
-    //      {urlencoded(object)}?alt=media  with Authorization: Bearer.
-    //      Forward the client's Range header for 206 support.
-    //   3. wasi::http::outgoing_handler::handle(req, None) -> future,
-    //      subscribe/await, read the IncomingResponse body stream and
-    //      pump it into this response's OutgoingBody stream.
-    // For now: a deterministic stub so the component instantiates and
-    // round-trips through tlsd's AppRegistry.
-    let body = format!(
-        "{{\"stub\":\"gcs-proxy\",\"bucket\":\"{bucket}\",\"object\":\"{object}\"}}"
-    );
-    let headers = Fields::new();
-    let _ = headers.append(&"content-type".into(), &b"application/json".to_vec());
-    let _ = headers.append(&"accept-ranges".into(), &b"bytes".to_vec());
-    let _ = headers.append(&"cache-control".into(), &b"public, max-age=86400".to_vec());
-    apply_cors(&headers);
-    emit(out, 200, headers, body.as_bytes());
-}
-
-// ---------------------------------------------------------------------
-// /secure token verification
-// ---------------------------------------------------------------------
-
-/// Pull the token out of the request: `?sig=...&exp=...` query params
-/// or an `Authorization: Bearer <token>` header. Scaffold reads the
-/// `authorization` header; full impl parses query too.
-fn secure_token_from_request(request: &IncomingRequest) -> Option<String> {
+    // Forward the client's conditional / range headers to GCS.
     let headers = request.headers();
-    let entries = headers.get(&"authorization".to_string());
-    let raw = entries.into_iter().next()?;
-    let value = String::from_utf8(raw).ok()?;
-    value
-        .strip_prefix("Bearer ")
-        .map(|s| s.to_string())
-        .or(Some(value))
+    let mut owned: Vec<(&str, Vec<u8>)> = Vec::new();
+    for name in ["range", "if-none-match", "if-modified-since"] {
+        if let Some(v) = headers.get(&name.to_string()).into_iter().next() {
+            owned.push((name, v));
+        }
+    }
+    let fwd: Vec<(&str, &[u8])> = owned.iter().map(|(k, v)| (*k, v.as_slice())).collect();
+
+    let resp = match gcs.get_object(bucket, object, &fwd) {
+        Ok(r) => r,
+        Err(_) => return respond(out, 502, cors_headers(), b"upstream error"),
+    };
+    if resp.status == 404 {
+        return respond(out, 404, cors_headers(), b"not found");
+    }
+    if resp.status >= 500 {
+        return respond(out, 502, cors_headers(), b"upstream error");
+    }
+
+    // Relay content headers + CORS + cache.
+    let h = Fields::new();
+    for (k, v) in &resp.headers {
+        if FORWARD_HEADERS.contains(&k.to_ascii_lowercase().as_str()) {
+            let _ = h.append(&k.to_ascii_lowercase(), v);
+        }
+    }
+    let _ = h.append(&"cache-control".into(), &b"public, max-age=86400".to_vec());
+    apply_cors(&h);
+    emit(out, resp.status, h, &resp.body);
 }
 
-/// Verify the HMAC token for `object`. Token format (see design doc):
-///   token   = base64url(payload) "." base64url(hmac_sha256(key, payload))
-///   payload = "<object_path>:<unix_expiry>"
-/// Verification: recompute the HMAC over the payload with the shared
-/// secret, constant-time compare, check expiry, check the path binds to
-/// the requested object.
-///
-/// TODO(scaffold): wire the actual shared secret (`SECURE_HMAC_KEY`) —
-/// the wasip2 host (tlsd AppRegistry) does NOT currently expose env or
-/// FS to the guest, so the key must arrive via a host-injected request
-/// header or a baked build-time constant. See the design doc's "GCS
-/// auth from wasm" / secrets section. Until then this denies all.
-fn verify_secure_token(_object: &str, token: Option<&str>) -> Result<(), &'static str> {
-    let _token = token.ok_or("missing token")?;
+fn autoindex(bucket: &str, prefix: &str, out: ResponseOutparam) {
+    let gcs = match Gcs::new() {
+        Ok(g) => g,
+        Err(_) => return respond(out, 503, cors_headers(), b"auth unavailable"),
+    };
+    match gcs.list(bucket, prefix) {
+        Ok(listing) => {
+            let html = render::autoindex(prefix, &listing);
+            let mut h = html_headers();
+            respond_h(out, 200, &mut h, html.as_bytes());
+        }
+        Err(_) => respond(out, 502, cors_headers(), b"upstream error"),
+    }
+}
 
-    // Compile-in the constant-time + HMAC machinery so the dependency
-    // is exercised and the real impl is a drop-in. Demonstrates the
-    // verification primitives compile to wasip2.
+/// Emit raw image bytes with a chosen cache lifetime (seconds).
+fn emit_image(out: ResponseOutparam, data: &[u8], mime: &str, max_age: u32) {
+    let h = Fields::new();
+    let _ = h.append(&"content-type".into(), &mime.as_bytes().to_vec());
+    let _ = h.append(&"cache-control".into(), &format!("public, max-age={max_age}").into_bytes());
+    let _ = h.append(&"accept-ranges".into(), &b"bytes".to_vec());
+    apply_cors(&h);
+    emit(out, 200, h, data);
+}
+
+fn redirect(out: ResponseOutparam, target: &str) {
+    let h = Fields::new();
+    let _ = h.append(&"location".into(), &target.as_bytes().to_vec());
+    let _ = h.append(&"cache-control".into(), &b"public, max-age=86400".to_vec());
+    apply_cors(&h);
+    emit(out, 302, h, b"");
+}
+
+// ---------------------------------------------------------------------
+// /secure token verification (HMAC-SHA256, key from env)
+// ---------------------------------------------------------------------
+
+fn secure_token_from_request(request: &IncomingRequest) -> Option<String> {
+    // Prefer ?sig=... in the query, else Authorization: Bearer.
+    let pq = request.path_with_query().unwrap_or_default();
+    if let Some(q) = pq.split('?').nth(1) {
+        for pair in q.split('&') {
+            if let Some(v) = pair.strip_prefix("sig=") {
+                return Some(v.to_string());
+            }
+        }
+    }
+    let headers = request.headers();
+    let raw = headers.get(&"authorization".to_string()).into_iter().next()?;
+    let value = String::from_utf8(raw).ok()?;
+    Some(value.strip_prefix("Bearer ").unwrap_or(&value).to_string())
+}
+
+/// Verify the HMAC token for `object`. Token = base64url(payload) "."
+/// base64url(hmac_sha256(key, payload)); payload = "<object>:<unix_expiry>".
+fn verify_secure_token(object: &str, token: Option<&str>, key: &[u8]) -> Result<(), &'static str> {
+    use base64::Engine;
     use hmac::{Mac, SimpleHmac};
     use sha2::Sha256;
-    let key: &[u8] = secure_hmac_key();
+
     if key.is_empty() {
         return Err("secure auth not configured");
     }
-    let mut mac =
-        SimpleHmac::<Sha256>::new_from_slice(key).map_err(|_| "bad key")?;
-    mac.update(b"placeholder-payload");
-    let _expected = mac.finalize().into_bytes();
+    let token = token.ok_or("missing token")?;
+    let (payload_b64, sig_b64) = token.split_once('.').ok_or("malformed token")?;
+    let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    let payload = b64.decode(payload_b64).map_err(|_| "bad token payload")?;
+    let sig = b64.decode(sig_b64).map_err(|_| "bad token signature")?;
 
-    // Scaffold: deny until the real token parse + secret wiring lands.
-    Err("token verification not yet implemented")
-}
+    let mut mac = SimpleHmac::<Sha256>::new_from_slice(key).map_err(|_| "bad key")?;
+    mac.update(&payload);
+    mac.verify_slice(&sig).map_err(|_| "signature mismatch")?;
 
-/// The shared HMAC secret. SCAFFOLD returns empty (deny). Real impl
-/// sources this from a host-injected header or build-time constant —
-/// see the design doc.
-fn secure_hmac_key() -> &'static [u8] {
-    // TODO(scaffold): replace with host-provided secret.
-    b""
+    let payload = std::str::from_utf8(&payload).map_err(|_| "bad payload utf8")?;
+    let (obj, exp) = payload.rsplit_once(':').ok_or("bad payload shape")?;
+    if obj != object {
+        return Err("token path mismatch");
+    }
+    let exp: u64 = exp.parse().map_err(|_| "bad expiry")?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    if now > exp {
+        return Err("token expired");
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------
@@ -303,21 +423,14 @@ fn json_headers() -> Fields {
 fn html_headers() -> Fields {
     let h = cors_headers();
     let _ = h.append(&"content-type".into(), &b"text/html; charset=utf-8".to_vec());
-    let _ = h.append(&"cache-control".into(), &b"public, max-age=3600".to_vec());
+    let _ = h.append(&"cache-control".into(), &b"public, max-age=300".to_vec());
     h
 }
 
-/// Apply the Go `corsMiddleware` headers.
 fn apply_cors(h: &Fields) {
     let _ = h.append(&"access-control-allow-origin".into(), &b"*".to_vec());
-    let _ = h.append(
-        &"access-control-allow-methods".into(),
-        &b"GET, HEAD, OPTIONS".to_vec(),
-    );
-    let _ = h.append(
-        &"access-control-allow-headers".into(),
-        &b"Content-Type".to_vec(),
-    );
+    let _ = h.append(&"access-control-allow-methods".into(), &b"GET, HEAD, OPTIONS".to_vec());
+    let _ = h.append(&"access-control-allow-headers".into(), &b"Content-Type".to_vec());
 }
 
 fn request_accepts_html(request: &IncomingRequest) -> bool {
@@ -336,23 +449,16 @@ fn trim_leading_slash(path: &str) -> &str {
     path.trim_start_matches('/')
 }
 
-/// Build + emit a response from a fresh Fields (caller didn't pre-build).
 fn respond(out: ResponseOutparam, status: u16, headers: Fields, body: &[u8]) {
     emit(out, status, headers, body);
 }
 
-/// Same, taking a `&mut Fields` the caller already populated.
 fn respond_h(out: ResponseOutparam, status: u16, headers: &mut Fields, body: &[u8]) {
-    // Fields is move-only into OutgoingResponse; clone the entries.
     let cloned = headers.clone();
     emit(out, status, cloned, body);
 }
 
-/// Lower a status + headers + buffered body into a wasi:http
-/// OutgoingResponse and hand it to the host's response-outparam. The
-/// buffered-body path mirrors tlsd's AppRegistry (which collects the
-/// full body); a streaming body for large objects is the follow-up
-/// noted in the design doc.
+/// Lower status + headers + buffered body into an OutgoingResponse.
 fn emit(out: ResponseOutparam, status: u16, headers: Fields, body: &[u8]) {
     let response = OutgoingResponse::new(headers);
     let _ = response.set_status_code(status);
@@ -360,15 +466,12 @@ fn emit(out: ResponseOutparam, status: u16, headers: Fields, body: &[u8]) {
     let out_body: OutgoingBody = response.body().expect("take outgoing body");
     if !body.is_empty() {
         let stream = out_body.write().expect("body write stream");
-        // wasi:io streams cap a single write at 4 KiB-ish; chunk it.
         for chunk in body.chunks(4096) {
             stream.blocking_write_and_flush(chunk).expect("write chunk");
         }
-        // Drop the stream before finishing the body (wasi:io contract).
         drop(stream);
     }
     OutgoingBody::finish(out_body, None).expect("finish body");
-
     ResponseOutparam::set(out, Ok(response));
 }
 
