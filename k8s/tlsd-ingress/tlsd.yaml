@@ -28,10 +28,16 @@ data:
     backends = ["34.118.232.215:80"]
     algorithm = "round-robin"
     upstream_scheme = "http"
+    # cdn.subfrost.io TEMPORARILY routes to the subfrost-cdn microservice while
+    # the wasip2 module path is blocked on a tlsfetch/tlsd wasip2-egress bug
+    # (the module hangs reading GCS object bodies through send_via_tlsfetch).
+    # The module is still built + mounted (app_modules below); flip this route
+    # back to `app_id = "subfrost_cdn"` once the egress is fixed.
     [[route]]
     host = "cdn.subfrost.io"
-    app_id = "subfrost_cdn"
-    backends = ["127.0.0.1:1"]
+    backends = ["34.118.232.76:80"]
+    algorithm = "round-robin"
+    upstream_scheme = "http"
 ---
 apiVersion: v1
 kind: ConfigMap

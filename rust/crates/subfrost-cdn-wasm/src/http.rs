@@ -54,12 +54,6 @@ pub fn request(
     body: Option<&[u8]>,
 ) -> Result<Resp, String> {
     let hdrs = Fields::new();
-    // Force the upstream to close after the response so the incoming body
-    // stream reaches a clean EOF (Err(Closed)). Without this, a keep-alive +
-    // chunked upstream (e.g. Cloudflare-fronted mainnet.subfrost.io) leaves the
-    // connection open after the body, and a blocking read waits for bytes that
-    // never come — hanging to the app deadline.
-    let _ = hdrs.append(&"connection".to_string(), &b"close".to_vec());
     for (k, v) in headers {
         hdrs.append(&k.to_string(), &v.to_vec())
             .map_err(|e| format!("header {k}: {e:?}"))?;
@@ -128,6 +122,7 @@ pub fn request(
 /// on the stream's pollable between reads so it never busy-spins.
 fn read_body(incoming: &IncomingBody, content_len: Option<usize>) -> Result<Vec<u8>, String> {
     let stream = incoming.stream().map_err(|_| "incoming body stream")?;
+    let pollable = stream.subscribe();
     let mut buf = Vec::new();
     loop {
         if let Some(n) = content_len {
@@ -135,13 +130,8 @@ fn read_body(incoming: &IncomingBody, content_len: Option<usize>) -> Result<Vec<
                 break;
             }
         }
-        // `blocking_read` blocks until data is available OR the stream closes
-        // (EOF -> Err(Closed)). Treating an empty Ok as EOF guards against
-        // chunked bodies whose end is signalled as Ok(empty) rather than
-        // Closed — which, with a poll-then-read loop, would spin to the app
-        // deadline.
-        match stream.blocking_read(1_048_576) {
-            Ok(chunk) if chunk.is_empty() => break,
+        pollable.block();
+        match stream.read(1_048_576) {
             Ok(chunk) => buf.extend_from_slice(&chunk),
             Err(StreamError::Closed) => break,
             Err(StreamError::LastOperationFailed(e)) => {
