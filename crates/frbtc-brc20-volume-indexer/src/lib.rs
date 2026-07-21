@@ -23,6 +23,13 @@
 
 pub mod esplora;
 
+/// The deployable metashrew rockshrew-mono WASM indexer (the SAME model as the
+/// pure functions below, over consensus-decoded `bitcoin::Block`s). Gated behind
+/// the `metashrew` feature so the pure model + fixture tests build with zero
+/// heavy deps on the host target.
+#[cfg(feature = "metashrew")]
+pub mod metashrew;
+
 use esplora::Tx;
 
 /// BRC20-Prog frBTC signer P2TR (mainnet) — `getSignerAddress()` on

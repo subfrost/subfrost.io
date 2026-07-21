@@ -3,9 +3,15 @@
 # Same net-BTC-flow model as `frbtc-volume-indexer` (the alkanes/32:0 one), but
 # for the frBTC representation on BRC20-Prog: the wrap envelope is an
 # `OP_RETURN "BRC20PROG"` marker (not an alkanes op-77/78 protostone) and the
-# signer is the BRC20-Prog frBTC signer P2TR. The core model is pure + native-
-# testable (see tests/volume_model.rs, real mainnet fixtures); the metashrew
-# rockshrew-mono wasm entrypoint is a thin wrapper added on top (feature-gated).
+# signer is the BRC20-Prog frBTC signer P2TR.
+#
+# Two build modes:
+#   * default (host)  — the pure model + real mainnet fixtures
+#     (`cargo test`), zero heavy deps.
+#   * `--features metashrew --target wasm32-unknown-unknown` — the deployable
+#     rockshrew-mono WASM indexer (metashrew host ABI, bitcoin consensus decode,
+#     `frbtc_volume_range` / `frbtc_volume_tip` views). Same JSON shape as the
+#     alkanes indexer so `lib/financials/frbtc-indexer.ts` reads either one.
 [workspace]
 
 [package]
@@ -15,9 +21,33 @@ edition = "2021"
 license = "MIT"
 description = "Net-BTC-flow (wrap/unwrap) indexer for frBTC on BRC20-Prog — signer-address model, mirrors the alkanes frbtc-volume-indexer."
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# The deployable metashrew WASM entrypoint. Pulls in the metashrew host ABI +
+# bitcoin consensus decoding; build for wasm32-unknown-unknown.
+metashrew = ["dep:bitcoin", "dep:metashrew-core"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# metashrew guest host ABI (input/get/set/flush/export_bytes/_start). Same git
+# source spec alkanes-rs / the alkanes frbtc-volume-indexer use, so cargo unifies
+# to a single metashrew-support in the graph.
+metashrew-core = { git = "https://github.com/kungfuflex/metashrew", branch = "develop", optional = true }
+# Consensus-accurate Block/Transaction decoding. Must match the version the
+# alkanes indexer resolves so the framing is identical.
+bitcoin = { version = "0.32.4", optional = true }
+
 [dev-dependencies]
 serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
