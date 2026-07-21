@@ -251,10 +251,62 @@ export async function updateCode(
   return updated
 }
 
+/** Delete a code, keeping its subtree and redeemers attached to its parent.
+ *  Rather than orphaning the descendants, we splice this code out of the
+ *  hierarchy: its child codes are reparented onto its own parent (so e.g. a
+ *  Parent > Child1 > Child2 chain becomes Parent > Child2 when Child1 goes),
+ *  and its redemption addresses are inherited by that same parent. When the
+ *  code being deleted is itself a top-level root (no parent), there is nowhere
+ *  to lift things to: children simply become roots and redemptions cascade —
+ *  the pre-existing behaviour. */
 export async function deleteCode(id: string): Promise<{ code: string }> {
   const code = await prisma.inviteCode.findUnique({ where: { id } })
   if (!code) throw new CodeError("Code not found")
-  await prisma.inviteCode.delete({ where: { id } }) // redemptions cascade
+
+  const parentId = code.parentCodeId
+
+  await prisma.$transaction(async (tx) => {
+    // Lift this code's children up onto its own parent. If parentId is null the
+    // children become roots — the same outcome as the previous FK SetNull, now
+    // explicit. A child's new parent is never one of the children, so no cycle.
+    await tx.inviteCode.updateMany({
+      where: { parentCodeId: id },
+      data: { parentCodeId: parentId },
+    })
+
+    // Inherit this code's redemption addresses onto its parent so redeemers stay
+    // tracked. Only possible when a parent exists; a deleted root has nowhere to
+    // move them, so they cascade-delete when the row is removed below.
+    if (parentId) {
+      const parentAddrs = await tx.inviteCodeRedemption.findMany({
+        where: { codeId: parentId },
+        select: { taprootAddress: true },
+      })
+      const taken = new Set(parentAddrs.map((r) => r.taprootAddress))
+
+      const own = await tx.inviteCodeRedemption.findMany({
+        where: { codeId: id },
+        select: { id: true, taprootAddress: true },
+      })
+      // Addresses the parent already redeems would violate the
+      // @@unique([codeId, taprootAddress]) constraint on move — drop those
+      // duplicates and reassign the rest.
+      const dupeIds = own.filter((r) => taken.has(r.taprootAddress)).map((r) => r.id)
+      const moveIds = own.filter((r) => !taken.has(r.taprootAddress)).map((r) => r.id)
+      if (dupeIds.length) {
+        await tx.inviteCodeRedemption.deleteMany({ where: { id: { in: dupeIds } } })
+      }
+      if (moveIds.length) {
+        await tx.inviteCodeRedemption.updateMany({
+          where: { id: { in: moveIds } },
+          data: { codeId: parentId },
+        })
+      }
+    }
+
+    await tx.inviteCode.delete({ where: { id } }) // any remaining redemptions cascade
+  })
+
   await invalidateCodeValidation(code.code)
   return { code: code.code }
 }

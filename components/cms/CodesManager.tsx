@@ -327,7 +327,7 @@ function TreeRow({ node, depth, canEdit, form, setForm, reload, isCommunity }: {
             <IconBtn title="Add child code" onClick={() => setForm({ type: "child", parentId: node.id })}><Plus size={13} /></IconBtn>
             <IconBtn title="Add address to this code" onClick={() => setForm({ type: "address", parentId: node.id })}><UserPlus size={13} /></IconBtn>
             <IconBtn title={node.isActive ? "Deactivate" : "Activate"} onClick={() => startTransition(async () => { await toggleCodeAction(node.id, !node.isActive); reload() })}><Power size={13} /></IconBtn>
-            <IconBtn title="Delete" danger onClick={() => { if (confirm(`Delete ${node.code}? Redemptions cascade.`)) startTransition(async () => { await deleteCodeAction(node.id); reload() }) }}><Trash2 size={13} /></IconBtn>
+            <IconBtn title="Delete" danger onClick={() => { if (confirm(`Delete ${node.code}? Its child codes and redemption addresses move up to its parent${node.parentCodeId ? "" : " (they become top-level, since this is a root code)"}.`)) startTransition(async () => { await deleteCodeAction(node.id); reload() }) }}><Trash2 size={13} /></IconBtn>
           </span>
         )}
       </div>
