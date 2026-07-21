@@ -284,6 +284,17 @@ spec:
             # collateralization reconciliation.
             - name: FRBTC_INDEXER_RPC_URL
               value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc"
+            # Sibling indexer for the SECOND frBTC venue — frBTC on BRC20-Prog
+            # (crates/frbtc-brc20-volume-indexer, its own rockshrew-mono over the
+            # same Bitcoin L1). Same metashrew_view shape (frbtc_volume_range /
+            # frbtc_volume_tip) as the alkanes route above, reached via a sibling
+            # tlsd route on the subvh ingress. When set AND reachable it powers
+            # the BRC20-Prog venue on BOTH /admin Revenue (cumulative + split) and
+            # the public /volume page (brc20 source of truth, replacing the
+            # request-time esplora scan); unset ⇒ that venue reads 0 with no
+            # regression. Land this value only once the /frbtc-brc20 route is live.
+            - name: FRBTC_BRC20_INDEXER_RPC_URL
+              value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc-brc20"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

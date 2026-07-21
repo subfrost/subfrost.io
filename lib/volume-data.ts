@@ -7,6 +7,7 @@
  */
 
 import { getAddressTxs, getAddressTxsChain, getBrc20SignerAddress, type AddressTx } from "./rpc-client";
+import { getFrbtcVolumeRange } from "./financials/frbtc-indexer";
 
 // Alkanes wrap/unwrap history lives on canon Espo at alkanode. The subfrost.io
 // REST sub-paths return empty data — per flex (alkanes-rs maintainer): all
@@ -250,6 +251,47 @@ async function fetchAllBrc20(knownTxids?: Set<string>): Promise<ClassifiedTx[]> 
 }
 
 // ============================================================================
+// BRC20 — dedicated metashrew indexer (source of truth)
+// ============================================================================
+
+// The rockshrew-mono frBTC-on-BRC20-Prog volume indexer
+// (crates/frbtc-brc20-volume-indexer) is the authoritative wrap/unwrap source:
+// it processes Bitcoin blocks deterministically into per-day buckets, so we read
+// it in one cheap `frbtc_volume_range` call instead of scanning the signer's
+// whole tx history live on mempool.space (slow + rate-limited + truncates). Each
+// day's gross wrapped / settled-unwrapped sats becomes one synthetic wrap and one
+// unwrap ClassifiedTx (dated at UTC day-start) so it flows through the existing
+// stats/candle aggregation unchanged. Returns null when the indexer env
+// (FRBTC_BRC20_INDEXER_RPC_URL) is unset/unreachable, so the caller can fall back
+// to the legacy esplora scan during the pre-deploy window.
+async function fetchBrc20FromIndexer(): Promise<ClassifiedTx[] | null> {
+  const from = truncDate(MIN_DATE, "day"); // e.g. "2025-10-01"
+  const to = new Date().toISOString().slice(0, 10);
+  let range;
+  try {
+    range = await getFrbtcVolumeRange(from, to, "brc20");
+  } catch (error) {
+    console.warn("[volume-data] BRC20 indexer unreachable, will fall back to scan:", error);
+    return null;
+  }
+  if (!range) return null; // env unset → let the caller fall back
+
+  const out: ClassifiedTx[] = [];
+  for (const d of range.daily) {
+    const blockTime = new Date(`${d.date}T00:00:00.000Z`);
+    if (blockTime < MIN_DATE) continue;
+    if (d.wrapped_sats > 0) {
+      out.push({ txid: `brc20-wrap-${d.date}`, direction: "wrap", source: "brc20", volume_sats: d.wrapped_sats, block_time: blockTime });
+    }
+    if (d.unwrapped_sats > 0) {
+      out.push({ txid: `brc20-unwrap-${d.date}`, direction: "unwrap", source: "brc20", volume_sats: d.unwrapped_sats, block_time: blockTime });
+    }
+  }
+  console.log(`[volume-data] BRC20: ${range.daily.length} indexer day-buckets → ${out.length} synthetic txs (source of truth)`);
+  return out;
+}
+
+// ============================================================================
 // Aggregation
 // ============================================================================
 
@@ -367,7 +409,6 @@ function aggregateCandles(txs: ClassifiedTx[], interval: string, cumulative: boo
 // ============================================================================
 
 let cachedTxs: ClassifiedTx[] | null = null;
-let cachedTxids: Set<string> = new Set();
 let cacheTimestamp = 0;
 let fetchPromise: Promise<ClassifiedTx[]> | null = null;
 
@@ -379,56 +420,27 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
 
   if (fetchPromise) return fetchPromise;
 
-  const isIncremental = cachedTxs !== null && cachedTxids.size > 0;
-
   fetchPromise = (async () => {
     try {
-      if (isIncremental) {
-        // Incremental refresh — only fetch new transactions since last cache
-        console.log("[volume-data] Incremental refresh...");
-
-        const [alkanesTxs, brc20Txs] = await Promise.all([
-          fetchAllAlkanes(),
-          fetchAllBrc20(cachedTxids),
-        ]);
-
-        // Filter to only truly new transactions
-        const newTxs = [...alkanesTxs, ...brc20Txs].filter(
-          (tx) => !cachedTxids.has(tx.txid)
-        );
-
-        if (newTxs.length > 0) {
-          for (const tx of newTxs) cachedTxids.add(tx.txid);
-          cachedTxs = [...cachedTxs!, ...newTxs];
-          console.log(`[volume-data] Added ${newTxs.length} new transactions (total: ${cachedTxs.length})`);
-        } else {
-          console.log("[volume-data] No new transactions");
-        }
-
-        cacheTimestamp = Date.now();
-        return cachedTxs!;
-      }
-
-      // Full fetch (cold start)
-      console.log("[volume-data] Fetching Alkanes + BRC20 volume data...");
+      console.log("[volume-data] Refreshing Alkanes + BRC20 volume data...");
 
       const [alkanesTxs, brc20Txs] = await Promise.all([
         fetchAllAlkanes(),
-        fetchAllBrc20(),
+        // BRC20 source of truth = the dedicated metashrew indexer. Fall back to
+        // the legacy esplora scan only while its env is unwired (pre-deploy).
+        fetchBrc20FromIndexer().then((r) => r ?? fetchAllBrc20()),
       ]);
 
-      const allTxs = [...alkanesTxs, ...brc20Txs];
-
-      // Deduplicate by txid
+      // Deduplicate by txid (alkanes may repeat across data-API pages; the brc20
+      // indexer's synthetic ids are unique per day+direction).
       const seen = new Set<string>();
-      const deduped = allTxs.filter((tx) => {
+      const deduped = [...alkanesTxs, ...brc20Txs].filter((tx) => {
         if (seen.has(tx.txid)) return false;
         seen.add(tx.txid);
         return true;
       });
 
       cachedTxs = deduped;
-      cachedTxids = seen;
       cacheTimestamp = Date.now();
       console.log(`[volume-data] Cached ${deduped.length} transactions total`);
       return deduped;

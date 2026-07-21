@@ -1,0 +1,104 @@
+# Lightweight rockshrew-mono instance dedicated to the frBTC-on-BRC20-Prog
+# wrap/unwrap volume indexer — the sibling of crates/frbtc-volume-indexer (the
+# alkanes 32:0 one). Same net-BTC-flow model, but it watches the BRC20-Prog frBTC
+# signer P2TR and its `OP_RETURN "BRC20PROG"` wrap marker. It reads ONLY Bitcoin
+# L1 (BRC20-Prog is a Bitcoin metaprotocol — no separate node), so it points at
+# the SAME cluster bitcoind the alkanes indexer uses. Tiny RocksDB (daily volume
+# buckets only); the only heavy cost is the initial backfill from the frBTC
+# BRC20-Prog deploy height.
+#
+# APPLY (from a machine with access to the metashrew cluster/box):
+#   1. Build the wasm — NOTE the required feature flag (unlike the alkanes crate):
+#        cd crates/frbtc-brc20-volume-indexer
+#        cargo build --release --features metashrew --target wasm32-unknown-unknown
+#      → target/wasm32-unknown-unknown/release/frbtc_brc20_volume_indexer.wasm
+#   2. Put frbtc_brc20_volume_indexer.wasm on the node's indexer hostPath (or swap
+#      the hostPath volume for a PVC/initContainer-fetch on GKE — see README.md).
+#      rockshrew-mono image must be present/pullable (same one prod uses).
+#   3. kubectl apply -f statefulset.yaml   # edit namespace + bitcoind URL first
+#   4. Watch: kubectl -n <ns> logs sts/frbtc-brc20-volume-indexer -f
+#   5. Query once synced: metashrew_view frbtc_volume_tip / frbtc_volume_range
+#
+# Then set FRBTC_BRC20_INDEXER_RPC_URL on subfrost-io to this Service's reachable
+# URL (an ingress/LB route reachable from the subfrost-io GKE cluster) to light up
+# the BRC20-Prog venue on /admin Revenue AND the public /volume page.
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: frbtc-brc20-volume-indexer
+  namespace: espo-debug # change to the target namespace (e.g. mainnet-brc20)
+  labels:
+    app: frbtc-brc20-volume-indexer
+    indexer: frbtc-brc20-volume
+spec:
+  replicas: 1
+  serviceName: frbtc-brc20-volume-indexer
+  selector:
+    matchLabels:
+      app: frbtc-brc20-volume-indexer
+  template:
+    metadata:
+      labels:
+        app: frbtc-brc20-volume-indexer
+    spec:
+      containers:
+        - name: rockshrew
+          image: rockshrew-mono:v10.0.0-alpha.6 # same host image prod uses
+          imagePullPolicy: IfNotPresent
+          command: [rockshrew-mono]
+          args:
+            - --daemon-rpc-url
+            - http://bitcoind:8332 # point at the cluster's bitcoind
+            - --auth
+            - bitcoinrpc:bitcoinrpc
+            - --db-path
+            - /data
+            - --indexer
+            - /indexer/frbtc_brc20_volume_indexer.wasm
+            - --start-block
+            - "928300" # frBTC-on-BRC20-Prog: contract deployed at h=928317, first wrap at h=928546; pad below deploy to capture initialize
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+            - --prefetch-size
+            - "64"
+            - --view-memory-floor-mb
+            - "512"
+            - --sync-mode # drop once at tip so query-path bloom filters rebuild
+          ports:
+            - containerPort: 8080
+              name: rpc
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi # tiny KV working set — nothing like the alkanes indexer
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - { mountPath: /data, name: data }
+            - { mountPath: /indexer, name: indexer }
+      volumes:
+        # On the k3s Meta box: hostPaths like the prod .v10-deploy pattern.
+        # On GKE: replace `data` with a PVC and `indexer` with an initContainer
+        # that curls the wasm from GCS (see README.md). Distinct dirs from the
+        # alkanes indexer so the two never collide on a shared node.
+        - name: data
+          hostPath: { path: /zpool/frbtc-brc20-volume-data, type: DirectoryOrCreate }
+        - name: indexer
+          hostPath: { path: /zpool/espo-debug/brc20-indexer-wasm, type: Directory }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frbtc-brc20-volume-indexer
+  namespace: espo-debug
+  labels:
+    app: frbtc-brc20-volume-indexer
+spec:
+  selector:
+    app: frbtc-brc20-volume-indexer
+  ports:
+    - { name: rpc, port: 8080, targetPort: 8080 }
