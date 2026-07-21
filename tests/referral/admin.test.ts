@@ -10,6 +10,7 @@ vi.mock('@/lib/prisma', () => {
     create: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
   };
   const inviteCodeRedemption = {
@@ -18,8 +19,15 @@ vi.mock('@/lib/prisma', () => {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     create: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
   };
-  const client = { inviteCode, inviteCodeRedemption };
+  const client = {
+    inviteCode,
+    inviteCodeRedemption,
+    // Interactive transaction: run the callback against the same mock client.
+    $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(client)),
+  };
   return { prisma: client, default: client };
 });
 vi.mock('@/lib/redis', () => ({
@@ -49,14 +57,18 @@ const ic = prisma.inviteCode as unknown as {
   create: ReturnType<typeof vi.fn>;
   createMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  updateMany: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
 };
 
 const red = prisma.inviteCodeRedemption as unknown as {
+  findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  updateMany: ReturnType<typeof vi.fn>;
+  deleteMany: ReturnType<typeof vi.fn>;
 };
 
 const TAPROOT = 'bc1p' + 'q'.repeat(58); // 62-char valid Taproot address
@@ -275,12 +287,58 @@ describe('bulkCreateCodes', () => {
 });
 
 describe('deleteCode', () => {
-  it('deletes the code and drops its validation cache', async () => {
-    ic.findUnique.mockResolvedValueOnce({ id: 'x', code: 'ABC' });
+  it('deletes a root code, promotes its children to roots, and drops its cache', async () => {
+    // Root code (parentCodeId null): no parent to inherit redemptions, so
+    // children are reparented to null and redemptions are left to cascade.
+    ic.findUnique.mockResolvedValueOnce({ id: 'x', code: 'ABC', parentCodeId: null });
+    ic.updateMany.mockResolvedValueOnce({ count: 1 });
     ic.delete.mockResolvedValueOnce({ id: 'x', code: 'ABC' });
+
     await deleteCode('x');
+
+    // Children of x move up to x's parent (null → they become roots).
+    expect(ic.updateMany).toHaveBeenCalledWith({
+      where: { parentCodeId: 'x' },
+      data: { parentCodeId: null },
+    });
+    // No parent → redemptions are not moved, they cascade on delete.
+    expect(red.updateMany).not.toHaveBeenCalled();
     expect(ic.delete).toHaveBeenCalledWith({ where: { id: 'x' } });
     expect(cacheDel).toHaveBeenCalledWith('invite:valid:ABC');
+  });
+
+  it('reparents children onto the grandparent and moves redemptions to the parent', async () => {
+    // Deleting Child1 (parent = Parent): Child1's children (e.g. Child2) become
+    // children of Parent, and Child1's redemptions are inherited by Parent.
+    ic.findUnique.mockResolvedValueOnce({ id: 'child1', code: 'C1', parentCodeId: 'parent' });
+    ic.updateMany.mockResolvedValueOnce({ count: 1 });
+    // Parent already redeems ADDR_DUP; Child1 redeems ADDR_DUP + ADDR_NEW.
+    red.findMany
+      .mockResolvedValueOnce([{ taprootAddress: 'ADDR_DUP' }]) // parent's existing
+      .mockResolvedValueOnce([
+        { id: 'r_dup', taprootAddress: 'ADDR_DUP' },
+        { id: 'r_new', taprootAddress: 'ADDR_NEW' },
+      ]); // child1's own
+    red.deleteMany.mockResolvedValueOnce({ count: 1 });
+    red.updateMany.mockResolvedValueOnce({ count: 1 });
+    ic.delete.mockResolvedValueOnce({ id: 'child1', code: 'C1' });
+
+    await deleteCode('child1');
+
+    // Child2 (and any sibling) reparented from Child1 up to Parent.
+    expect(ic.updateMany).toHaveBeenCalledWith({
+      where: { parentCodeId: 'child1' },
+      data: { parentCodeId: 'parent' },
+    });
+    // The address Parent already holds is dropped (would break the unique key)…
+    expect(red.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['r_dup'] } } });
+    // …and the genuinely new address is reassigned to Parent.
+    expect(red.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['r_new'] } },
+      data: { codeId: 'parent' },
+    });
+    expect(ic.delete).toHaveBeenCalledWith({ where: { id: 'child1' } });
+    expect(cacheDel).toHaveBeenCalledWith('invite:valid:C1');
   });
 
   it('throws when the code does not exist', async () => {
