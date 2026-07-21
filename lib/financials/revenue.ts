@@ -83,7 +83,12 @@ export type BtcSource = "indexer" | "tables"
 
 /** Everything the Revenue page renders. Serializable end-to-end. */
 export interface RevenueOverview {
+  /** CUMULATIVE frBTC fee revenue across BOTH venues (alkanes + BRC20-Prog). */
   btcFee: RevenueSeries
+  /** frBTC-on-alkanes (32:0) fee revenue alone. */
+  btcFeeAlkanes: RevenueSeries
+  /** frBTC-on-BRC20-Prog fee revenue alone (empty when its indexer is unwired). */
+  btcFeeBrc20: RevenueSeries
   stripe: RevenueSeries
   generatedAt: string // ISO
   /** Source + caveat blurb for the BTC fee series (shown under its chart). */
@@ -92,6 +97,10 @@ export interface RevenueOverview {
   btcSource: BtcSource
   /** Last height the frBTC indexer processed, when btcSource === "indexer"; else null. */
   indexerTip: number | null
+  /** Where the BRC20-Prog fee series came from ("indexer"), or null when unwired. */
+  brc20Source: BtcSource | null
+  /** Last height the BRC20-Prog indexer processed; null when unwired. */
+  brc20IndexerTip: number | null
   /** Short freshness blurb for the BTC card badge (indexer block / fallback). */
   btcNote: string
   /** Active-subscription MRR summary, or null if the live API was unreachable. */

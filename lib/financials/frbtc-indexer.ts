@@ -57,9 +57,25 @@ export interface FrbtcVolumeTip {
 
 const TTL_MS = 60_000 // memoize the indexer pull for a minute, like stripeRevenue
 
-// Per-view memo caches (range keyed by from/to; tip has a single slot).
+/** Which frBTC venue's indexer to query. SUBFROST runs frBTC on two protocols,
+ *  each with its own dedicated rockshrew-mono metashrew indexer exposing the
+ *  identical `frbtc_volume_range` / `frbtc_volume_tip` views:
+ *   - "alkanes" — frBTC alkane 32:0, env FRBTC_INDEXER_RPC_URL (the original).
+ *   - "brc20"   — frBTC on BRC20-Prog, env FRBTC_BRC20_INDEXER_RPC_URL
+ *                 (crates/frbtc-brc20-volume-indexer). */
+export type FrbtcIndexerSource = "alkanes" | "brc20"
+
+/** The RPC URL env for a venue's indexer, or undefined when unwired (callers
+ *  then treat that venue as absent — null range / null tip). */
+function rpcUrlFor(source: FrbtcIndexerSource): string | undefined {
+  return source === "brc20"
+    ? process.env.FRBTC_BRC20_INDEXER_RPC_URL
+    : process.env.FRBTC_INDEXER_RPC_URL
+}
+
+// Per-view memo caches. Keyed by source so the two venues don't collide.
 const rangeCache = new Map<string, { at: number; data: FrbtcVolumeRange }>()
-let tipCache: { at: number; data: FrbtcVolumeTip } | null = null
+const tipCache = new Map<FrbtcIndexerSource, { at: number; data: FrbtcVolumeTip }>()
 
 /** UTF-8 → "0x"-prefixed hex, for encoding a view's raw-JSON input. */
 function toHex(s: string): string {
@@ -100,9 +116,9 @@ function decodeResult(result: unknown): unknown {
 /** POST a single `metashrew_view` call. `input` is raw JSON, hex-encoded per the
  *  indexer contract. Throws on missing env, transport error, or JSON-RPC error —
  *  callers catch and fall back to the table-based path. */
-async function callView(viewName: string, input: unknown): Promise<unknown> {
-  const url = process.env.FRBTC_INDEXER_RPC_URL
-  if (!url) throw new Error("FRBTC_INDEXER_RPC_URL is not set")
+async function callView(viewName: string, input: unknown, source: FrbtcIndexerSource): Promise<unknown> {
+  const url = rpcUrlFor(source)
+  if (!url) throw new Error(`frBTC ${source} indexer RPC URL is not set`)
 
   const res = await fetch(url, {
     method: "POST",
@@ -132,13 +148,17 @@ const num = (v: unknown): number => {
  *
  *  NOTE: day-bucket sats are small in practice, so Number is safe here even though
  *  the indexer's integers could in theory exceed 2^53. */
-export async function getFrbtcVolumeRange(from: string, to: string): Promise<FrbtcVolumeRange | null> {
-  if (!process.env.FRBTC_INDEXER_RPC_URL) return null
-  const key = `${from}|${to}`
+export async function getFrbtcVolumeRange(
+  from: string,
+  to: string,
+  source: FrbtcIndexerSource = "alkanes",
+): Promise<FrbtcVolumeRange | null> {
+  if (!rpcUrlFor(source)) return null
+  const key = `${source}|${from}|${to}`
   const hit = rangeCache.get(key)
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data
 
-  const raw = (await callView("frbtc_volume_range", { from, to })) as {
+  const raw = (await callView("frbtc_volume_range", { from, to }, source)) as {
     daily?: unknown[]
     totals?: Record<string, unknown>
   }
@@ -171,12 +191,15 @@ export async function getFrbtcVolumeRange(from: string, to: string): Promise<Frb
 
 /** Fetch the last height the indexer has processed. Returns null when
  *  FRBTC_INDEXER_RPC_URL is unset. Throws on transport/parse errors. Memoized. */
-export async function getFrbtcVolumeTip(): Promise<FrbtcVolumeTip | null> {
-  if (!process.env.FRBTC_INDEXER_RPC_URL) return null
-  if (tipCache && Date.now() - tipCache.at < TTL_MS) return tipCache.data
-  const raw = (await callView("frbtc_volume_tip", {})) as { tip?: unknown }
+export async function getFrbtcVolumeTip(
+  source: FrbtcIndexerSource = "alkanes",
+): Promise<FrbtcVolumeTip | null> {
+  if (!rpcUrlFor(source)) return null
+  const hit = tipCache.get(source)
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.data
+  const raw = (await callView("frbtc_volume_tip", {}, source)) as { tip?: unknown }
   const data: FrbtcVolumeTip = { tip: num(raw?.tip) }
-  tipCache = { at: Date.now(), data }
+  tipCache.set(source, { at: Date.now(), data })
   return data
 }
 
@@ -226,5 +249,5 @@ export async function getFrbtcTotalSupplySats(): Promise<number | null> {
 /** Test-only: clear the in-process memo caches. */
 export function __clearFrbtcIndexerCache(): void {
   rangeCache.clear()
-  tipCache = null
+  tipCache.clear()
 }

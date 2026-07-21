@@ -15,6 +15,9 @@ import {
   getFrbtcTotalSupplySats,
 } from "@/lib/financials/frbtc-indexer"
 
+// (getFrbtcVolumeRange/Tip take a venue arg: "alkanes" default, "brc20" for the
+// BRC20-Prog frBTC indexer.)
+
 async function gate(): Promise<{ ok: true; me: CmsUser } | { ok: false; error: "unauthorized" }> {
   const me = await currentUser()
   if (!me || !me.privileges.includes(FINANCIALS_PRIVILEGE)) return { ok: false, error: "unauthorized" }
@@ -125,6 +128,31 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
     }))
   }
 
+  // BRC20-Prog frBTC fee revenue — the SECOND frBTC venue, from its own
+  // dedicated rockshrew-mono metashrew indexer (crates/frbtc-brc20-volume-
+  // indexer) via FRBTC_BRC20_INDEXER_RPC_URL. Same 0.1% wrap-premium fee model.
+  // When the env is unset / unreachable, brc20Events stays empty (there is no
+  // ledger-table fallback for BRC20-Prog) and the venue simply reads as 0.
+  let brc20Events: RevenueEvent[] = []
+  let brc20Source: BtcSource | null = null
+  let brc20IndexerTip: number | null = null
+  try {
+    const to = now.toISOString().slice(0, 10)
+    const range = await getFrbtcVolumeRange(INDEXER_RANGE_FROM, to, "brc20")
+    if (range) {
+      brc20Events = range.daily
+        .filter((d) => d.wrapped_sats + d.unwrapped_sats > 0)
+        .map((d) => ({
+          at: `${d.date}T00:00:00.000Z`,
+          amount: feeBtcFromSats(d.wrapped_sats + d.unwrapped_sats),
+        }))
+      brc20Source = "indexer"
+      brc20IndexerTip = (await getFrbtcVolumeTip("brc20").catch(() => null))?.tip ?? null
+    }
+  } catch {
+    // BRC20-Prog indexer unreachable — leave the venue at 0, alkanes still shows.
+  }
+
   // Stripe: pull the authoritative picture LIVE from the Stripe API — succeeded
   // charges (historical series) + active-subscription MRR. If the API is
   // unreachable (no key / network / API error), fall back to the incomplete
@@ -154,19 +182,30 @@ export async function revenueOverviewAction(): Promise<RevenueOverviewResult> {
   // historical) — the wrap/unwrap stats are shown in USD. Null price ⇒ keep BTC.
   const btcUsd = await currentBtcUsd()
   const btcUnit: RevenueUnit = btcUsd != null ? "USD" : "BTC"
-  const btcSeriesEvents =
-    btcUsd != null ? btcEvents.map((e) => ({ at: e.at, amount: e.amount * btcUsd })) : btcEvents
+  const valued = (evts: RevenueEvent[]) =>
+    btcUsd != null ? evts.map((e) => ({ at: e.at, amount: e.amount * btcUsd })) : evts
+  // Cumulative = both venues; the headline BTC-fee number is total protocol
+  // revenue across alkanes + BRC20-Prog. Per-venue series shown alongside.
+  const combinedEvents = [...btcEvents, ...brc20Events]
+  const btcDp = btcUnit === "USD" ? 2 : 8
   if (btcUsd != null) {
     btcNote += ` · valued at $${Math.round(btcUsd).toLocaleString("en-US")}/BTC (current spot)`
   }
+  if (brc20Source === "indexer") {
+    btcNote += ` · incl. BRC20-Prog${brc20IndexerTip != null ? ` (synced to block ${brc20IndexerTip})` : ""}`
+  }
 
   const overview: RevenueOverview = {
-    btcFee: buildSeries("btc_fee", btcUnit, btcSeriesEvents, now, btcUnit === "USD" ? 2 : 8),
+    btcFee: buildSeries("btc_fee", btcUnit, valued(combinedEvents), now, btcDp),
+    btcFeeAlkanes: buildSeries("btc_fee", btcUnit, valued(btcEvents), now, btcDp),
+    btcFeeBrc20: buildSeries("btc_fee", btcUnit, valued(brc20Events), now, btcDp),
     stripe: buildSeries("stripe", "USD", stripeEvents, now, 2),
     generatedAt: now.toISOString(),
     btcFeeNote,
     btcSource,
     indexerTip,
+    brc20Source,
+    brc20IndexerTip,
     btcNote,
     stripeSubs,
     stripeLive,

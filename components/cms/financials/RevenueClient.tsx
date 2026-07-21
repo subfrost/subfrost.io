@@ -40,13 +40,14 @@ export function RevenueClient({ overview }: { overview: RevenueOverview }) {
           title="frBTC wrap/unwrap fees"
           subtitle={
             overview.btcFee.unit === "USD"
-              ? `0.1% of every confirmed wrap + unwrap, valued in USD at the current BTC rate${overview.btcUsd ? ` ($${Math.round(overview.btcUsd).toLocaleString("en-US")})` : ""}.`
-              : "0.1% of every confirmed wrap + unwrap, accrued in BTC."
+              ? `0.1% of every confirmed wrap + unwrap across both venues (alkanes + BRC20-Prog), valued in USD at the current BTC rate${overview.btcUsd ? ` ($${Math.round(overview.btcUsd).toLocaleString("en-US")})` : ""}.`
+              : "0.1% of every confirmed wrap + unwrap across both venues (alkanes + BRC20-Prog), accrued in BTC."
           }
           series={overview.btcFee}
           config={btcConfig}
           note={overview.btcFeeNote}
           badge={<BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />}
+          lead={<VenueSplit overview={overview} />}
         />
       </TabsContent>
 
@@ -92,10 +93,11 @@ function CombinedOverview({ overview }: { overview: RevenueOverview }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3 rounded-xl border border-zinc-800 p-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-white">frBTC fees <span className="font-normal text-zinc-500">({overview.btcFee.unit})</span></h3>
+            <h3 className="text-sm font-semibold text-white">frBTC fees <span className="font-normal text-zinc-500">({overview.btcFee.unit}, all venues)</span></h3>
             <BtcSourceBadge source={overview.btcSource} tip={overview.indexerTip} />
           </div>
           <RevenueChart series={overview.btcFee} config={btcConfig} height={200} />
+          <VenueSplit overview={overview} />
         </div>
         <div className="space-y-3 rounded-xl border border-zinc-800 p-3">
           <div className="flex items-center justify-between gap-2">
@@ -118,6 +120,60 @@ function Metric({ label, value, sub, accent }: { label: string; value: string; s
       </div>
       <div className="mt-1 break-words text-xl font-semibold text-white">{value}</div>
       {sub ? <div className="mt-0.5 text-[11px] text-zinc-500">{sub}</div> : null}
+    </div>
+  )
+}
+
+/** Per-venue breakdown of the cumulative frBTC fee revenue: alkanes (32:0) vs
+ *  frBTC-on-BRC20-Prog, side by side, each with all-time + 30d fee. Makes the
+ *  headline "both cumulative and separately" explicit. The BRC20-Prog venue
+ *  reads 0 with an "indexer offline" hint until FRBTC_BRC20_INDEXER_RPC_URL is
+ *  wired to its rockshrew-mono instance. */
+function VenueSplit({ overview }: { overview: RevenueOverview }) {
+  const f = fmt(overview.btcFee.unit)
+  const venues: {
+    key: string
+    label: string
+    accent: string
+    rollups: PeriodRollups
+    status: ReactNode
+  }[] = [
+    {
+      key: "alkanes",
+      label: "Alkanes (32:0)",
+      accent: "#fb923c", // orange-400
+      rollups: overview.btcFeeAlkanes.rollups,
+      status:
+        overview.btcSource === "indexer"
+          ? `indexer${overview.indexerTip != null ? ` @ ${overview.indexerTip.toLocaleString("en-US")}` : ""}`
+          : "ledger tables",
+    },
+    {
+      key: "brc20",
+      label: "BRC20-Prog",
+      accent: "#38bdf8", // sky-400
+      rollups: overview.btcFeeBrc20.rollups,
+      status:
+        overview.brc20Source === "indexer"
+          ? `indexer${overview.brc20IndexerTip != null ? ` @ ${overview.brc20IndexerTip.toLocaleString("en-US")}` : ""}`
+          : "indexer offline",
+    },
+  ]
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {venues.map((v) => (
+        <div key={v.key} className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: v.accent }} />
+            {v.label}
+          </div>
+          <div className="mt-1 break-words text-lg font-semibold text-white">{f(v.rollups.all)}</div>
+          <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
+            <span>30d {f(v.rollups.d30)}</span>
+            <span className="whitespace-nowrap text-zinc-600">{v.status}</span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
