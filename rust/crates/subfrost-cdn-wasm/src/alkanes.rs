@@ -266,6 +266,17 @@ pub fn sniff_mime(data: &[u8]) -> Option<&'static str> {
     if data.len() >= 12 && data.starts_with(b"RIFF") && &data[8..12] == b"WEBP" {
         return Some("image/webp");
     }
+    // AVIF / HEIC: ISO-BMFF `ftyp` box (bytes 4..8) whose major or compatible
+    // brand mentions avif/avis (AVIF) or heic/heix/heif (HEIC).
+    if data.len() >= 12 && &data[4..8] == b"ftyp" {
+        let brands = &data[8..data.len().min(40)];
+        if brands.windows(4).any(|w| w == b"avif" || w == b"avis") {
+            return Some("image/avif");
+        }
+        if brands.windows(4).any(|w| matches!(w, b"heic" | b"heix" | b"heif" | b"hevc")) {
+            return Some("image/heic");
+        }
+    }
     sniff_svg(data)
 }
 
@@ -285,6 +296,8 @@ pub fn ext_for_mime(mime: &str) -> &'static str {
         "image/jpeg" => "jpg",
         "image/gif" => "gif",
         "image/webp" => "webp",
+        "image/avif" => "avif",
+        "image/heic" => "heic",
         "image/svg+xml" => "svg",
         _ => "bin",
     }
@@ -326,6 +339,9 @@ mod tests {
         );
         assert_eq!(sniff_mime(b"GIF89a\x00"), Some("image/gif"));
         assert_eq!(sniff_mime(b"RIFF\x00\x00\x00\x00WEBPVP8 "), Some("image/webp"));
+        assert_eq!(sniff_mime(b"\x00\x00\x00\x20ftypavifmif1"), Some("image/avif"));
+        assert_eq!(sniff_mime(b"\x00\x00\x00\x18ftypmif1avif"), Some("image/avif"));
+        assert_eq!(sniff_mime(b"\x00\x00\x00\x18ftypheic\x00\x00"), Some("image/heic"));
         assert_eq!(sniff_mime(b"  <svg xmlns='x'></svg>"), Some("image/svg+xml"));
         assert_eq!(sniff_mime(b"<?xml version='1.0'?><svg/>"), Some("image/svg+xml"));
         assert_eq!(sniff_mime(b"hello world, not an image"), None);
