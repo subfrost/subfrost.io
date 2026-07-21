@@ -127,14 +127,14 @@ fn route(cfg: &Cfg, path: &str, request: &IncomingRequest, out: ResponseOutparam
         _ if path.starts_with("/alkanes/") => handle_alkanes(cfg, path, request, out),
         _ if path.starts_with("/docs/") => handle_docs(cfg, trim_leading_slash(path), request, out),
         _ if path.starts_with("/media/") => {
-            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out)
+            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out, false)
         }
         _ if path.starts_with("/releases/") => {
-            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out)
+            proxy_or_index(cfg, &cfg.cdn_bucket, trim_leading_slash(path), request, out, false)
         }
         _ if path.starts_with("/raw/") => {
             // /raw/docs/foo.md -> docs/foo.md in CDN_BUCKET, always raw.
-            proxy(cfg, &cfg.cdn_bucket, path.trim_start_matches("/raw/"), request, out)
+            proxy(cfg, &cfg.cdn_bucket, path.trim_start_matches("/raw/"), request, out, false)
         }
         _ if path.starts_with("/snapshots/") => {
             handle_snapshots(&cfg.cdn_bucket, trim_leading_slash(path), out)
@@ -162,21 +162,21 @@ fn handle_alkanes(cfg: &Cfg, path: &str, request: &IncomingRequest, out: Respons
                 })
             }) {
                 Ok(oc) => match oc.serve(block, tx) {
-                    Serve::Stored(obj) => proxy(cfg, &cfg.assets_bucket, &obj, request, out),
+                    Serve::Stored(obj) => proxy(cfg, &cfg.assets_bucket, &obj, request, out, true),
                     Serve::Bytes { data, mime } => emit_image(out, &data, &mime, 300),
-                    Serve::Fallthrough => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
+                    Serve::Fallthrough => proxy(cfg, &cfg.assets_bucket, &legacy, request, out, true),
                 },
                 // Chain/GCS setup failed — degrade to legacy (curated file or 404).
-                Err(_) => proxy(cfg, &cfg.assets_bucket, &legacy, request, out),
+                Err(_) => proxy(cfg, &cfg.assets_bucket, &legacy, request, out, true),
             }
             return;
         }
-        proxy(cfg, &cfg.assets_bucket, &legacy, request, out);
+        proxy(cfg, &cfg.assets_bucket, &legacy, request, out, true);
         return;
     }
 
     // Non-icon path: directory listing for `.../`, else a literal object.
-    proxy_or_index(cfg, &cfg.assets_bucket, rest, request, out);
+    proxy_or_index(cfg, &cfg.assets_bucket, rest, request, out, true);
 }
 
 /// Parse the `<block>_<tx>` icon form: digits, exactly one underscore, no
@@ -225,7 +225,7 @@ fn handle_docs(cfg: &Cfg, object: &str, request: &IncomingRequest, out: Response
         }
         return;
     }
-    proxy(cfg, &cfg.cdn_bucket, object, request, out);
+    proxy(cfg, &cfg.cdn_bucket, object, request, out, false);
 }
 
 fn handle_snapshots(bucket: &str, object: &str, out: ResponseOutparam) {
@@ -237,7 +237,7 @@ fn handle_secure(cfg: &Cfg, path: &str, request: &IncomingRequest, out: Response
     let object = path.trim_start_matches("/secure/");
     let token = secure_token_from_request(request);
     match verify_secure_token(object, token.as_deref(), &cfg.secure_hmac_key) {
-        Ok(()) => proxy(cfg, &cfg.cdn_bucket, object, request, out),
+        Ok(()) => proxy(cfg, &cfg.cdn_bucket, object, request, out, false),
         Err(reason) => {
             let mut h = cors_headers();
             respond_h(out, 401, &mut h, reason.as_bytes());
@@ -256,18 +256,26 @@ fn proxy_or_index(
     object: &str,
     request: &IncomingRequest,
     out: ResponseOutparam,
+    sniff: bool,
 ) {
     if object.is_empty() || object.ends_with('/') {
         autoindex(bucket, object, out);
     } else {
-        proxy(cfg, bucket, object, request, out);
+        proxy(cfg, bucket, object, request, out, sniff);
     }
 }
 
 /// Buffered GCS object proxy. Forwards Range / conditional headers, relays
 /// GCS's status + content headers, adds CORS + cache. Objects over
 /// `MAX_PROXY_BYTES` are 302'd to GCS rather than buffered.
-fn proxy(_cfg: &Cfg, bucket: &str, object: &str, request: &IncomingRequest, out: ResponseOutparam) {
+fn proxy(
+    _cfg: &Cfg,
+    bucket: &str,
+    object: &str,
+    request: &IncomingRequest,
+    out: ResponseOutparam,
+    sniff: bool,
+) {
     if object.is_empty() {
         return respond(out, 400, cors_headers(), b"missing object path");
     }
@@ -304,12 +312,29 @@ fn proxy(_cfg: &Cfg, bucket: &str, object: &str, request: &IncomingRequest, out:
         return respond(out, 502, cors_headers(), b"upstream error");
     }
 
+    // For /alkanes assets, GCS's stored content-type is unreliable (some
+    // captures were saved as text/plain). Sniff the actual bytes and serve the
+    // detected image mime; fall back to GCS's for non-images. Only on a full
+    // 200 (a 206 partial from a non-zero offset can't be sniffed).
+    let sniffed = if sniff && resp.status == 200 {
+        alkanes::sniff_mime(&resp.body)
+    } else {
+        None
+    };
+
     // Relay content headers + CORS + cache.
     let h = Fields::new();
     for (k, v) in &resp.headers {
-        if FORWARD_HEADERS.contains(&k.to_ascii_lowercase().as_str()) {
-            let _ = h.append(&k.to_ascii_lowercase(), v);
+        let kl = k.to_ascii_lowercase();
+        if kl == "content-type" && sniffed.is_some() {
+            continue; // overridden below
         }
+        if FORWARD_HEADERS.contains(&kl.as_str()) {
+            let _ = h.append(&kl, v);
+        }
+    }
+    if let Some(mime) = sniffed {
+        let _ = h.append(&"content-type".into(), &mime.as_bytes().to_vec());
     }
     let _ = h.append(&"cache-control".into(), &b"public, max-age=86400".to_vec());
     apply_cors(&h);
