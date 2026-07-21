@@ -84,7 +84,7 @@ describe("EcosystemAdmin — banner upload", () => {
   it("uploads a banner with kind ecosystem and submits its url", async () => {
     vi.mocked(uploadInlineImage).mockResolvedValue("https://cdn.x/banner.png")
     vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "e1" })
-    const { getByText, getByLabelText } = render(
+    const { container, getByText, getByLabelText } = render(
       <EcosystemAdmin projects={[]} featuredBandEnabled={false} canEdit />,
     )
     fireEvent.click(getByText("New project"))
@@ -92,7 +92,9 @@ describe("EcosystemAdmin — banner upload", () => {
     fireEvent.change(getByLabelText("Website URL"), { target: { value: "https://x.io" } })
     const input = getByLabelText("Upload banner file") as HTMLInputElement
     fireEvent.change(input, { target: { files: [new File(["b"], "b.png", { type: "image/png" })] } })
-    await waitFor(() => expect(uploadInlineImage).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(container.querySelector('img[src="https://cdn.x/banner.png"]')).toBeTruthy(),
+    )
     expect(vi.mocked(uploadInlineImage).mock.calls[0][2]).toBe("ecosystem")
     fireEvent.click(getByText("Create project"))
     await waitFor(() => expect(saveEcosystemProject).toHaveBeenCalled())
