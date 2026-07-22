@@ -82,6 +82,9 @@ export function EcosystemDirectory({
   const ofKind = useMemo(() => projects.filter((p) => (p.kind ?? "App") === kind), [projects, kind])
   const counts = useMemo(() => ({
     App: projects.filter((p) => (p.kind ?? "App") === "App").length,
+    // Contract is unused while the tab shows the "Coming soon" placeholder (no count
+    // rendered next to its label). Intentionally retained: Contracts is coming back
+    // this week and the count returns with it — don't delete this as dead code.
     Contract: projects.filter((p) => p.kind === "Contract").length,
   }), [projects])
 

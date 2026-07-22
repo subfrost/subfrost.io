@@ -23,8 +23,10 @@ describe("ecosystem soft-launch (footer-linked, nav-hidden)", () => {
   it("editorial SiteHeader has no ecosystem nav item", () => {
     expect(read("components/articles/SiteHeader.tsx")).not.toContain('id: "ecosystem"')
   })
-  it("editorial SiteFooter links /ecosystem", () => {
-    expect(read("components/articles/SiteFooter.tsx")).toContain("/ecosystem")
+  it("editorial SiteFooter links /ecosystem in both locales", () => {
+    const source = read("components/articles/SiteFooter.tsx")
+    expect(source).toContain('"/ecosystem"')
+    expect(source).toContain('"/ecosystem?lang=zh"')
   })
   it("sitemap omits /ecosystem", () => {
     expect(read("app/sitemap.ts")).not.toContain('absoluteUrl("/ecosystem")')

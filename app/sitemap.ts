@@ -24,9 +24,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry(absoluteUrl("/volume?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.65 }),
     sitemapEntry(absoluteUrl("/metrics"), { lastModified: now, changeFrequency: "daily", priority: 0.8 }),
     sitemapEntry(absoluteUrl("/metrics?lang=zh"), { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
-    // /ecosystem is intentionally omitted while soft-launching (reachable only via a
-    // shared link until the directory content is finalized). Re-add both locales when
-    // the Ecosystem nav item is restored.
+    // /ecosystem is intentionally omitted while soft-launching: it's now linked from
+    // both site footers, but deliberately kept out of the sitemap until the directory
+    // content is finalized. Re-add both locales when the Ecosystem nav item is restored.
     sitemapEntry(absoluteUrl("/brand"), { lastModified: now, changeFrequency: "monthly", priority: 0.55 }),
     sitemapEntry(absoluteUrl("/brand?lang=zh"), { lastModified: now, changeFrequency: "monthly", priority: 0.45 }),
     sitemapEntry(absoluteUrl("/support"), { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
