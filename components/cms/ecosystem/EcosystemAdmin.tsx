@@ -555,6 +555,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
             onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
             className={inputCls}
           />
+          <p className="mt-1 text-xs text-zinc-500">Orders the featured band only; non-featured projects are ordered automatically by status, then alphabetically.</p>
         </div>
       </div>
 
