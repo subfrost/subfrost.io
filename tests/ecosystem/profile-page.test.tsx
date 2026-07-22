@@ -109,6 +109,48 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
   })
 })
 
+describe("EcosystemProfile — description vs. Overview dedup", () => {
+  it("omits the header description when the profile opens with an Overview", () => {
+    // Inugami in production: the short description and the Overview intro say the same thing,
+    // a few hundred pixels apart.
+    render(
+      <EcosystemProfile
+        p={profile({
+          description: "A coinbase message bounty: users escrow DIESEL against a message.",
+          profile: "Inugami turns the Bitcoin coinbase into a message board with a price on it.\n\n## Functions\n\nDetails.",
+        })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.queryByText(/users escrow DIESEL against a message/)).not.toBeInTheDocument()
+    expect(screen.getByText(/message board with a price on it/)).toBeInTheDocument()
+  })
+
+  it("keeps the header description when there is no profile markdown", () => {
+    render(
+      <EcosystemProfile
+        p={profile({ description: "Bitcoin NFT collection deployed on Alkanes.", profile: "" })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.getByText("Bitcoin NFT collection deployed on Alkanes.")).toBeInTheDocument()
+  })
+
+  it("keeps the header description when the profile starts straight at an H2", () => {
+    // No intro means no Overview tab, so the description is the only prose on the page.
+    render(
+      <EcosystemProfile
+        p={profile({ description: "Free mint factory.", profile: "## Functions\n\nDetails." })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.getByText("Free mint factory.")).toBeInTheDocument()
+  })
+})
+
 describe("EcosystemProfile — first-party disclaimer suppression", () => {
   it("shows the disclaimer for a third-party project", () => {
     render(<EcosystemProfile p={profile({ slug: "arbuzino" })} copy={copy} backHref="/ecosystem" />)

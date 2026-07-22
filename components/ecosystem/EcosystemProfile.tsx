@@ -35,6 +35,11 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
   statHero?: ReactNode
   priceChart?: ReactNode
 }) {
+  const { intro, sections } = splitProfileSections(p.profile)
+  // The Overview tab is rendered from `intro`. When it exists it already carries the project's
+  // pitch, so repeating `description` in the header prints the same paragraph twice on one page
+  // (8 of 25 published projects did). `description` still owns every directory card.
+  const showDescription = !intro
   return (
     <article>
       <Link href={backHref} className="font-mono text-[12px] text-[color:var(--ed-muted)] transition-colors hover:text-[color:var(--ed-accent)]">
@@ -63,7 +68,9 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
               </a>
             ) : null}
           </div>
-          <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
+          {showDescription ? (
+            <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <a href={p.url} target="_blank" rel="noopener noreferrer" className={btnCls}>{copy.website} ↗</a>
             {p.xUrl ? <a href={p.xUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>𝕏</a> : null}
@@ -77,13 +84,17 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
 
       {priceChart ?? null}
 
-      <ProfileBody p={p} copy={copy} />
+      <ProfileBody intro={intro} sections={sections} contracts={p.contracts} copy={copy} />
     </article>
   )
 }
 
-function ProfileBody({ p, copy }: { p: PublicEcosystemProfile; copy: ProfileCopy }) {
-  const { intro, sections } = splitProfileSections(p.profile)
+function ProfileBody({ intro, sections, contracts, copy }: {
+  intro: string
+  sections: ReturnType<typeof splitProfileSections>["sections"]
+  contracts: PublicEcosystemProfile["contracts"]
+  copy: ProfileCopy
+}) {
   const tabs: { key: string; label: string }[] = []
   const panels: ReactNode[] = []
   if (intro) {
@@ -94,9 +105,9 @@ function ProfileBody({ p, copy }: { p: PublicEcosystemProfile; copy: ProfileCopy
     tabs.push({ key: `s${i}`, label: s.title })
     panels.push(<Markdown variant="article">{s.body}</Markdown>)
   })
-  if (p.contracts.length > 0) {
+  if (contracts.length > 0) {
     tabs.push({ key: "contracts", label: copy.contractsTitle })
-    panels.push(<ContractsTable contracts={p.contracts} copy={copy} />)
+    panels.push(<ContractsTable contracts={contracts} copy={copy} />)
   }
   if (tabs.length === 0) return null
   if (tabs.length === 1) {
