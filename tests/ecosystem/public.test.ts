@@ -23,16 +23,82 @@ const row = (over: Record<string, unknown>) => ({
 beforeEach(() => vi.clearAllMocks())
 
 describe("getEcosystemDirectory", () => {
-  it("queries only published, in directory order", async () => {
+  it("queries only published projects", async () => {
     vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([] as never)
     vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
     await getEcosystemDirectory("en")
     expect(prisma.ecosystemProject.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { published: true },
-        orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
       })
     )
+  })
+
+  it("orders featured projects before non-featured, regardless of status or name", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "z-live", name: "Z Live", featured: false, status: "Live" }),
+      row({ slug: "a-featured", name: "A Featured", featured: true, status: "Building" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["a-featured", "z-live"])
+  })
+
+  it("orders all Live before all Building within non-featured", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "b-building", name: "B Building", status: "Building" }),
+      row({ slug: "a-live", name: "A Live", status: "Live" }),
+      row({ slug: "y-building", name: "Y Building", status: "Building" }),
+      row({ slug: "z-live", name: "Z Live", status: "Live" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["a-live", "z-live", "b-building", "y-building"])
+  })
+
+  it("sorts Beta between Live and Building", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "building-one", name: "Building One", status: "Building" }),
+      row({ slug: "live-one", name: "Live One", status: "Live" }),
+      row({ slug: "beta-one", name: "Beta One", status: "Beta" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["live-one", "beta-one", "building-one"])
+  })
+
+  it("sorts names A-Z case-insensitively within a status", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "arbuz", name: "ARBUZ", status: "Live" }),
+      row({ slug: "alkanex", name: "Alkanex", status: "Live" }),
+      row({ slug: "acai", name: "acai", status: "Live" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["acai", "alkanex", "arbuz"])
+  })
+
+  it("does not let a large sortOrder jump the queue", async () => {
+    // Regression: sortOrder used to dominate ordering. A Building project with a huge
+    // sortOrder must still land after a Live project with sortOrder 0.
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "old-building", name: "Old Building", status: "Building", sortOrder: 999 }),
+      row({ slug: "new-live", name: "New Live", status: "Live", sortOrder: 0 }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["new-live", "old-building"])
+  })
+
+  it("sorts an unrecognised status last instead of scrambling the list", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "mystery", name: "Mystery", status: "Deprecated" }),
+      row({ slug: "b-building", name: "B Building", status: "Building" }),
+      row({ slug: "a-live", name: "A Live", status: "Live" }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["a-live", "b-building", "mystery"])
   })
 
   it("resolves zh with fallback to en", async () => {
