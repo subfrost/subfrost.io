@@ -24,7 +24,7 @@ const copy = {
 I'd like to submit a project for the Alkanes ecosystem directory.
 
 • Project name:
-• Category (DeFi / Wallet / Tooling / Launchpad / NFT / Gaming / Social / Other):
+• Category (DeFi / Wallet / Marketplace / Tooling / Launchpad / NFT / Gaming / Social / Other):
 • Status (Live / Beta / Building):
 • Website:
 • X (Twitter):
@@ -62,7 +62,7 @@ Thanks!`,
 我想提交一个项目，申请收录到 Alkanes 生态系统目录。
 
 • 项目名称：
-• 分类（DeFi / Wallet / Tooling / Launchpad / NFT / Gaming / Social / Other）：
+• 分类（DeFi / Wallet / Marketplace / Tooling / Launchpad / NFT / Gaming / Social / Other）：
 • 状态（Live / Beta / Building）：
 • 官网：
 • X（Twitter）：

@@ -14,7 +14,7 @@ import { isValidKind, isValidOptionalAlkaneId, ECOSYSTEM_KINDS } from "@/lib/eco
 describe("ecosystem constants", () => {
   it("has the curated category list", () => {
     expect(ECOSYSTEM_CATEGORIES).toEqual([
-      "DeFi", "Wallet", "Tooling", "Launchpad", "NFT", "Gaming", "Social", "Other",
+      "DeFi", "Wallet", "Marketplace", "Tooling", "Launchpad", "NFT", "Gaming", "Social", "Other",
     ])
   })
 

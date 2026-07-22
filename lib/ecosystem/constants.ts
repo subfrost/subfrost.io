@@ -5,7 +5,7 @@
  * against these before writing.
  */
 export const ECOSYSTEM_CATEGORIES = [
-  "DeFi", "Wallet", "Tooling", "Launchpad", "NFT", "Gaming", "Social", "Other",
+  "DeFi", "Wallet", "Marketplace", "Tooling", "Launchpad", "NFT", "Gaming", "Social", "Other",
 ] as const
 export type EcosystemCategory = (typeof ECOSYSTEM_CATEGORIES)[number]
 
