@@ -96,6 +96,15 @@ const Footer: React.FC = () => {
                     {t("footer.apiLogin")}
                   </a>
                 </li>
+                <li>
+                  <Link
+                    href="/ecosystem"
+                    onClick={() => trackEvent("ecosystem_click", { event_category: "navigation", event_label: "footer" })}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {t("footer.ecosystem")}
+                  </Link>
+                </li>
               </ul>
             </div>
 

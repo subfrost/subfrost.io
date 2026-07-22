@@ -142,6 +142,7 @@ const zh: Record<string, string> = {
   'footer.bySubzero': '由 Subzero Research Inc. 出品',
   'footer.product': '产品',
   'footer.launchApp': '启动应用',
+  'footer.ecosystem': '生态系统',
   'footer.documentation': '文档',
   'footer.blog': '文章',
   'footer.apiReference': 'API 参考',

@@ -12,6 +12,7 @@ export interface DirectoryCopy {
   docs: string
   tabApps: string
   tabContracts: string
+  comingSoon: string
   statuses: Record<string, string>
 }
 
@@ -106,81 +107,91 @@ export function EcosystemDirectory({
                 ? "border-[color:var(--ed-ink)] text-[color:var(--ed-ink)]"
                 : "border-transparent text-[color:var(--ed-muted)] hover:text-[color:var(--ed-accent)]")}>
             {k === "App" ? copy.tabApps : copy.tabContracts}
-            <span className="ml-1.5 opacity-60" style={{ fontVariantNumeric: "tabular-nums" }}>{counts[k]}</span>
+            {k === "App" ? (
+              <span className="ml-1.5 opacity-60" style={{ fontVariantNumeric: "tabular-nums" }}>{counts[k]}</span>
+            ) : null}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-[color:var(--ed-hair)] px-6 py-5 sm:px-10" role="group">
-        <Chip active={cat === "__all__"} onClick={() => setCat("__all__")} label={copy.filterAll} count={ofKind.length} />
-        {cats.map(([c, n]) => (
-          <Chip key={c} active={cat === c} onClick={() => setCat(c)} label={c} count={n} />
-        ))}
-      </div>
+      {kind === "Contract" ? (
+        <div className="px-6 py-16 text-center sm:px-10">
+          <p className="text-[14.5px] text-[color:var(--ed-muted)]">{copy.comingSoon}</p>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2 border-b border-[color:var(--ed-hair)] px-6 py-5 sm:px-10" role="group">
+            <Chip active={cat === "__all__"} onClick={() => setCat("__all__")} label={copy.filterAll} count={ofKind.length} />
+            {cats.map(([c, n]) => (
+              <Chip key={c} active={cat === c} onClick={() => setCat(c)} label={c} count={n} />
+            ))}
+          </div>
 
-      {featured.length > 0 ? (
-        <div className="grid gap-5 px-6 pt-7 sm:grid-cols-2 sm:px-10">
-          {featured.map((p) => (
-            <div key={p.slug}
-              className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-[color:var(--ed-canvas)] p-6 transition-colors hover:border-[color:var(--ed-ice)]">
-              {/* Stretched-link overlay: makes the whole card clickable to the project's internal
-                  profile page. Only LinksRow's real anchors (website/X/docs) and the AlkaneBadge
-                  are raised above it (z-10) — everything else must stay below the overlay or it
-                  swallows the click instead of navigating. */}
-              <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[14px]" />
-              <div className="flex items-center gap-3.5">
-                <Mark p={p} size={52} />
-                <div>
-                  <h3 className="text-[20px] font-medium tracking-[-0.012em] text-[color:var(--ed-ink)]">{p.name}</h3>
-                  <div className="mt-0.5 flex items-center gap-3">
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
+          {featured.length > 0 ? (
+            <div className="grid gap-5 px-6 pt-7 sm:grid-cols-2 sm:px-10">
+              {featured.map((p) => (
+                <div key={p.slug}
+                  className="relative flex flex-col gap-3 rounded-[14px] border border-[color:var(--ed-hair)] bg-gradient-to-b from-[color:var(--ed-surface)] to-[color:var(--ed-canvas)] p-6 transition-colors hover:border-[color:var(--ed-ice)]">
+                  {/* Stretched-link overlay: makes the whole card clickable to the project's internal
+                      profile page. Only LinksRow's real anchors (website/X/docs) and the AlkaneBadge
+                      are raised above it (z-10) — everything else must stay below the overlay or it
+                      swallows the click instead of navigating. */}
+                  <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[14px]" />
+                  <div className="flex items-center gap-3.5">
+                    <Mark p={p} size={52} />
+                    <div>
+                      <h3 className="text-[20px] font-medium tracking-[-0.012em] text-[color:var(--ed-ink)]">{p.name}</h3>
+                      <div className="mt-0.5 flex items-center gap-3">
+                        <span className="font-mono text-[10.5px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
+                        <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
+                      </div>
+                    </div>
+                    <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ed-flare)]">{copy.featuredTag}</span>
+                  </div>
+                  <p className="text-[14.5px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
+                  <AlkaneBadge p={p} />
+                  <div className="relative z-10">
+                    <LinksRow p={p} copy={copy} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3.5 px-6 py-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 xl:grid-cols-4">
+            {grid.map((p) => (
+              <div key={p.slug}
+                className="ec-card relative flex flex-col rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
+                {/* Stretched-link overlay: navigates to the internal profile page. Only the
+                    GridLinks (X/docs) and AlkaneBadge — real external anchors — are raised above
+                    it; the name, logo, category, status and description stay below the overlay so
+                    clicking the card navigates instead of swallowing the click (see #202). The
+                    description reveal is CSS-only (.ec-card / .ec-card-desc in globals.css):
+                    hover-in on desktop, hidden with no reserved space on touch. The description
+                    MUST keep pointer-events-none: its opacity:0 (idle) creates a stacking context
+                    that paints above the z-0 overlay (later in DOM) and would otherwise swallow the
+                    click over its reserved band — a subtler #202 than a raised z-index. */}
+                <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-[15px] font-medium leading-tight text-[color:var(--ed-ink)]">{p.name}</h3>
+                  <span className="shrink-0 pt-0.5 font-mono text-[10px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
+                </div>
+                <div className="flex flex-1 items-center justify-center py-6">
+                  <Mark p={p} size={56} />
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <GridLinks p={p} copy={copy} />
+                  <AlkaneBadge p={p} />
+                  <div className="ml-auto">
                     <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
                   </div>
                 </div>
-                <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ed-flare)]">{copy.featuredTag}</span>
+                <p className="ec-card-desc pointer-events-none mt-2.5 text-[12.5px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
               </div>
-              <p className="text-[14.5px] leading-relaxed text-[color:var(--ed-body)]">{p.description}</p>
-              <AlkaneBadge p={p} />
-              <div className="relative z-10">
-                <LinksRow p={p} copy={copy} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-3.5 px-6 py-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 xl:grid-cols-4">
-        {grid.map((p) => (
-          <div key={p.slug}
-            className="ec-card relative flex flex-col rounded-[11px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-canvas)] p-[18px] transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[color:var(--ed-ice)] motion-reduce:hover:translate-y-0">
-            {/* Stretched-link overlay: navigates to the internal profile page. Only the
-                GridLinks (X/docs) and AlkaneBadge — real external anchors — are raised above
-                it; the name, logo, category, status and description stay below the overlay so
-                clicking the card navigates instead of swallowing the click (see #202). The
-                description reveal is CSS-only (.ec-card / .ec-card-desc in globals.css):
-                hover-in on desktop, hidden with no reserved space on touch. The description
-                MUST keep pointer-events-none: its opacity:0 (idle) creates a stacking context
-                that paints above the z-0 overlay (later in DOM) and would otherwise swallow the
-                click over its reserved band — a subtler #202 than a raised z-index. */}
-            <Link href={`/ecosystem/${p.slug}`} aria-label={p.name} className="absolute inset-0 z-0 rounded-[11px]" />
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[15px] font-medium leading-tight text-[color:var(--ed-ink)]">{p.name}</h3>
-              <span className="shrink-0 pt-0.5 font-mono text-[10px] uppercase tracking-[0.07em] text-[color:var(--ed-muted)]">{p.category}</span>
-            </div>
-            <div className="flex flex-1 items-center justify-center py-6">
-              <Mark p={p} size={56} />
-            </div>
-            <div className="flex items-center gap-2.5">
-              <GridLinks p={p} copy={copy} />
-              <AlkaneBadge p={p} />
-              <div className="ml-auto">
-                <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
-              </div>
-            </div>
-            <p className="ec-card-desc pointer-events-none mt-2.5 text-[12.5px] leading-snug text-[color:var(--ed-muted)]">{p.description}</p>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   )
 }
