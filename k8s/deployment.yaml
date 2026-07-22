@@ -284,6 +284,14 @@ spec:
             # collateralization reconciliation.
             - name: FRBTC_INDEXER_RPC_URL
               value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc"
+            # frBTC-on-BRC20-Prog volume indexer — the authoritative source for
+            # BRC2.0 wrap/unwrap volume on the homepage metrics + /volume page
+            # (lib/frbtc-brc20-volume.ts → lib/volume-data.ts). Sibling of the
+            # frBTC indexer above, same metashrew_view methods, its own
+            # rockshrew-mono in the subvh cluster reached via the public
+            # free-tier /frbtc-brc20 edge route (no API key).
+            - name: FRBTC_BRC20_INDEXER_RPC_URL
+              value: "https://mainnet.l.subfrost.io/v4/jsonrpc/frbtc-brc20"
           # readiness uses /api/health (checks the DB) so a pod with no DB is
           # pulled from the LB; liveness is a plain TCP check so a DB blip does
           # NOT trigger pod restarts.

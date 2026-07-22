@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react"
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import HeroMarketTicker from "@/components/HeroMarketTicker"
 import { HomepageFaq } from "@/components/HomepageFaq"
@@ -198,7 +199,7 @@ const homeCopy = {
     eyebrow: "Bitcoin-native Layer 0",
     title: "subfrost",
     reveal:
-      "Trade Bitcoin-native assets and track live BTC markets. Deploy liquidity into AMM pools and vaults on Bitcoin.",
+      "Trade Bitcoin-native assets, track live markets, and deploy liquidity into AMM pools and vaults. All on Bitcoin.",
     launch: "Launch App",
     productsHeading: "Built for the Bitcoin operating layer.",
     products: [
@@ -228,23 +229,36 @@ const homeCopy = {
     faqItems: [
       {
         question: "What is subfrost?",
-        answer: "subfrost is Bitcoin-native infrastructure for issuing assets, routing liquidity, trading through AMMs, and accessing vault products from one app.",
+        answer: "subfrost is Bitcoin-native infrastructure for issuing assets, routing liquidity, trading through AMMs, and accessing vault products, all hosted from the subfrosts apps and available for other developers to integrate.",
       },
       {
-        question: "What products are live on the app?",
-        answer: "The product surface centers on Markets, Swap, and Vaults, with live BTC, DIESEL, FIRE, BTC/DIESEL, BTC/FIRE, and block-height data surfaced on the homepage.",
+        question: "What products are live on the subfrost apps?",
+        answer: "The most UX-friendly AMM swaps, DeFi vaults, and live market data available anywhere on Bitcoin.",
       },
       {
         question: "Is there a mobile app?",
-        answer: "Yes. The mobile app is coming soon.",
-      },
-      {
-        question: "Why does subfrost publish articles?",
-        answer: "Articles give users the research, protocol context, release notes, and author-backed explanations they need before deploying capital.",
+        answer: "Yes, the iOS app and Android app are both coming soon. For now, you can access our webapp through the Unisat mobile app.",
       },
       {
         question: "Where do I start?",
-        answer: "Use Launch App for execution, Markets for current pricing and network context, and Articles for protocol research and product updates.",
+        answer: "Users should explore our subfrost app, developers should explore our documentation, and media/journalists should explore our articles.",
+        answerNode: (
+          <>
+            Users should explore our{" "}
+            <a href="https://app.subfrost.io/" {...externalAnchorProps("https://app.subfrost.io/")} className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              subfrost app
+            </a>
+            , developers should explore our{" "}
+            <a href="https://docs.subfrost.io/" {...externalAnchorProps("https://docs.subfrost.io/")} className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              documentation
+            </a>
+            , and media/journalists should explore our{" "}
+            <a href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              articles
+            </a>
+            .
+          </>
+        ),
       },
     ],
   },
@@ -281,23 +295,36 @@ const homeCopy = {
     faqItems: [
       {
         question: "subfrost 是什么？",
-        answer: "subfrost 是比特币原生基础设施，用于资产发行、流动性路由、AMM 交易和金库产品访问，并统一在一个应用中。",
+        answer: "subfrost 是比特币原生基础设施，用于资产发行、流动性路由、AMM 交易和金库产品访问，全部托管于 subfrost 应用，并可供其他开发者集成。",
       },
       {
-        question: "应用里有哪些产品？",
-        answer: "当前产品界面以市场、兑换和金库为核心，首页展示 BTC、DIESEL、FIRE、BTC/DIESEL、BTC/FIRE 与区块高度数据。",
+        question: "subfrost 应用里有哪些产品？",
+        answer: "比特币上体验最友好的 AMM 兑换、DeFi 金库和实时市场数据。",
       },
       {
         question: "有移动应用吗？",
-        answer: "有。移动应用即将推出。",
-      },
-      {
-        question: "为什么 subfrost 要发布文章？",
-        answer: "文章提供研究、协议背景、发布说明和作者署名解释，让用户在部署资金前理解产品和风险。",
+        answer: "有，iOS 应用和 Android 应用都即将推出。目前，您可以通过 Unisat 移动应用访问我们的网页应用。",
       },
       {
         question: "我应该从哪里开始？",
-        answer: "需要执行时进入应用；需要价格和网络上下文时看市场；需要协议研究和产品更新时看文章。",
+        answer: "用户应探索我们的 subfrost 应用，开发者应查阅我们的文档，媒体/记者应浏览我们的文章。",
+        answerNode: (
+          <>
+            用户应探索我们的{" "}
+            <a href="https://app.subfrost.io/" {...externalAnchorProps("https://app.subfrost.io/")} className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              subfrost 应用
+            </a>
+            ，开发者应查阅我们的{" "}
+            <a href="https://docs.subfrost.io/" {...externalAnchorProps("https://docs.subfrost.io/")} className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              文档
+            </a>
+            ，媒体/记者应浏览我们的{" "}
+            <a href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+              文章
+            </a>
+            。
+          </>
+        ),
       },
     ],
   },
@@ -314,7 +341,7 @@ const homeCopy = {
   coreTeam: string
   advisors: string
   faqHeading: string
-  faqItems: { question: string; answer: string }[]
+  faqItems: { question: string; answer: string; answerNode?: ReactNode }[]
 }>
 
 const homeSeoCopy = {
@@ -508,17 +535,17 @@ export default async function Page({
         <main className="homepage-shell relative overflow-hidden" style={{ background: "var(--ed-canvas)" }}>
         <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-[66px]">
           <div className="max-w-[980px]">
-            <p className="homepage-cascade-item homepage-cascade-0 font-display text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
-              {copy.eyebrow}
-            </p>
             <h1
-              className="homepage-cascade-item homepage-cascade-1 font-display mt-5 text-balance text-[58px] font-normal leading-[0.98] sm:text-[86px] lg:text-[112px]"
+              className="homepage-cascade-item homepage-cascade-1 font-display text-balance text-[58px] font-normal leading-[0.98] sm:text-[86px] lg:text-[112px]"
               style={{ color: "var(--ed-ink)" }}
             >
               {copy.title}
             </h1>
             <div className="homepage-cascade-item homepage-cascade-2 mt-7">
-              <ScrollRevealStatement text={copy.reveal} />
+              <ScrollRevealStatement
+                text={copy.reveal}
+                breakAfterLg={locale === "en" ? [2, 7, 11] : undefined}
+              />
             </div>
           </div>
 

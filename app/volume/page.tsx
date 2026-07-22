@@ -57,16 +57,13 @@ export default async function VolumePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(volumeJsonLd) }}
       />
       <EditorialShell>
-        <main className="min-h-[calc(100vh-4rem)] px-6 pb-20 pt-[60px] sm:px-8 lg:pb-24 lg:pt-[72px]" style={{ background: "var(--ed-canvas)" }}>
-          <section className="mx-auto max-w-[1120px]">
-            <div className="mb-8 max-w-[720px]">
-              <p className="font-display text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
-                {locale === "zh" ? "交易量" : "Volume"}
-              </p>
-              <h1 className="mt-8 font-display text-[48px] font-normal leading-[0.98] tracking-normal sm:text-[72px]" style={{ color: "var(--ed-ink)" }}>
+        <main className="min-h-[calc(100vh-4rem)] pb-20 pt-5 sm:pt-[33px] lg:pb-24" style={{ background: "var(--ed-canvas)" }}>
+          <section className="mx-auto max-w-[1440px] px-6 sm:px-8">
+            <div className="mb-7 max-w-[720px]">
+              <h1 className="font-display text-[38px] font-normal leading-[1.06] sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>
                 {locale === "zh" ? "协议交易量" : "Protocol volume"}
               </h1>
-              <p className="mt-5 max-w-[560px] text-[17px] leading-[1.5]" style={{ color: "var(--ed-muted)" }}>
+              <p className="font-display mt-4 max-w-[560px] text-[18px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>
                 {locale === "zh"
                   ? "查看 Alkanes 与 BRC20 的包装和解包活动。"
                   : "Wrap and unwrap activity across both Alkanes and BRC20."}

@@ -143,6 +143,15 @@ function PeriodToggleLabel({
       >
         7D
       </button>
+      <span className="mx-1 text-[#6b7280]/40">/</span>
+      <button
+        type="button"
+        onClick={() => onChange("all")}
+        className={btnClass(period === "all")}
+        aria-pressed={period === "all"}
+      >
+        All
+      </button>
       <span> {suffix}</span>
     </p>
   )
@@ -163,11 +172,13 @@ function StatsCards({
   const { data, isLoading } = useSWR(`/api/volume/stats?source=${source}`, fetcher, {
     refreshInterval: 1_800_000,
   })
+  // "all" shows the lifetime cumulative totals (the full period, which the charts
+  // are already anchored to — Oct 2 2025 onward).
   const wrapKey =
-    period === "all" ? "wrap_volume_sats" : period === "24h" ? "wrap_24h_sats" : "wrap_7d_sats"
+    period === "24h" ? "wrap_24h_sats" : period === "7d" ? "wrap_7d_sats" : "wrap_volume_sats"
   const unwrapKey =
-    period === "all" ? "unwrap_volume_sats" : period === "24h" ? "unwrap_24h_sats" : "unwrap_7d_sats"
-  const valueDecimals = period === "all" ? 2 : 4
+    period === "24h" ? "unwrap_24h_sats" : period === "7d" ? "unwrap_7d_sats" : "unwrap_volume_sats"
+  const valueDecimals = 4
 
   const loading = isLoading
 
@@ -295,8 +306,14 @@ function StatsCards({
 const CHART_BG = "transparent"
 const GRID_COLOR = "rgba(40, 67, 114, 0.06)"
 const CHART_START = "2025-10-01" as Time
+// Fixed left edge of the visible window on the /volume page charts. The scale
+// still extends back to CHART_START (Oct 1) via the anchor point, but the
+// default view begins on Oct 2 rather than a rolling 60-day window.
+const CHART_VISIBLE_START = "2025-10-02" as Time
 const CHART_HEIGHT_MOBILE = 250
-const DEFAULT_VISIBLE_DAYS = 60
+// Breathing room above the tallest bar/area so it isn't flush with the top edge,
+// mirroring the ~10% padding lightweight-charts' default autoscale adds.
+const SCALE_HEADROOM = 1.08
 
 function setDefaultTimeRange(chart: IChartApi | null, rows: CandleData[], variant: VolumePanelVariant) {
   if (!chart) return
@@ -306,10 +323,8 @@ function setDefaultTimeRange(chart: IChartApi | null, rows: CandleData[], varian
   }
 
   const end = new Date(rows[rows.length - 1].bucket)
-  const start = new Date(end)
-  start.setUTCDate(start.getUTCDate() - DEFAULT_VISIBLE_DAYS)
   chart.timeScale().setVisibleRange({
-    from: start.toISOString().slice(0, 10) as Time,
+    from: CHART_VISIBLE_START,
     to: end.toISOString().slice(0, 10) as Time,
   })
 }
@@ -401,9 +416,18 @@ function VolumeChart({
   const wrapRef = useRef<ISeriesApi<"Histogram"> | null>(null)
   const unwrapRef = useRef<ISeriesApi<"Histogram"> | null>(null)
   const candleLookupRef = useRef<Map<string, CandleData>>(new Map())
+  // Y-axis is pinned to the combined ("All") range so selecting a single source
+  // shows its portion of the whole rather than rescaling to fill the height.
+  const fixedRangeRef = useRef<{ minValue: number; maxValue: number } | null>(null)
 
   const { data: candles } = useSWR(
     `/api/volume/candles?interval=${interval}&source=${source}`,
+    fetcher,
+    { refreshInterval: 1_800_000 }
+  )
+  // Combined totals drive the shared scale regardless of the selected source.
+  const { data: allCandles } = useSWR(
+    `/api/volume/candles?interval=${interval}&source=both`,
     fetcher,
     { refreshInterval: 1_800_000 }
   )
@@ -431,26 +455,33 @@ function VolumeChart({
       crosshair: { vertLine: { labelVisible: false } },
     })
 
+    const fixedRange = () => {
+      const r = fixedRangeRef.current
+      return r ? { priceRange: { minValue: r.minValue, maxValue: r.maxValue } } : null
+    }
+
     const wrapSeries = chart.addHistogramSeries({
       color: "#22c55e",
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(4) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       priceScaleId: "right",
       lastValueVisible: false,
       priceLineVisible: false,
+      autoscaleInfoProvider: fixedRange,
     })
 
     const unwrapSeries = chart.addHistogramSeries({
       color: "#ef4444",
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (Math.abs(price) / 1e8).toFixed(4) + " BTC",
+        formatter: (price: number) => Math.round(Math.abs(price) / 1e8).toLocaleString() + " BTC",
       },
       priceScaleId: "right",
       lastValueVisible: false,
       priceLineVisible: false,
+      autoscaleInfoProvider: fixedRange,
     })
 
     chart.subscribeCrosshairMove((param) => {
@@ -521,6 +552,24 @@ function VolumeChart({
       (c: CandleData) => c.bucket.slice(0, 10) > "2025-10-01"
     )
 
+    // Pin the Y-axis to the combined ("All") totals so a single-source view
+    // renders at the same height, revealing its share of the whole.
+    const scaleRows = Array.isArray(allCandles)
+      ? allCandles.filter((c: CandleData) => c.bucket.slice(0, 10) > "2025-10-01")
+      : filtered
+    let maxWrap = 0
+    let maxUnwrap = 0
+    for (const c of scaleRows) {
+      const w = Number(c.wrap_sats)
+      const u = Number(c.unwrap_sats)
+      if (w > maxWrap) maxWrap = w
+      if (u > maxUnwrap) maxUnwrap = u
+    }
+    fixedRangeRef.current =
+      maxWrap === 0 && maxUnwrap === 0
+        ? null
+        : { minValue: -maxUnwrap * SCALE_HEADROOM, maxValue: maxWrap * SCALE_HEADROOM }
+
     // Build lookup for tooltip
     const lookup = new Map<string, CandleData>()
     for (const c of filtered) {
@@ -552,7 +601,7 @@ function VolumeChart({
     wrapRef.current.setData(wrapData)
     unwrapRef.current.setData(unwrapData)
     setDefaultTimeRange(chartRef.current, filtered, variant)
-  }, [candles, variant])
+  }, [candles, allCandles, variant])
 
   return (
     <div
@@ -619,9 +668,18 @@ function CumulativeChart({
   const wrapRef = useRef<ISeriesApi<"Area"> | null>(null)
   const unwrapRef = useRef<ISeriesApi<"Area"> | null>(null)
   const candleLookupRef = useRef<Map<string, CandleData>>(new Map())
+  // Y-axis is pinned to the combined ("All") range so selecting a single source
+  // shows its portion of the whole rather than rescaling to fill the height.
+  const fixedRangeRef = useRef<{ minValue: number; maxValue: number } | null>(null)
 
   const { data: candles } = useSWR(
     `/api/volume/candles?interval=${interval}&cumulative=true&source=${source}`,
+    fetcher,
+    { refreshInterval: 1_800_000 }
+  )
+  // Combined totals drive the shared scale regardless of the selected source.
+  const { data: allCandles } = useSWR(
+    `/api/volume/candles?interval=${interval}&cumulative=true&source=both`,
     fetcher,
     { refreshInterval: 1_800_000 }
   )
@@ -649,6 +707,11 @@ function CumulativeChart({
       crosshair: { vertLine: { labelVisible: false } },
     })
 
+    const fixedRange = () => {
+      const r = fixedRangeRef.current
+      return r ? { priceRange: { minValue: r.minValue, maxValue: r.maxValue } } : null
+    }
+
     const wrapSeries = chart.addAreaSeries({
       lineColor: "#22c55e",
       topColor: "rgba(34, 197, 94, 0.25)",
@@ -656,10 +719,11 @@ function CumulativeChart({
       lineWidth: 2,
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(2) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       lastValueVisible: false,
       priceLineVisible: false,
+      autoscaleInfoProvider: fixedRange,
     })
 
     const unwrapSeries = chart.addAreaSeries({
@@ -669,10 +733,11 @@ function CumulativeChart({
       lineWidth: 2,
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(2) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       lastValueVisible: false,
       priceLineVisible: false,
+      autoscaleInfoProvider: fixedRange,
     })
 
     chart.subscribeCrosshairMove((param) => {
@@ -743,6 +808,21 @@ function CumulativeChart({
       (c: CandleData) => c.bucket.slice(0, 10) > "2025-10-01"
     )
 
+    // Pin the Y-axis to the combined ("All") totals so a single-source view
+    // renders at the same height, revealing its share of the whole.
+    const scaleRows = Array.isArray(allCandles)
+      ? allCandles.filter((c: CandleData) => c.bucket.slice(0, 10) > "2025-10-01")
+      : filtered
+    let maxVal = 0
+    for (const c of scaleRows) {
+      const w = Number(c.wrap_sats)
+      const u = Number(c.unwrap_sats)
+      if (w > maxVal) maxVal = w
+      if (u > maxVal) maxVal = u
+    }
+    fixedRangeRef.current =
+      maxVal === 0 ? null : { minValue: 0, maxValue: maxVal * SCALE_HEADROOM }
+
     // Build lookup for tooltip
     const lookup = new Map<string, CandleData>()
     for (const c of filtered) {
@@ -772,7 +852,7 @@ function CumulativeChart({
     wrapRef.current.setData(wrapData)
     unwrapRef.current.setData(unwrapData)
     setDefaultTimeRange(chartRef.current, filtered, variant)
-  }, [candles, variant])
+  }, [candles, allCandles, variant])
 
   return (
     <div
@@ -913,11 +993,18 @@ export function VolumeChartPanel({
               variant={variant}
             />
           </div>
-          {chartType === "volume" ? (
-            <VolumeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} variant={variant} />
-          ) : (
-            <CumulativeChart key={`${period}-${source}`} period={period} interval={period === "7d" ? "1w" : "1d"} source={source} variant={variant} />
-          )}
+          {/* "7d" uses weekly buckets; "24h" and "all" both use the daily chart
+              (there is no dedicated "all" chart — the daily chart is already
+              anchored to the full period, Oct 2 2025 onward). Keying on interval
+              avoids a needless remount when toggling 24H ↔ All. */}
+          {(() => {
+            const interval = period === "7d" ? "1w" : "1d"
+            return chartType === "volume" ? (
+              <VolumeChart key={`${interval}-${source}`} period={period} interval={interval} source={source} variant={variant} />
+            ) : (
+              <CumulativeChart key={`${interval}-${source}`} period={period} interval={interval} source={source} variant={variant} />
+            )
+          })()}
         </div>
       </div>
     </div>

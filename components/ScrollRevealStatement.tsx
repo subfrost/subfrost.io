@@ -6,9 +6,17 @@ function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value))
 }
 
-export default function ScrollRevealStatement({ text }: { text: string }) {
+export default function ScrollRevealStatement({
+  text,
+  breakAfterLg,
+}: {
+  text: string
+  /** Word indices after which to force a line break at the `lg` breakpoint (and up). */
+  breakAfterLg?: number[]
+}) {
   const rootRef = useRef<HTMLParagraphElement | null>(null)
   const words = useMemo(() => text.trim().split(/\s+/), [text])
+  const lgBreaks = useMemo(() => new Set(breakAfterLg ?? []), [breakAfterLg])
 
   useEffect(() => {
     const root = rootRef.current
@@ -63,13 +71,16 @@ export default function ScrollRevealStatement({ text }: { text: string }) {
   return (
     <p
       ref={rootRef}
-      className="scroll-reveal-statement max-w-[920px] text-balance font-display text-[25px] font-normal leading-[1.22] sm:text-[42px] lg:text-[54px]"
+      className="scroll-reveal-statement max-w-[920px] text-balance font-display text-[25px] font-normal leading-[1.22] sm:text-[42px] lg:text-[54px] lg:[text-wrap:normal]"
       aria-label={text}
     >
       {words.map((word, index) => (
-        <span key={`${word}-${index}`} data-scroll-word className="scroll-reveal-word" aria-hidden="true">
-          <span className="scroll-reveal-word-shadow">{word}</span>
-          <span className="scroll-reveal-word-active">{word}</span>
+        <span key={`${word}-${index}`} className="contents">
+          <span data-scroll-word className="scroll-reveal-word" aria-hidden="true">
+            <span className="scroll-reveal-word-shadow">{word}</span>
+            <span className="scroll-reveal-word-active">{word}</span>
+          </span>
+          {lgBreaks.has(index) ? <br className="hidden lg:block" aria-hidden="true" /> : null}
         </span>
       ))}
     </p>

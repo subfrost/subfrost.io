@@ -1,12 +1,14 @@
 /**
- * Volume data service — fetches wrap/unwrap transaction history from:
+ * Volume data service — fetches wrap/unwrap volume from:
  *   1. Alkanes: Subfrost data API (same source as subfrost-app)
- *   2. BRC20:   Subfrost JSON-RPC via rpc-client (same as landing page metrics)
+ *   2. BRC20:   the dedicated frBTC-on-BRC20-Prog volume indexer
+ *               (lib/frbtc-brc20-volume.ts) — the authoritative on-chain source,
+ *               replacing the old mempool.space signer-address heuristic.
  *
  * Results are cached in-memory with a 15-minute TTL.
  */
 
-import { getAddressTxs, getAddressTxsChain, getBrc20SignerAddress, type AddressTx } from "./rpc-client";
+import { getBrc20VolumeRange } from "./frbtc-brc20-volume";
 
 // Alkanes wrap/unwrap history lives on canon Espo at alkanode. The subfrost.io
 // REST sub-paths return empty data — per flex (alkanes-rs maintainer): all
@@ -16,9 +18,6 @@ const DATA_API = process.env.ALKANODE_DATA_API || "https://oyl.alkanode.com";
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const PAGE_SIZE = 200; // Data API max per request
 const MIN_DATE = new Date("2025-10-01T00:00:00Z");
-const DUST_THRESHOLDS = [546, 330];
-const BRC20_PAGE_DELAY_MS = 200;
-const BRC20_PAGE_MAX_RETRIES = 6;
 
 // ---------- Shared types ----------
 
@@ -28,10 +27,6 @@ interface ClassifiedTx {
   source: "alkanes" | "brc20";
   volume_sats: number;
   block_time: Date;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ---------- Public result types ----------
@@ -133,119 +128,56 @@ async function fetchAllAlkanes(): Promise<ClassifiedTx[]> {
 }
 
 // ============================================================================
-// BRC20 — Esplora address scanning
+// BRC20 (frBTC on BRC20-Prog) — dedicated volume indexer
 // ============================================================================
+//
+// frBTC-on-BRC20-Prog wrap/unwrap volume comes from the dedicated
+// frbtc-brc20-volume-indexer (subvh), read via lib/frbtc-brc20-volume.ts. It is
+// the sibling of the alkanes frBTC indexer — an authoritative on-chain
+// net-BTC-flow model that returns pre-aggregated per-UTC-day wrap/unwrap sats,
+// replacing the old mempool.space signer-address-scanning heuristic.
+//
+// The daily buckets are projected into the shared ClassifiedTx shape — one wrap
+// + one unwrap synthetic record per day, timestamped at the bucket's UTC
+// midnight — so the existing stats/candles aggregation (incl. the per-source
+// alkanes/brc20 split) is unchanged. Day granularity is inherent to the indexer;
+// the 24h/7d windows therefore resolve to whole UTC days on the BRC20 side.
 
-function classifyBrc20Tx(tx: AddressTx, address: string): ClassifiedTx | null {
-  if (!tx.status?.confirmed || !tx.status.block_time) return null;
-
-  const blockTime = new Date(tx.status.block_time * 1000);
-  if (blockTime < MIN_DATE) return null;
-
-  const incoming = tx.vout.some((o) => o.scriptpubkey_address === address);
-  const outgoing = tx.vin.some((i) => i.prevout?.scriptpubkey_address === address);
-  const opReturn = tx.vout.some((o) => o.scriptpubkey_type === "op_return");
-
-  if (incoming && opReturn) {
-    const volume = tx.vout
-      .filter((o) => o.scriptpubkey_address === address && !DUST_THRESHOLDS.includes(o.value))
-      .reduce((sum, o) => sum + o.value, 0);
-    if (volume === 0) return null;
-    return { txid: tx.txid, direction: "wrap", source: "brc20", volume_sats: volume, block_time: blockTime };
+async function fetchAllBrc20(): Promise<ClassifiedTx[]> {
+  const range = await getBrc20VolumeRange();
+  if (!range) {
+    console.log("[volume-data] BRC20: indexer unset/unreachable — 0 records");
+    return [];
   }
 
-  if (outgoing && !opReturn) {
-    const volume = tx.vout
-      .filter((o) => o.scriptpubkey_address !== address && o.scriptpubkey_address)
-      .reduce((sum, o) => sum + o.value, 0);
-    if (volume === 0) return null;
-    return { txid: tx.txid, direction: "unwrap", source: "brc20", volume_sats: volume, block_time: blockTime };
-  }
-
-  return null;
-}
-
-async function fetchAllBrc20(knownTxids?: Set<string>): Promise<ClassifiedTx[]> {
-  const address = getBrc20SignerAddress();
   const results: ClassifiedTx[] = [];
-  let lastSeenTxid: string | undefined;
-  let pageNum = 0;
-  const minDateEpoch = MIN_DATE.getTime() / 1000;
-
-  while (true) {
-    pageNum++;
-    let page: AddressTx[] | null = null;
-
-    for (let attempt = 0; attempt < BRC20_PAGE_MAX_RETRIES; attempt++) {
-      try {
-        page = lastSeenTxid
-          ? await getAddressTxsChain(address, lastSeenTxid)
-          : await getAddressTxs(address);
-        break;
-      } catch (error) {
-        const waitMs = Math.min(10_000, 400 * (2 ** attempt));
-        const isFinalAttempt = attempt === BRC20_PAGE_MAX_RETRIES - 1;
-        console.warn(
-          `[volume-data] BRC20: page ${pageNum} fetch failed (attempt ${attempt + 1}/${BRC20_PAGE_MAX_RETRIES})` +
-            `${isFinalAttempt ? '' : `, retrying in ${waitMs}ms`}`,
-          error
-        );
-
-        if (isFinalAttempt) {
-          console.error(`[volume-data] BRC20: exhausted retries on page ${pageNum}, stopping`);
-          break;
-        }
-
-        await sleep(waitMs);
-      }
+  for (const day of range.daily) {
+    const blockTime = new Date(`${day.date}T00:00:00Z`);
+    if (Number.isNaN(blockTime.getTime())) continue;
+    if (day.wrapped_sats > 0) {
+      results.push({
+        txid: `brc20:wrap:${day.date}`,
+        direction: "wrap",
+        source: "brc20",
+        volume_sats: day.wrapped_sats,
+        block_time: blockTime,
+      });
     }
-
-    if (!page) {
-      break;
-    }
-
-    if (!page || page.length === 0) break;
-
-    let hitKnown = false;
-    let allBeforeMinDate = true;
-    for (const tx of page) {
-      // Incremental mode: stop when we reach a transaction we already have
-      if (knownTxids?.has(tx.txid)) {
-        hitKnown = true;
-        break;
-      }
-      if (tx.status?.block_time && tx.status.block_time >= minDateEpoch) {
-        allBeforeMinDate = false;
-      }
-      const classified = classifyBrc20Tx(tx, address);
-      if (classified) results.push(classified);
-    }
-
-    if (hitKnown) {
-      console.log(`[volume-data] BRC20: caught up at page ${pageNum} (incremental)`);
-      break;
-    }
-
-    // Txs are returned newest-first; if all on this page are before MIN_DATE, stop
-    if (allBeforeMinDate) {
-      console.log(`[volume-data] BRC20: all txs on page ${pageNum} before MIN_DATE, stopping`);
-      break;
-    }
-
-    lastSeenTxid = page[page.length - 1].txid;
-    if (page.length < 25) break;
-
-    // Keep pressure low on mempool.space when scanning deep history.
-    await sleep(BRC20_PAGE_DELAY_MS);
-
-    if (pageNum % 20 === 0) {
-      console.log(`[volume-data] BRC20: fetched ${pageNum} pages, ${results.length} txs so far...`);
+    if (day.unwrapped_sats > 0) {
+      results.push({
+        txid: `brc20:unwrap:${day.date}`,
+        direction: "unwrap",
+        source: "brc20",
+        volume_sats: day.unwrapped_sats,
+        block_time: blockTime,
+      });
     }
   }
 
-  const wraps = results.filter(t => t.direction === "wrap").length;
-  const unwraps = results.filter(t => t.direction === "unwrap").length;
-  console.log(`[volume-data] BRC20: ${wraps} wraps, ${unwraps} unwraps (${pageNum} pages)`);
+  console.log(
+    `[volume-data] BRC20: ${range.daily.length} day-buckets ` +
+      `(${range.totals.wrap_count} wraps / ${range.totals.unwrap_count} unwraps total)`
+  );
   return results;
 }
 
@@ -367,7 +299,6 @@ function aggregateCandles(txs: ClassifiedTx[], interval: string, cumulative: boo
 // ============================================================================
 
 let cachedTxs: ClassifiedTx[] | null = null;
-let cachedTxids: Set<string> = new Set();
 let cacheTimestamp = 0;
 let fetchPromise: Promise<ClassifiedTx[]> | null = null;
 
@@ -379,37 +310,11 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
 
   if (fetchPromise) return fetchPromise;
 
-  const isIncremental = cachedTxs !== null && cachedTxids.size > 0;
-
   fetchPromise = (async () => {
     try {
-      if (isIncremental) {
-        // Incremental refresh — only fetch new transactions since last cache
-        console.log("[volume-data] Incremental refresh...");
-
-        const [alkanesTxs, brc20Txs] = await Promise.all([
-          fetchAllAlkanes(),
-          fetchAllBrc20(cachedTxids),
-        ]);
-
-        // Filter to only truly new transactions
-        const newTxs = [...alkanesTxs, ...brc20Txs].filter(
-          (tx) => !cachedTxids.has(tx.txid)
-        );
-
-        if (newTxs.length > 0) {
-          for (const tx of newTxs) cachedTxids.add(tx.txid);
-          cachedTxs = [...cachedTxs!, ...newTxs];
-          console.log(`[volume-data] Added ${newTxs.length} new transactions (total: ${cachedTxs.length})`);
-        } else {
-          console.log("[volume-data] No new transactions");
-        }
-
-        cacheTimestamp = Date.now();
-        return cachedTxs!;
-      }
-
-      // Full fetch (cold start)
+      // Alkanes = full data-API fetch; BRC20 = one pre-aggregated indexer call.
+      // Both are cheap enough to refresh wholesale, and their id spaces never
+      // collide (alkanes txids vs synthetic `brc20:<dir>:<date>` keys).
       console.log("[volume-data] Fetching Alkanes + BRC20 volume data...");
 
       const [alkanesTxs, brc20Txs] = await Promise.all([
@@ -417,21 +322,18 @@ async function getAllTxs(): Promise<ClassifiedTx[]> {
         fetchAllBrc20(),
       ]);
 
-      const allTxs = [...alkanesTxs, ...brc20Txs];
-
-      // Deduplicate by txid
-      const seen = new Set<string>();
-      const deduped = allTxs.filter((tx) => {
-        if (seen.has(tx.txid)) return false;
-        seen.add(tx.txid);
-        return true;
-      });
-
-      cachedTxs = deduped;
-      cachedTxids = seen;
+      cachedTxs = [...alkanesTxs, ...brc20Txs];
       cacheTimestamp = Date.now();
-      console.log(`[volume-data] Cached ${deduped.length} transactions total`);
-      return deduped;
+      console.log(`[volume-data] Cached ${cachedTxs.length} records total`);
+      return cachedTxs;
+    } catch (error) {
+      // On a refresh failure, keep serving the last good cache rather than
+      // dropping the whole surface to empty.
+      if (cachedTxs) {
+        console.warn("[volume-data] refresh failed, serving stale cache", error);
+        return cachedTxs;
+      }
+      throw error;
     } finally {
       fetchPromise = null;
     }

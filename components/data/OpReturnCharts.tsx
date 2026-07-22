@@ -88,7 +88,10 @@ const SLICE_OTHER = "#4a4a52"
 // Same hue family as ACCENT (Alkanes), a lighter tint — signals the nesting on the composition
 // donut: Alkanes and Other Runes are both Runestones; the grey Other sits outside runestones.
 const RUNES_TINT = "#a7ddca"
-const HAIRLINE = "var(--ed-hairline, #22304a)"
+// Match the metric cards (BTC locked / DIESEL holders) grey outline — --ed-hair
+// is the defined hairline token (#d8e2ee light / #262626 dark); --ed-hairline was
+// never defined and fell back to a near-invisible dark navy.
+const HAIRLINE = "var(--ed-hair, #d8e2ee)"
 
 /** Replaces every {token} in `template` with values[token]; missing/null values render "—". */
 function fill(template: string, values: Record<string, string | number | null | undefined>): string {
@@ -151,9 +154,9 @@ function Card({ title, children, desc, share, anchorId, shareLink, chartUrl }: {
       <div className="flex items-start justify-between gap-3">
         <div className="text-sm" style={{ color: "var(--ed-muted)" }}>{title}</div>
         {share ? (
-          <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} chartUrl={chartUrl} embedAlt={share.alt} text={share.text} locale={share.locale} align="end" />
+          <ShareMenu url={share.cardUrl} imageUrl={share.cardUrl} chartUrl={chartUrl} embedAlt={share.alt} text={share.text} locale={share.locale} variant="icon" align="end" />
         ) : shareLink && anchorId ? (
-          <ShareMenu url={`https://subfrost.io/metrics#${anchorId}`} chartUrl={chartUrl} text={shareLink.text} locale={shareLink.locale} align="end" />
+          <ShareMenu url={`https://subfrost.io/metrics#${anchorId}`} chartUrl={chartUrl} text={shareLink.text} locale={shareLink.locale} variant="icon" align="end" />
         ) : null}
       </div>
       {children}
