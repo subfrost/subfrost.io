@@ -638,65 +638,92 @@ gh pr create --repo subfrost/subfrost.io --base main --head feat/eco-profile-sta
 
 The real gate is the **Build / Docker Build Test / Lint & Type Check / Test** jobs. The four `netlify/subfrost-prod` checks fail on every recent PR — pre-existing, not a gate.
 
-- [ ] **Step 3: Apply the DDL in production BEFORE the image rolls**
+- [ ] **Step 3: Apply the DDL AND the flag flip in production BEFORE merging**
 
-The new image `SELECT`s `showMarketStats`; the old one does not. Adding the column first is safe for both. Doing it after the rollout means every `/ecosystem` read throws until the DDL lands.
+> **Corrected after the final whole-branch review.** The original plan put the DDL before the rollout
+> and the flag flip after it. Both were wrong in a way that matters, and the CI pipeline does not
+> save you:
+>
+> **The pipeline's own ordering is backwards.** In `.github/workflows/deploy.yml` the `migrate` job
+> declares `needs: deploy`, and `deploy` is what runs `gcloud run deploy`. So on the automated path
+> the new image serves Cloud Run traffic *before* `prisma db push` adds the column. Both public read
+> paths enumerate every column (`lib/ecosystem/public.ts` uses `findMany`/`findFirst` with no
+> `select`) and `getEcosystemProfile` has no `.catch`, so a missing column 500s `/ecosystem`, every
+> `/ecosystem/<slug>`, their `generateMetadata`, and `/admin/ecosystem` for the whole window.
+> **This manual step is the only thing preventing that.** GKE is safe by construction, because
+> `bump-flux-tag` needs `[deploy, migrate]` — Cloud Run is the exposed one.
+>
+> **The flag flip belongs here too.** If it runs after the rollout, `diesel`, `fire`, `frbtc` and
+> `arbuz` all sit at `showMarketStats = false` in between and render **no stat hero at all** — a
+> visible regression on the four highest-traffic profiles for as long as it takes to get back to a
+> shell. Setting it early is completely invisible to the running site, because the old image never
+> selects the column. Doing both here makes the change atomic from a visitor's point of view.
 
-```bash
-POD=$(bash "C:/Alkanes Geral Dev/.ioenv-extracted/kubectl-io.sh" -n subfrost get pods -l app=subfrost-io -o name | head -1 | sed 's|pod/||')
-```
-
-Then exec this in the `app` container (base64-wrapped, per the established in-pod pattern):
+Run both statements in one in-pod script, before the merge:
 
 ```js
 const {PrismaClient} = require('@prisma/client');
 const p = new PrismaClient();
 p.$executeRawUnsafe('ALTER TABLE "EcosystemProject" ADD COLUMN IF NOT EXISTS "showMarketStats" BOOLEAN NOT NULL DEFAULT false')
-  .then(() => { console.log('column ok'); process.exit(0); })
+  .then(() => p.ecosystemProject.updateMany({ where: { slug: { in: ['diesel','fire','frbtc','arbuz'] } }, data: { showMarketStats: true } }))
+  .then(r => { console.log('column ok, flagged', r.count); process.exit(0); })
   .catch(e => { console.error(e.message); process.exit(1); });
 ```
 
-Table and column names are the **model/field names, case-sensitive, quoted**.
+Expected: `column ok, flagged 4`. Table and column names are the **model/field names, case-sensitive,
+quoted**.
 
 - [ ] **Step 4: Merge and let the deploy run**
 
-Merge the PR. `Deploy to GCP` builds and pushes the image, syncs the schema, and the `bump-flux-tag` job rewrites `k8s/kustomization.yaml` and commits it back to main — **no manual `newTag` bump**. The bump lands as the commit *after* the merge, so Flux may reconcile on the merge commit first; force a reconcile (source, wait for the revision, then kustomization) if you want it immediately.
+Merge the PR. `Deploy to GCP` builds and pushes the image, syncs the schema, and the `bump-flux-tag`
+job rewrites `k8s/kustomization.yaml` and commits it back to main — **no manual `newTag` bump**. The
+bump lands as the commit *after* the merge, so Flux may reconcile on the merge commit first; force a
+reconcile (source, wait for the revision, then kustomization) if you want it immediately.
 
-- [ ] **Step 5: Turn the flag on for the four market tokens**
+- [ ] **Step 5: Verify in production**
 
-In-pod, after the rollout:
-
-```js
-const {PrismaClient} = require('@prisma/client');
-const p = new PrismaClient();
-p.ecosystemProject.updateMany({ where: { slug: { in: ['diesel','fire','frbtc','arbuz'] } }, data: { showMarketStats: true } })
-  .then(r => { console.log('updated', r.count); process.exit(0); })
-  .catch(e => { console.error(e.message); process.exit(1); });
-```
-
-Expected: `updated 4`.
-
-- [ ] **Step 6: Verify the four page shapes in production**
+Check every page shape the branch changes, not a sample. **All eight** projects lose their header
+description, so curl all eight — a profile whose intro is non-prose (image-only or heading-only)
+would leave the Overview bare, and that is the one failure mode the repo cannot rule out:
 
 ```bash
-curl -s "https://subfrost.io/ecosystem/alkane-pandas" | grep -c "stat-label"   # expect 0 — no hero at all
-curl -s "https://subfrost.io/ecosystem/diesel"        | grep -c "stat-label"   # expect >0 — hero intact
-curl -s "https://subfrost.io/ecosystem/wunsch-vault"  | grep -c "stat-label"   # expect 0
-curl -s "https://subfrost.io/ecosystem/inugami"       | grep -c "escrow DIESEL against a message"  # expect 0 in the header
-curl -s "https://subfrost.io/ecosystem/frbtc"         # description still present (frbtc has no Overview)
+for s in acai alka-trade arbuzino aries diesel fire goji inugami; do
+  printf "%-12s desc-gone=%s
+" "$s" "$(curl -s "https://subfrost.io/ecosystem/$s" | grep -c 'ed-body')"
+done
 ```
 
-Also confirm no page anywhere renders `$0.0000`:
+Then the stat-hero shapes:
+
+```bash
+curl -s "https://subfrost.io/ecosystem/alkane-pandas" | grep -c "stat-label"   # expect 0 — no hero
+curl -s "https://subfrost.io/ecosystem/wunsch-vault"  | grep -c "stat-label"   # expect 0
+curl -s "https://subfrost.io/ecosystem/diesel"        | grep -c "stat-label"   # expect >0
+curl -s "https://subfrost.io/ecosystem/frbtc"         | grep -c "stat-label"   # expect >0
+```
+
+And confirm `$0.0000` is gone everywhere:
 
 ```bash
 for s in alkane-pandas acai goji arbuz wunsch-vault diesel fire frbtc; do
-  printf "%-14s %s\n" "$s" "$(curl -s "https://subfrost.io/ecosystem/$s" | grep -c '\$0\.0000')"
+  printf "%-14s %s
+" "$s" "$(curl -s "https://subfrost.io/ecosystem/$s" | grep -c '\$0\.0000')"
 done
 ```
 
 Expected: `0` for every slug.
 
----
+- [ ] **Step 6: Show Gabe `acai` and `goji`**
+
+Those two take both changes at once — they lose the header paragraph *and* the stat hero — the largest
+visual delta the branch produces. The judgement looks right (both report holders of exactly 1350 with
+supplies 9677/9657, `priceUsd 0`, and no ESPO pool: the shape of a free-mint collection, not a traded
+token), but nobody has confirmed it. Fully reversible from `/admin/ecosystem` with no deploy.
+
+> **Note on CI:** the **Test** job runs `tests/integration/`, which hits the live
+> `mainnet.subfrost.io` gateway, so it is red on this PR exactly as on main. The real gates are
+> **Lint & Type Check**, **Build** and **Docker Build Test**.
+
 
 ## Self-Review
 
