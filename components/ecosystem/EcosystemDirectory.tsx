@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import type { PublicEcosystemProject } from "@/lib/ecosystem/public"
+import { alkaneExplorerUrl } from "@/lib/ecosystem/constants"
 import { Mark, StatusBadge } from "./visuals"
 
 export interface DirectoryCopy {
@@ -39,8 +40,8 @@ function AlkaneBadge({ p }: { p: PublicEcosystemProject }) {
   if (!p.alkaneId) return null
   return (
     <a
-      href={`https://ordiscan.com/alkane/${encodeURIComponent(p.name)}/${p.alkaneId}`}
-      target="_blank" rel="noopener noreferrer" aria-label={`${p.name} on Ordiscan`}
+      href={alkaneExplorerUrl(p.alkaneId)}
+      target="_blank" rel="noopener noreferrer" aria-label={`${p.name} on the SUBFROST explorer`}
       className="relative z-10 inline-flex w-fit items-center gap-1 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-0.5 font-mono text-[11px] text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)]"
     >
       {p.alkaneId} ↗
