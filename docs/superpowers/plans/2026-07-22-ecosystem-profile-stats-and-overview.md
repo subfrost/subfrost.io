@@ -389,18 +389,32 @@ git commit -m "feat(ecosystem): showMarketStats gates generic holders/supply/pri
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `tests/ecosystem/actions.test.ts` (follow the file's existing mocking style for `prisma` and the auth gate — copy the arrangement from the nearest `saveEcosystemProject` test):
+First add the field to the shared fixture. In `tests/ecosystem/actions.test.ts`, inside `const validInput = { ... }` (around line 33), add next to `inMosaic: false,`:
 
 ```ts
-it("persists showMarketStats", async () => {
-  // Arrange exactly like the neighbouring saveEcosystemProject test in this file.
-  await saveEcosystemProject({
-    ...baseInput,          // the fixture the sibling test uses
-    showMarketStats: true,
+  showMarketStats: false,
+```
+
+This is required: Step 3 adds `showMarketStats` as a **required** field on the action's input type, and several existing tests call `saveEcosystemProject(validInput)` without a cast. Adding it to the fixture once fixes every spread.
+
+Then append this test to the `describe("saveEcosystemProject", ...)` block. It mirrors the existing `inMosaic` test at line ~123 exactly:
+
+```ts
+  it("persists showMarketStats", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "s1" } as never)
+    await saveEcosystemProject({ ...validInput, showMarketStats: true })
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.showMarketStats).toBe(true)
   })
-  const written = prismaMock.ecosystemProject.update.mock.calls[0][0].data
-  expect(written.showMarketStats).toBe(true)
-})
+
+  it("defaults showMarketStats to false — a new project is not a market until someone says so", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "s2" } as never)
+    await saveEcosystemProject(validInput)
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.showMarketStats).toBe(false)
+  })
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -413,13 +427,15 @@ Expected: FAIL — `showMarketStats` is not in the input type (tsc/vitest error)
 
 - [ ] **Step 3: Thread it through the action**
 
-In `actions/ecosystem/projects.ts`, add to the input interface next to `featured: boolean`:
+In `actions/ecosystem/projects.ts`, add to the input interface (around line 40) next to `inMosaic: boolean`:
 
 ```ts
   showMarketStats: boolean
 ```
 
-and add to the write payload next to `featured: input.featured,`:
+Required, not optional — matching `featured` and `inMosaic`. An optional field written as `input.showMarketStats ?? false` would silently clear an enabled flag on any save that omitted it.
+
+Add to the `data` object (around line 106) next to `inMosaic: input.inMosaic,`:
 
 ```ts
     showMarketStats: input.showMarketStats,
