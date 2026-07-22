@@ -105,6 +105,7 @@ describe("EcosystemAdmin — hero mosaic toggle", () => {
       category: "Social", status: "Live", kind: "App", alkaneId: null,
       url: "https://surtur.io", xUrl: null, docsUrl: null,
       descriptionEn: "d", descriptionZh: "", featured: false, inMosaic: false,
+      showMarketStats: false,
       sortOrder: 0, published: true, profileEn: "", profileZh: "",
       contracts: [], createdAt: "", updatedAt: "",
     }

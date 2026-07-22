@@ -41,6 +41,7 @@ const validInput = {
   descriptionZh: "",
   featured: false,
   inMosaic: false,
+  showMarketStats: false,
   sortOrder: 10,
   published: true,
 }
@@ -125,6 +126,22 @@ describe("saveEcosystemProject", () => {
     await saveEcosystemProject({ ...validInput, inMosaic: true })
     const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
     expect(data.inMosaic).toBe(true)
+  })
+
+  it("persists showMarketStats", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "s1" } as never)
+    await saveEcosystemProject({ ...validInput, showMarketStats: true })
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.showMarketStats).toBe(true)
+  })
+
+  it("defaults showMarketStats to false — a new project is not a market until someone says so", async () => {
+    vi.mocked(currentUser).mockResolvedValue(editor as never)
+    vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "s2" } as never)
+    await saveEcosystemProject(validInput)
+    const data = vi.mocked(prisma.ecosystemProject.create).mock.calls[0][0].data
+    expect(data.showMarketStats).toBe(false)
   })
 
   it("persists bannerUrl trimmed and rejects a non-http banner", async () => {
