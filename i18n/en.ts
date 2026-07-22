@@ -142,6 +142,7 @@ const en: Record<string, string> = {
   'footer.bySubzero': 'By Subzero Research Inc.',
   'footer.product': 'Product',
   'footer.launchApp': 'Launch App',
+  'footer.ecosystem': 'Ecosystem',
   'footer.documentation': 'Documentation',
   'footer.blog': 'Articles',
   'footer.apiReference': 'API Reference',

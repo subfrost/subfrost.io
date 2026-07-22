@@ -81,6 +81,15 @@ describe("getEcosystemDirectory", () => {
     expect(projects.find((p) => p.slug === "d")?.inMosaic).toBe(true)
     expect(projects.find((p) => p.slug === "e")?.inMosaic).toBe(false)
   })
+
+  it("maps showMarketStats verbatim", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "f", showMarketStats: true }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.find((p) => p.slug === "f")?.showMarketStats).toBe(true)
+  })
 })
 
 describe("getEcosystemStatsWithDelta", () => {

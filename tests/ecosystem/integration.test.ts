@@ -8,22 +8,25 @@ import { join } from "node:path"
 const root = process.cwd()
 const read = (p: string) => readFileSync(join(root, p), "utf8")
 
-// The Ecosystem page is soft-launched: reachable only via a shared /ecosystem link,
-// with no nav entry or sitemap listing, until the directory content is finalized.
-// These assertions lock in that hidden state so a nav link isn't re-added by accident;
-// when the page goes public, flip them back to `toContain` and restore the links.
-describe("ecosystem soft-launch (nav-hidden)", () => {
+// The Ecosystem page is soft-launched: reachable via a shared /ecosystem link and now
+// linked from both site footers (under "Product"), but still absent from the nav and
+// the sitemap until the directory content is finalized. These assertions lock in that
+// state; when the page goes fully public, flip the nav/sitemap ones back to `toContain`
+// and restore those links too.
+describe("ecosystem soft-launch (footer-linked, nav-hidden)", () => {
   it("sticky nav does not link /ecosystem", () => {
     expect(read("components/StickyNav.tsx")).not.toContain('href="/ecosystem"')
   })
-  it("homepage footer does not link /ecosystem", () => {
-    expect(read("components/Footer.tsx")).not.toContain('href="/ecosystem"')
+  it("homepage footer links /ecosystem", () => {
+    expect(read("components/Footer.tsx")).toContain('href="/ecosystem"')
   })
   it("editorial SiteHeader has no ecosystem nav item", () => {
     expect(read("components/articles/SiteHeader.tsx")).not.toContain('id: "ecosystem"')
   })
-  it("editorial SiteFooter does not link /ecosystem", () => {
-    expect(read("components/articles/SiteFooter.tsx")).not.toContain("/ecosystem")
+  it("editorial SiteFooter links /ecosystem in both locales", () => {
+    const source = read("components/articles/SiteFooter.tsx")
+    expect(source).toContain('"/ecosystem"')
+    expect(source).toContain('"/ecosystem?lang=zh"')
   })
   it("sitemap omits /ecosystem", () => {
     expect(read("app/sitemap.ts")).not.toContain('absoluteUrl("/ecosystem")')

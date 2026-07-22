@@ -12,6 +12,7 @@ export interface PublicEcosystemProject {
   status: string
   kind: string
   alkaneId: string | null
+  showMarketStats: boolean
   url: string
   xUrl: string | null
   docsUrl: string | null
@@ -41,6 +42,7 @@ export async function getEcosystemDirectory(locale: "en" | "zh"): Promise<{
     status: r.status,
     kind: r.kind,
     alkaneId: r.alkaneId,
+    showMarketStats: r.showMarketStats,
     url: r.url,
     xUrl: r.xUrl,
     docsUrl: r.docsUrl,
@@ -81,6 +83,7 @@ export async function getEcosystemProfile(
     status: r.status,
     kind: r.kind,
     alkaneId: r.alkaneId,
+    showMarketStats: r.showMarketStats,
     url: r.url,
     xUrl: r.xUrl,
     docsUrl: r.docsUrl,

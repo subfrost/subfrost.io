@@ -41,6 +41,7 @@ export function SiteFooter() {
               { label: "市场", href: "/#markets" },
               { label: "金库", href: "/#vaults" },
               { label: "数据", href: "/metrics?lang=zh" },
+              { label: "生态系统", href: "/ecosystem?lang=zh" },
             ],
           },
           {
@@ -70,6 +71,7 @@ export function SiteFooter() {
               { label: "Markets", href: "/#markets" },
               { label: "Vaults", href: "/#vaults" },
               { label: "Metrics", href: "/metrics" },
+              { label: "Ecosystem", href: "/ecosystem" },
             ],
           },
           {

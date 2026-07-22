@@ -71,7 +71,7 @@ export default async function EcosystemProjectPage({ params, searchParams }: Pro
       <main className="mx-auto w-full max-w-[880px] px-6 pb-24 pt-10 sm:px-10">
         <EcosystemProfile
           p={p} copy={copy[locale]} backHref={backHref}
-          statHero={<StatHero stats={s?.current ?? null} baseline={s?.baseline ?? null} periodLabel={s?.periodLabel ?? null} mainAlkaneId={p.alkaneId} copy={copy[locale].stats} locale={locale} />}
+          statHero={<StatHero stats={s?.current ?? null} baseline={s?.baseline ?? null} periodLabel={s?.periodLabel ?? null} mainAlkaneId={p.alkaneId} showMarketStats={p.showMarketStats} copy={copy[locale].stats} locale={locale} />}
           priceChart={series ? <PriceChart points={series} copy={copy[locale].chart} locale={locale} /> : null}
         />
       </main>

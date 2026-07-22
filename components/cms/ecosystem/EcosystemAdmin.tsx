@@ -41,6 +41,7 @@ export interface AdminProject {
   descriptionZh: string
   featured: boolean
   inMosaic: boolean
+  showMarketStats: boolean
   sortOrder: number
   published: boolean
   profileEn: string
@@ -72,6 +73,7 @@ function blankProject(): AdminProject {
     descriptionZh: "",
     featured: false,
     inMosaic: false,
+    showMarketStats: false,
     sortOrder: 0,
     published: false,
     profileEn: "",
@@ -303,6 +305,7 @@ function toInput(p: AdminProject): EcosystemProjectInput {
     descriptionZh: p.descriptionZh,
     featured: p.featured,
     inMosaic: p.inMosaic,
+    showMarketStats: p.showMarketStats,
     sortOrder: p.sortOrder,
     published: p.published,
     profileEn: p.profileEn,
@@ -343,6 +346,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
   const [descriptionZh, setDescriptionZh] = useState(initial.descriptionZh)
   const [featured, setFeatured] = useState(initial.featured)
   const [inMosaic, setInMosaic] = useState(initial.inMosaic)
+  const [showMarketStats, setShowMarketStats] = useState(initial.showMarketStats)
   const [sortOrder, setSortOrder] = useState(initial.sortOrder)
   const [published, setPublished] = useState(initial.published)
   const [profileEn, setProfileEn] = useState(initial.profileEn)
@@ -425,6 +429,7 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         descriptionZh,
         featured,
         inMosaic,
+        showMarketStats,
         sortOrder,
         published,
         profileEn,
@@ -651,6 +656,16 @@ function ProjectForm({ initial, isNew, onCancel, onSaved, onError }: {
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <input type="checkbox" checked={inMosaic} onChange={(e) => setInMosaic(e.target.checked)} /> Show in hero mosaic
+        </label>
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+          <input
+            type="checkbox"
+            checked={showMarketStats}
+            disabled={pending}
+            onChange={(e) => setShowMarketStats(e.target.checked)}
+            aria-label="Show market stats"
+          />
+          Show market stats (holders / supply / price)
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> Published

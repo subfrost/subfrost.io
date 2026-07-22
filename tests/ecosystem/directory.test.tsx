@@ -10,12 +10,13 @@ const copy: DirectoryCopy = {
   docs: "Docs",
   tabApps: "Apps",
   tabContracts: "Contracts",
+  comingSoon: "Coming soon",
   statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
 }
 
 const p = (over: Partial<PublicEcosystemProject>): PublicEcosystemProject => ({
   slug: "x", name: "X", logoUrl: null, bannerUrl: null, category: "DeFi", status: "Live",
-  kind: "App", alkaneId: null,
+  kind: "App", alkaneId: null, showMarketStats: false,
   url: "https://x.io", xUrl: null, docsUrl: null, description: "d", featured: false, inMosaic: false, ...over,
 })
 
@@ -58,10 +59,25 @@ describe("EcosystemDirectory", () => {
   })
 })
 
+describe("EcosystemDirectory — alkaneId badge", () => {
+  it("shows the alkaneId badge linking to Ordiscan for a project with an alkaneId", () => {
+    render(<EcosystemDirectory projects={[p({ slug: "diesel", name: "DIESEL", alkaneId: "2:0" })]} featuredBandEnabled={false} copy={copy} />)
+    const badge = screen.getByRole("link", { name: /DIESEL on Ordiscan/ })
+    expect(badge).toHaveAttribute("href", "https://ordiscan.com/alkane/DIESEL/2:0")
+  })
+  it("shows no badge for a project without an alkaneId", () => {
+    render(<EcosystemDirectory projects={[p({ slug: "fm", name: "Free Mint Factory" })]} featuredBandEnabled={false} copy={copy} />)
+    expect(screen.getByText("Free Mint Factory")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /on Ordiscan/ })).toBeNull()
+  })
+})
+
 const withContracts = [
   ...projects,
   p({ slug: "diesel", name: "DIESEL", kind: "Contract", alkaneId: "2:0", category: "DeFi" }),
-  p({ slug: "wunsch", name: "wunsch vault", kind: "Contract", alkaneId: "4:777", category: "DeFi" }),
+  // category differs from every App-kind entry above (DeFi/Wallet/Tooling) so it can prove
+  // category chips are scoped to the active tab's kind (see the test below).
+  p({ slug: "wunsch", name: "wunsch vault", kind: "Contract", alkaneId: "4:777", category: "Launchpad" }),
 ]
 
 describe("EcosystemDirectory — kind tabs", () => {
@@ -70,26 +86,37 @@ describe("EcosystemDirectory — kind tabs", () => {
     expect(screen.getByRole("tab", { name: /Apps/ })).toHaveAttribute("aria-selected", "true")
     expect(screen.queryByText("DIESEL")).toBeNull()
   })
-  it("switches to Contracts and shows the alkaneId badge linking to Ordiscan", () => {
-    render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
-    fireEvent.click(screen.getByRole("tab", { name: /Contracts/ }))
-    expect(screen.getByText("DIESEL")).toBeInTheDocument()
-    expect(screen.queryByText("SUBFROST")).toBeNull()
-    const badge = screen.getByRole("link", { name: /DIESEL on Ordiscan/ })
-    expect(badge).toHaveAttribute("href", "https://ordiscan.com/alkane/DIESEL/2:0")
+  it("category chips are scoped to the active tab's kind", () => {
+    render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />) // Apps is the default tab
+    // Launchpad only exists on the Contract-kind "wunsch" fixture; if cats were derived
+    // from all projects instead of ofKind, it would leak into the Apps chip row.
+    expect(screen.queryByRole("button", { name: /Launchpad/ })).toBeNull()
   })
-  it("scopes category chips to the active tab and resets selection on switch", () => {
+  it("resets the category filter when switching kind and back", () => {
     render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
     fireEvent.click(screen.getByRole("button", { name: /Tooling/ })) // Apps-only category
+    expect(screen.queryByText("Bound")).toBeNull() // filtered out by Tooling
     fireEvent.click(screen.getByRole("tab", { name: /Contracts/ }))
-    expect(screen.queryByRole("button", { name: /Tooling/ })).toBeNull() // no Tooling contracts
-    expect(screen.getByText("DIESEL")).toBeInTheDocument() // selection reset to All
+    fireEvent.click(screen.getByRole("tab", { name: /Apps/ }))
+    expect(screen.getByText("Bound")).toBeInTheDocument() // selection reset back to All
   })
-  it("shows no badge for a contract without an alkaneId", () => {
-    render(<EcosystemDirectory projects={[p({ slug: "fm", name: "Free Mint Factory", kind: "Contract" })]} featuredBandEnabled copy={copy} />)
+  it("Apps tab keeps its count; Contracts tab label loses its count", () => {
+    render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
+    const appsTab = screen.getByRole("tab", { name: /Apps/ })
+    const contractsTab = screen.getByRole("tab", { name: /Contracts/ })
+    // withContracts has 4 App-kind entries (projects) + 2 Contract-kind entries (diesel, wunsch).
+    expect(appsTab.textContent).toBe(copy.tabApps + "4")
+    expect(contractsTab.textContent).toBe(copy.tabContracts)
+  })
+  it("switching to Contracts shows only the Coming soon placeholder — no chips or cards", () => {
+    render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
     fireEvent.click(screen.getByRole("tab", { name: /Contracts/ }))
-    expect(screen.getByText("Free Mint Factory")).toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: /on Ordiscan/ })).toBeNull()
+    expect(screen.getByRole("tab", { name: /Contracts/ })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByText(copy.comingSoon)).toBeInTheDocument()
+    expect(screen.queryByText("DIESEL")).toBeNull()
+    expect(screen.queryByText("SUBFROST")).toBeNull()
+    expect(screen.queryByRole("group")).toBeNull() // category chip row gone
+    expect(screen.queryByRole("button", { name: /All/ })).toBeNull()
   })
 })
 

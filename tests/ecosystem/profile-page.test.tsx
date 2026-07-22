@@ -13,7 +13,7 @@ const copy: ProfileCopy = {
 
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({
   slug: "arbuzino", name: "Arbuzino", logoUrl: null, bannerUrl: null, category: "Gaming", status: "Live",
-  kind: "App", alkaneId: "2:25349", url: "https://arbuzino.com", xUrl: "https://x.com/arbuzino",
+  kind: "App", alkaneId: "2:25349", showMarketStats: true, url: "https://arbuzino.com", xUrl: "https://x.com/arbuzino",
   docsUrl: null, description: "Casino-themed on-chain games.", featured: false, inMosaic: false,
   profile: "## Products\n\nFully on-chain lottery paid in **DIESEL**.",
   // ids distintos do alkaneId principal (2:25349) — evita getByRole ambíguo
@@ -106,6 +106,48 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
       />,
     )
     expect(screen.getByTestId("price-chart-slot")).toBeInTheDocument()
+  })
+})
+
+describe("EcosystemProfile — description vs. Overview dedup", () => {
+  it("omits the header description when the profile opens with an Overview", () => {
+    // Inugami in production: the short description and the Overview intro say the same thing,
+    // a few hundred pixels apart.
+    render(
+      <EcosystemProfile
+        p={profile({
+          description: "A coinbase message bounty: users escrow DIESEL against a message.",
+          profile: "Inugami turns the Bitcoin coinbase into a message board with a price on it.\n\n## Functions\n\nDetails.",
+        })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.queryByText(/users escrow DIESEL against a message/)).not.toBeInTheDocument()
+    expect(screen.getByText(/message board with a price on it/)).toBeInTheDocument()
+  })
+
+  it("keeps the header description when there is no profile markdown", () => {
+    render(
+      <EcosystemProfile
+        p={profile({ description: "Bitcoin NFT collection deployed on Alkanes.", profile: "" })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.getByText("Bitcoin NFT collection deployed on Alkanes.")).toBeInTheDocument()
+  })
+
+  it("keeps the header description when the profile starts straight at an H2", () => {
+    // No intro means no Overview tab, so the description is the only prose on the page.
+    render(
+      <EcosystemProfile
+        p={profile({ description: "Free mint factory.", profile: "## Functions\n\nDetails." })}
+        copy={copy}
+        backHref="/ecosystem"
+      />
+    )
+    expect(screen.getByText("Free mint factory.")).toBeInTheDocument()
   })
 })
 
