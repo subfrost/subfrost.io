@@ -62,6 +62,24 @@ export function isValidAlkaneId(v: string): boolean {
 }
 
 /**
+ * Canonical outbound link for an alkane id. Points at the SUBFROST explorer, which carries
+ * the source-verification verdict, the BuildInfo behind it and the contract browser. The
+ * directory used to link to Ordiscan, which has none of that (flex, 2026-07-22: "just make
+ * it link to explorer.subfrost.io").
+ *
+ * Lives here, not inline, because the badge is rendered from two components (grid card and
+ * profile header) and a URL duplicated across files is exactly how the sync script ended up
+ * with two copies of its column list, one of them stale for 13 days.
+ *
+ * The id is interpolated raw rather than percent-encoded: isValidAlkaneId pins it to
+ * `\d+:\d+`, so there is nothing to escape, and the explorer's own canonical URLs keep the
+ * colon unescaped (/alkane/2:0).
+ */
+export function alkaneExplorerUrl(alkaneId: string): string {
+  return `https://explorer.subfrost.io/alkane/${alkaneId}`
+}
+
+/**
  * SUBFROST's own products (not third-party). The directory-wide "SUBFROST did not build / does
  * not control / has not audited these projects" notice is self-contradictory on their profiles,
  * so it is suppressed there. The directory-level notice still frames the directory as a whole.

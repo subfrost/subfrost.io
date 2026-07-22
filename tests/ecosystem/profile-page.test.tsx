@@ -37,11 +37,11 @@ describe("EcosystemProfile", () => {
     expect(screen.getByText("DIESEL")).toBeInTheDocument() // markdown rendered
   })
 
-  it("external links: website, X, main alkane badge to ordiscan", () => {
+  it("external links: website, X, main alkane badge to the SUBFROST explorer", () => {
     render(<EcosystemProfile p={profile({})} copy={copy} backHref="/ecosystem" />)
     expect(screen.getByRole("link", { name: /Website/ })).toHaveAttribute("href", "https://arbuzino.com")
-    expect(screen.getByRole("link", { name: "2:25349 ↗" })).toHaveAttribute(
-      "href", "https://ordiscan.com/alkane/Arbuzino/2:25349")
+    expect(screen.getByRole("link", { name: /Arbuzino on the SUBFROST explorer/ })).toHaveAttribute(
+      "href", "https://explorer.subfrost.io/alkane/2:25349")
   })
 
   it("renders contracts table with espo.sh links", () => {

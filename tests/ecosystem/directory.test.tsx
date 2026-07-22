@@ -60,15 +60,20 @@ describe("EcosystemDirectory", () => {
 })
 
 describe("EcosystemDirectory — alkaneId badge", () => {
-  it("shows the alkaneId badge linking to Ordiscan for a project with an alkaneId", () => {
+  it("shows the alkaneId badge linking to the SUBFROST explorer for a project with an alkaneId", () => {
     render(<EcosystemDirectory projects={[p({ slug: "diesel", name: "DIESEL", alkaneId: "2:0" })]} featuredBandEnabled={false} copy={copy} />)
-    const badge = screen.getByRole("link", { name: /DIESEL on Ordiscan/ })
-    expect(badge).toHaveAttribute("href", "https://ordiscan.com/alkane/DIESEL/2:0")
+    const badge = screen.getByRole("link", { name: /DIESEL on the SUBFROST explorer/ })
+    // Colon unescaped: the explorer's own canonical URL is /alkane/2:0, and a
+    // percent-encoded id would be a different (uglier) link to the same page.
+    expect(badge).toHaveAttribute("href", "https://explorer.subfrost.io/alkane/2:0")
   })
   it("shows no badge for a project without an alkaneId", () => {
     render(<EcosystemDirectory projects={[p({ slug: "fm", name: "Free Mint Factory" })]} featuredBandEnabled={false} copy={copy} />)
     expect(screen.getByText("Free Mint Factory")).toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: /on Ordiscan/ })).toBeNull()
+    // Matched on the explorer href, not on the accessible name: keying this to the
+    // badge's label is what made it vacuous when the label changed, since a query
+    // for a name nothing renders passes whether or not the badge is there.
+    expect(document.querySelector('a[href^="https://explorer.subfrost.io/alkane/"]')).toBeNull()
   })
 })
 
@@ -137,7 +142,7 @@ describe("EcosystemDirectory — internal profile links", () => {
 
   // The stretched-link overlay sits at z-0; anything raised above it (z-10)
   // swallows clicks. Only elements that actually contain interactive targets
-  // (Website/X/docs anchors, the Ordiscan badge) may be raised — the title,
+  // (Website/X/docs anchors, the alkane id badge) may be raised — the title,
   // logo, description and category/status rows must stay below the overlay so
   // clicking them navigates to the profile.
   it("only interactive card content is raised above the stretched-link overlay", () => {

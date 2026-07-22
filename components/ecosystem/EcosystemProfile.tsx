@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { Markdown } from "@/lib/cms/markdown"
 import { Mark, StatusBadge } from "@/components/ecosystem/visuals"
 import { EcosystemNotice } from "@/components/ecosystem/EcosystemNotice"
-import { isFirstParty } from "@/lib/ecosystem/constants"
+import { alkaneExplorerUrl, isFirstParty } from "@/lib/ecosystem/constants"
 import { splitProfileSections } from "@/lib/ecosystem/profile-sections"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
 import type { StatHeroCopy } from "./StatHero"
@@ -60,8 +60,9 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
             <StatusBadge status={p.status} label={copy.statuses[p.status] ?? p.status} />
             {p.alkaneId ? (
               <a
-                href={`https://ordiscan.com/alkane/${encodeURIComponent(p.name)}/${p.alkaneId}`}
+                href={alkaneExplorerUrl(p.alkaneId)}
                 target="_blank" rel="noopener noreferrer"
+                aria-label={`${p.name} on the SUBFROST explorer`}
                 className="inline-flex items-center gap-1 rounded-[6px] border border-[color:var(--ed-hair)] bg-[color:var(--ed-surface)] px-2 py-0.5 font-mono text-[11px] text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)]"
               >
                 {p.alkaneId} ↗
