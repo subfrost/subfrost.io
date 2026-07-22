@@ -124,6 +124,7 @@ export const PRIVILEGES: PrivilegeDef[] = [
   // --- System ---
   { code: "system.view", label: "Site notice — view", description: "View the site notice / announcement control.", category: "system", implies: [] },
   { code: "system.edit", label: "Site notice — edit", description: "Turn the site notice on/off and edit its title/message.", category: "system", implies: ["system.view"] },
+  { code: "errors.view", label: "App errors — view", description: "View the app.subfrost.io error-report dashboard (proxied from the app backend).", category: "system", implies: [] },
 
   // --- API keys ---
   { code: "apikeys.manage", label: "Manage API keys", description: "Mint and revoke scoped API keys for the article upload API.", category: "apikeys", implies: [] },
@@ -266,4 +267,5 @@ export const VIEW_GATES: Record<string, ViewGate> = {
   "/admin/board/initiatives": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/board/products": { view: "tasks.view", edit: "tasks.edit" },
   "/admin/notice": { view: "system.view", edit: "system.edit" },
+  "/admin/errors": { view: "errors.view" },
 }
