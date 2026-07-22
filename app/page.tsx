@@ -198,7 +198,7 @@ const homeCopy = {
     eyebrow: "Bitcoin-native Layer 0",
     title: "subfrost",
     reveal:
-      "Trade Bitcoin-native assets and track live BTC markets. Deploy liquidity into AMM pools and vaults on Bitcoin.",
+      "Trade Bitcoin-native assets, track live markets, and deploy liquidity into AMM pools and vaults. All on Bitcoin.",
     launch: "Launch App",
     productsHeading: "Built for the Bitcoin operating layer.",
     products: [
@@ -508,17 +508,17 @@ export default async function Page({
         <main className="homepage-shell relative overflow-hidden" style={{ background: "var(--ed-canvas)" }}>
         <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-[66px]">
           <div className="max-w-[980px]">
-            <p className="homepage-cascade-item homepage-cascade-0 font-display text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
-              {copy.eyebrow}
-            </p>
             <h1
-              className="homepage-cascade-item homepage-cascade-1 font-display mt-5 text-balance text-[58px] font-normal leading-[0.98] sm:text-[86px] lg:text-[112px]"
+              className="homepage-cascade-item homepage-cascade-1 font-display text-balance text-[58px] font-normal leading-[0.98] sm:text-[86px] lg:text-[112px]"
               style={{ color: "var(--ed-ink)" }}
             >
               {copy.title}
             </h1>
             <div className="homepage-cascade-item homepage-cascade-2 mt-7">
-              <ScrollRevealStatement text={copy.reveal} />
+              <ScrollRevealStatement
+                text={copy.reveal}
+                breakAfterLg={locale === "en" ? [2, 7, 11] : undefined}
+              />
             </div>
           </div>
 

@@ -12,8 +12,8 @@ type Locale = "en" | "zh"
 
 const copy = {
   en: {
-    title: "SUBFROST protocol data",
-    subtitle: "Live metrics of the SUBFROST protocol on Bitcoin — updated daily, straight from the chain.",
+    title: "Protocol data",
+    subtitle: "Live metrics of subfrost and the Alkanes metaprotocol on Bitcoin L1. Updated daily, straight from the chain.",
     heroLabel: "BTC locked",
     heroSub: "frBTC supply",
     building: "History building since",
@@ -142,7 +142,7 @@ const copy = {
     },
   },
   zh: {
-    title: "SUBFROST 协议数据",
+    title: "协议数据",
     subtitle: "SUBFROST 比特币协议的实时指标——每日更新，直接来自链上。",
     heroLabel: "锁定的 BTC",
     heroSub: "frBTC 供应量",
@@ -275,6 +275,20 @@ const copy = {
 
 const GRID: PublicMetricKey[] = ["diesel-holders", "diesel-price", "diesel-marketcap", "fire-price"]
 
+// Bold brand/protocol names ("subfrost", "Alkanes") inline while keeping the
+// plain string usable for metadata descriptions.
+function highlightSubtitle(text: string) {
+  return text.split(/(subfrost|Alkanes)/gi).map((part, i) =>
+    /^(subfrost|Alkanes)$/i.test(part) ? (
+      <strong key={i} className="font-semibold">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  )
+}
+
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<{ lang?: string }> }): Promise<Metadata> {
   const params = searchParams ? await searchParams : {}
   const locale: Locale = params.lang === "zh" ? "zh" : "en"
@@ -305,10 +319,10 @@ export default async function DataPage({ searchParams }: { searchParams?: Promis
 
   return (
     <EditorialShell>
-      <main className="mx-auto w-full max-w-[1440px] px-6 pb-24 pt-16">
-        <header className="flex flex-col gap-3">
-          <h1 className="text-4xl font-medium" style={{ color: "var(--ed-ink)" }}>{c.title}</h1>
-          <p className="max-w-2xl text-lg" style={{ color: "var(--ed-muted)" }}>{c.subtitle}</p>
+      <main className="mx-auto w-full max-w-[1440px] px-6 pb-24 pt-5 sm:px-8 sm:pt-[33px]">
+        <header className="flex flex-col">
+          <h1 className="font-display text-[38px] font-normal leading-[1.06] sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>{c.title}</h1>
+          <p className="font-display mt-4 max-w-[760px] text-[18px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>{highlightSubtitle(c.subtitle)}</p>
         </header>
 
         <section className="mt-10 grid gap-4 md:grid-cols-2">

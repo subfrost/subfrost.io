@@ -33,6 +33,7 @@ export function ShareMenu({
   text,
   locale = "en",
   align = "start",
+  variant = "button",
   imageUrl,
   chartUrl,
   embedAlt,
@@ -42,6 +43,9 @@ export function ShareMenu({
   text: string
   locale?: "en" | "zh"
   align?: "start" | "end"
+  /** "button" (default) = pill with border + "Share" label. "icon" = bare share
+   *  glyph, no border or label (for compact placements like metric cards). */
+  variant?: "button" | "icon"
   /** When set, enables the image-first card variant. */
   imageUrl?: string
   /** When set, adds a "Copy chart" item (rendered first) that copies this PNG
@@ -121,11 +125,16 @@ export function ShareMenu({
           }}
           aria-haspopup="menu"
           aria-expanded={open}
-          className="font-display inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium outline-none transition-colors hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
-          style={{ borderColor: "var(--ed-hair)", color: "var(--ed-muted)" }}
+          aria-label={variant === "icon" ? t.share : undefined}
+          className={
+            variant === "icon"
+              ? "inline-flex items-center rounded-md p-0.5 outline-none transition-colors hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)]"
+              : "font-display inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium outline-none transition-colors hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)]"
+          }
+          style={variant === "icon" ? { color: "var(--ed-muted)" } : { borderColor: "var(--ed-hair)", color: "var(--ed-muted)" }}
         >
           <Share2 className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-          <span>{t.share}</span>
+          {variant === "icon" ? null : <span>{t.share}</span>}
         </button>
         {open ? (
           <div

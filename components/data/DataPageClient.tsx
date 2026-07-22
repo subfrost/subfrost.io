@@ -52,24 +52,27 @@ export function MetricCard({
 
   return (
     // Compact card (~half the previous height): the charts below are the page's emphasis.
-    <div className="flex flex-col gap-1.5 rounded-xl border p-4" style={{ borderColor: "var(--ed-hairline, #22304a)", background: "var(--ed-card, transparent)" }}>
-      <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--ed-muted)" }}>
-        <span className="flex shrink-0 items-center">
-          {METRIC_ICONS[metric].map((src, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={src}
-              src={src}
-              alt=""
-              width={18}
-              height={18}
-              loading="lazy"
-              decoding="async"
-              className={`h-[18px] w-[18px] rounded-full object-cover ${i > 0 ? "-ml-1.5" : ""}`}
-            />
-          ))}
-        </span>
-        {label}
+    <div className="flex flex-col gap-1.5 rounded-xl border p-4" style={{ borderColor: "var(--ed-hair)", background: "var(--ed-card, transparent)" }}>
+      <div className="flex items-center justify-between gap-2 text-[13px]" style={{ color: "var(--ed-muted)" }}>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex shrink-0 items-center">
+            {METRIC_ICONS[metric].map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={src}
+                src={src}
+                alt=""
+                width={18}
+                height={18}
+                loading="lazy"
+                decoding="async"
+                className={`h-[18px] w-[18px] rounded-full object-cover ${i > 0 ? "-ml-1.5" : ""}`}
+              />
+            ))}
+          </span>
+          {label}
+        </div>
+        <ShareMenu url={cardUrl} imageUrl={cardUrl} embedAlt={label} text={shareText} locale={locale} variant="icon" align="end" />
       </div>
       <div className="text-[22px] font-medium leading-tight" style={{ color: "var(--ed-ink)" }}>{formatMetricValue(metric, value)}</div>
       {deltaPct !== null ? (
@@ -89,9 +92,6 @@ export function MetricCard({
           </ResponsiveContainer>
         </div>
       ) : null}
-      <div className="mt-auto pt-0.5">
-        <ShareMenu url={cardUrl} imageUrl={cardUrl} embedAlt={label} text={shareText} locale={locale} />
-      </div>
     </div>
   )
 }
