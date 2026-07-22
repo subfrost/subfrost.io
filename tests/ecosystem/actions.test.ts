@@ -136,7 +136,7 @@ describe("saveEcosystemProject", () => {
     expect(data.showMarketStats).toBe(true)
   })
 
-  it("defaults showMarketStats to false — a new project is not a market until someone says so", async () => {
+  it("persists showMarketStats false verbatim", async () => {
     vi.mocked(currentUser).mockResolvedValue(editor as never)
     vi.mocked(prisma.ecosystemProject.create).mockResolvedValue({ id: "s2" } as never)
     await saveEcosystemProject(validInput)

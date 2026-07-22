@@ -61,6 +61,12 @@ describe("getEcosystemProfile", () => {
     expect(p?.contracts.map((c) => c.label)).toContain("Fireball")
     expect(p?.contracts.map((c) => c.alkaneId)).toContain("4:257")
   })
+
+  it("maps showMarketStats verbatim", async () => {
+    vi.mocked(prisma.ecosystemProject.findFirst).mockResolvedValueOnce(row({ showMarketStats: true }) as never)
+    const p = await getEcosystemProfile("arbuzino", "en")
+    expect(p?.showMarketStats).toBe(true)
+  })
 })
 
 describe("getLatestEcosystemStats", () => {

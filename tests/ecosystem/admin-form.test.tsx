@@ -98,6 +98,20 @@ describe("EcosystemAdmin — hero mosaic toggle", () => {
     expect(vi.mocked(saveEcosystemProject).mock.calls[0][0]).toMatchObject({ inMosaic: true })
   })
 
+  it("submits showMarketStats when the form checkbox is ticked", async () => {
+    vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "e1" })
+    const { getByText, getByLabelText } = render(
+      <EcosystemAdmin projects={[]} featuredBandEnabled={false} canEdit />,
+    )
+    fireEvent.click(getByText("New project"))
+    fireEvent.change(getByLabelText("Name"), { target: { value: "Pizza.fun" } })
+    fireEvent.change(getByLabelText("Website URL"), { target: { value: "https://pizza.fun" } })
+    fireEvent.click(getByLabelText("Show market stats"))
+    fireEvent.click(getByText("Create project"))
+    await waitFor(() => expect(saveEcosystemProject).toHaveBeenCalled())
+    expect(vi.mocked(saveEcosystemProject).mock.calls[0][0]).toMatchObject({ showMarketStats: true })
+  })
+
   it("per-row toggle saves inMosaic for an existing project", async () => {
     vi.mocked(saveEcosystemProject).mockResolvedValue({ ok: true, id: "p1" })
     const proj = {

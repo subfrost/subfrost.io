@@ -111,6 +111,37 @@ describe("StatHero", () => {
     )
     expect(screen.getByText("Holders")).toBeInTheDocument()
   })
+
+  it("formats the price card with 4 decimals under $1 and 2 decimals at/above $1", () => {
+    const { unmount } = render(
+      <StatHero
+        stats={{
+          generic: { "2:25349": { name: "ARBUZ", symbol: "ARBUZ", holders: 0, supply: "0", priceUsd: 0.0102, marketcapUsd: null, volume24hUsd: null } },
+          custom: [],
+        }}
+        mainAlkaneId="2:25349"
+        showMarketStats
+        copy={copy}
+        locale="en"
+      />
+    )
+    expect(screen.getByText("$0.0102")).toBeInTheDocument()
+    unmount()
+
+    render(
+      <StatHero
+        stats={{
+          generic: { "2:25349": { name: "ARBUZ", symbol: "ARBUZ", holders: 0, supply: "0", priceUsd: 51.139, marketcapUsd: null, volume24hUsd: null } },
+          custom: [],
+        }}
+        mainAlkaneId="2:25349"
+        showMarketStats
+        copy={copy}
+        locale="en"
+      />
+    )
+    expect(screen.getByText("$51.14")).toBeInTheDocument()
+  })
 })
 
 describe("StatHero — trend deltas", () => {
