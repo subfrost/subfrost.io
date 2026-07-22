@@ -45,13 +45,20 @@ describe("revenueOverviewAction — BTC source selection", () => {
   })
 
   it("uses the on-chain indexer when it returns data (btcSource=indexer + tip)", async () => {
-    vi.mocked(getFrbtcVolumeRange).mockResolvedValue({
-      daily: [
-        { date: "2026-06-01", wrapped_sats: 100_000, unwrapped_sats: 50_000, wrap_count: 2, unwrap_count: 1 },
-        { date: "2026-06-02", wrapped_sats: 0, unwrapped_sats: 0, wrap_count: 0, unwrap_count: 0 },
-      ],
-      totals: { wrapped_sats: 100_000, unwrapped_sats: 50_000, volume_sats: 150_000, fee_revenue_sats: 450 },
-    } as never)
+    // Alkanes venue returns data; BRC20-Prog venue is unwired (null) so the
+    // headline reflects alkanes alone here (the cumulative case is its own test).
+    vi.mocked(getFrbtcVolumeRange).mockImplementation(((_f: string, _t: string, source?: string) =>
+      Promise.resolve(
+        source === "brc20"
+          ? null
+          : {
+              daily: [
+                { date: "2026-06-01", wrapped_sats: 100_000, unwrapped_sats: 50_000, wrap_count: 2, unwrap_count: 1 },
+                { date: "2026-06-02", wrapped_sats: 0, unwrapped_sats: 0, wrap_count: 0, unwrap_count: 0 },
+              ],
+              totals: { wrapped_sats: 100_000, unwrapped_sats: 50_000, volume_sats: 150_000, fee_revenue_sats: 450 },
+            },
+      )) as never)
     vi.mocked(getFrbtcVolumeTip).mockResolvedValue({ tip: 901_234 } as never)
 
     const r = await revenueOverviewAction()
@@ -103,10 +110,16 @@ describe("revenueOverviewAction — BTC source selection", () => {
   })
 
   it("still reports the indexer source when the tip call fails (tip=null)", async () => {
-    vi.mocked(getFrbtcVolumeRange).mockResolvedValue({
-      daily: [{ date: "2026-06-01", wrapped_sats: 10_000, unwrapped_sats: 0, wrap_count: 1, unwrap_count: 0 }],
-      totals: { wrapped_sats: 10_000, unwrapped_sats: 0, volume_sats: 10_000, fee_revenue_sats: 30 },
-    } as never)
+    // Alkanes only (BRC20-Prog unwired) so btcNote has no venue suffix.
+    vi.mocked(getFrbtcVolumeRange).mockImplementation(((_f: string, _t: string, source?: string) =>
+      Promise.resolve(
+        source === "brc20"
+          ? null
+          : {
+              daily: [{ date: "2026-06-01", wrapped_sats: 10_000, unwrapped_sats: 0, wrap_count: 1, unwrap_count: 0 }],
+              totals: { wrapped_sats: 10_000, unwrapped_sats: 0, volume_sats: 10_000, fee_revenue_sats: 30 },
+            },
+      )) as never)
     vi.mocked(getFrbtcVolumeTip).mockRejectedValue(new Error("tip unavailable"))
 
     const r = await revenueOverviewAction()
@@ -115,5 +128,38 @@ describe("revenueOverviewAction — BTC source selection", () => {
     expect(r.overview.btcSource).toBe("indexer")
     expect(r.overview.indexerTip).toBeNull()
     expect(r.overview.btcNote).toBe("on-chain indexer")
+  })
+
+  it("headline BTC fee is cumulative across venues; per-venue series split out", async () => {
+    // Both venues return data (alkanes 150k volume/1 unwrap, BRC20-Prog 90k
+    // volume/0 unwrap). Headline btcFee = alkanes + brc20; the split series carry
+    // each alone, and btcNote flags the BRC20-Prog venue.
+    vi.mocked(getFrbtcVolumeRange).mockImplementation(((_f: string, _t: string, source?: string) =>
+      Promise.resolve(
+        source === "brc20"
+          ? {
+              daily: [{ date: "2026-06-01", wrapped_sats: 60_000, unwrapped_sats: 30_000, wrap_count: 1, unwrap_count: 0 }],
+              totals: { wrapped_sats: 60_000, unwrapped_sats: 30_000, volume_sats: 90_000, fee_revenue_sats: 90 },
+            }
+          : {
+              daily: [{ date: "2026-06-01", wrapped_sats: 100_000, unwrapped_sats: 50_000, wrap_count: 2, unwrap_count: 1 }],
+              totals: { wrapped_sats: 100_000, unwrapped_sats: 50_000, volume_sats: 150_000, fee_revenue_sats: 450 },
+            },
+      )) as never)
+    vi.mocked(getFrbtcVolumeTip).mockImplementation(((source?: string) =>
+      Promise.resolve({ tip: source === "brc20" ? 928_500 : 901_234 })) as never)
+
+    const r = await revenueOverviewAction()
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+
+    const alkanesFee = feeBtcFromSats(150_000) + (546 * 1) / 100_000_000 // + anchor
+    const brc20Fee = feeBtcFromSats(90_000)
+    expect(r.overview.btcFeeAlkanes.rollups.all).toBeCloseTo(alkanesFee, 12)
+    expect(r.overview.btcFeeBrc20.rollups.all).toBeCloseTo(brc20Fee, 12)
+    expect(r.overview.btcFee.rollups.all).toBeCloseTo(alkanesFee + brc20Fee, 12)
+    expect(r.overview.brc20Source).toBe("indexer")
+    expect(r.overview.brc20IndexerTip).toBe(928_500)
+    expect(r.overview.btcNote).toContain("BRC20-Prog")
   })
 })
