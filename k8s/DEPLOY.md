@@ -3,6 +3,14 @@
 This app deploys to Kubernetes by pinning the image tag in `k8s/kustomization.yaml`
 and letting Flux reconcile the cluster.
 
+> **This is now automatic.** On every push to `main`, the `Deploy to GCP` workflow
+> (`.github/workflows/deploy.yml`) builds + pushes the app image tagged with the
+> commit SHA, then the `bump-flux-tag` job commits the matching `newTag` bump back
+> to `main` — so Flux rolls the new image with no manual step. (It commits with the
+> default `GITHUB_TOKEN`, whose pushes don't re-trigger workflows, so there's no
+> loop.) The steps below are the **manual fallback** — for rollbacks, or if you
+> need to pin a specific/older commit.
+
 Use this when shipping a merged PR to `subfrost.io`.
 
 ## Preconditions

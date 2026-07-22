@@ -352,3 +352,68 @@ jobs:
           gcloud run jobs execute prisma-migrate \
             --region=${{ env.REGION }} \
             --wait
+
+  # Automate the previously-manual "deploy(io): bump newTag" step (k8s/DEPLOY.md).
+  # `deploy` builds + pushes the app image tagged with this commit's SHA and rolls
+  # Cloud Run; this job then points Flux (GKE / the tlsd-fronted apex) at the same
+  # image by bumping newTag in k8s/kustomization.yaml and committing it back to
+  # main — so a plain push to main now updates BOTH targets, no runbook step.
+  #
+  # No infinite loop: a push made with the default GITHUB_TOKEN does NOT trigger
+  # new workflow runs, so this bump commit can't re-fire deploy/CI.
+  bump-flux-tag:
+    name: Auto-bump Flux image tag
+    runs-on: ubuntu-latest
+    # Wait for both the image build/push (`deploy`) AND the schema sync
+    # (`migrate`) so Flux only rolls the GKE/apex pods once the DB is ready.
+    needs: [deploy, migrate]
+    # Only for a real push to main — not manual workflow_dispatch (which may
+    # target staging).
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # Keep the GITHUB_TOKEN so the push below authenticates; that token's
+          # pushes intentionally do not trigger further workflow runs.
+          persist-credentials: true
+
+      - name: Bump newTag to this commit and push to main
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          FILE="k8s/kustomization.yaml"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Rebuild the change on top of the latest origin/main each attempt so a
+          # concurrent push can't cause a rejected push or a newTag-line conflict.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            CUR="$(grep -oE 'newTag: "[^"]*"' "$FILE" | head -1 | sed -E 's/newTag: "([^"]*)"/\1/')"
+            if [ "$CUR" = "$SHA" ]; then
+              echo "newTag already ${SHA} — nothing to bump."
+              exit 0
+            fi
+
+            sed -i -E "s|newTag: \"[^\"]*\"|newTag: \"${SHA}\"|" "$FILE"
+            git add "$FILE"
+            git commit -m "deploy(io): auto-bump newTag ${CUR:0:7} -> ${SHA:0:7}"
+
+            if git push origin HEAD:main; then
+              echo "Bumped Flux newTag ${CUR:0:7} -> ${SHA:0:7} (attempt ${attempt})."
+              exit 0
+            fi
+            echo "Push race on attempt ${attempt}; retrying..."
+            sleep $((attempt * 3))
+          done
+
+          echo "Failed to push newTag bump after 5 attempts." >&2
+          exit 1
