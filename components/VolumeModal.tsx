@@ -464,7 +464,7 @@ function VolumeChart({
       color: "#22c55e",
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(4) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       priceScaleId: "right",
       lastValueVisible: false,
@@ -476,7 +476,7 @@ function VolumeChart({
       color: "#ef4444",
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (Math.abs(price) / 1e8).toFixed(4) + " BTC",
+        formatter: (price: number) => Math.round(Math.abs(price) / 1e8).toLocaleString() + " BTC",
       },
       priceScaleId: "right",
       lastValueVisible: false,
@@ -719,7 +719,7 @@ function CumulativeChart({
       lineWidth: 2,
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(2) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       lastValueVisible: false,
       priceLineVisible: false,
@@ -733,7 +733,7 @@ function CumulativeChart({
       lineWidth: 2,
       priceFormat: {
         type: "custom",
-        formatter: (price: number) => (price / 1e8).toFixed(2) + " BTC",
+        formatter: (price: number) => Math.round(price / 1e8).toLocaleString() + " BTC",
       },
       lastValueVisible: false,
       priceLineVisible: false,

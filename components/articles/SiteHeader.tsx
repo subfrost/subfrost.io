@@ -11,6 +11,11 @@ import { externalAnchorProps } from "@/lib/link-behavior"
 
 type MenuId = "trade" | "developer" | "downloads"
 
+// How far (px) the pointer may travel below the mega-menu's lowest option before
+// the panel dismisses. Keeps a small forgiving margin so the menu doesn't snap
+// shut the instant the cursor grazes past the last item.
+const DESKTOP_MENU_DISMISS_BUFFER = 24
+
 type MenuItem = {
   id: string
   label: string
@@ -47,6 +52,9 @@ export function SiteHeader() {
   const [mobilePanel, setMobilePanel] = useState<MenuId | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const overlayOpenRef = useRef(false)
+  // Points at the currently-open mega-menu's content so we can close the panel
+  // when the pointer drops below the lowest option (see onMouseMove below).
+  const desktopMenuContentRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const locale = searchParams.get("lang") === "zh" ? "zh" : "en"
@@ -328,6 +336,18 @@ export function SiteHeader() {
 
   function closeDesktopMenu() {
     setActiveMenu(null)
+  }
+
+  // The mega-menu panel covers the full viewport below the navbar, so leaving the
+  // content region downward never leaves the panel. Close it once the pointer
+  // drops below the lowest visible option (plus a small buffer).
+  function onDesktopMenuMouseMove(event: MouseEvent<HTMLDivElement>) {
+    if (!activeMenu) return
+    const content = desktopMenuContentRef.current
+    if (!content) return
+    if (event.clientY > content.getBoundingClientRect().bottom + DESKTOP_MENU_DISMISS_BUFFER) {
+      closeDesktopMenu()
+    }
   }
 
   function closeSearch() {
@@ -757,6 +777,7 @@ export function SiteHeader() {
         }`}
         style={{ background: "var(--ed-canvas)" }}
         aria-hidden={!activeMenu}
+        onMouseMove={onDesktopMenuMouseMove}
       >
         <div className="mx-auto max-w-[1440px] px-6 py-12">
           <div className="relative min-h-[245px]">
@@ -765,6 +786,7 @@ export function SiteHeader() {
               return (
                 <div
                   key={menu.id}
+                  ref={isOpen ? desktopMenuContentRef : undefined}
                   aria-hidden={!isOpen}
                   className={`absolute inset-x-0 top-0 transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     isOpen ? "pointer-events-auto translate-y-0 opacity-100 delay-75" : "pointer-events-none translate-y-2 opacity-0"
