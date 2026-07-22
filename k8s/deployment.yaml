@@ -78,7 +78,7 @@ spec:
         # One-shot schema sync before the app serves traffic. Uses the same app
         # image (the runner ships the Prisma CLI + schema). Connects via proxy.
         - name: migrate
-          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io:5126f54d336c32fb0e3fd91c80f33241d35943af
           command: ["prisma", "db", "push", "--skip-generate"]
           env:
             - name: DATABASE_URL
@@ -95,7 +95,7 @@ spec:
               memory: 512Mi
       containers:
         - name: app
-          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io
+          image: us-central1-docker.pkg.dev/night-wolves-jogging/subfrost-docker/subfrost-io:5126f54d336c32fb0e3fd91c80f33241d35943af
           ports:
             - name: http
               containerPort: 3000
