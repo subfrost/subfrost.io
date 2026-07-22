@@ -13,9 +13,16 @@ const FALLBACK = "https://raw.githubusercontent.com/Vdto88/alkanes-opreturn-stat
 // checked separately) or the row is skipped entirely.
 const BASE_COLS = ["date","fromHeight","toHeight","blocksScanned","totalTx","txWithOpReturn","txAlkanes","opReturnBytes","runestoneBytes","alkanesBytes","dieselMints","feeTotalSats","feeAlkanesSats","feeOpReturnSats","btcUsd"]
 
-// Added with the 19-column CSV (2026-07). Header-mapped, not positional; missing/blank/non-finite
-// cell -> null (never 0), so a partial "today" row doesn't look like zero activity.
-const OPTIONAL_COLS = ["weightTotal", "weightAlkanes", "ugMints", "dieselUg"]
+// Added with the 19-/21-column CSV (2026-07). Header-mapped, not positional; missing/blank/
+// non-finite cell -> null (never 0), so a partial "today" row doesn't look like zero activity.
+//
+// MUST stay in sync with OPRETURN_OPTIONAL_COLUMNS in lib/marketing/opreturn-types.ts. This is a
+// standalone .mjs run by the k8s CronJob with plain node, so it can't import the .ts constant and
+// has to repeat it -- and repeating it is exactly how txAlkRunestone/txPureRunes went missing for
+// two weeks: they were added to the reader's list in the 21-column rollout but not to this one, so
+// the daily sync never wrote them. The site read NULL while the CSV had the values all along.
+// tests/marketing/opreturn-sync-script.test.ts fails if the two lists ever drift again.
+const OPTIONAL_COLS = ["weightTotal", "weightAlkanes", "ugMints", "dieselUg", "txAlkRunestone", "txPureRunes"]
 
 async function fetchHistoryCsv() {
   for (const url of [PRIMARY, FALLBACK]) {
