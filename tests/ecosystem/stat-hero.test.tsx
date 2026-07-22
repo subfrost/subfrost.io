@@ -17,7 +17,7 @@ const stats = (over: Partial<ProjectStats>): ProjectStats => ({
 
 describe("StatHero", () => {
   it("renders custom cards first, then generic fill up to 4 cards", () => {
-    render(<StatHero stats={stats({})} mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    render(<StatHero stats={stats({})} mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     const labels = screen.getAllByTestId("stat-label").map((n) => n.textContent)
     expect(labels).toEqual(["Tier-5 jackpot", "Tickets (round / all-time)", "Holders", "Supply"])
     expect(screen.getByText("15.04 DIESEL")).toBeInTheDocument()
@@ -25,15 +25,15 @@ describe("StatHero", () => {
   })
 
   it("uses zh labels when locale=zh and labelZh exists", () => {
-    render(<StatHero stats={stats({})} mainAlkaneId="2:25349" copy={{ holders: "持有者", supply: "供应量", price: "价格" }} locale="zh" />)
+    render(<StatHero stats={stats({})} mainAlkaneId="2:25349" showMarketStats copy={{ holders: "持有者", supply: "供应量", price: "价格" }} locale="zh" />)
     expect(screen.getByText("五中头奖池")).toBeInTheDocument()
     expect(screen.getByText("Tickets (round / all-time)")).toBeInTheDocument() // sem labelZh → EN
   })
 
   it("renders nothing when stats null or no cards derivable", () => {
-    const { container } = render(<StatHero stats={null} mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    const { container } = render(<StatHero stats={null} mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     expect(container.innerHTML).toBe("")
-    const { container: c2 } = render(<StatHero stats={{ generic: {}, custom: [] }} mainAlkaneId={null} copy={copy} locale="en" />)
+    const { container: c2 } = render(<StatHero stats={{ generic: {}, custom: [] }} mainAlkaneId={null} showMarketStats copy={copy} locale="en" />)
     expect(c2.innerHTML).toBe("")
   })
 
@@ -42,7 +42,7 @@ describe("StatHero", () => {
       generic: {},
       custom: [1, 2, 3, 4, 5].map((i) => ({ key: `c${i}`, label: `Card ${i}`, value: String(i) })),
     }
-    render(<StatHero stats={many} mainAlkaneId={null} copy={copy} locale="en" />)
+    render(<StatHero stats={many} mainAlkaneId={null} showMarketStats copy={copy} locale="en" />)
     expect(screen.getAllByTestId("stat-label")).toHaveLength(4)
     expect(screen.queryByText("Card 5")).toBeNull()
   })
@@ -57,6 +57,7 @@ describe("StatHero", () => {
           custom: [],
         }}
         mainAlkaneId="4:777"
+        showMarketStats
         copy={copy}
         locale="en"
       />
@@ -72,6 +73,7 @@ describe("StatHero", () => {
           custom: [],
         }}
         mainAlkaneId="2:614"
+        showMarketStats
         copy={copy}
         locale="en"
       />
@@ -86,11 +88,28 @@ describe("StatHero", () => {
       <StatHero
         stats={{ generic: {}, custom: [{ key: "jackpot", label: "Tier-5 jackpot", value: "0", unit: "DIESEL" }] }}
         mainAlkaneId={null}
+        showMarketStats
         copy={copy}
         locale="en"
       />
     )
     expect(screen.getByText("0 DIESEL")).toBeInTheDocument()
+  })
+
+  it("renders no generic cards when showMarketStats is false, even with perfect data", () => {
+    render(
+      <StatHero stats={stats({})} mainAlkaneId="2:25349" showMarketStats={false} copy={copy} locale="en" />
+    )
+    const labels = screen.getAllByTestId("stat-label").map((n) => n.textContent)
+    expect(labels).toEqual(["Tier-5 jackpot", "Tickets (round / all-time)"]) // custom only
+    expect(screen.queryByText("Holders")).not.toBeInTheDocument()
+  })
+
+  it("renders generic cards when showMarketStats is true", () => {
+    render(
+      <StatHero stats={stats({})} mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />
+    )
+    expect(screen.getByText("Holders")).toBeInTheDocument()
   })
 })
 
@@ -112,7 +131,7 @@ describe("StatHero — trend deltas", () => {
   })
 
   it("marks up/down direction and the right % on the comparable cards", () => {
-    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     const rows = screen.getAllByTestId("stat-delta")
     const byPct = (pct: string) => rows.find((r) => r.textContent?.includes(pct))
     expect(byPct("23.4%")?.getAttribute("data-direction")).toBe("up")   // holders 1234 vs 1000
@@ -121,18 +140,18 @@ describe("StatHero — trend deltas", () => {
   })
 
   it("renders a delta row only for numeric cards (tickets excluded)", () => {
-    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     // jackpot + holders + supply = 3 rows; tickets ("42 / 1337" → NaN) has none.
     expect(screen.getAllByTestId("stat-delta")).toHaveLength(3)
   })
 
   it("shows the period label in every delta row", () => {
-    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    render(<StatHero stats={cur()} baseline={base()} periodLabel="24h" mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     expect(screen.getAllByTestId("stat-delta").every((r) => r.textContent?.includes("24h"))).toBe(true)
   })
 
   it("renders no delta rows at all when baseline is absent", () => {
-    render(<StatHero stats={cur()} baseline={null} periodLabel={null} mainAlkaneId="2:25349" copy={copy} locale="en" />)
+    render(<StatHero stats={cur()} baseline={null} periodLabel={null} mainAlkaneId="2:25349" showMarketStats copy={copy} locale="en" />)
     expect(screen.queryAllByTestId("stat-delta")).toHaveLength(0)
   })
 })

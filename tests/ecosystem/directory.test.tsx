@@ -15,7 +15,7 @@ const copy: DirectoryCopy = {
 
 const p = (over: Partial<PublicEcosystemProject>): PublicEcosystemProject => ({
   slug: "x", name: "X", logoUrl: null, bannerUrl: null, category: "DeFi", status: "Live",
-  kind: "App", alkaneId: null,
+  kind: "App", alkaneId: null, showMarketStats: false,
   url: "https://x.io", xUrl: null, docsUrl: null, description: "d", featured: false, inMosaic: false, ...over,
 })
 

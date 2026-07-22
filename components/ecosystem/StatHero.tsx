@@ -44,10 +44,17 @@ function StatDeltaRow({ delta, periodLabel }: { delta: StatDelta; periodLabel: s
   )
 }
 
-export function StatHero({ stats, baseline, mainAlkaneId, copy, locale, periodLabel }: {
+export function StatHero({ stats, baseline, mainAlkaneId, showMarketStats, copy, locale, periodLabel }: {
   stats: ProjectStats | null
   baseline?: ProjectStats | null
   mainAlkaneId: string | null
+  /**
+   * Whether this project is a market — a fungible, traded token — and so whether holders/supply/
+   * price mean anything. Curated per project, never derived: `arbuz` is unambiguously a token
+   * (257 holders, 2.5e13 supply, a working price chart via its derived pool) yet its snapshot
+   * priceUsd is 0, so any price-derived heuristic would hide it. Custom stats ignore this flag.
+   */
+  showMarketStats: boolean
   copy: StatHeroCopy
   locale: "en" | "zh"
   periodLabel?: string | null
@@ -62,7 +69,7 @@ export function StatHero({ stats, baseline, mainAlkaneId, copy, locale, periodLa
       value: c.unit ? `${formatCompact(c.value)} ${c.unit}` : c.value,
     })
   }
-  const g = mainAlkaneId ? stats.generic[mainAlkaneId] : undefined
+  const g = showMarketStats && mainAlkaneId ? stats.generic[mainAlkaneId] : undefined
   if (g) {
     if (cards.length < 4 && isMeaningfulStat(g.holders)) {
       cards.push({ k: "generic-holders", label: copy.holders, value: formatCompact(String(g.holders)) })

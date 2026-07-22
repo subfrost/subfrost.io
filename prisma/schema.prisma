@@ -1951,30 +1951,33 @@ model PagerMember {
 // ── Alkanes ecosystem directory (public /ecosystem + /admin/ecosystem) ──
 
 model EcosystemProject {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  name          String
-  logoUrl       String?
-  bannerUrl     String?
-  category      String
-  status        String   @default("Live")
-  kind          String   @default("App")
-  alkaneId      String?
-  url           String
-  xUrl          String?
-  docsUrl       String?
-  descriptionEn String   @default("")
-  descriptionZh String   @default("")
-  featured      Boolean  @default(false)
-  inMosaic      Boolean  @default(false)
-  sortOrder     Int      @default(0)
-  published     Boolean  @default(false)
-  profileEn     String   @default("")
-  profileZh     String   @default("")
-  contracts     EcosystemProjectContract[]
-  statSnapshots EcosystemStatSnapshot[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  logoUrl         String?
+  bannerUrl       String?
+  category        String
+  status          String   @default("Live")
+  kind            String   @default("App")
+  alkaneId        String?
+  // Whether holders/supply/price mean anything for this project. Curated, default off: a new
+  // project shows no market stats until someone deliberately says it is a market.
+  showMarketStats Boolean  @default(false)
+  url             String
+  xUrl            String?
+  docsUrl         String?
+  descriptionEn   String   @default("")
+  descriptionZh   String   @default("")
+  featured        Boolean  @default(false)
+  inMosaic        Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  published       Boolean  @default(false)
+  profileEn       String   @default("")
+  profileZh       String   @default("")
+  contracts       EcosystemProjectContract[]
+  statSnapshots   EcosystemStatSnapshot[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([published, featured, sortOrder])
 }
