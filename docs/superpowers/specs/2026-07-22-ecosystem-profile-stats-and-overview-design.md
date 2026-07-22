@@ -169,9 +169,11 @@ The eight duplicating projects lose the header paragraph. The other 17 are unaff
 ## Testing
 
 - The guard lives in a new `lib/ecosystem/stat-visibility.ts` as an exported pure function
-  `isMeaningfulStat(kind, value)`, so it is testable without rendering. `StatHero` imports it; it does
-  not reimplement the rule inline. Unit tests per field: `0`, `null`, negative, non-numeric string,
-  and a valid value.
+  `isMeaningfulStat(value: number | string | null | undefined): boolean`, so it is testable without
+  rendering. One signature covers all three fields, since the rule is identical ("parses to a finite
+  number greater than zero"). `StatHero` imports it; it does not reimplement the rule inline. Unit
+  tests: `0`, `"0"`, `null`, `undefined`, negative, non-numeric string, empty string, and valid
+  number and numeric-string values.
 - `StatHero` renders nothing when every generic value is filtered and `custom` is empty.
 - `StatHero` still renders custom cards with a legitimate `0`, proving the guard did not leak into
   the curated path.
