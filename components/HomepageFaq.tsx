@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import type { ReactNode } from "react"
 import { ChevronRight } from "lucide-react"
 
-export function HomepageFaq({ items }: { items: { question: string; answer: string }[] }) {
+export function HomepageFaq({ items }: { items: { question: string; answer: string; answerNode?: ReactNode }[] }) {
   const [openIndex, setOpenIndex] = useState(0)
 
   return (
@@ -36,7 +37,7 @@ export function HomepageFaq({ items }: { items: { question: string; answer: stri
             >
               <div className="overflow-hidden">
                 <p className="max-w-[760px] pb-6 text-[16px] leading-[1.55]" style={{ color: "var(--ed-muted)" }}>
-                  {item.answer}
+                  {item.answerNode ?? item.answer}
                 </p>
               </div>
             </div>
