@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react"
 import type { Metadata } from "next"
+import Link from "next/link"
 import type { ReactNode } from "react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
 import HeroMarketTicker from "@/components/HeroMarketTicker"
@@ -253,9 +254,9 @@ const homeCopy = {
               documentation
             </a>
             , and media/journalists should explore our{" "}
-            <a href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+            <Link href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
               articles
-            </a>
+            </Link>
             .
           </>
         ),
@@ -319,9 +320,9 @@ const homeCopy = {
               文档
             </a>
             ，媒体/记者应浏览我们的{" "}
-            <a href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
+            <Link href="/articles" className="underline underline-offset-2" style={{ color: "var(--ed-ice)" }}>
               文章
-            </a>
+            </Link>
             。
           </>
         ),
