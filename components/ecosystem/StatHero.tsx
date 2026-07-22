@@ -1,5 +1,6 @@
 import type { ProjectStats } from "@/lib/ecosystem/stats-types"
 import { computeStatDeltas, type StatDelta } from "@/lib/ecosystem/stat-deltas"
+import { isMeaningfulStat } from "@/lib/ecosystem/stat-visibility"
 
 export interface StatHeroCopy {
   holders: string
@@ -63,9 +64,16 @@ export function StatHero({ stats, baseline, mainAlkaneId, copy, locale, periodLa
   }
   const g = mainAlkaneId ? stats.generic[mainAlkaneId] : undefined
   if (g) {
-    if (cards.length < 4 && g.holders != null) cards.push({ k: "generic-holders", label: copy.holders, value: formatCompact(String(g.holders)) })
-    if (cards.length < 4 && g.supply) cards.push({ k: "generic-supply", label: copy.supply, value: formatCompact(g.supply) })
-    if (cards.length < 4 && g.priceUsd != null) cards.push({ k: "generic-price", label: copy.price, value: `$${g.priceUsd < 1 ? g.priceUsd.toFixed(4) : g.priceUsd.toFixed(2)}` })
+    if (cards.length < 4 && isMeaningfulStat(g.holders)) {
+      cards.push({ k: "generic-holders", label: copy.holders, value: formatCompact(String(g.holders)) })
+    }
+    if (cards.length < 4 && isMeaningfulStat(g.supply)) {
+      cards.push({ k: "generic-supply", label: copy.supply, value: formatCompact(g.supply as string) })
+    }
+    if (cards.length < 4 && isMeaningfulStat(g.priceUsd)) {
+      const price = g.priceUsd as number
+      cards.push({ k: "generic-price", label: copy.price, value: `$${price < 1 ? price.toFixed(4) : price.toFixed(2)}` })
+    }
   }
   if (cards.length === 0) return null
   const deltas = computeStatDeltas(stats, baseline ?? null, mainAlkaneId)

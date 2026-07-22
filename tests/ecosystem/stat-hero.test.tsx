@@ -46,6 +46,52 @@ describe("StatHero", () => {
     expect(screen.getAllByTestId("stat-label")).toHaveLength(4)
     expect(screen.queryByText("Card 5")).toBeNull()
   })
+
+  it("drops generic cards whose value is zero or absent", () => {
+    // Real production data: wunsch-vault 4:777 reported holders 0 / supply "0" / priceUsd 0,
+    // and rendered "HOLDERS 0 / SUPPLY 0 / PRICE $0.0000".
+    const { container } = render(
+      <StatHero
+        stats={{
+          generic: { "4:777": { name: null, symbol: null, holders: 0, supply: "0", priceUsd: 0, marketcapUsd: null, volume24hUsd: null } },
+          custom: [],
+        }}
+        mainAlkaneId="4:777"
+        copy={copy}
+        locale="en"
+      />
+    )
+    expect(container.innerHTML).toBe("")
+  })
+
+  it("never renders $0.0000 — a zero price means untraded, not worthless", () => {
+    render(
+      <StatHero
+        stats={{
+          generic: { "2:614": { name: null, symbol: null, holders: 12, supply: "10", priceUsd: 0, marketcapUsd: null, volume24hUsd: null } },
+          custom: [],
+        }}
+        mainAlkaneId="2:614"
+        copy={copy}
+        locale="en"
+      />
+    )
+    const labels = screen.getAllByTestId("stat-label").map((n) => n.textContent)
+    expect(labels).toEqual(["Holders", "Supply"])
+    expect(screen.queryByText("$0.0000")).not.toBeInTheDocument()
+  })
+
+  it("keeps custom cards with a legitimate zero — the guard must not leak into curated stats", () => {
+    render(
+      <StatHero
+        stats={{ generic: {}, custom: [{ key: "jackpot", label: "Tier-5 jackpot", value: "0", unit: "DIESEL" }] }}
+        mainAlkaneId={null}
+        copy={copy}
+        locale="en"
+      />
+    )
+    expect(screen.getByText("0 DIESEL")).toBeInTheDocument()
+  })
 })
 
 describe("StatHero — trend deltas", () => {
