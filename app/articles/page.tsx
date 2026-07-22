@@ -7,7 +7,6 @@ import { ArticleCard } from "@/components/articles/ArticleCard"
 import { ArticleSearchPrompt } from "@/components/articles/ArticleSearchPrompt"
 import { AuthorByline } from "@/components/articles/AuthorByline"
 import { CmsCoverImage } from "@/components/articles/CmsCoverImage"
-import { CoverArt } from "@/components/articles/CoverArt"
 import { TopSubscribeModalButton } from "@/components/articles/TopSubscribeModalButton"
 import { externalLinks } from "@/lib/external-links"
 import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, shouldUseArticlePreviewFallback } from "@/lib/seo"
@@ -80,6 +79,9 @@ const articleCopy = {
     srTitle: "Subfrost articles",
     docsEyebrow: "Developer",
     docsSource: "Subfrost Docs",
+    pageTitle: "Articles",
+    pageSubtitle:
+      "Explore our research, protocol context, and release notes to get comfortable before deploying capital or building with subfrost.",
   },
   zh: {
     articles: "全部",
@@ -91,6 +93,9 @@ const articleCopy = {
     srTitle: "Subfrost 更新",
     docsEyebrow: "开发者",
     docsSource: "Subfrost 文档",
+    pageTitle: "文章",
+    pageSubtitle:
+      "浏览我们的研究、协议背景、发布说明与作者背书的解读，在部署资金或基于 subfrost 构建之前充分了解。",
   },
 } satisfies Record<CmsLocale, Record<string, string>>
 
@@ -116,20 +121,23 @@ const docsBackfill = [
   {
     title: { en: "Docs", zh: "文档" },
     href: externalLinks.docs,
+    image: "developer-card-ice-1",
     excerpt: { en: "Canonical product guides, setup paths, protocol references, and technical components.", zh: "产品指南、设置路径、协议参考与技术组件的权威入口。" },
   },
   {
     title: { en: "API docs", zh: "API 文档" },
     href: externalLinks.apiDocs,
+    image: "developer-card-ice-2",
     excerpt: {
       en: "Endpoint references for balances, wrapping state, transactions, and app integrations.",
       zh: "余额、包装状态、交易与应用集成的端点参考。",
     },
   },
   {
-    title: { en: "API login", zh: "API 登录" },
-    href: externalLinks.apiLogin,
-    excerpt: { en: "Sign in to the live API dashboard.", zh: "登录实时 API 控制台。" },
+    title: { en: "Trade Now", zh: "立即交易" },
+    href: "https://app.subfrost.io/",
+    image: "developer-card-ice-3",
+    excerpt: { en: "Trade Bitcoin-native assets on the live subfrost app.", zh: "在实时 subfrost 应用中交易比特币原生资产。" },
   },
 ]
 
@@ -197,6 +205,25 @@ function RecentMiniArticleCard({ a, locale, coverVariant }: { a: ArticlePreview;
   )
 }
 
+function DocCover({ image, sizes }: { image: string; sizes: string }) {
+  return (
+    <picture>
+      <source
+        srcSet={`/articles/${image}-480.webp 480w, /articles/${image}-960.webp 960w, /articles/${image}-1200.webp 1200w`}
+        sizes={sizes}
+        type="image/webp"
+      />
+      <img
+        src={`/articles/${image}.png`}
+        alt=""
+        className="h-full w-full object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+    </picture>
+  )
+}
+
 function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number]; locale: CmsLocale; copy: typeof articleCopy.en }) {
   return (
     <a
@@ -209,7 +236,7 @@ function RecentMiniDocCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[n
       }}
     >
       <div className="aspect-[24/11] w-[156px] shrink-0 overflow-hidden rounded-[6px] sm:w-[172px]">
-        <CoverArt className="h-full w-full" variant={`recent-${doc.href}`} />
+        <DocCover image={doc.image} sizes="172px" />
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="font-display line-clamp-2 text-[15px] font-normal leading-[1.25]" style={{ color: "var(--ed-ink)" }}>
@@ -228,7 +255,7 @@ function DocsGridCard({ doc, locale, copy }: { doc: (typeof docsBackfill)[number
   return (
     <a href={doc.href} target="_blank" rel="noopener noreferrer" className="ed-card ed-card-surface">
       <div className="ed-cover-frame aspect-[24/11]">
-        <CoverArt className="h-full w-full" variant={doc.href} />
+        <DocCover image={doc.image} sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw" />
       </div>
       <div className="flex flex-1 flex-col pt-4">
         <h3 className="font-display text-balance text-[20px] font-normal leading-[1.28]" style={{ color: "var(--ed-ink)" }}>
@@ -273,42 +300,19 @@ export default async function ArticlesIndex({
   const hasRecent = latest.length + recentDocs.length > 0
   const showArticleGrid = feedArticles.length > 0
   const showDocsGrid = isDocsTopic || isAllTopic
-  const articleIndexHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
-  const topicHref = (id: string) => {
-    const params = new URLSearchParams()
-    if (locale === "zh") params.set("lang", "zh")
-    params.set("topic", id)
-    return `/articles?${params.toString()}`
-  }
-  const browseItems = [
-    { id: "articles", title: copy.articles, href: articleIndexHref },
-    ...localizedTopics.map((item) => ({ id: item.id, title: item.title, href: topicHref(item.id) })),
-  ]
   return (
     <main className="relative overflow-hidden pb-8">
-      <h1 className="sr-only">{copy.srTitle}</h1>
-
       <section style={{ background: "var(--ed-canvas)" }}>
         <div className="mx-auto max-w-[1440px] px-4 pb-2 pt-5 sm:px-8 sm:pb-3 sm:pt-[33px]">
-          <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-            <nav className="flex flex-wrap gap-x-6 gap-y-3" aria-label={copy.browseByTopic}>
-              {browseItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  prefetch={false}
-                  className="font-display inline-flex items-center text-[16px] font-normal leading-none"
-                  style={{
-                    color:
-                      (!selectedTopic && item.id === "articles") || selectedTopic?.id === item.id
-                        ? "var(--ed-ink)"
-                        : "var(--ed-muted)",
-                  }}
-                >
-                  {item.title}
-                </Link>
-              ))}
-            </nav>
+          <div className="mb-7 flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-[760px]">
+              <h1 className="font-display text-[38px] font-normal leading-[1.06] sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>
+                {copy.pageTitle}
+              </h1>
+              <p className="font-display mt-4 text-[18px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>
+                {copy.pageSubtitle}
+              </p>
+            </div>
             <TopSubscribeModalButton locale={locale} />
           </div>
         </div>

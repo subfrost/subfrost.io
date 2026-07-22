@@ -53,7 +53,6 @@ export function SiteHeader() {
   const homeHref = locale === "zh" ? "/?lang=zh" : "/"
   const articleHref = locale === "zh" ? "/articles?lang=zh" : "/articles"
   const metricsHref = locale === "zh" ? "/metrics?lang=zh" : "/metrics"
-  const volumeHref = locale === "zh" ? "/volume?lang=zh" : "/volume"
   const copy = {
     en: {
       trade: "Trade",
@@ -158,7 +157,6 @@ export function SiteHeader() {
     { id: "markets", label: copy.markets, body: copy.marketsBody, href: "https://app.subfrost.io/" },
     { id: "swap", label: copy.swap, body: copy.swapBody, href: "https://app.subfrost.io/swap" },
     { id: "vaults", label: copy.vaults, body: copy.vaultsBody, href: "https://app.subfrost.io/vaults" },
-    { id: "volume", label: copy.volumeCharts, body: copy.volumeChartsBody, href: volumeHref },
   ]
   const developerHref = locale === "zh" ? "/developer?lang=zh" : "/developer"
   const docsHref = externalLinks.docs
@@ -412,23 +410,64 @@ export function SiteHeader() {
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-[14px] sm:flex">
-            {developerMenus.map((menu) => (
-              <button
-                key={menu.id}
-                type="button"
-                onClick={() => toggleMenu(menu.id)}
-                onMouseEnter={() => openDesktopMenu(menu.id)}
-                onFocus={() => openDesktopMenu(menu.id)}
-                onMouseDown={(event) => event.preventDefault()}
-                className={`font-display inline-flex rounded-sm font-normal outline-none transition-colors duration-200 hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
-                  activeMenu === menu.id ? "text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"
-                }`}
-                aria-haspopup="true"
-                aria-expanded={activeMenu === menu.id}
-              >
-                {menu.label}
-              </button>
-            ))}
+            {developerMenus.map((menu) => {
+              const triggerClass = `font-display inline-flex rounded-sm font-normal outline-none transition-colors duration-200 hover:text-[color:var(--ed-ink)] focus-visible:ring-2 focus-visible:ring-[color:var(--ed-ice)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ed-canvas)] ${
+                activeMenu === menu.id ? "text-[color:var(--ed-ink)]" : "text-[color:var(--ed-muted)]"
+              }`
+              // Trade opens the live app in a new tab; hover/focus still opens the
+              // same mega-menu of sub-options first.
+              if (menu.id === "trade") {
+                return (
+                  <a
+                    key={menu.id}
+                    href="https://app.subfrost.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closeDesktopMenu}
+                    onMouseEnter={() => openDesktopMenu(menu.id)}
+                    onFocus={() => openDesktopMenu(menu.id)}
+                    className={triggerClass}
+                    aria-haspopup="true"
+                    aria-expanded={activeMenu === menu.id}
+                  >
+                    {menu.label}
+                  </a>
+                )
+              }
+              // Developer has a real landing page: clicking navigates to /developer
+              // while hover/focus still opens the same mega-menu of sub-options.
+              if (menu.id === "developer") {
+                return (
+                  <Link
+                    key={menu.id}
+                    href={developerHref}
+                    onClick={closeDesktopMenu}
+                    onMouseEnter={() => openDesktopMenu(menu.id)}
+                    onFocus={() => openDesktopMenu(menu.id)}
+                    className={triggerClass}
+                    aria-haspopup="true"
+                    aria-expanded={activeMenu === menu.id}
+                  >
+                    {menu.label}
+                  </Link>
+                )
+              }
+              return (
+                <button
+                  key={menu.id}
+                  type="button"
+                  onClick={() => toggleMenu(menu.id)}
+                  onMouseEnter={() => openDesktopMenu(menu.id)}
+                  onFocus={() => openDesktopMenu(menu.id)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  className={triggerClass}
+                  aria-haspopup="true"
+                  aria-expanded={activeMenu === menu.id}
+                >
+                  {menu.label}
+                </button>
+              )
+            })}
             {navItems.map((item) => (
               <a
                 key={item.label}

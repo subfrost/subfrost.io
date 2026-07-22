@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { ArrowRight, ArrowUpRight } from "lucide-react"
 import { EditorialShell } from "@/components/articles/EditorialShell"
-import { CoverArt } from "@/components/articles/CoverArt"
 import { externalLinks } from "@/lib/external-links"
 import { externalAnchorProps, isExternalHref } from "@/lib/link-behavior"
 import { absoluteUrl, sharedUnfurlImageHeight, sharedUnfurlImageUrl, sharedUnfurlImageWidth, siteName, siteUrl } from "@/lib/seo"
@@ -59,7 +58,7 @@ const copy = {
   en: {
     title: "Developer",
     intro:
-      "Build against subfrost with the technical overview, API references, protocol notes, and product entry points in one place.",
+      "Build with subfrost to unlock BTC liquidity without sacrificing UX.",
     nav: [
       { label: "Overview", href: "#overview" },
       { label: "Docs", href: docsUrl },
@@ -69,7 +68,7 @@ const copy = {
     heroKicker: "Start here",
     heroTitle: "Bitcoin-native infrastructure, documented clearly.",
     heroBody:
-      "This page is the git-managed developer front door. Deep technical references stay on the live docs and API systems so operators can use the source of truth.",
+      "This page is the developer front door. Deep technical references stay on the live docs and API systems so operators can use the source of truth.",
     docsTitle: "Core references",
     docsBody: "Primary paths for engineers, partners, and protocol reviewers.",
     protocolTitle: "Protocol surfaces",
@@ -228,12 +227,12 @@ export default async function DeveloperPage({
       <EditorialShell>
         <main>
         <section>
-          <div className="mx-auto max-w-[1440px] px-6 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-[104px]">
+          <div className="mx-auto max-w-[1440px] px-6 pb-16 pt-5 sm:px-8 sm:pb-24 sm:pt-[33px]">
             <div className="max-w-[780px]">
-              <h1 className="font-display text-[56px] font-normal leading-none sm:text-[76px]" style={{ color: "var(--ed-ink)" }}>
+              <h1 className="font-display text-[38px] font-normal leading-[1.06] sm:text-[52px]" style={{ color: "var(--ed-ink)" }}>
                 {t.title}
               </h1>
-              <p className="font-display mt-6 max-w-[720px] text-[20px] leading-[1.45] sm:text-[24px]" style={{ color: "var(--ed-body)" }}>
+              <p className="font-display mt-4 max-w-[720px] text-[18px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>
                 {t.intro}
               </p>
               <nav className="mt-9 flex flex-wrap gap-x-7 gap-y-3">
@@ -267,12 +266,25 @@ export default async function DeveloperPage({
                 {t.heroBody}
               </p>
             </div>
-            <CoverArt
-              variant={7}
-              priority
-              sizes="(min-width: 1024px) 44vw, 100vw"
-              className="ed-cover-frame aspect-[16/10]"
-            />
+            <div className="ed-cover ed-cover-frame aspect-[16/10]">
+              <picture>
+                <source
+                  srcSet="/articles/developer-hero-ice-480.webp 480w, /articles/developer-hero-ice-960.webp 960w, /articles/developer-hero-ice-1536.webp 1536w"
+                  sizes="(min-width: 1024px) 44vw, 100vw"
+                  type="image/webp"
+                />
+                <img
+                  src="/articles/developer-hero-ice.png"
+                  alt=""
+                  width={1536}
+                  height={960}
+                  decoding="async"
+                  fetchPriority="high"
+                  loading="eager"
+                  style={{ objectPosition: "top" }}
+                />
+              </picture>
+            </div>
           </div>
         </section>
 
@@ -287,14 +299,30 @@ export default async function DeveloperPage({
               </p>
             </div>
             <div className="grid gap-9 md:grid-cols-3">
-              {t.cards.map((card) => (
+              {t.cards.map((card, i) => (
                 <a
                   key={card.href}
                   href={card.href}
                   {...externalAnchorProps(card.href)}
                   className="ed-card"
                 >
-                  <CoverArt variant={card.variant} sizes="(min-width: 768px) 28vw, 100vw" className="ed-cover-frame aspect-[4/3]" />
+                  <div className="ed-cover ed-cover-frame aspect-[4/3]">
+                    <picture>
+                      <source
+                        srcSet={`/articles/developer-card-ice-${i + 1}-480.webp 480w, /articles/developer-card-ice-${i + 1}-960.webp 960w, /articles/developer-card-ice-${i + 1}-1200.webp 1200w`}
+                        sizes="(min-width: 768px) 28vw, 100vw"
+                        type="image/webp"
+                      />
+                      <img
+                        src={`/articles/developer-card-ice-${i + 1}.png`}
+                        alt=""
+                        width={1200}
+                        height={900}
+                        decoding="async"
+                        loading="lazy"
+                      />
+                    </picture>
+                  </div>
                   <div className="pt-5">
                     <h3 className="font-display text-[22px] font-normal leading-tight" style={{ color: "var(--ed-ink)" }}>
                       {card.title}
@@ -313,37 +341,6 @@ export default async function DeveloperPage({
           </div>
         </section>
 
-        <section id="api">
-          <div className="mx-auto grid max-w-[1440px] gap-9 px-6 pb-20 sm:px-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <div>
-              <h2 className="font-display text-[32px] font-medium leading-tight" style={{ color: "var(--ed-ink)" }}>
-                {t.protocolTitle}
-              </h2>
-              <p className="font-display mt-4 text-[17px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>
-                {t.protocolBody}
-              </p>
-            </div>
-            <div className="grid gap-7 md:grid-cols-3">
-              {t.surfaces.map((surface) => (
-                <a
-                  key={surface.href}
-                  href={surface.href}
-                  {...externalAnchorProps(surface.href)}
-                  className="group block"
-                >
-                  <h3 className="font-display text-[24px] font-normal leading-tight" style={{ color: "var(--ed-ink)" }}>
-                    {surface.title}
-                    <LinkArrow external={isExternalHref(surface.href)} />
-                  </h3>
-                  <p className="font-display mt-3 text-[15px] font-medium" style={{ color: "var(--ed-muted)" }}>
-                    {surface.meta}
-                  </p>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section id="support">
           <div className="mx-auto grid max-w-[1440px] gap-9 px-6 pb-16 sm:px-8 sm:pb-24 lg:grid-cols-[260px_minmax(0,720px)]">
             <h2 className="font-display text-[32px] font-medium leading-tight" style={{ color: "var(--ed-ink)" }}>
@@ -353,7 +350,7 @@ export default async function DeveloperPage({
               <p className="font-display text-[18px] leading-[1.55]" style={{ color: "var(--ed-body)" }}>
                 {t.supportBody}
               </p>
-              <a href={locale === "zh" ? "/support?lang=zh" : "/support"} className="font-display mt-6 inline-flex text-[16px] font-medium" style={{ color: "var(--ed-ink)" }}>
+              <a href={locale === "zh" ? "/support?lang=zh" : "/support"} className="font-display mt-6 inline-flex items-center text-[16px] font-medium" style={{ color: "var(--ed-ink)" }}>
                 {locale === "zh" ? "支持" : "Support"}
                 <LinkArrow external={false} />
               </a>
