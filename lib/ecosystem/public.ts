@@ -23,10 +23,16 @@ export interface PublicEcosystemProject {
 
 /**
  * Default directory order (Gabe): featured first (rendered separately in the featured band,
- * kept here only so it never leaks into the main list), then status maturity, then name A-Z.
- * `sortOrder` is intentionally not consulted: its stored values are ad hoc integers that used
- * to dominate the order and scramble status/alphabetical grouping. The column, admin control,
- * and stored values are untouched — this only stops reading them here.
+ * kept here only so it never leaks into the main list). Within each of those two groups the
+ * ranking rule differs:
+ *
+ * - Featured (the curated marketing row): `sortOrder` ascending, then name A-Z. Marketing picks
+ *   this order by hand, so status maturity does not apply here — a `Building` project can
+ *   legitimately lead if that's what's curated.
+ * - Non-featured (the main grid): status maturity, then name A-Z. `sortOrder` is intentionally
+ *   not consulted here: its stored values are ad hoc integers that used to dominate the order
+ *   and scramble status/alphabetical grouping. The column, admin control, and stored values are
+ *   untouched — this only stops reading them for this group.
  */
 const STATUS_RANK: Record<string, number> = { Live: 0, Beta: 1, Building: 2 }
 const UNKNOWN_STATUS_RANK = Object.keys(STATUS_RANK).length
@@ -36,17 +42,24 @@ function statusRank(status: string): number {
 }
 
 function compareDirectoryOrder(
-  a: { slug: string; featured: boolean; status: string; name: string },
-  b: { slug: string; featured: boolean; status: string; name: string }
+  a: { slug: string; featured: boolean; status: string; name: string; sortOrder: number },
+  b: { slug: string; featured: boolean; status: string; name: string; sortOrder: number }
 ): number {
   if (a.featured !== b.featured) return a.featured ? -1 : 1
-  const rankDiff = statusRank(a.status) - statusRank(b.status)
-  if (rankDiff !== 0) return rankDiff
+
+  if (a.featured && b.featured) {
+    const sortOrderDiff = a.sortOrder - b.sortOrder
+    if (sortOrderDiff !== 0) return sortOrderDiff
+  } else {
+    const rankDiff = statusRank(a.status) - statusRank(b.status)
+    if (rankDiff !== 0) return rankDiff
+  }
+
   const nameDiff = a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   if (nameDiff !== 0) return nameDiff
   // Tiebreaker on the unique slug: without an explicit `orderBy`, Postgres does not guarantee
   // row order across requests, and Array#sort is only stable relative to the *input* order —
-  // so a true tie (same status, same name) must resolve on something fixed, not input order.
+  // so a true tie must resolve on something fixed, not input order.
   return a.slug.localeCompare(b.slug)
 }
 

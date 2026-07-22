@@ -44,6 +44,36 @@ describe("getEcosystemDirectory", () => {
     expect(projects.map((p) => p.slug)).toEqual(["a-featured", "z-live"])
   })
 
+  it("orders two featured projects by sortOrder ascending, ignoring name", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "alpha", name: "Alpha", featured: true, sortOrder: 2 }),
+      row({ slug: "zeta", name: "Zeta", featured: true, sortOrder: 1 }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["zeta", "alpha"])
+  })
+
+  it("falls back to name A-Z when two featured projects share the same sortOrder", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "z-featured", name: "Z Featured", featured: true, sortOrder: 1 }),
+      row({ slug: "a-featured", name: "A Featured", featured: true, sortOrder: 1 }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["a-featured", "z-featured"])
+  })
+
+  it("does not apply status rank within the featured band: a Building project with a low sortOrder beats a Live project with a higher one", async () => {
+    vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
+      row({ slug: "live-featured", name: "Live Featured", featured: true, status: "Live", sortOrder: 2 }),
+      row({ slug: "building-featured", name: "Building Featured", featured: true, status: "Building", sortOrder: 1 }),
+    ] as never)
+    vi.mocked(prisma.ecosystemSettings.findUnique).mockResolvedValueOnce(null as never)
+    const { projects } = await getEcosystemDirectory("en")
+    expect(projects.map((p) => p.slug)).toEqual(["building-featured", "live-featured"])
+  })
+
   it("orders all Live before all Building within non-featured", async () => {
     vi.mocked(prisma.ecosystemProject.findMany).mockResolvedValueOnce([
       row({ slug: "b-building", name: "B Building", status: "Building" }),
