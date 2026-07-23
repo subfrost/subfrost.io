@@ -13,14 +13,17 @@ import {
   escapeAttribute,
   escapeHtml,
 } from "@/lib/cms/editor-markdown"
+import { importedMarkdownFromClipboard } from "@/lib/cms/import-html"
 import { saveArticle, deleteArticle, translateArticleAction } from "@/actions/cms/articles"
 import { uploadInlineImage } from "@/lib/cms/inline-image-upload"
 import { Button } from "@/components/ui/button"
+import { ImportDocModal } from "@/components/cms/ImportDocModal"
 import {
   ArrowLeft,
   ArrowUpRight,
   Bold,
   Eye,
+  FileText,
   Heading2,
   Heading3,
   ImagePlus,
@@ -470,6 +473,12 @@ function GhostBodyEditor({
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastMarkdownRef = useRef<string>("")
+  const [importOpen, setImportOpen] = useState(false)
+
+  function applyImport(markdown: string, mode: "replace" | "append") {
+    const next = mode === "append" && value.trim() ? `${value}\n\n${markdown}` : markdown
+    onChange(next)
+  }
 
   useEffect(() => {
     const editor = editorRef.current
@@ -517,6 +526,13 @@ function GhostBodyEditor({
       return
     }
 
+    const imported = importedMarkdownFromClipboard(event.clipboardData.getData("text/html"))
+    if (imported) {
+      event.preventDefault()
+      insertHtml(markdownToEditorHtml(imported))
+      return
+    }
+
     const text = event.clipboardData.getData("text/plain")
     if (!text) return
     event.preventDefault()
@@ -556,6 +572,8 @@ function GhostBodyEditor({
         <EditorTool label="Numbered list" onClick={() => runCommand("insertOrderedList")}><ListOrdered size={15} /></EditorTool>
         <span className="mx-1 h-5 w-px bg-[color:var(--ed-hair)]" />
         <EditorTool label={uploading ? "Uploading image" : "Add image"} onClick={() => fileInputRef.current?.click()} disabled={uploading}><ImagePlus size={15} /></EditorTool>
+        <span className="mx-1 h-5 w-px bg-[color:var(--ed-hair)]" />
+        <EditorTool label="Import from Doc" onClick={() => setImportOpen(true)}><FileText size={15} /></EditorTool>
         {uploading && <span className="ml-2 text-xs text-[color:var(--ed-muted)]">Uploading image...</span>}
         {error && <span role="alert" className="ml-2 text-xs text-[#b8321a]">{error}</span>}
       </div>
@@ -581,6 +599,8 @@ function GhostBodyEditor({
           className="ghost-post-editor min-h-[52vh] w-full outline-none"
         />
       </div>
+
+      <ImportDocModal open={importOpen} onClose={() => setImportOpen(false)} onImport={applyImport} />
     </div>
   )
 }
