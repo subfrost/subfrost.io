@@ -111,7 +111,6 @@ export interface VerifiedSource {
   origin: "db" | "github"
   repo: string
   commit: string
-  package: string | null
 }
 
 export async function fetchVerifiedSource(
@@ -146,7 +145,7 @@ Renders, under an h2 "Verified source":
 - **Byte match**: `98.69%`;
 - **Reproduced from**: `subfrost/subfrost-alkanes`;
 - **Commit**: `0748786d` (first 8 chars);
-- a link out: **"Browse the source on the explorer"** to `explorer.subfrost.io/alkane/{id}/source`.
+- a link out, built from `v.alkaneId`: **"Browse the source on the explorer"** to `explorer.subfrost.io/alkane/{id}/source`.
 
 Two deliberate choices:
 
@@ -180,27 +179,26 @@ revalidate this is a cache hit in the common case.
 
 ### 4. Tab assembly: `components/ecosystem/EcosystemProfile.tsx`
 
-`EcosystemProfile` already holds the full `p`, so it passes the resolved attestation down.
-`ProfileBody`'s props gain `verified: VerifiedSource | null` and `alkaneId: string | null`, and the
-tab is appended last, after Overview, the markdown sections and Contracts:
+`EcosystemProfile` gains an optional `verified` prop and hands it to `ProfileBody`, which appends
+the tab last, after Overview, the markdown sections and Contracts:
 
 ```ts
-if (verified && alkaneId) {
+if (verified) {
   tabs.push({ key: "source", label: copy.sourceTab })
-  panels.push(<VerifiedSource v={verified} alkaneId={alkaneId} copy={copy} />)
+  panels.push(<VerifiedSourcePanel v={verified} copy={copy.source} />)
 }
 ```
 
-Both values are threaded explicitly rather than passing `p` wholesale, matching how `contracts` is
-already handed to `ProfileBody` today, and avoiding a non-null assertion on `alkaneId`.
+`alkaneId` is **not** threaded separately: `VerifiedSource` already carries the `alkaneId` it was
+resolved for, so the panel builds its own explorer link from `v.alkaneId`. One source of truth, and
+no non-null assertion at the call site.
 
-**One existing branch needs widening.** `ProfileBody` has a `tabs.length === 1` path that renders
-the single panel with no tablist, and it prints a heading only when that tab's key is `contracts`.
-frBTC, ARBUZ and Alkane Pandas have **zero** tabs today, so Source becomes their only tab and would
-render with no heading at all. Concretely, the condition changes from `tabs[0].key === "contracts"`
-to `tabs[0].key === "contracts" || tabs[0].key === "source"`, and the heading text comes from
-`tabs[0].label` instead of the hardcoded `copy.contractsTitle`, so it stays correct in both
-locales and for whichever of the two it is.
+**No existing branch changes.** `ProfileBody` has a `tabs.length === 1` path that renders the lone
+panel with no tablist and prints a heading only for `contracts`. frBTC, ARBUZ and Alkane Pandas
+have **zero** tabs today, so Source becomes their only tab and would land in that path. Rather than
+widening the condition, the panel **owns its own `<h2>`**, which renders correctly in both layouts
+and leaves the existing `contracts` behaviour byte-identical. The component is named
+`VerifiedSourcePanel` so it does not collide with the `VerifiedSource` type where both are imported.
 
 ### 5. Point the contract rows at the explorer
 
