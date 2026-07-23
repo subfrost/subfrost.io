@@ -10,7 +10,6 @@ const copy: DirectoryCopy = {
   docs: "Docs",
   tabApps: "Apps",
   tabContracts: "Contracts",
-  comingSoon: "Coming soon",
   statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
 }
 
@@ -105,23 +104,38 @@ describe("EcosystemDirectory — kind tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Apps/ }))
     expect(screen.getByText("Bound")).toBeInTheDocument() // selection reset back to All
   })
-  it("Apps tab keeps its count; Contracts tab label loses its count", () => {
+  it("both tabs carry their own count", () => {
     render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
     const appsTab = screen.getByRole("tab", { name: /Apps/ })
     const contractsTab = screen.getByRole("tab", { name: /Contracts/ })
     // withContracts has 4 App-kind entries (projects) + 2 Contract-kind entries (diesel, wunsch).
+    // Asserted on the full textContent rather than on presence of the tab: a count rendered
+    // for the wrong kind, or dropped entirely, both show up here.
     expect(appsTab.textContent).toBe(copy.tabApps + "4")
-    expect(contractsTab.textContent).toBe(copy.tabContracts)
+    expect(contractsTab.textContent).toBe(copy.tabContracts + "2")
   })
-  it("switching to Contracts shows only the Coming soon placeholder — no chips or cards", () => {
+  it("switching to Contracts renders contract cards and its own chip row", () => {
     render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
     fireEvent.click(screen.getByRole("tab", { name: /Contracts/ }))
     expect(screen.getByRole("tab", { name: /Contracts/ })).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByText(copy.comingSoon)).toBeInTheDocument()
-    expect(screen.queryByText("DIESEL")).toBeNull()
-    expect(screen.queryByText("SUBFROST")).toBeNull()
-    expect(screen.queryByRole("group")).toBeNull() // category chip row gone
-    expect(screen.queryByRole("button", { name: /All/ })).toBeNull()
+    expect(screen.getByText("DIESEL")).toBeInTheDocument()
+    expect(screen.getByText("wunsch vault")).toBeInTheDocument()
+    expect(screen.queryByText("SUBFROST")).toBeNull() // App-kind stays out
+    // Launchpad exists only on the Contract-kind "wunsch" fixture, so its presence here
+    // proves the chip row is scoped to the active kind rather than to every project.
+    expect(screen.getByRole("button", { name: /Launchpad/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /All/ })).toBeInTheDocument()
+  })
+  it("filters contracts by category, and the cards link to their profiles", () => {
+    render(<EcosystemDirectory projects={withContracts} featuredBandEnabled copy={copy} />)
+    fireEvent.click(screen.getByRole("tab", { name: /Contracts/ }))
+    // Exact name, not /DIESEL/: the card renders two links whose names contain it, the
+    // stretched-link overlay ("DIESEL") and the alkane badge ("DIESEL on the SUBFROST
+    // explorer"). Only the overlay carries the internal profile href asserted here.
+    expect(screen.getByRole("link", { name: "DIESEL" })).toHaveAttribute("href", "/ecosystem/diesel")
+    fireEvent.click(screen.getByRole("button", { name: /Launchpad/ }))
+    expect(screen.getByText("wunsch vault")).toBeInTheDocument()
+    expect(screen.queryByText("DIESEL")).toBeNull() // filtered out by Launchpad
   })
 })
 
