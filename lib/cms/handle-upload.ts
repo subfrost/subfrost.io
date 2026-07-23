@@ -1,5 +1,6 @@
 import { sanitizeSvg } from "@/lib/cms/svg-sanitize"
 import { processRaster, optBaseName } from "@/lib/cms/image-process"
+import { extractRasterWrapper } from "@/lib/cms/svg-raster-wrapper"
 import { uploadOptimizedSet, uploadSvg, uploadImage, type ImagePrefix } from "@/lib/cms/gcs"
 
 type Kind = "avatar" | "cover" | "inline" | "ecosystem"
@@ -7,9 +8,10 @@ const PREFIX: Record<Kind, ImagePrefix> = {
   avatar: "avatars", cover: "covers", inline: "inline", ecosystem: "ecosystem",
 }
 
-// Orchestrates a single upload: SVG is sanitized and stored as-is; PNG/JPEG/WebP
-// are transcoded into an avif/webp/fallback set; anything else (gif) is stored
-// raw via the existing uploadImage path.
+// Orchestrates a single upload: a Figma-style SVG that only wraps an embedded
+// raster is unwrapped and transcoded like any bitmap; other SVG is sanitized and
+// stored as-is; PNG/JPEG/WebP are transcoded into an avif/webp/fallback set;
+// anything else (gif) is stored raw via the existing uploadImage path.
 export async function handleUpload(
   kind: Kind, contentType: string, data: Buffer, idHint: string,
 ): Promise<{ url: string }> {
@@ -18,6 +20,11 @@ export async function handleUpload(
   }
   const prefix = PREFIX[kind]
   if (contentType === "image/svg+xml") {
+    const wrapped = extractRasterWrapper(data.toString("utf8"))
+    if (wrapped) {
+      const set = await processRaster(wrapped.contentType, wrapped.data)
+      if (set) return uploadOptimizedSet(prefix, optBaseName(idHint, wrapped.data), set)
+    }
     return uploadSvg(prefix, idHint, sanitizeSvg(data))
   }
   const set = await processRaster(contentType, data)
