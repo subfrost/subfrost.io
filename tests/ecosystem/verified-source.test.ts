@@ -19,7 +19,7 @@ const FRBTC = {
 }
 
 const resOk = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
-const resStatus = (status: number) => ({ ok: false, status, json: async () => ({}) }) as unknown as Response
+const resStatus = (status: number) => ({ ok: false, status, json: async () => FRBTC }) as unknown as Response
 /** Deep-clones FRBTC and overrides one field of `source`. */
 const withSource = (over: Record<string, unknown>) =>
   resOk({ ok: true, source: { ...FRBTC.source, ...over } })
@@ -79,6 +79,25 @@ describe("fetchVerifiedSource", () => {
     expect(await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ repo: "not-a-url" })) as never)).toBeNull()
     expect(await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ repo: null })) as never)).toBeNull()
     expect(await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ commit: "" })) as never)).toBeNull()
+    // A branch name or ref, not a sha: would print under "Commit" as though it pinned a
+    // specific build, when it does not.
+    expect(await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ commit: "main" })) as never)).toBeNull()
+  })
+
+  it("returns null when a reproducible verdict carries a sub-100 match", async () => {
+    expect(await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ verdict: "reproducible", match_pct: 94.22 })) as never)).toBeNull()
+  })
+
+  it("accepts a reproducible verdict when the match is exactly 100", async () => {
+    const v = await fetchVerifiedSource("32:0", vi.fn(async () => withSource({ verdict: "reproducible", match_pct: 100 })) as never)
+    expect(v).toEqual({
+      alkaneId: "32:0",
+      verdict: "reproducible",
+      matchPct: 100,
+      origin: "db",
+      repo: "https://github.com/subfrost/subfrost-alkanes",
+      commit: "0748786d1eede608b56ecf1331fe9e1a7c65d463",
+    })
   })
 
   it("returns null on an unknown origin, which decides whether we link to GitHub", async () => {

@@ -15,8 +15,9 @@ import { isValidAlkaneId, isValidHttpUrl } from "@/lib/ecosystem/constants"
 /**
  * Default carries the working service key, matching how SUBFROST_RPC_URL is handled in
  * lib/ecosystem/simulate.ts. `subfrost` is the gateway's service key (flex, 2026-07-22:
- * "subfrost key should just be /v4/subfrost"), and the source API validates against the
- * same key store. No secret has to exist for this to work in CI or locally.
+ * "subfrost key should just be /v4/subfrost"), and it is the literal `/v1/subfrost/` segment
+ * of API_BASE below; the source API validates against the same key store. No secret has to
+ * exist for this to work in CI or locally.
  */
 const API_BASE =
   process.env.EXPLORER_SOURCE_API || "https://explorer.subfrost.io/api/v1/subfrost/source"
@@ -73,11 +74,16 @@ export async function fetchVerifiedSource(
     if (typeof matchPct !== "number" || !Number.isFinite(matchPct)) return null
     if (matchPct < 0 || matchPct > 100) return null
 
+    // `reproducible` is the explorer's byte-exact verdict, and the panel's note says so in
+    // as many words. A sub-100 match under that verdict would print a claim the number
+    // contradicts, so drop the attestation rather than render it.
+    if (verdict === "reproducible" && matchPct !== 100) return null
+
     const repo = src.repo
     if (typeof repo !== "string" || !isValidHttpUrl(repo)) return null
 
     const commit = src.commit
-    if (typeof commit !== "string" || commit.length === 0) return null
+    if (typeof commit !== "string" || !/^[0-9a-f]{7,64}$/i.test(commit)) return null
 
     return { alkaneId, verdict, matchPct, origin, repo, commit }
   } catch {

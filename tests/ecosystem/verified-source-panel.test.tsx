@@ -71,4 +71,16 @@ describe("VerifiedSourcePanel", () => {
     render(<VerifiedSourcePanel v={goji} copy={copy} />)
     expect(screen.getByText(/100%/)).toBeInTheDocument()
   })
+
+  it("truncates a near-100 match instead of rounding it up to a false 100%", () => {
+    render(<VerifiedSourcePanel v={{ ...frbtc, matchPct: 99.996 }} copy={copy} />)
+    expect(screen.queryByText(/100%/)).toBeNull()
+    expect(screen.getByText(/99\.99%/)).toBeInTheDocument()
+  })
+
+  it("trims a trailing zero without rounding a two-decimal match", () => {
+    render(<VerifiedSourcePanel v={{ ...frbtc, matchPct: 98.6 }} copy={copy} />)
+    expect(screen.getByText(/98\.6%/)).toBeInTheDocument()
+    expect(screen.queryByText(/98\.60%/)).toBeNull()
+  })
 })

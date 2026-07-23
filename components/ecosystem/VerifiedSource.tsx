@@ -1,3 +1,4 @@
+import { alkaneExplorerUrl } from "@/lib/ecosystem/constants"
 import { repoShortName, type VerifiedSource } from "@/lib/ecosystem/verified-source"
 
 export interface VerifiedSourceCopy {
@@ -16,6 +17,21 @@ const dtCls = "font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:v
 const monoCls = "font-mono text-[12.5px] text-[color:var(--ed-ink)]"
 
 /**
+ * Formats a 0-100 match percentage by truncating (never rounding) to at most two decimals,
+ * then trimming genuine trailing zeros. Rounding is the wrong operation here: `toFixed(2)`
+ * on 99.996 rounds up to "100.00", which would print a byte-exact claim the number does not
+ * support (100% is reserved for a verdict-backed exact match, not a rounding artifact).
+ * `toFixed(10)` sidesteps the binary floating-point noise a direct `* 100` would carry (e.g.
+ * 98.6 stored as 98.59999999999999) before the string is cut, so a genuine 100 still prints
+ * "100" and 98.6 prints "98.6" rather than "98.60".
+ */
+function formatMatchPct(pct: number): string {
+  const [whole, frac = ""] = pct.toFixed(10).split(".")
+  const truncated = frac.slice(0, 2).replace(/0+$/, "")
+  return truncated ? `${whole}.${truncated}` : whole
+}
+
+/**
  * The explorer's attestation for one alkane. A server component on purpose: static markup,
  * no state, no handlers. Verifying is an interactive feature and stays in the explorer
  * (flex: "On subfrost.io I don't want user interactive features").
@@ -30,8 +46,7 @@ export function VerifiedSourcePanel({ v, copy }: { v: VerifiedSource; copy: Veri
   // Same greens and ambers as STATUS_COLOR in components/ecosystem/visuals.tsx.
   const color = isRepro ? "#178a4c" : "#b7791f"
   const short = repoShortName(v.repo)
-  // Number() drops a trailing .00, so a 100% match reads "100%" and 98.69 stays "98.69%".
-  const match = `${Number(v.matchPct.toFixed(2))}%`
+  const match = `${formatMatchPct(v.matchPct)}%`
 
   return (
     <section>
@@ -76,7 +91,7 @@ export function VerifiedSourcePanel({ v, copy }: { v: VerifiedSource; copy: Veri
       </dl>
 
       <a
-        href={`https://explorer.subfrost.io/alkane/${v.alkaneId}/source`}
+        href={`${alkaneExplorerUrl(v.alkaneId)}/source`}
         target="_blank" rel="noopener noreferrer"
         className="mt-6 inline-flex items-center gap-1 rounded-[7px] border border-[color:var(--ed-hair)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)] hover:bg-[color:var(--ed-surface)]"
       >
