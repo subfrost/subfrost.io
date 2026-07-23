@@ -114,6 +114,40 @@ describe("EcosystemProfile v2 — banner + tabs", () => {
     expect(screen.getByText("Just a short blurb.")).toBeInTheDocument()
   })
 
+  it("suppresses both market slots on a contract page", () => {
+    // Gabe, 2026-07-23, with a screenshot of /ecosystem/fire: "I think we still need to drop
+    // these stats from contract pages". The shot framed all four, the three stat cards and the
+    // 90d chart. The upstream numbers were also wrong there (FIRE read SUPPLY 5845.6B, frBTC
+    // 10.1B for an asset pegged 1:1 to BTC), which is the "inaccurate info" he first flagged.
+    render(
+      <EcosystemProfile
+        p={profile({ kind: "Contract" })}
+        copy={copy}
+        backHref="/ecosystem"
+        statHero={<div data-testid="stat-hero-slot" />}
+        priceChart={<div data-testid="price-chart-slot" />}
+      />,
+    )
+    expect(screen.queryByTestId("stat-hero-slot")).toBeNull()
+    expect(screen.queryByTestId("price-chart-slot")).toBeNull()
+  })
+
+  it("keeps both market slots on an app page", () => {
+    // The other half of the guard: without this, deleting the whole slot render would still
+    // leave the test above green.
+    render(
+      <EcosystemProfile
+        p={profile({ kind: "App" })}
+        copy={copy}
+        backHref="/ecosystem"
+        statHero={<div data-testid="stat-hero-slot" />}
+        priceChart={<div data-testid="price-chart-slot" />}
+      />,
+    )
+    expect(screen.getByTestId("stat-hero-slot")).toBeInTheDocument()
+    expect(screen.getByTestId("price-chart-slot")).toBeInTheDocument()
+  })
+
   it("renders the priceChart slot after the header", () => {
     render(
       <EcosystemProfile
