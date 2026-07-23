@@ -9,6 +9,8 @@ import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
 import type { StatHeroCopy } from "./StatHero"
 import type { PriceChartCopy } from "./PriceChart"
 import { ProfileTabs } from "./ProfileTabs"
+import { VerifiedSourcePanel, type VerifiedSourceCopy } from "@/components/ecosystem/VerifiedSource"
+import type { VerifiedSource } from "@/lib/ecosystem/verified-source"
 
 export interface ProfileCopy {
   back: string
@@ -20,6 +22,8 @@ export interface ProfileCopy {
   contractCol: string
   idCol: string
   notesCol: string
+  sourceTab: string
+  source: VerifiedSourceCopy
   statuses: Record<string, string>
   stats: StatHeroCopy
   chart: PriceChartCopy
@@ -28,12 +32,13 @@ export interface ProfileCopy {
 const btnCls =
   "inline-flex items-center gap-1 rounded-[7px] border border-[color:var(--ed-hair)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--ed-accent)] transition-colors hover:border-[color:var(--ed-ice)] hover:bg-[color:var(--ed-surface)]"
 
-export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
+export function EcosystemProfile({ p, copy, backHref, statHero, priceChart, verified }: {
   p: PublicEcosystemProfile
   copy: ProfileCopy
   backHref: string
   statHero?: ReactNode
   priceChart?: ReactNode
+  verified?: VerifiedSource | null
 }) {
   const { intro, sections } = splitProfileSections(p.profile)
   // The Overview tab is rendered from `intro`. When it exists it already carries the project's
@@ -85,16 +90,17 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart }: {
 
       {priceChart ?? null}
 
-      <ProfileBody intro={intro} sections={sections} contracts={p.contracts} copy={copy} />
+      <ProfileBody intro={intro} sections={sections} contracts={p.contracts} copy={copy} verified={verified ?? null} />
     </article>
   )
 }
 
-function ProfileBody({ intro, sections, contracts, copy }: {
+function ProfileBody({ intro, sections, contracts, copy, verified }: {
   intro: string
   sections: ReturnType<typeof splitProfileSections>["sections"]
   contracts: PublicEcosystemProfile["contracts"]
   copy: ProfileCopy
+  verified: VerifiedSource | null
 }) {
   const tabs: { key: string; label: string }[] = []
   const panels: ReactNode[] = []
@@ -109,6 +115,10 @@ function ProfileBody({ intro, sections, contracts, copy }: {
   if (contracts.length > 0) {
     tabs.push({ key: "contracts", label: copy.contractsTitle })
     panels.push(<ContractsTable contracts={contracts} copy={copy} />)
+  }
+  if (verified) {
+    tabs.push({ key: "source", label: copy.sourceTab })
+    panels.push(<VerifiedSourcePanel v={verified} copy={copy.source} />)
   }
   if (tabs.length === 0) return null
   if (tabs.length === 1) {
@@ -149,7 +159,7 @@ function ContractsTable({ contracts, copy }: { contracts: PublicEcosystemProfile
               <td className="py-2.5 pr-4 text-[color:var(--ed-ink)]">{c.label}</td>
               <td className="py-2.5 pr-4">
                 <a
-                  href={`https://espo.sh/alkane/${c.alkaneId}`}
+                  href={alkaneExplorerUrl(c.alkaneId)}
                   target="_blank" rel="noopener noreferrer"
                   className="font-mono text-[12.5px] text-[color:var(--ed-accent)] hover:underline"
                 >
