@@ -41,6 +41,19 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart, veri
   verified?: VerifiedSource | null
 }) {
   const { intro, sections } = splitProfileSections(p.profile)
+  /**
+   * Holders, supply, price and the 90d chart are for products, not for contracts. Gabe,
+   * 2026-07-23: "I think we still need to drop these stats from contract pages", with a
+   * screenshot of /ecosystem/fire framing all four. It restates the note he opened with in
+   * July: "Inaccurate info at the bottom here. I dont think that info belongs on these
+   * contract pages anyways."
+   *
+   * Keyed on `kind` rather than on the `showMarketStats` column, which reads "this project is
+   * a fungible traded token". FIRE and DIESEL are exactly that, so flipping the column to hide
+   * a panel would store a false statement to win a layout argument. The slots still arrive from
+   * the page; suppressing them here keeps the rule in one place and testable.
+   */
+  const showsMarketPanels = p.kind !== "Contract"
   // The Overview tab is rendered from `intro`. When it exists it already carries the project's
   // pitch, so repeating `description` in the header prints the same paragraph twice on one page
   // (8 of 25 published projects did). `description` still owns every directory card.
@@ -86,9 +99,9 @@ export function EcosystemProfile({ p, copy, backHref, statHero, priceChart, veri
         </div>
       </header>
 
-      {statHero ?? null}
+      {showsMarketPanels ? statHero ?? null : null}
 
-      {priceChart ?? null}
+      {showsMarketPanels ? priceChart ?? null : null}
 
       <ProfileBody intro={intro} sections={sections} contracts={p.contracts} copy={copy} verified={verified ?? null} />
     </article>
