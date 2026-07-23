@@ -139,7 +139,8 @@ export default function PrivacyPolicyPage() {
                 your destination and refund wallet addresses, the assets and amount, and (once
                 settled) the on-chain transaction hashes are shared with the provider to execute the
                 exchange. No email, identity, or KYC information is shared for cross-chain swaps. This
-                feature is off by default.
+                feature is off by default and is available only on Android and the browser extension;
+                it is not present in the iOS app.
               </p>
             </section>
 
