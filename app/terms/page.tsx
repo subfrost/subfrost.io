@@ -82,6 +82,8 @@ export default function TermsOfServicePage() {
                   Privacy Policy
                 </Link>
                 . If you do not use a given feature, its terms and data collection do not apply to you.
+                Cross-chain swaps and SUBFROST Pay are available only on Android and, where noted, the
+                browser extension; neither is present in the iOS app.
               </p>
             </section>
 
