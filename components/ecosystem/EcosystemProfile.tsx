@@ -149,7 +149,7 @@ function ContractsTable({ contracts, copy }: { contracts: PublicEcosystemProfile
               <td className="py-2.5 pr-4 text-[color:var(--ed-ink)]">{c.label}</td>
               <td className="py-2.5 pr-4">
                 <a
-                  href={`https://espo.sh/alkane/${c.alkaneId}`}
+                  href={alkaneExplorerUrl(c.alkaneId)}
                   target="_blank" rel="noopener noreferrer"
                   className="font-mono text-[12.5px] text-[color:var(--ed-accent)] hover:underline"
                 >

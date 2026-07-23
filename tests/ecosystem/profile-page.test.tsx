@@ -44,14 +44,17 @@ describe("EcosystemProfile", () => {
       "href", "https://explorer.subfrost.io/alkane/2:25349")
   })
 
-  it("renders contracts table with espo.sh links", () => {
+  it("renders contracts table linking each row to the SUBFROST explorer", () => {
     render(<EcosystemProfile p={profile({})} copy={copy} backHref="/ecosystem" />)
-    // Contracts is now a tab label rather than a standalone heading — click it
-    // to reveal the table, preserving the original intent of this test.
-    expect(screen.getByRole("tab", { name: "Contracts" })).toBeInTheDocument()
+    // Contracts is a tab label rather than a standalone heading: click it to reveal the table.
     fireEvent.click(screen.getByRole("tab", { name: "Contracts" }))
     expect(screen.getByText("Fireball game")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "4:257 ↗" })).toHaveAttribute("href", "https://espo.sh/alkane/4:257")
+    // Asserted on the href, not the link text: the id renders identically whatever the
+    // destination, so a label-based assertion here would survive the destination changing.
+    expect(screen.getByRole("link", { name: "4:257 ↗" })).toHaveAttribute(
+      "href", "https://explorer.subfrost.io/alkane/4:257")
+    expect(screen.getByRole("link", { name: "4:777 ↗" })).toHaveAttribute(
+      "href", "https://explorer.subfrost.io/alkane/4:777")
   })
 
   it("omits body and contracts sections when empty", () => {
