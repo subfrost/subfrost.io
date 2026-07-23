@@ -2,6 +2,20 @@ import { describe, it, expect } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import { EcosystemProfile, type ProfileCopy } from "@/components/ecosystem/EcosystemProfile"
 import type { PublicEcosystemProfile } from "@/lib/ecosystem/public"
+import type { VerifiedSourceCopy } from "@/components/ecosystem/VerifiedSource"
+import type { VerifiedSource } from "@/lib/ecosystem/verified-source"
+
+const sourceCopy: VerifiedSourceCopy = {
+  verifiedSourceTitle: "Verified source",
+  verdictReproducible: "Reproducible",
+  verdictVerified: "Verified",
+  verdictReproducibleNote: "The rebuilt wasm is byte-exact to the on-chain bytecode.",
+  verdictVerifiedNote: "Logic and structure match, with a small host-dependent residual in build metadata.",
+  matchLabel: "Byte match",
+  reproducedFrom: "Reproduced from",
+  commitLabel: "Commit",
+  browseOnExplorer: "Browse the source on the explorer",
+}
 
 const copy: ProfileCopy = {
   back: "← Ecosystem", disclaimer: "Discovery only; not endorsed by SUBFROST.", website: "Website", docs: "Docs", overview: "Overview",
@@ -9,6 +23,7 @@ const copy: ProfileCopy = {
   statuses: { Live: "Live", Beta: "Beta", Building: "Building" },
   stats: { holders: "Holders", supply: "Supply", price: "Price" },
   chart: { title: "Price (90d)" },
+  sourceTab: "Source", source: sourceCopy,
 }
 
 const profile = (over: Partial<PublicEcosystemProfile>): PublicEcosystemProfile => ({
@@ -169,4 +184,44 @@ describe("EcosystemProfile — first-party disclaimer suppression", () => {
       expect(screen.queryByText("Discovery only; not endorsed by SUBFROST.")).toBeNull()
     },
   )
+})
+
+describe("EcosystemProfile — Verified source tab", () => {
+  const verified: VerifiedSource = {
+    alkaneId: "2:25349", verdict: "verified", matchPct: 98.84, origin: "github",
+    repo: "https://github.com/Misha-btc/Acai", commit: "6fe96cb1234567890",
+  }
+
+  it("adds a Source tab when the alkane has a verified source", () => {
+    render(<EcosystemProfile p={profile({})} copy={copy} backHref="/ecosystem" verified={verified} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Source" }))
+    expect(screen.getByRole("heading", { name: "Verified source" })).toBeInTheDocument()
+    expect(screen.getByText(/98\.84%/)).toBeInTheDocument()
+  })
+
+  it("omits the Source tab entirely when there is no verified source", () => {
+    render(<EcosystemProfile p={profile({})} copy={copy} backHref="/ecosystem" verified={null} />)
+    expect(screen.queryByRole("tab", { name: "Source" })).toBeNull()
+    expect(screen.queryByText("Verified source")).toBeNull()
+  })
+
+  it("omits the Source tab when the prop is not passed at all", () => {
+    render(<EcosystemProfile p={profile({})} copy={copy} backHref="/ecosystem" />)
+    expect(screen.queryByRole("tab", { name: "Source" })).toBeNull()
+  })
+
+  it("renders the panel with its own heading when Source is the only tab", () => {
+    // frBTC in production: no profile markdown and no contract rows, so Source is its
+    // first and only tab and ProfileBody renders it through the no-tablist branch.
+    render(
+      <EcosystemProfile
+        p={profile({ profile: "", contracts: [] })}
+        copy={copy}
+        backHref="/ecosystem"
+        verified={verified}
+      />,
+    )
+    expect(screen.queryByRole("tablist")).toBeNull()
+    expect(screen.getByRole("heading", { name: "Verified source" })).toBeInTheDocument()
+  })
 })
