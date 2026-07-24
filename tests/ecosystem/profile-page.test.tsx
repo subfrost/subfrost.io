@@ -209,9 +209,9 @@ describe("EcosystemProfile — first-party disclaimer suppression", () => {
     expect(screen.getByText("Discovery only; not endorsed by SUBFROST.")).toBeInTheDocument()
   })
   // Hardcoded list (not imported from FIRST_PARTY_SLUGS) so that dropping or mistyping any of
-  // the four slugs in the source set is caught here — that profile would start showing the
+  // the slugs in the source set is caught here — that profile would start showing the
   // third-party disclaimer again, which is exactly the regression this asserts against.
-  it.each(["diesel", "frbtc", "fire", "subfrost"])(
+  it.each(["diesel", "frbtc", "fire", "subfrost", "pair-equality-predicate"])(
     "hides the disclaimer for first-party %s",
     (slug) => {
       render(<EcosystemProfile p={profile({ slug })} copy={copy} backHref="/ecosystem" />)
