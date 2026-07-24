@@ -17,6 +17,7 @@
  * GET  /api/admin/keys   -> list keys (prefix, name, owner, role, revoked)
  */
 import { NextRequest, NextResponse } from "next/server"
+import { requireAdminSecret } from "@/lib/api/service-key"
 import { z } from "zod"
 import { createHash, randomBytes } from "crypto"
 import prisma from "@/lib/prisma"
@@ -25,14 +26,8 @@ export const runtime = "nodejs" // randomBytes + prisma need the Node runtime
 export const dynamic = "force-dynamic"
 
 function authorize(request: NextRequest): NextResponse | null {
-  const secret = process.env.ADMIN_SECRET
-  if (!secret) {
-    return NextResponse.json({ error: "ADMIN_SECRET not configured" }, { status: 503 })
-  }
-  if (request.headers.get("x-admin-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  return null
+  // 7-24 audit: constant-time compare via the shared guard (was a plain `!==`).
+  return requireAdminSecret(request)
 }
 
 function sha256(token: string): string {

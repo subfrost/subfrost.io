@@ -9,20 +9,16 @@
  * This is useful for monitoring sync progress and detecting issues.
  */
 import { NextResponse } from 'next/server';
+import { requireAdminSecret } from '@/lib/api/service-key';
 import { isLocked } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
     // Require a configured secret; never fall back to a default.
-    const expectedSecret = process.env.ADMIN_SECRET;
-    if (!expectedSecret) {
-      return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 });
-    }
-    const authHeader = request.headers.get('x-admin-secret');
-    if (authHeader !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // 7-24 audit: constant-time compare via the shared guard (was a plain `!==`).
+    const denied = requireAdminSecret(request);
+    if (denied) return denied;
 
     // Check all lock statuses
     const [
