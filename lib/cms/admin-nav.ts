@@ -4,7 +4,7 @@ import {
   ClipboardList, Settings, KeyRound, ScrollText, Webhook, Network, LayoutDashboard, Banknote, Wallet,
   FileSignature, UserCheck, PieChart, Handshake, Scale, FolderOpen, LineChart, Camera, BarChart3,
   KanbanSquare, Target, Package, Gavel, Building2, Image, Github, CalendarClock, TrendingUp, AtSign,
-  Contact, Siren, Boxes, Coins,
+  Contact, Siren, Boxes, Coins, Bug,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Privilege } from "@/lib/cms/privileges"
@@ -125,6 +125,7 @@ export const NAV_GROUPS: NavGroup[] = [
     // admin login may raise an emergency page.
     key: "ops", label: "Ops", icon: Siren, items: [
       { label: "Pager", href: "/admin/pager", icon: Siren },
+      { label: "App errors", href: "/admin/errors", icon: Bug, privilege: "errors.view" },
     ],
   },
   {
