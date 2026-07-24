@@ -18,7 +18,7 @@ const copy = {
     heroSub: "frBTC supply",
     building: "History building since",
     updated: "Last updated",
-    card: { share: "Copy card link", copied: "Copied!", post: "Post on X", sevenDays: "7d" },
+    card: { share: "Copy card link", copied: "Copied!", post: "Post on X", sevenDays: "7d", protocolVolume: "Protocol volume" },
     opreturn: {
       title: "Alkanes on-chain activity",
       note: "Sampled data from our open-source OP_RETURN scanner. An exact full-chain engine is in the works.",
@@ -148,7 +148,7 @@ const copy = {
     heroSub: "frBTC 供应量",
     building: "历史数据积累开始于",
     updated: "最近更新",
-    card: { share: "复制卡片链接", copied: "已复制!", post: "发布到 X", sevenDays: "7天" },
+    card: { share: "复制卡片链接", copied: "已复制!", post: "发布到 X", sevenDays: "7天", protocolVolume: "协议交易量" },
     opreturn: {
       title: "Alkanes 链上活动",
       note: "数据来自我们开源的 OP_RETURN 扫描器（抽样统计）。精确的全链引擎正在开发中。",

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import Link from "next/link"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import type { SeriesPoint } from "@/lib/marketing/protocol-series"
 import { CARD_METRICS, formatMetricValue, type PublicMetricKey } from "@/lib/marketing/public-data"
@@ -11,7 +12,12 @@ export interface DataCardCopy {
   copied: string
   post: string
   sevenDays: string
+  protocolVolume: string
 }
+
+// The two BTC-denominated boxes (frBTC supply and BTC locked) link out to the volume
+// page; the DIESEL/FIRE cards don't. Requested by Gabe, 2026-07-24.
+const VOLUME_LINK_METRICS: ReadonlySet<PublicMetricKey> = new Set(["btc-locked", "frbtc-supply"])
 
 // Token icons shown next to each card label. DIESEL/FIRE/frBTC are the same assets the
 // /ecosystem profiles use (CMS bucket); BTC ships in public/. Pairs show both tokens.
@@ -91,6 +97,16 @@ export function MetricCard({
             </LineChart>
           </ResponsiveContainer>
         </div>
+      ) : null}
+      {VOLUME_LINK_METRICS.has(metric) ? (
+        <Link
+          href={locale === "zh" ? "/volume?lang=zh" : "/volume"}
+          className="inline-flex w-fit items-center gap-0.5 text-xs font-medium hover:underline"
+          style={{ color: "var(--ed-accent)" }}
+        >
+          {copy.protocolVolume}
+          <span aria-hidden="true">↗</span>
+        </Link>
       ) : null}
     </div>
   )
