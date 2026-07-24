@@ -6,16 +6,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminSecret } from '@/lib/api/service-key';
 import { prisma } from '@/lib/prisma';
 import { getRedisClient } from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   try {
     // Check admin authentication
-    const adminSecret = request.headers.get('x-admin-secret');
-    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // 7-24 audit: constant-time compare via the shared guard. Also fixes this
+    // route reporting an unset ADMIN_SECRET as 401 rather than 503 — it still
+    // failed closed, but the status lied about whose fault it was.
+    const denied = requireAdminSecret(request);
+    if (denied) return denied;
 
     const results = {
       redis: { cleared: false, keys: 0 },

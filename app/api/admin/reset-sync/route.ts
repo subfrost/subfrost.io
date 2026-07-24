@@ -7,20 +7,16 @@
  * WARNING: This is an admin-only operation.
  */
 import { NextResponse } from 'next/server';
+import { requireAdminSecret } from '@/lib/api/service-key';
 import { prisma } from '@/lib/prisma';
 import { cacheDel, isLocked, getRedisClient } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
     // Require a configured secret; never fall back to a default.
-    const expectedSecret = process.env.ADMIN_SECRET;
-    if (!expectedSecret) {
-      return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 });
-    }
-    const authHeader = request.headers.get('x-admin-secret');
-    if (authHeader !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // 7-24 audit: constant-time compare via the shared guard (was a plain `!==`).
+    const denied = requireAdminSecret(request);
+    if (denied) return denied;
 
     console.log('[Admin] Resetting wrap/unwrap sync state...');
 

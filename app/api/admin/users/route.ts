@@ -16,6 +16,7 @@
  *   curl https://subfrost.io/api/admin/users -H "x-admin-secret: $ADMIN_SECRET"
  */
 import { NextRequest, NextResponse } from "next/server"
+import { requireAdminSecret } from "@/lib/api/service-key"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
@@ -25,14 +26,8 @@ export const dynamic = "force-dynamic"
 
 // Returns a NextResponse to short-circuit on failure, or null when authorized.
 function authorize(request: NextRequest): NextResponse | null {
-  const secret = process.env.ADMIN_SECRET
-  if (!secret) {
-    return NextResponse.json({ error: "ADMIN_SECRET not configured" }, { status: 503 })
-  }
-  if (request.headers.get("x-admin-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  return null
+  // 7-24 audit: constant-time compare via the shared guard (was a plain `!==`).
+  return requireAdminSecret(request)
 }
 
 const bodySchema = z.object({
