@@ -1558,6 +1558,13 @@ struct ArticlesArgs {
 enum ArticlesCommand {
     /// List articles (GET /api/v1/articles).
     List,
+    /// Get one article's full content — all locales incl. excerpt/sources, tags,
+    /// co-authors (GET /api/v1/articles/:id). Shaped as the upload input, so
+    /// `get > file.json`, edit, then `upload file.json` round-trips safely.
+    Get {
+        /// Article id.
+        id: String,
+    },
     /// Delete an article (DELETE /api/v1/articles/:id).
     Delete {
         /// Article id.
@@ -1585,6 +1592,10 @@ fn run_articles(api: &ApiClient, args: &ArticlesArgs, j: bool) -> Result<()> {
                 "articles",
                 &["id", "slug", "title", "published", "publishedAt"],
             );
+        }
+        ArticlesCommand::Get { id } => {
+            let r = api.get_json(&format!("/api/v1/articles/{id}"))?;
+            output::render_object(&r, j);
         }
         ArticlesCommand::Delete { id } => {
             let r = api.delete_json::<Value>(&format!("/api/v1/articles/{id}"), None)?;
